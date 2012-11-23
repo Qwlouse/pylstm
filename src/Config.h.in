@@ -1,0 +1,34 @@
+/**
+ * \file Config.h
+ * \author Klaus Greff
+ * \brief Configures several things.
+ *
+ */
+#pragma once
+
+// ========================== Project Information ==============================
+// Version Information as set in root CMakeLists.txt
+#define VERSION_MAJOR @VERSION_MAJOR@
+#define VERSION_MINOR @VERSION_MINOR@
+#define PROJECT_CONFIG_DIR "@PROJECT_SOURCE_DIR@/config"
+#define PROJECT_BINARY_DIR "@PROJECT_BINARY_DIR@"
+
+// ========================== Common Macros ====================================
+// A macro to disallow the copy constructor and operator= functions
+// This has to be used in the private: declarations for a class
+#define DISALLOW_COPY_AND_ASSIGN(TypeName) \
+  TypeName(const TypeName&);               \
+  void operator=(const TypeName&);
+
+// ========================== Configuring Logging ==============================
+// Enable logging at all?
+#cmakedefine LOGGING_ENABLED
+
+// The Log-level to be used. 0 = None, 6 = Trace
+#define LOG_LEVEL @LOG_LEVEL@
+
+// Which kind of logging to be used LOGGING_CERR or LOGGING_LOG4CXX
+#define LOGGING_LOG4CXX
+
+// ========================== Configure Asserts ================================
+#cmakedefine ASSERTS_ENABLED

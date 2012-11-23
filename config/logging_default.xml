@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+ <log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+    <!-- Output the log message to system console. -->
+    <appender name="MyConsoleAppender" class="org.apache.log4j.ConsoleAppender">
+        <param name="Target" value="System.out"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%-5p %c{1} - %m%n"/>
+        </layout>
+    </appender>
+
+
+    <!-- Output the log message to a log file named "NormalLogFile.log"  -->
+    <appender name="MyNormalAppender" class="org.apache.log4j.FileAppender">
+        <param name="file" value="NormalLogFile.log" />
+        <param name="append" value="true" />
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %5p %c{1} - %m%n" />
+        </layout>
+    </appender>
+
+
+    <!-- the following appender with the name "TimeBasedLog.log", every night a few seconds after
+         12::00PM the old log will be renamed with append the date in filename, and a new log file
+         with the name "TimeBasedLog.log" will be create.
+         notice the RollingFileAppender is under "org.apache.log4j.rolling" namespace
+    -->
+    <appender name="MyRollingAppenderDaily" class="org.apache.log4j.rolling.RollingFileAppender">
+        <rollingPolicy class="org.apache.log4j.rolling.TimeBasedRollingPolicy">
+            <param name="FileNamePattern" value="TimeBasedLog.%d{yyyy-MM-dd}.log"/>
+            <param name="activeFileName" value="TimeBasedLog.log"/>
+        </rollingPolicy>
+
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d{yyyy-MM-dd HH:mm:ss,SSS} %x [%p] (%F:%L) %m%n"/>
+        </layout>
+        <param name="file" value="TimeBasedLog.log"/>
+        <param name="append" value="true"/>
+    </appender>
+
+
+    <!-- On application startup, a log file named "SizeBasedLog.log" will be create if not exist.
+         When the log file reach beyond 5KB, it will be renamed "SizeBasedLog.log.1", when the log
+         index reach "SizeBasedLog.log.5", the next rename will be back to "SizeBasedLog.log.1" and
+         overite the old log.
+    -->
+    <appender name="MyRollingAppenderSize" class="org.apache.log4j.RollingFileAppender">
+        <param name="file" value="SizeBasedLog.log"/>
+        <param name="append" value="true"/>
+        <param name="MaxFileSize" value="5KB"/>
+        <param name="MaxBackupIndex" value="5"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%c] %m%n"/>
+        </layout>
+    </appender>
+
+
+    <!-- the following appender creates a logfile in log4j XML format, suitable to viewing with
+         XML log viewer such as Chainsaw (http://logging.apache.org/log4j/docs/chainsaw.html)
+    -->
+    <appender name="MyLogFileAppenderXml" class="org.apache.log4j.RollingFileAppender">
+        <param name="file" value="XmlLog.txt" />
+        <param name="append" value="true" />
+        <param name="ImmediateFlush" value="true" />
+        <layout class="org.apache.log4j.xml.XMLLayout" />
+    </appender>
+
+
+    <!-- This appender will send email through SMTP server.
+    -->
+    <appender name="MySMTPAppenderEmail" class="org.apache.log4j.net.SMTPAppender">
+        <param name="BufferSize" value="512" />
+        <param name="SMTPHost" value="smtp.youremailserver.com" />
+        <param name="SMTPPort" value="25" />
+        <param name="From" value="yourname@youremailserver.com (mailto:yourname@youremailserver.com)" />
+        <param name="To" value="yourname@youremailserver.com (mailto:yourname@youremailserver.com)" />
+        <param name="CC" value="someoneelse@youremailserver.com (mailto:someoneelse@youremailserver.com)" />
+        <param name="SMTPUsername" value="yourusername" />
+        <param name="SMTPPassword" value="yourpassword" />
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="[%d{ABSOLUTE},%c{1}] %m%n"/>
+        </layout>
+    </appender>
+
+
+    <!-- This appender will write the log message to a database through ODBC connection
+         to Database.
+    -->
+    <appender name="MyOdbcMysqlAppender" class="org.apache.log4j.odbc.ODBCAppender">
+        <param name="URL" value="Driver={MySQL ODBC 5.1 Driver};Server=localhost;Database=errorlog;User=logger;Password=abc123;Option=3;"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="INSERT INTO errorlog (errormessage) VALUES ('%d - %c - %p - %m')"/>
+        </layout>
+    </appender>
+
+    <appender name="MyOdbcPostgresAppender" class="org.apache.log4j.odbc.ODBCAppender">
+        <param name="URL" value="Driver={PostgreSQL UNICODE};Server=localhost;Port=5432;Database=errorlog;Uid=postgres;Pwd=abc123;"/>
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="INSERT INTO errorlog (errormessage) VALUES ('%d - %c - %p - %m')"/>
+        </layout>
+    </appender>
+
+
+    <!-- This appender will write log message and send it through XMLSocketAppender, a receiver
+         with XMLSocketReceiver such as Chainsaw (http://logging.apache.org/log4j/docs/chainsaw.html)
+         will be able to receive and interpret it.
+    -->
+    <appender name="MyXmlAppender" class="org.apache.log4j.net.XMLSocketAppender">
+        <param name="Port" value="1234"/>
+        <param name="RemoteHost" value="10.7.5.15"/>
+        <param name="ReconnectionDelay" value="60000"/>
+        <param name="LocationInfo" value="true" />
+    </appender>
+
+
+    <!-- Using XMLSocketAppender couple with pattern layout to send text lines to
+         a ordinary TCP listener, any application that implements TCP socuket listening
+         will be able to receive the log message.
+    -->
+    <appender name="MyXmlAppenderFormated" class="org.apache.log4j.net.XMLSocketAppender">
+        <param name="Port" value="1235"/>
+        <param name="RemoteHost" value="localhost"/>
+        <param name="ReconnectionDelay" value="60000"/>
+        <param name="LocationInfo" value="true" />
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %-5p [%c] %m%n"/>
+        </layout>
+    </appender>
+
+
+    <!-- Setup the root category, add the appenders and set the default level
+         5 level of logging,  ALL < DEBUG < INFO < WARN < ERROR < FATAL
+         The root level is set with INFO, which mean any message greater or same
+         as INFO will be log down, in this case, DEBUG is not logged.
+         To log all regardless of logging level, set <priority value="ALL">
+    -->
+    <root>
+        <appender-ref ref="MyConsoleAppender"/>
+        <!-- <priority value="all" />
+        <appender-ref ref="MyRollingAppenderDaily"/>
+        <appender-ref ref="MyRollingAppenderSize"/>
+        <appender-ref ref="MyLogFileAppenderXml"/>
+        <appender-ref ref="MyXmlAppenderFormated"/>
+        <appender-ref ref="MyXmlAppender"/>
+        <appender-ref ref="MyOdbcMysqlAppender"/>
+        <appender-ref ref="MyOdbcPostgresAppender"/>-->
+    </root>
+
+    <!-- Specify the level for some specific categories
+    <category name="MyFunctionA" >
+        <priority value ="info" />
+        <appender-ref ref="MyNormalAppender" />
+    </category>-->
+
+ </log4j:configuration>
