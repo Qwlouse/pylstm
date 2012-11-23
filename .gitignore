@@ -1,0 +1,5 @@
+# PyCharm project
+.idea
+
+# gedit temporary files
+*~
