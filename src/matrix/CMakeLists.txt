@@ -1,0 +1,8 @@
+# The matrix library
+ADD_LIBRARY(matrix STATIC
+             )
+
+IF(LOGGING_ENABLED)
+    TARGET_LINK_LIBRARIES(core ${LOG4CXX_LIBRARIES})
+ENDIF(LOGGING_ENABLED)
+
