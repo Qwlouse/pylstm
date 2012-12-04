@@ -43,6 +43,11 @@ SET(LOG_LEVEL 5 CACHE INTEGER "Compile-time log level (0 = NONE - 6 = TRACE)")
 # Enable Asserts
 OPTION(ASSERTS_ENABLED "Enable asserts" OFF)
 
+# Compile the tests
+OPTION(UNIT_TESTS "Compile the unit tests (fetches GTest)" OFF)
+IF (UNIT_TESTS)
+    INCLUDE(GetGTest)
+ENDIF(UNIT_TESTS)
 
 # Build the Documentation using Doxygen
 OPTION(DOCUMENTATION "Build the Documentation using Doxygen" OFF)
@@ -59,7 +64,7 @@ SET( ENV{EXTERNAL_WARNINGS_NOT_ERRORS} TRUE)
 IF(DEFINED MSVC)
     ADD_DEFINITIONS(/W3 /wd4996)
 ELSEIF(CMAKE_COMPILER_IS_GNUCXX)
-    ADD_DEFINITIONS(-Wall -Wextra -pedantic -ansi -Weffc++ -Wno-sign-compare 
+    ADD_DEFINITIONS(-Wall -Wextra -Wno-sign-compare -ansi #-Weffc++ -pedantic
                     -Wconversion -Werror)
 ENDIF(DEFINED MSVC)
 
@@ -85,6 +90,15 @@ INCLUDE_DIRECTORIES("${PROJECT_BINARY_DIR}/src")
 #==============================================================================
 
 ADD_SUBDIRECTORY(src)
+
+#==============================================================================
+# Testing
+#==============================================================================
+
+IF (UNIT_TESTS)
+    ENABLE_TESTING()
+    ADD_SUBDIRECTORY(test)
+ENDIF(UNIT_TESTS)
 
 #==============================================================================
 # Documentation
