@@ -18,11 +18,9 @@ set(_SEARCHED_VARIABLES
     GTest_LIBRARIES
     )
     
-SET(CMAKE_C_FLAGS -w -O2)
 #------------------------------------------------------------------------------
 # GTest External Project
 #------------------------------------------------------------------------------
-
 # Enable ExternalProject CMake module
 INCLUDE(ExternalProject)
 
@@ -37,7 +35,6 @@ ExternalProject_Add(
     # Tell gtest to build and use dynamic libraries
     CMAKE_ARGS -Dgtest_force_shared_crt=ON
                -DBUILD_SHARED_LIBS=ON
-               -DCMAKE_C_FLAGS=-w -O2
     # Disable install step
     INSTALL_COMMAND ""
     # Wrap download, configure and build steps in a script to log output

@@ -10,11 +10,9 @@ PROJECT(PY_LSTM)
 SET(VERSION_MAJOR 0)
 SET(VERSION_MINOR 1)
 
-
 #==============================================================================
 # Path Settings
 #==============================================================================
-
 # Read PY_LSTM_PATH from options, cache, environment variable, or . 
 # (in that order)
 IF(NOT PY_LSTM_PATH)
@@ -58,16 +56,14 @@ ENDIF(DOCUMENTATION)
 #==============================================================================
 # Compiler Flags
 #==============================================================================
-
 SET( ENV{EXTERNAL_WARNINGS_NOT_ERRORS} TRUE)
 
 IF(DEFINED MSVC)
     ADD_DEFINITIONS(/W3 /wd4996)
 ELSEIF(CMAKE_COMPILER_IS_GNUCXX)
-    ADD_DEFINITIONS(-Wall -Wextra -Wno-sign-compare -ansi #-Weffc++ -pedantic
+    ADD_DEFINITIONS(-Wall -Wextra -Wno-sign-compare -ansi -Weffc++ -pedantic
                     -Wconversion -Werror)
 ENDIF(DEFINED MSVC)
-
 
 #==============================================================================
 # External Libs
@@ -76,7 +72,6 @@ ENDIF(DEFINED MSVC)
 #==============================================================================
 # Config header
 #==============================================================================
-
 # configure a header file to pass some of the CMake settings to the source code
 configure_file (
   "${PROJECT_SOURCE_DIR}/src/Config.h.in"
@@ -88,13 +83,11 @@ INCLUDE_DIRECTORIES("${PROJECT_BINARY_DIR}/src")
 #==============================================================================
 # Process sources
 #==============================================================================
-
 ADD_SUBDIRECTORY(src)
 
 #==============================================================================
 # Testing
 #==============================================================================
-
 IF (UNIT_TESTS)
     ENABLE_TESTING()
     ADD_SUBDIRECTORY(test)
@@ -103,7 +96,6 @@ ENDIF(UNIT_TESTS)
 #==============================================================================
 # Documentation
 #==============================================================================
-
 IF (DOCUMENTATION)
     # configure doxygen configuration file
     CONFIGURE_FILE(
