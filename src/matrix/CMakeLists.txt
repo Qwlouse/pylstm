@@ -1,5 +1,5 @@
 # The matrix library
-ADD_LIBRARY(matrix STATIC
+ADD_LIBRARY(matrix SHARED
             matrix.cpp
             matrix_cpu.cpp
             matrix_operation_cpu.cpp)

@@ -98,6 +98,21 @@ configure_file (
 INCLUDE_DIRECTORIES("${PROJECT_BINARY_DIR}/src")
 
 #==============================================================================
+# Cython
+#==============================================================================
+# Include the CMake script UseCython.cmake.  This defines add_cython_module().
+# Instruction for use can be found at the top of cmake/UseCython.cmake.
+INCLUDE(UseCython)
+
+# We reproduce the availability of the source files in the build tree.
+# That way we can run the unchanged setup.py from the build dir and install
+# both cython and pure python files.
+ADD_CUSTOM_TARGET( ReplicatePythonSourceTree ALL ${CMAKE_COMMAND} -P
+  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/ReplicatePythonSourceTree.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} )
+
+#==============================================================================
 # Process sources
 #==============================================================================
 ADD_SUBDIRECTORY(src)
