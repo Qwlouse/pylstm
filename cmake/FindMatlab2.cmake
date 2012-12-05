@@ -29,21 +29,48 @@ endif(_QUIET_FINDING)
 # MATLAB_INCLUDE_PATH
 #------------------------------------------------------------------------------
 
+IF(OperatingSystem MATCHES "Mac OS X")
+    find_path(MATLAB_EXTERN_INCLUDE_PATH
+    NAMES blas.h mex.h mat.h
+    PATH_SUFFIXES MATLAB_R2011a.app/extern/include/ MATLAB_R2011b.app/extern/include/ MATLAB_R2012a.app/extern/include/ MATLAB_R2012b.app/extern/include/
+    PATHS /Applications 
+    )
+ENDIF(OperatingSystem MATCHES "Mac OS X")
+
+IF(OperatingSystem MATCHES "Linux")
 find_path(MATLAB_EXTERN_INCLUDE_PATH
     NAMES blas.h mex.h mat.h
     PATH_SUFFIXES R2012b/extern/include R2012a/extern/include R2011a/extern/include R2011b/extern/include 
     PATHS /usr/local/MATLAB
     )
+ENDIF(OperatingSystem MATCHES "Linux")
 
 #------------------------------------------------------------------------------
 # MATLAB_LIBRARIES
 #------------------------------------------------------------------------------
 
+IF(OperatingSystem MATCHES "Mac OS X")
+FIND_LIBRARY(MATLAB_LIBRARIES
+    NAMES mwblas
+    PATH_SUFFIXES MATLAB_R2011a.app/bin/maci64 MATLAB_R2011b.app/bin/maci64 MATLAB_R2012a.app/bin/maci64 MATLAB_R2012b.app/bin/maci64
+    PATHS /Applications 
+    )
+
+FIND_LIBRARY(MATLAB_LIBRARIES
+    NAMES iomp5
+    PATH_SUFFIXES MATLAB_R2011a.app/bin/maci64 MATLAB_R2011b.app/bin/maci64 MATLAB_R2012a.app/bin/maci64 MATLAB_R2012b.app/bin/maci64
+    PATHS /Applications 
+)
+
+ENDIF(OperatingSystem MATCHES "Mac OS X")
+
+IF(OperatingSystem MATCHES "Linux")
 FIND_LIBRARY(MATLAB_LIBRARIES
     NAMES mwblas
     PATH_SUFFIXES R2012b/bin/glnxa64 R2012a/bin/glnxa64 R2011b/bin/glnxa64 R2011a/bin/glnxa64
     PATHS /usr/local/MATLAB
     )
+ENDIF(OperatingSystem MATCHES "Linux")
 
 #------------------------------------------------------------------------------
 # MATLAB_FOUND

@@ -10,6 +10,20 @@ PROJECT(PY_LSTM)
 SET(VERSION_MAJOR 0)
 SET(VERSION_MINOR 1)
 
+
+#==============================================================================
+# Set OS Variable
+#==============================================================================
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+   # Mac OS X specific code
+   SET(OperatingSystem "Mac OS X")
+ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+
+IF(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+    # Linux specific code
+    SET(OperatingSystem "Linux")
+ENDIF(${CMAKE_SYSTEM_NAME} MATCHES "Linux") 
+
 #==============================================================================
 # Path Settings
 #==============================================================================
