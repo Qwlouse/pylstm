@@ -1,0 +1,11 @@
+# If the pyx file is a C++ file, we should specify that here.
+SET_SOURCE_FILES_PROPERTIES(
+  py_matrix.pyx
+  PROPERTIES CYTHON_IS_CXX TRUE )
+
+INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/src/matrix)
+
+CYTHON_ADD_MODULE(py_matrix py_matrix.pyx)
+TARGET_LINK_LIBRARIES(py_matrix matrix)
+
+
