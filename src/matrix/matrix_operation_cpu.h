@@ -19,6 +19,7 @@ static ptrdiff_t diff_one = 1;
 static ptrdiff_t diff_zero = 0;*/
 
 void mult(MatrixView2DCPU &a, MatrixView2DCPU &b, MatrixView2DCPU &out);
+void mult_add(MatrixView2DCPU &a, MatrixView2DCPU &b, MatrixView2DCPU &out);
 
 #endif
 
