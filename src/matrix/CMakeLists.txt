@@ -4,7 +4,7 @@ ADD_LIBRARY(matrix SHARED
             matrix_cpu.cpp
             matrix_operation_cpu.cpp)
 
-TARGET_LINK_LIBRARIES(matrix ${MATLAB_LIBRARIES})
+TARGET_LINK_LIBRARIES(matrix ${MATLAB_LIBRARIES} core)
 
 IF(LOGGING_ENABLED)
     TARGET_LINK_LIBRARIES(matrix ${LOG4CXX_LIBRARIES})

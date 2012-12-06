@@ -18,7 +18,7 @@ struct Matrix {
 	size_type n_slices;
 	raw_ptr_type data;
 
-	size_type n_size;
+	size_type size;
 
   Matrix(size_type _n_rows, size_type _n_columns, size_type _n_slices);
   virtual ~Matrix(){}
@@ -28,11 +28,12 @@ struct Matrix {
 
 
 struct MatrixView2D {
-	MatrixState matrix_state;
+	MatrixState state;
 	size_type n_rows;
 	size_type n_columns;
 	raw_ptr_type data;
 
+	size_type size;
 	size_type stride;
 	
 	MatrixView2D(MatrixState _matrix_state, size_type _n_rows, size_type _n_columns, raw_ptr_type _data, size_type _stride);
@@ -41,12 +42,13 @@ struct MatrixView2D {
 };
 
 struct MatrixView3D {
-	MatrixState matrix_state;
+	MatrixState state;
 	size_type n_rows;
 	size_type n_columns;
 	size_type n_slices;
 	raw_ptr_type data;
 
+	size_type size;
 	size_type stride;
 	
 	MatrixView3D(MatrixState _matrix_state, size_type _n_rows, size_type _n_columns, size_type _n_slices, raw_ptr_type _data, size_type _stride);
