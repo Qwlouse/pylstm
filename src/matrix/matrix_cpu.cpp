@@ -34,12 +34,12 @@ MatrixView3DCPU::MatrixView3DCPU() :
   matrix_view_2d(NORMAL, 0, 0, 0, 0)
 {}
 
-MatrixView2D &MatrixView3DCPU::flatten() {
+MatrixView2DCPU &MatrixView3DCPU::flatten() {
     return matrix_view_2d;
 }
 
-MatrixView2D MatrixView3DCPU::slice(size_type t) {
-  return MatrixView2D(state, n_rows, n_columns, data + n_rows * n_columns * t, 0);
+MatrixView2DCPU MatrixView3DCPU::slice(size_type t) {
+  return MatrixView2DCPU(state, n_rows, n_columns, data + n_rows * n_columns * t, 0);
 }
 
 ///Matrix View 2d cpu

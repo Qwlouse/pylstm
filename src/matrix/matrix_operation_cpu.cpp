@@ -7,10 +7,10 @@
 using namespace std;
 
 ///Elementwise add
-void add(MatrixView2DCPU &a, MatrixView2DCPU &b, MatrixView2DCPU &out);
+void add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out);
 
 ///Elementwise multiplication
-void dot(MatrixView2DCPU &a, MatrixView2DCPU &b, MatrixView2DCPU &out) {
+void dot(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
   ASSERT(a.size == b.size);
   dgbmv(&NO_TRANS, &a.size, &a.size, &diff_zero, &diff_zero, &double_one,
           a.data, &diff_one,
@@ -20,7 +20,7 @@ void dot(MatrixView2DCPU &a, MatrixView2DCPU &b, MatrixView2DCPU &out) {
 }
 
 ///Elementwise multiplication and add
-void dot_add(MatrixView2DCPU &a, MatrixView2DCPU &b, MatrixView2DCPU &out) {
+void dot_add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
   ASSERT(a.size == b.size);
   dgbmv(&NO_TRANS, &a.size, &a.size, &diff_zero, &diff_zero, &double_one,
           a.data, &diff_one,
@@ -33,18 +33,27 @@ inline double sigmoid(double val) {
   return 1.0 / (1.0 + exp(-val));
 }
 
+inline double tanh2(double val) {
+  return 2.0 * tanh(val);
+}
+
 ///Apply sigmoid to all units
-void apply_sigmoid(MatrixView2DCPU &a, MatrixView2DCPU &out) {
+void apply_sigmoid(MatrixView2DCPU a, MatrixView2DCPU out) {
   transform(a.data, a.data + a.size, out.data, sigmoid);
 }
 
 ///Apply tanh to all units
-void apply_tanh(MatrixView2DCPU &a, MatrixView2DCPU &out) {
+void apply_tanh(MatrixView2DCPU a, MatrixView2DCPU out) {
   transform(a.data, a.data + a.size, out.data, tanh);
 }
 
+///Apply tanh * 2to all units
+void apply_tanh2(MatrixView2DCPU a, MatrixView2DCPU out) {
+  transform(a.data, a.data + a.size, out.data, tanh2);
+}
 
-void mult(MatrixView2DCPU &a, MatrixView2DCPU &b, MatrixView2DCPU &out) {
+
+void mult(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
 	char a_state = (a.state == NORMAL) ? 'N' : 'T';
 	char b_state = (b.state == NORMAL) ? 'N' : 'T';
     
@@ -57,7 +66,7 @@ void mult(MatrixView2DCPU &a, MatrixView2DCPU &b, MatrixView2DCPU &out) {
 }
 
 
-void mult_add(MatrixView2DCPU &a, MatrixView2DCPU &b, MatrixView2DCPU &out) {
+void mult_add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
 	char a_state = (a.state == NORMAL) ? 'N' : 'T';
 	char b_state = (b.state == NORMAL) ? 'N' : 'T';
     

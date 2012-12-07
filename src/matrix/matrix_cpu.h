@@ -13,10 +13,10 @@ struct MatrixView3DCPU : public MatrixView3D {
   MatrixView3DCPU();
   MatrixView3DCPU(MatrixState _matrix_state, size_type _n_rows, size_type _n_columns, size_type _n_slices, raw_ptr_type _data, size_type _stride);
 
-  MatrixView2D &flatten();
-  MatrixView2D slice(size_type t);
+  MatrixView2DCPU &flatten();
+  MatrixView2DCPU slice(size_type t);
 
-  MatrixView2D matrix_view_2d;
+  MatrixView2DCPU matrix_view_2d;
 };
 
 struct MatrixCPU : public Matrix {
