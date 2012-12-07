@@ -42,5 +42,7 @@ void apply_tanh(MatrixView2DCPU a, MatrixView2DCPU out);
 ///Apply tanh * 2 to all units
 void apply_tanh2(MatrixView2DCPU a, MatrixView2DCPU out);
 
+bool equals(MatrixView2DCPU a, MatrixView2DCPU out);
+
 #endif
 

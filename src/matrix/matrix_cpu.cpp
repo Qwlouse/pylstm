@@ -1,4 +1,6 @@
 #include "matrix_cpu.h"
+#include "Core.h"
+
 #include <algorithm>
 #include <iostream>
 
@@ -8,9 +10,28 @@ MatrixCPU::MatrixCPU(size_type _n_rows, size_type _n_columns, size_type _n_slice
   Matrix(_n_rows, _n_columns, _n_slices)
 {
     allocate();
-	std::fill(data, data + size, 2);
+	std::fill(data, data + size, 0);
     standard_view_2d = MatrixView2DCPU(NORMAL, n_rows, n_columns, data, 0);
     standard_view_3d = MatrixView3DCPU(NORMAL, n_rows, n_columns, n_slices, data, 0);
+}
+
+MatrixCPU::MatrixCPU(initializer_list<initializer_list<double>> values) :
+  Matrix(values.size(), values.begin()->size(), 1) {
+  allocate();
+  std::fill(data, data + size, 0);
+  standard_view_2d = MatrixView2DCPU(NORMAL, n_rows, n_columns, data, 0);
+  standard_view_3d = MatrixView3DCPU(NORMAL, n_rows, n_columns, n_slices, data, 0);
+  
+  
+  for (initializer_list<initializer_list<double>>::const_iterator it(values.begin()); it != values.end(); ++it) {
+    cout << it->size() << " " << n_rows << endl;
+    ASSERT(it->size() == n_columns);
+    for (initializer_list<double>::const_iterator it2(it->begin()); it2 != it->end(); ++it2) {
+      size_t row(it - values.begin()), col(it2 - it->begin());
+      cout << row << " " << col << endl;
+      *(data + n_rows * col + row) = *it2;
+    }
+  }
 }
 
 void MatrixCPU::allocate() {

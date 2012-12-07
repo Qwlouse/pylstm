@@ -2,6 +2,7 @@
 #include <iostream>
 #include <algorithm>
 #include <math.h>
+
 #include "Core.h"
 
 using namespace std;
@@ -33,8 +34,12 @@ inline double sigmoid(double val) {
   return 1.0 / (1.0 + exp(-val));
 }
 
-inline double tanh2(double val) {
+inline double tanhx2(double val) {
   return 2.0 * tanh(val);
+}
+
+inline double tanh_(double val) {
+  return tanh(val);
 }
 
 ///Apply sigmoid to all units
@@ -44,12 +49,12 @@ void apply_sigmoid(MatrixView2DCPU a, MatrixView2DCPU out) {
 
 ///Apply tanh to all units
 void apply_tanh(MatrixView2DCPU a, MatrixView2DCPU out) {
-  transform(a.data, a.data + a.size, out.data, tanh);
+  transform(a.data, a.data + a.size, out.data, tanh_);
 }
 
 ///Apply tanh * 2to all units
-void apply_tanh2(MatrixView2DCPU a, MatrixView2DCPU out) {
-  transform(a.data, a.data + a.size, out.data, tanh2);
+void apply_tanh_times_2(MatrixView2DCPU a, MatrixView2DCPU out) {
+  transform(a.data, a.data + a.size, out.data, tanhx2);
 }
 
 
@@ -77,3 +82,14 @@ void mult_add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
 		a.data,
 		&a.n_rows, b.data, &b.n_rows, &double_one, out.data, &out.n_rows);
 }
+
+
+bool equals(MatrixView2DCPU a, MatrixView2DCPU b) {
+  if (a.n_rows != b.n_rows || a.n_columns != b.n_columns)
+    return false;
+  for (size_t i(0); i < a.size; ++i)
+    if (a.data[i] != b.data[i])
+      return false;
+  return true;
+}
+
