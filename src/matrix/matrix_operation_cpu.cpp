@@ -8,7 +8,9 @@
 using namespace std;
 
 ///Elementwise add
-void add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out);
+void add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
+  
+}
 
 ///Elementwise multiplication
 void dot(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
@@ -53,7 +55,7 @@ void apply_tanh(MatrixView2DCPU a, MatrixView2DCPU out) {
 }
 
 ///Apply tanh * 2to all units
-void apply_tanh_times_2(MatrixView2DCPU a, MatrixView2DCPU out) {
+void apply_tanhx2(MatrixView2DCPU a, MatrixView2DCPU out) {
   transform(a.data, a.data + a.size, out.data, tanhx2);
 }
 
