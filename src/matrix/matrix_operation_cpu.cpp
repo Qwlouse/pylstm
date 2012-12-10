@@ -7,10 +7,31 @@
 
 using namespace std;
 
+
+void add_into_b(MatrixView2DCPU a, MatrixView2DCPU b) {
+  //size_type len(a.size);
+  daxpy(&a.size, &double_one, a.data, &diff_one, b.data, &diff_one);
+}
+
+/*
 ///Elementwise add
 void add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
-  
+  if (a.data == out.data) {
+  } else if() {
+    
+  }
 }
+*/
+
+void add_scalar(MatrixView2DCPU a, d_type b) {
+  //MatrixView2DCPU::iterator it(arg1.begin());
+  //	MatrixView2DCPU::iterator end(arg1.end());
+  //for (;it != end; ++it) *it += arg2;
+  daxpy(&a.size, &double_one, a.data, &diff_one, &b, &diff_zero);
+}
+
+
+
 
 ///Elementwise multiplication
 void dot(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {

@@ -21,6 +21,9 @@ static ptrdiff_t diff_zero = 0;
 ///Elementwise add
 void add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out);
 
+///Elementwise a+b into b
+void add_into_b(MatrixView2DCPU a, MatrixView2DCPU b);
+
 ///Matrix multiplication
 void mult(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out);
 

@@ -19,10 +19,10 @@ void lstm_forward(LstmWeights &w, LstmBuffers &b, MatrixView3DCPU &x, MatrixView
       dot_add(b.Sb.slice(t - 1), w.IS, b.Ia.slice(t));
     }
 
-    add(b.Fa.slice(t), w.F_bias, b.Fa.slice(t));
-    add(b.Ia.slice(t), w.I_bias, b.Ia.slice(t));
-    add(b.Za.slice(t), w.Z_bias, b.Za.slice(t));
-    add(b.Oa.slice(t), w.O_bias, b.Oa.slice(t));
+    add_into_b(w.F_bias, b.Fa.slice(t));
+    add_into_b(w.I_bias, b.Ia.slice(t));
+    add_into_b(w.Z_bias, b.Za.slice(t));
+    add_into_b(w.O_bias, b.Oa.slice(t));
 
     apply_sigmoid(b.Fa.slice(t), b.Fb.slice(t));
     apply_sigmoid(b.Ia.slice(t), b.Ib.slice(t));
