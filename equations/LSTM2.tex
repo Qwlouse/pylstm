@@ -1,0 +1,159 @@
+\documentclass{article}
+
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\begin{document}
+
+\section{Notes}
+
+\section{LSTM}
+The forward / backwards passes for LSTM, with variables mirroring our code
+
+\subsection{forward pass}
+
+\subsubsection{input (I), forget (F), cell activations}
+
+\begin{eqnarray*}
+a_{I}^t &=& W_{I,X}x^t + W_{I,H}h^{t-1}+W_{I,S}s^{t-1} \\
+b_{I}^t &=& f(a_{I}^t) \\
+\\
+a_{F}^t &=& W_{F, X}x^t + W_{F, H}h^{t-1}+W_{F, S}s^{t-1} \\
+b_{F}^t &=& f(a_{F}^t) \\
+\\
+a_{Z}^t &=& W_{Z,X}x_i^t + W_{Z,H} h^{t-1} \\
+b_{Z} &=& f(a_{Z}^t) 
+\end{eqnarray*}
+
+\subsubsection{state cell value}
+\begin{eqnarray*}
+s^t &=& b_{F}^ts^{t-1} + b_{I}^t b_Z^t \\  
+\end{eqnarray*}
+
+\subsubsection{output gate ($\omega$)}
+\begin{eqnarray*}
+a_{O}^t &=& W_{O,X}x^t + W_{O,H}h^{t-1} + W_{O,S}s^t \\
+b_{O}^t &=& f(a_{O}) \\
+\end{eqnarray*}
+
+\subsubsection{hidden cells}
+\begin{eqnarray*}
+h^t &=& b_{O}^t f(s^t) \\
+\end{eqnarray*}
+
+
+\subsection{backwards pass}
+
+\subsubsection{Hidden Block Output}
+\begin{eqnarray*}
+\frac{dE}{dh^t} &=& \frac{dE}{ \circ }\frac{ \circ }{dh^t} + \frac{dE}{da_{I}^{t+1}}\frac{da_{I}^{t+1}}{dh^t} + \frac{dE}{da_{F}^{t+1}}\frac{da_{F}^{t+1}}{dh^{t}} + \frac{dE}{da_{Z}^{t+1}}\frac{da_{Z}^{t+1}}{dh^t} + \frac{dE}{da_{O}^{t+1}}\frac{da_{O}^{t+1}}{dh^t} \\
+ &=& \frac{dE}{\circ}\frac{\circ}{dh^t} + \frac{dE}{da_{I}^{t+1}}W_{I,H} + \frac{dE}{da_{F}^{t+1}}W_{F,H} + \frac{dE}{da_{Z}^{t+1}}W_{Z,H} + \frac{dE}{da_{O}^{t+1}}W_{O,H} \\
+\end{eqnarray*}
+
+\subsubsection{Output Gate}
+\begin{eqnarray*}
+\frac{dE}{db_{O}^t} &=& \frac{dE}{dh^t}\frac{dh^t}{db_{O}^t} = \frac{dE}{dh^t}f(s^t) \\ 
+\frac{dE}{da_{O}^t} &=& \frac{dE}{db_{O}^t}\frac{db_{O}^t}{da_{O}^t} \\
+&=& \frac{dE}{db_{O}^t}f'_{O}(a_{O}^t) \\
+&=& \frac{dE}{dh^t}f(s^t)f'_{\omega}(a_{\omega}^t) 
+\end{eqnarray*}
+
+\subsubsection{state cells}
+\begin{eqnarray*}
+\frac{dE}{ds^t}&=&\frac{dE}{dh^t}\frac{dh^t}{ds_t} + \frac{dE}{da_{O}^t}\frac{da_{O}^t}{ds^t}+\frac{dE}{ds^{t+1}}\frac{ds^{t+1}}{ds^t}+\frac{dE}{da_{F}^{t+1}}\frac{da_{F}^{t+1}}{ds^t} + \frac{dE}{da_{I}^{t+1}}\frac{da_{I}^{t+1}}{ds^t}\\ \\
+&=& \frac{dE}{dh^t}b_{O}^tf'(s^t)+ \frac{dE}{da_{O}^t}W_{O,S} + \frac{dE}{ds^{t+1}}b_{F}^{t+1} + \frac{dE}{da_{F}^{t+1}}W_{F,S} + \frac{dE}{da_{I}^{t+1}}W_{I,S} \\
+\end{eqnarray*}
+
+\subsubsection{cell activations}
+\begin{eqnarray*}
+\frac{dE}{db_z^t} &=& \frac{dE}{ds^t} \frac{ds^t}{db_z^t} \\
+&=&  \frac{dE}{ds^t}b_{I}^t \\
+\frac{dE}{da_z^t}  &=& \frac{dE}{db_z^t}\frac{db_z^t}{da_z^t} \\
+&=&  \frac{dE}{ds^t} b_{I}^t f'_s(a_z^t)
+\end{eqnarray*}
+
+\subsubsection{Forget Gates}
+\begin{eqnarray*}
+\frac{dE}{db_{F}^t} &=& \frac{dE}{ds^t} \frac{ds^t}{db_{F}^t} \\
+&=& \frac{dE}{ds^t}s^{t-1} \\
+\frac{dE}{da_{F}^t} &=& \frac{dE}{db_{F}^t}\frac{db_{F}^t}{da_{F}^t} \\
+&=& \frac{dE}{db_{F}^t}f'(a_{F}^t) \\
+&=& \frac{dE}{ds^t}f'(a_{F}^t)s^{t-1} 
+\end{eqnarray*}
+
+\subsubsection{In Gates}
+\begin{eqnarray*}
+\frac{dE}{db_{I}^t} &=& \frac{dE}{ds^t} \frac{ds^t}{db_{I}^t} \\
+&=& \frac{dE}{ds^t} b_z^t \\
+\frac{dE}{da_{I}^t} &=& \frac{dE}{db_{I}^t}\frac{db_{I}^t}{da_{I}^t} \\
+&=& \frac{dE}{db_{I}^t}f'(a_{I}^t) \\ 
+&=& \frac{dE}{ds^t} b_z^t f'(a_{I}^t)
+\end{eqnarray*}
+
+\section{HF-LSTM}
+
+\subsection{f1 pass}
+
+\subsubsection{input ($in$), forget ($\phi$), cell}
+\begin{eqnarray*}
+Ra_{in}^t &=& V_{in,x}x^t + W_{in,h}Rb_h^{t-1}+ V_{in,h}b_h^{t-1} + V_{in,s}s^{t-1} + W_{in,s}Rs^{t-1} \\
+Rb_{in}^t &=& f'_{in}(a_{in}^t)(Ra_{in}^t) \\
+\\
+Ra_{\phi}^t &=& V_{\phi, x}x^t + W_{\phi, h}Rb_h^{t-1} + V_{\phi, h}b_h^{t-1} + V_{\phi, s}s^{t-1} + W_{\phi, s}Rs^{t-1}\\
+Rb_{\phi}^t &=& f'_{\phi}(a_{\phi}^t)(Ra_{\phi}^t) \\
+\\
+Ra_s^t &=& V_{s,x}x_i^t + V_{s,h}b_h^{t-1} + W_{s,h}Rb_h^{t-1} \\
+Rs^t &=& Rb_{\phi}^ts^{t-1} + b_{\phi}^tRs^{t-1} + Rb_{in}^tf(a_s^t) + b_{in}^tf'(a_s^t)(Ra_s^t) \\  
+\end{eqnarray*}
+
+\subsubsection{output gate ($\omega$)}
+\begin{eqnarray*}
+Ra_{\omega}^t &=& V_{\omega,x}x^t + V_{\omega,h}b_h^{t-1} + W_{\omega,h}Rb_h^{t-1} + V_{\omega,s}s^t + W_{\omega,s}Rs^t \\
+Rb_{\omega}^t &=& f'_{\omega}(a_{\omega})(Ra_{\omega}) \\
+\end{eqnarray*}
+
+\subsubsection{hidden cells (trivial, but nonetheless)}
+\begin{eqnarray*}
+Ra_h^t &=& Rb_{\omega}^t f(s^t)+b_{\omega}^t f'(s^t)(Rs^t) \\
+Rb_h^t &=& Ra_h^t 
+\end{eqnarray*}
+
+\subsubsection{output cells}
+\begin{eqnarray*}
+Ra_y^t &=& V_{y,h}b_h^t + W_{y,h}Rb_h^t \\
+Ry^t &=& f'_y(a_y^t)(Ra_y^t) 
+\end{eqnarray*}
+
+\subsection{backwards pass}
+For gauss-newton method, take output of f1 pass, $Ry^t$, and push that through the normal backwards pass, rather than $\frac{dE}{dy^t} = d^t - y^t$. Use $\frac{RdE}{d*}$ variables instead of $\frac{dE}{d*}$ 
+
+\subsection{Pseudo-code}
+
+\begin{algorithm}
+\caption{Hessian-Free LSTM}
+\begin{algorithmic}[0]
+\Procedure{HF-LSTM}{$a,b$}
+%\State $r\gets a\bmod b$
+\For{$i\gets 1,epochs$}
+\State $g\gets Full Gradient$
+\State $x \gets selected HF Batch$
+\Procedure{conj-grad}{$g, x, V, \lambda$}
+\State LATER
+\EndProcedure
+
+\EndFor\label{}
+
+\Procedure{gdotv}{$g, x, V$}
+\State $states\gets f0pass(x)$
+\State $\delta 's\gets bptt(x, states)$
+\State $Rs \gets f1pass(x, states)$
+\State $GV \gets bptt(Rs)$
+\EndProcedure
+
+%\State \textbf{return} $b$\Comment{The gcd is b}
+\EndProcedure
+
+\end{algorithmic}
+\end{algorithm}
+
+\end{document}
