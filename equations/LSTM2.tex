@@ -30,7 +30,7 @@ b_{Z} &=& f(a_{Z}^t)
 s^t &=& b_{F}^ts^{t-1} + b_{I}^t b_Z^t \\  
 \end{eqnarray*}
 
-\subsubsection{output gate ($\omega$)}
+\subsubsection{output gate (O)}
 \begin{eqnarray*}
 a_{O}^t &=& W_{O,X}x^t + W_{O,H}h^{t-1} + W_{O,S}s^t \\
 b_{O}^t &=& f(a_{O}) \\
@@ -55,7 +55,7 @@ h^t &=& b_{O}^t f(s^t) \\
 \frac{dE}{db_{O}^t} &=& \frac{dE}{dh^t}\frac{dh^t}{db_{O}^t} = \frac{dE}{dh^t}f(s^t) \\ 
 \frac{dE}{da_{O}^t} &=& \frac{dE}{db_{O}^t}\frac{db_{O}^t}{da_{O}^t} \\
 &=& \frac{dE}{db_{O}^t}f'_{O}(a_{O}^t) \\
-&=& \frac{dE}{dh^t}f(s^t)f'_{\omega}(a_{\omega}^t) 
+&=& \frac{dE}{dh^t}f(s^t)f(a_{O}^t) 
 \end{eqnarray*}
 
 \subsubsection{state cells}
@@ -106,7 +106,7 @@ Ra_s^t &=& V_{s,x}x_i^t + V_{s,h}b_h^{t-1} + W_{s,h}Rb_h^{t-1} \\
 Rs^t &=& Rb_{\phi}^ts^{t-1} + b_{\phi}^tRs^{t-1} + Rb_{in}^tf(a_s^t) + b_{in}^tf'(a_s^t)(Ra_s^t) \\  
 \end{eqnarray*}
 
-\subsubsection{output gate ($\omega$)}
+\subsubsection{output gate (O)}
 \begin{eqnarray*}
 Ra_{\omega}^t &=& V_{\omega,x}x^t + V_{\omega,h}b_h^{t-1} + W_{\omega,h}Rb_h^{t-1} + V_{\omega,s}s^t + W_{\omega,s}Rs^t \\
 Rb_{\omega}^t &=& f'_{\omega}(a_{\omega})(Ra_{\omega}) \\
