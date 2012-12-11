@@ -19,7 +19,7 @@ protected:
   MatrixCPU m1, m2, m3, m4;
 };
 
-TEST_F(MatrixTest, check_equals)
+TEST_F(MatrixTest, check_if_equals_works_as_expected)
 {
   EXPECT_TRUE(equals(m1, m1));
   EXPECT_TRUE(equals(m1, m2));
@@ -29,3 +29,8 @@ TEST_F(MatrixTest, check_equals)
   EXPECT_FALSE(equals(m3, m4));
 }
 
+TEST_F(MatrixTest, check_if_add_into_b_works_as_expected)
+{
+  add_into_b(m1, m3);
+  EXPECT_TRUE(equals(m3, MatrixCPU({{4.,6.,9.},{6.,8.,61.}})));
+}
