@@ -34,6 +34,12 @@ MatrixCPU::MatrixCPU(initializer_list<initializer_list<double>> values) :
   }
 }
 
+MatrixCPU::MatrixCPU(d_type* _data, size_type _n_rows, size_type _n_columns, size_type _n_slices) :
+    Matrix(_data, _n_rows, _n_columns, _n_slices) {
+  standard_view_2d = MatrixView2DCPU(NORMAL, n_rows, n_columns, data, 0);
+  standard_view_3d = MatrixView3DCPU(NORMAL, n_rows, n_columns, n_slices, data, 0);
+}
+
 void MatrixCPU::allocate() {
   cout << "allocating!" << endl;
   data = new d_type[size];	

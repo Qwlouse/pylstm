@@ -21,6 +21,7 @@ struct Matrix {
 	size_type size;
 
   Matrix(size_type _n_rows, size_type _n_columns, size_type _n_slices);
+  Matrix(d_type* _data, size_type _n_rows, size_type _n_columns, size_type _n_slices);
   virtual ~Matrix(){}
   virtual void allocate(){}
 };

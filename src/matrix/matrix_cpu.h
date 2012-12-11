@@ -27,6 +27,7 @@ struct MatrixCPU : public Matrix {
 
 	MatrixCPU(size_type _n_rows, size_type _n_columns, size_type _n_slices);
     MatrixCPU(std::initializer_list<std::initializer_list<double>> values);
+    MatrixCPU(d_type* _data, size_type _n_rows, size_type _n_columns, size_type _n_slices);
     virtual ~MatrixCPU();
 
 	operator MatrixView2DCPU&() {return standard_view_2d;}
