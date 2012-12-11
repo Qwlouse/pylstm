@@ -35,6 +35,7 @@ struct MatrixCPU : public Matrix {
 	operator MatrixView3DCPU&() {return standard_view_3d;}
 
 	virtual void allocate();
+	void print_me();
 };
 
 

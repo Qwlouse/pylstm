@@ -55,6 +55,21 @@ MatrixCPU::~MatrixCPU() {
     delete[] data;
 }
 
+void MatrixCPU::print_me() {
+  cout << "MatrixCPU " << n_rows << " x " << n_columns << " x " << n_slices << '\n';
+  cout << "=====================================\n";
+  d_type* data_ptr = data;
+  for (int s = 0; s < n_slices; ++s) {
+    for (int r = 0; r < n_rows; ++r) {
+      for (int c = 0; c < n_columns; ++c) {
+        cout << *data_ptr << " ";
+        ++data_ptr;
+      }
+      cout << '\n';
+    }
+    cout << "=====================================\n";
+  }
+}
 
 //VIEWS
 MatrixView3DCPU::MatrixView3DCPU(MatrixState _matrix_state, size_type _n_rows, size_type _n_columns, size_type _n_slices, raw_ptr_type _data, size_type _stride) :

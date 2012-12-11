@@ -23,3 +23,6 @@ cdef class MatrixCPU:
 
     def __dealloc__(self):
         del self.thisptr
+
+    def print_me(self):
+        self.thisptr.print_me()
