@@ -45,7 +45,7 @@ SET(CMAKE_MODULE_PATH "${PY_LSTM_PATH}/cmake")
 # Options settings (including optional packages)
 #==============================================================================
 # Enable Logging (requires Log4cxx)
-OPTION(LOGGING_ENABLED "Enable logging support (requires Log4cxx)" OFF)
+OPTION(LOGGING_ENABLED "Enable logging support (requires Log4cxx)" ON)
 IF (LOGGING_ENABLED)
     FIND_PACKAGE(Log4cxx REQUIRED)
 ENDIF(LOGGING_ENABLED)
@@ -53,16 +53,16 @@ SET(LOG_LEVEL 5 CACHE INTEGER "Compile-time log level (0 = NONE - 6 = TRACE)")
 
 
 # Enable Asserts
-OPTION(ASSERTS_ENABLED "Enable asserts" OFF)
+OPTION(ASSERTS_ENABLED "Enable asserts" ON)
 
 # Compile the tests
-OPTION(UNIT_TESTS "Compile the unit tests (fetches GTest)" OFF)
+OPTION(UNIT_TESTS "Compile the unit tests (fetches GTest)" ON)
 IF (UNIT_TESTS)
     INCLUDE(GetGTest)
 ENDIF(UNIT_TESTS)
 
 # Build the Documentation using Doxygen
-OPTION(DOCUMENTATION "Build the Documentation using Doxygen" OFF)
+OPTION(DOCUMENTATION "Build the Documentation using Doxygen" ON)
 IF (DOCUMENTATION)
     FIND_PACKAGE(Doxygen)
 ENDIF(DOCUMENTATION)

@@ -7,7 +7,8 @@
 using namespace std;
 
 MatrixCPU::MatrixCPU(size_type _n_rows, size_type _n_columns, size_type _n_slices) :
-  Matrix(_n_rows, _n_columns, _n_slices)
+  Matrix(_n_rows, _n_columns, _n_slices),
+  owns_data(true)
 {
     allocate();
 	std::fill(data, data + size, 0);
@@ -16,7 +17,9 @@ MatrixCPU::MatrixCPU(size_type _n_rows, size_type _n_columns, size_type _n_slice
 }
 
 MatrixCPU::MatrixCPU(initializer_list<initializer_list<double>> values) :
-  Matrix(values.size(), values.begin()->size(), 1) {
+  Matrix(values.size(), values.begin()->size(), 1),
+  owns_data(true)
+{
   allocate();
   std::fill(data, data + size, 0);
   standard_view_2d = MatrixView2DCPU(NORMAL, n_rows, n_columns, data, 0);
@@ -34,15 +37,39 @@ MatrixCPU::MatrixCPU(initializer_list<initializer_list<double>> values) :
   }
 }
 
+MatrixCPU::MatrixCPU(d_type* _data, size_type _n_rows, size_type _n_columns, size_type _n_slices) :
+    Matrix(_data, _n_rows, _n_columns, _n_slices),
+    owns_data(false)
+{
+  standard_view_2d = MatrixView2DCPU(NORMAL, n_rows, n_columns, data, 0);
+  standard_view_3d = MatrixView3DCPU(NORMAL, n_rows, n_columns, n_slices, data, 0);
+}
+
 void MatrixCPU::allocate() {
   cout << "allocating!" << endl;
   data = new d_type[size];	
 }
 
 MatrixCPU::~MatrixCPU() {
-	delete[] data;
+  if (owns_data)
+    delete[] data;
 }
 
+void MatrixCPU::print_me() {
+  cout << "MatrixCPU " << n_rows << " x " << n_columns << " x " << n_slices << '\n';
+  cout << "=====================================\n";
+  d_type* data_ptr = data;
+  for (int s = 0; s < n_slices; ++s) {
+    for (int r = 0; r < n_rows; ++r) {
+      for (int c = 0; c < n_columns; ++c) {
+        cout << *data_ptr << " ";
+        ++data_ptr;
+      }
+      cout << '\n';
+    }
+    cout << "=====================================\n";
+  }
+}
 
 //VIEWS
 MatrixView3DCPU::MatrixView3DCPU(MatrixState _matrix_state, size_type _n_rows, size_type _n_columns, size_type _n_slices, raw_ptr_type _data, size_type _stride) :
