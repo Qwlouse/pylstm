@@ -24,6 +24,9 @@ void add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out);
 ///Elementwise a+b into b
 void add_into_b(MatrixView2DCPU a, MatrixView2DCPU b);
 
+///Add scalar b to every element in a
+void add_scalar(MatrixView2DCPU a, d_type b);
+
 ///Matrix multiplication
 void mult(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out);
 
