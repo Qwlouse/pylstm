@@ -22,6 +22,7 @@ struct MatrixView3DCPU : public MatrixView3D {
 };
 
 struct MatrixCPU : public Matrix {
+    bool owns_data;
 	MatrixView2DCPU standard_view_2d;
 	MatrixView3DCPU standard_view_3d;
 
