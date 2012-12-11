@@ -2,10 +2,12 @@ import numpy as np
 cimport numpy as np
 cimport c_matrix
 
-# stackoverflow.com/questions/3046305/simple-wrapping-of-c-code-with-cython
+# http://stackoverflow.com/questions/3046305
+# http://article.gmane.org/gmane.comp.python.cython.user/5625
 
 cdef class MatrixCPU:
     def __cinit__(self, object array):
+        # declare a 2d NumPy array in C order
         cdef np.ndarray[np.double_t, ndim=3, mode='c'] A
         # unbox NumPy array into numpy 3d member array A
         # make sure we have a contiguous array in C order
