@@ -18,7 +18,7 @@ cdef class MatrixCPU:
         cdef np.npy_intp cols = A.shape[1]
         cdef np.npy_intp slices = A.shape[2]
 
-        self.thisptr = new CMatrixCPU(&A[0,0,0], rows, cols, slices)
+        self.thisptr = new cm.MatrixCPU(&A[0,0,0], rows, cols, slices)
         self.A = A # make sure numpy array does not get GCed
 
     def __dealloc__(self):
@@ -26,3 +26,39 @@ cdef class MatrixCPU:
 
     def print_me(self):
         self.thisptr.print_me()
+
+def dot(MatrixCPU a not None, MatrixCPU b not None, MatrixCPU out not None):
+    cm.dot(a.get_2d_view(), b.get_2d_view(), out.get_2d_view())
+
+def add(MatrixCPU a not None, MatrixCPU b not None, MatrixCPU out not None):
+    cm.add(a.get_2d_view(), b.get_2d_view(), out.get_2d_view())
+
+def add_into_b(MatrixCPU a not None, MatrixCPU b not None):
+    cm.add_into_b(a.get_2d_view(), b.get_2d_view())
+
+def add_scalar(MatrixCPU a not None, double b):
+    cm.add_scalar(a.get_2d_view(), b)
+
+def mult(MatrixCPU a not None, MatrixCPU b not None, MatrixCPU out not None):
+    cm.mult(a.get_2d_view(), b.get_2d_view(), out.get_2d_view())
+
+def mult_add(MatrixCPU a not None, MatrixCPU b not None, MatrixCPU out not None):
+    cm.mult_add(a.get_2d_view(), b.get_2d_view(), out.get_2d_view())
+
+def dot(MatrixCPU a not None, MatrixCPU b not None, MatrixCPU out not None):
+    cm.dot(a.get_2d_view(), b.get_2d_view(), out.get_2d_view())
+
+def dot_add(MatrixCPU a not None, MatrixCPU b not None, MatrixCPU out not None):
+    cm.dot_add(a.get_2d_view(), b.get_2d_view(), out.get_2d_view())
+
+def apply_sigmoid(MatrixCPU a not None, MatrixCPU out not None):
+    cm.add_into_b(a.get_2d_view(), out.get_2d_view())
+
+def apply_tanh(MatrixCPU a not None, MatrixCPU out not None):
+    cm.add_into_b(a.get_2d_view(), out.get_2d_view())
+
+def apply_tanhx2(MatrixCPU a not None, MatrixCPU out not None):
+    cm.add_into_b(a.get_2d_view(), out.get_2d_view())
+
+def equals(MatrixCPU a not None, MatrixCPU out not None):
+    cm.add_into_b(a.get_2d_view(), out.get_2d_view())
