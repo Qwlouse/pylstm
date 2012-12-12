@@ -27,11 +27,9 @@ MatrixCPU::MatrixCPU(initializer_list<initializer_list<double>> values) :
   
   
   for (initializer_list<initializer_list<double>>::const_iterator it(values.begin()); it != values.end(); ++it) {
-    cout << it->size() << " " << n_rows << endl;
     ASSERT(it->size() == n_columns);
     for (initializer_list<double>::const_iterator it2(it->begin()); it2 != it->end(); ++it2) {
       size_t row(it - values.begin()), col(it2 - it->begin());
-      cout << row << " " << col << endl;
       *(data + n_rows * col + row) = *it2;
     }
   }
@@ -46,7 +44,6 @@ MatrixCPU::MatrixCPU(d_type* _data, size_type _n_rows, size_type _n_columns, siz
 }
 
 void MatrixCPU::allocate() {
-  cout << "allocating!" << endl;
   data = new d_type[size];	
 }
 
