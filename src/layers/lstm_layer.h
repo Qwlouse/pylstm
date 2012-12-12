@@ -9,13 +9,13 @@ struct LstmWeights {
   size_t n_input, n_cells, n_output;
 
   ///Variables defining sizes
-  MatrixView2DCPU IX, IH, IS;
-  MatrixView2DCPU FX, FH, FS;
-  MatrixView2DCPU ZX, ZH;
-  MatrixView2DCPU OX, OH, OS;
+  MatrixView2DCPU IX, IH, IS;  //!< inputs X, H, S to input gate I 
+  MatrixView2DCPU FX, FH, FS;  //!< inputs X, H, S to forget gate F
+  MatrixView2DCPU ZX, ZH;      //!< inputs X, H, to state cell 
+  MatrixView2DCPU OX, OH, OS;  //!< inputs X, H, S to output gate O
 
-  MatrixView2DCPU I_bias, F_bias, Z_bias, O_bias;
-  MatrixCPU weights;
+  MatrixView2DCPU I_bias, F_bias, Z_bias, O_bias;   //!< bias to input gate, forget gate, state Z, output gate
+  MatrixCPU weights; 
 
   LstmWeights();
 };
@@ -26,12 +26,14 @@ struct LstmBuffers {
   size_t n_batches, time;
 
   //Views on all activations
-  MatrixView3DCPU Ia, Ib; //Input gate activation
-  MatrixView3DCPU Fa, Fb; //forget gate activation
-  MatrixView3DCPU Oa, Ob; //output gate activation
+  MatrixView3DCPU Ia, Ib; //!< Input gate activation
+  MatrixView3DCPU Fa, Fb; //!< forget gate activation
+  MatrixView3DCPU Oa, Ob; //!< output gate activation
 
-  MatrixView3DCPU Za, Zb; //Net Activation
-  MatrixView3DCPU Sa, Sb; //Cell activations
+  MatrixView3DCPU Za, Zb; //!< Za =Net Activation, Zb=f(Za)
+  MatrixView3DCPU S;      //!< Sa =Cell State activations
+  MatrixView3DCPU f_S;      //!< Sa =Cell State activations
+  MatrixView3DCPU Hb;     //!< output of LSTM block
 };
 
 struct LstmDeltas {
@@ -45,7 +47,12 @@ struct LstmDeltas {
   MatrixView3DCPU Oa, Ob; //output gate activation
 
   MatrixView3DCPU Za, Zb; //Net Activation
-  MatrixView3DCPU Sa, Sb; //Cell activations
+  MatrixView3DCPU S; //Cell activations
+  MatrixView3DCPU f_S; //cell state activations
+  MatrixView3DCPU Hb;     //!< output of LSTM block
+
+
+  MatrixView3DCPU temp_hidden, temp_hidden2; 
 };
 
 void lstm_forward(LstmWeights &w, LstmBuffers &b, MatrixView3DCPU &x, MatrixView3DCPU &y);
