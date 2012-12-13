@@ -5,5 +5,5 @@ INCLUDE_DIRECTORIES(${GTEST_INCLUDE_PATH})
 # Test Exceptions
 ADD_EXECUTABLE(TestMatrixOperations TestMatrixOperations.cpp)
 TARGET_LINK_LIBRARIES(TestMatrixOperations core matrix ${GTEST_LIBRARIES})
-ADD_TEST(TestMatrixOperations ${CMAKE_CURRENT_BINARY_DIR}/TestMatrix)
+ADD_TEST(TestMatrixOperations ${CMAKE_CURRENT_BINARY_DIR}/TestMatrixOperations)
 

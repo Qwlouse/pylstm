@@ -12,11 +12,11 @@ cdef class MatrixCPU:
         # unbox NumPy array into numpy 3d member array A
         # make sure we have a contiguous array in C order
         # this might produce a temporary copy
-        A = np.ascontiguousarray(array, dtype=np.float64)
+        A = np.ascontiguousarray(np.swapaxes(array, 1, 2), dtype=np.float64)
 
-        cdef np.npy_intp rows = A.shape[0]
+        cdef np.npy_intp rows = A.shape[2]
         cdef np.npy_intp cols = A.shape[1]
-        cdef np.npy_intp slices = A.shape[2]
+        cdef np.npy_intp slices = A.shape[0]
 
         self.thisptr = new cm.MatrixCPU(&A[0,0,0], rows, cols, slices)
         self.A = A # make sure numpy array does not get GCed
@@ -30,8 +30,8 @@ cdef class MatrixCPU:
 def dot(MatrixCPU a not None, MatrixCPU b not None, MatrixCPU out not None):
     cm.dot(a.get_2d_view(), b.get_2d_view(), out.get_2d_view())
 
-def add(MatrixCPU a not None, MatrixCPU b not None, MatrixCPU out not None):
-    cm.add(a.get_2d_view(), b.get_2d_view(), out.get_2d_view())
+#def add(MatrixCPU a not None, MatrixCPU b not None, MatrixCPU out not None):
+#    cm.add(a.get_2d_view(), b.get_2d_view(), out.get_2d_view())
 
 def add_into_b(MatrixCPU a not None, MatrixCPU b not None):
     cm.add_into_b(a.get_2d_view(), b.get_2d_view())

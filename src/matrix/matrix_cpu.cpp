@@ -55,16 +55,19 @@ MatrixCPU::~MatrixCPU() {
 
 void MatrixCPU::print_me() {
   cout << "MatrixCPU " << n_rows << " x " << n_columns << " x " << n_slices << '\n';
-  cout << "=====================================\n";
+
   d_type* data_ptr = data;
+  cout << "=====================================\n";
   for (int s = 0; s < n_slices; ++s) {
     for (int r = 0; r < n_rows; ++r) {
       for (int c = 0; c < n_columns; ++c) {
         cout << *data_ptr << " ";
-        ++data_ptr;
+        data_ptr += n_rows;
       }
+      data_ptr -= n_columns*n_rows - 1;
       cout << '\n';
     }
+    data_ptr += (n_columns-1)*n_rows;
     cout << "=====================================\n";
   }
 }

@@ -12,7 +12,7 @@ cdef extern from "matrix_cpu.h":
 
 
 cdef extern from "matrix_operation_cpu.h":
-    void add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out)
+#    void add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out)
 
     void add_into_b(MatrixView2DCPU a, MatrixView2DCPU b)
 
