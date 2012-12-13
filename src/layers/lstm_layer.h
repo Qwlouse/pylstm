@@ -1,3 +1,11 @@
+/**
+ * \file lstm_layer.h
+ * \brief Declares the whole exception hierarchy.
+ *
+ * \details
+ */
+
+
 #ifndef __LSTM_LAYER_H__
 #define __LSTM_LAYER_H__
 
@@ -18,6 +26,8 @@ struct LstmWeights {
   MatrixCPU weights; 
 
   LstmWeights();
+
+  size_t size()
 };
 
 struct LstmBuffers {
@@ -56,5 +66,6 @@ struct LstmDeltas {
 };
 
 void lstm_forward(LstmWeights &w, LstmBuffers &b, MatrixView3DCPU &x, MatrixView3DCPU &y);
+void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCPU &y, MatrixView3DCPU &in_deltas, MatrixView3DCPU &out_deltas);
 
 #endif

@@ -1,3 +1,9 @@
+/**
+ * \file lstm_layer.cpp
+ * \brief Implementation of the lstm_layer.
+ */
+
+
 #include "lstm_layer.h"
 #include "matrix/matrix_operation_cpu.h"
 
@@ -41,71 +47,100 @@ void lstm_forward(LstmWeights &w, LstmBuffers &b, MatrixView3DCPU &x, MatrixView
 }
 
 
-void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCPU &y, MatrixView3DCPU &in_deltas) {
+void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCPU &y, MatrixView3DCPU &in_deltas, MatrixView3DCPU &out_deltas) {
 
   //clear_temp();
   //size_t end_time(b.batch_time - 1);
   size_t end_time(b.time - 1);
 
-  //!< calculate t+1 values except for end_time+1 
+
+      dot_add(b.S.slice(t - 1), w.FS, b.Fa.slice(t));
+      dot_add(b.S.slice(t - 1), w.IS, b.Ia.slice(t));
+    }
+
+    add_into_b(w.F_bias, b.Fa.slice(t));
+    add_into_b(w.I_bias, b.Ia.slice(t));
+    add_into_b(w.Z_bias, b.Za.slice(t));
+    add_into_b(w.O_bias, b.Oa.slice(t));
+
+    apply_sigmoid(b.Fa.slice(t), b.Fb.slice(t));
+    apply_sigmoid(b.Ia.slice(t), b.Ib.slice(t));
+    apply_sigmoid(b.Za.slice(t), b.Zb.slice(t));
+   
+    dot_add(b.Zb.slice(t), b.Ib.slice(t), b.S.slice(t));
+    if (t) 
+      dot_add(b.S.slice(t - 1), b.Fb.slice(t), b.S.slice(t));
+    apply_tanhx2(b.S.slice(t), b.f_S.slice(t));
+
+    dot_add(b.f_S.slice(t), w.OS, b.Oa.slice(t));
+    apply_sigmoid(b.Oa.slice(t), b.Ob.slice(t));
+    dot(b.f_S.slice(t), b.Ob.slice(t), y.slice(t));
+  }
+  
+}
+
+
+void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCPU &y, MatrixView3DCPU &in_deltas, MatrixView3DCPU &out_deltas) {
+
+  //clear_temp();
+  //size_t end_time(b.batch_time - 1);
+  size_t end_time(b.time - 1);
+
+  //calculate t+1 values except for end_time+1 
   for(int t(end_time); t >= 0; --t){
     if (t<end_time) {
-      /*
-	multiply_transpose(w.IH, d.Ia.slice(t+1), d.Hb.slice(t));
-	multiply_transpose(w.FH, d.Fa.slice(t+1), d.Hb.slice(t));
-	multiply_transpose(w.ZH, d.Za.slice(t+1), d.Hb.slice(t));
-	multiply_transpose(w.OH, d.Oa.slice(t+1), d.Hb.slice(t));
-      */
+      
+      mult(w.IH.T(), d.Ia.slice(t+1), d.Hb.slice(t));
+      mult(w.FH.T(), d.Fa.slice(t+1), d.Hb.slice(t));
+      mult(w.ZH.T(), d.Za.slice(t+1), d.Hb.slice(t));
+      mult(w.OH.T(), d.Oa.slice(t+1), d.Hb.slice(t));
+      
 
-      //!< dE/dS += dE/dS(t+1) * b_F(t+1)
+      //! \f$\frac{dE}{dS} += \frac{dE}{dS^{t+1}} * b_F(t+1)\f$
       dot_add(d.S.slice(t+1), b.Fb.slice(t+1), d.S.slice(t));
-      //!< dE/dS += dE/da_I(t+1) * W_IS
+      //! \f$\frac{dE}{dS} += \frac{dE}{da_I(t+1)} * W_{IS}\f$
       dot_add(d.Ia.slice(t+1), w.IS, d.S.slice(t));
-      //!< dE/dS += dE/da_F(t+1) * W_FS
+      //! \f$\frac{dE}{dS} += \frac{dE}{da_F(t+1)} * W_{FS}\f$
       dot_add(d.Fa.slice(t+1), w.FS, d.S.slice(t));
     }
 
-    //!< dE/df_S += dE/dH * b_O THIS IS WEIRD, IT GOES WITH NEXT LINE ??!?!
+    //! \f$\frac{dE}{df_S} += \frac{dE}{dH} * b_O\f$  THIS IS WEIRD, IT GOES WITH NEXT LINE ??!?!
     dot_add(d.Hb.slice(t), b.Ob.slice(t), d.f_S.slice(t));
     
     //OUTPUT GATES DERIVS
-    //!< dE/db_O = dE/dH * f(s) * f(a_O)
+    //! \f$\frac{dE}{db_O} = \frac{dE}{dH} * f(s) * f(a_O)\f$
     dot_add(d.Hb.slice(t), d.f_S.slice(t), d.Ob.slice(t));
-    //!< dE/da_O = dE/db_O * f'(a_O)
+    //! \f$\frac{dE}{da_O} = \frac{dE}{db_O} * f'(a_O)\f$
     //sigmoid_deriv(d.Ob.slice(t), b.Ob.slice(t), d.temp_hidden, d.temp_hidden2, d.Oa.slice(t)); //o = -o^2
       
-    //!< dE/dS += dE/df_S * f'(s)  
+    //! \f$\frac{dE}{dS} += \frac{dE}{df_S} * f'(s)\f$
     //tanh2_deriv(d.f_S.slice(t), b.S.slice(t), d.temp_hidden, d.S.slice(t));
 
     
-    //!< dE/dS += dE/da_O * W_OS
+    //! \f$\frac{dE}{dS} += \frac{dE}{da_O} * W_OS\f$
     dot_add(d.Oa.slice(t), w.OS, d.S.slice(t));
     
-    //!< CELL ACTIVATION DERIVS
-    //!< dE/db_Z = dE/dS * b_I
+    //! CELL ACTIVATION DERIVS
+    //! \f$\frac{dE}{db_Z} = \frac{dE}{dS} * b_I\f$
     dot_add(d.S.slice(t), b.Ib.slice(t), d.Zb.slice(t));
-    //!< dE/da_Z = dE/db_Z * f'(a_Z)
+    //! \f$dE/da_Z = dE/db_Z * f'(a_Z)\f$
     //tanh2_deriv(d.Zb.slice(t), b.Zb.slice(t), d.temp_hidden, d.Za.slice(t));
     
-    //!< dE/db_I = dE/dS * b_Z 
+    //! INPUT GATE DERIVS
+    //! \f$\frac{dE}{db_I} = \frac{dE}{dS} * b_Z \f$
     dot_add(d.S.slice(t), b.Zb.slice(t), d.Ib.slice(t));
-    //!< dE/da_I = dE/db_I * f'(a_I)
+    //! \f$\frac{dE}{da_I} = \frac{dE}{db_I} * f'(a_I) \f$
     //sigmoid_deriv(d.Ib.slice(t), b.Ib.slice(t), d.temp_hidden, d.temp_hidden2, d.Ia.slice(t));
       
-    //forget deltas
-    //IF NEXT
+    //! FORGET GATE DERIVS
     if (t)
-      //!< dE/db_F += dE/dS * s(t-1)
+      //! \f$\frac{dE}{db_F} += \frac{dE}{dS} * s(t-1)\f$
       dot_add(d.S.slice(t), b.S.slice(t - 1), d.Fb.slice(t));
     
-    //dE/da_F = dE/db_F * f'(a_F)
+    // \f$\frac{dE}{da_F} = \frac{dE}{db_F} * f'(a_F)\f$
     //sigmoid_deriv(d.Fb.slice(t), b.Fb.slice(t), d.temp_hidden, d.temp_hidden2, d.Fa.slice(t));    
-    //back through time stuff
-    //IF NEXT
-    
    
   }
-  //		std::cout << "DONE" << std::endl;
 }
 
 
