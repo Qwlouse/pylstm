@@ -27,7 +27,7 @@ void add_scalar(MatrixView2DCPU a, d_type b) {
   //MatrixView2DCPU::iterator it(arg1.begin());
   //	MatrixView2DCPU::iterator end(arg1.end());
   //for (;it != end; ++it) *it += arg2;
-  daxpy(&a.size, &double_one, a.data, &diff_one, &b, &diff_zero);
+  daxpy(&a.size, &double_one, &b, &diff_zero, a.data, &diff_one);
 }
 
 
