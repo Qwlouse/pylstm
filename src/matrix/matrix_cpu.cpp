@@ -47,6 +47,7 @@ void MatrixCPU::allocate() {
   data = new d_type[size];	
 }
 
+
 MatrixCPU::~MatrixCPU() {
   if (owns_data)
     delete[] data;
@@ -96,6 +97,9 @@ MatrixView2DCPU::MatrixView2DCPU() :
   MatrixView2D(NORMAL, 0, 0, 0, 0)
 {}
 
+void MatrixView2DCPU::T() {
+  return MatrixView2DCPU(!matrix_state, n_rows, n_columns, data, stride) :
+}
 
 std::ostream &operator<<(std::ostream &out, MatrixCPU &in) {
   for (size_t i(0); i < in.size; ++i) {

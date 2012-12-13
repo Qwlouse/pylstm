@@ -43,5 +43,6 @@ struct MatrixCPU : public Matrix {
 std::ostream &operator<<(std::ostream &out, MatrixCPU &in);
 
 
+
 #endif
 
