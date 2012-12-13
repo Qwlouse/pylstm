@@ -8,7 +8,7 @@ cimport c_matrix
 cdef class MatrixCPU:
     def __cinit__(self, object array):
         # declare a 2d NumPy array in C order
-        cdef np.ndarray[np.double_t, ndim=3, mode='c'] A
+        cdef np.ndarray[np.double_t, ndim=3, mode='fortran'] A
         # unbox NumPy array into numpy 3d member array A
         # make sure we have a contiguous array in C order
         # this might produce a temporary copy

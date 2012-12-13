@@ -130,7 +130,7 @@ ENDIF(UNIT_TESTS)
 # Documentation
 #==============================================================================
 IF (DOCUMENTATION)
-    ADD_SUBDIRECTORY(doc)
+    ADD_SUBDIRECTORY(doc EXCLUDE_FROM_ALL)
     # configure doxygen configuration file
     CONFIGURE_FILE(
         "${PROJECT_SOURCE_DIR}/config/doxygen.conf.in"
@@ -146,5 +146,6 @@ IF (DOCUMENTATION)
                       COMMENT "Generating API documentation with Doxygen"
                       VERBATIM
                       )
+    ADD_DEPENDENCIES(doc pdf)
 ENDIF(DOCUMENTATION)
 
