@@ -64,6 +64,7 @@ ENDIF(UNIT_TESTS)
 # Build the Documentation using Doxygen
 OPTION(DOCUMENTATION "Build the Documentation using Doxygen" ON)
 IF (DOCUMENTATION)
+    INCLUDE(UseLATEX)
     FIND_PACKAGE(Doxygen)
 ENDIF(DOCUMENTATION)
 
@@ -129,6 +130,7 @@ ENDIF(UNIT_TESTS)
 # Documentation
 #==============================================================================
 IF (DOCUMENTATION)
+    ADD_SUBDIRECTORY(doc)
     # configure doxygen configuration file
     CONFIGURE_FILE(
         "${PROJECT_SOURCE_DIR}/config/doxygen.conf.in"
@@ -139,6 +141,7 @@ IF (DOCUMENTATION)
     ADD_CUSTOM_TARGET(doc
                       ${DOXYGEN_EXECUTABLE} 
                       ${PROJECT_BINARY_DIR}/config/doxygen.conf
+                      DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/doc
                       WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
                       COMMENT "Generating API documentation with Doxygen"
                       VERBATIM

@@ -2,5 +2,6 @@
  *
  * \section intro-developer Developer Informations
  *
- * - \ref exceptions - Exceptions
+ * - <a href="../equations/LSTM2.pdf"><b>LSTM Equations</b></a>
+ * - \ref exceptions
  */
