@@ -100,8 +100,8 @@ MatrixView2DCPU::MatrixView2DCPU() :
   MatrixView2D(NORMAL, 0, 0, 0, 0)
 {}
 
-void MatrixView2DCPU::T() {
-  return MatrixView2DCPU(!matrix_state, n_rows, n_columns, data, stride) :
+MatrixView2DCPU MatrixView2DCPU::T() {
+  return MatrixView2DCPU(transpose(state), n_rows, n_columns, data, stride);
 }
 
 std::ostream &operator<<(std::ostream &out, MatrixCPU &in) {

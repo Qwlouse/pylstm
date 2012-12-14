@@ -6,6 +6,10 @@ enum MatrixState {
 	TRANSPOSED
 };
 
+inline MatrixState transpose(MatrixState s) {
+	return s == NORMAL ? TRANSPOSED : NORMAL;
+};
+
 typedef double d_type;
 typedef long int size_type;
 typedef d_type* raw_ptr_type;
