@@ -13,6 +13,8 @@
 #include <iostream>
 
 struct LstmWeights {
+  size_t n_inputs, n_cells;
+
   ///Variables defining sizes
   MatrixView2DCPU IX, IH, IS;  //!< inputs X, H, S to input gate I 
   MatrixView2DCPU FX, FH, FS;  //!< inputs X, H, S to forget gate F
@@ -50,7 +52,7 @@ struct LstmBuffers {
 struct LstmDeltas {
   ///Variables defining sizes
   size_t n_inputs, n_outputs, n_cells;
-  size_t n_batches, batch_time;
+  size_t n_batches, time;
 
   //Views on all activations
   MatrixView3DCPU Ia, Ib; //Input gate activation

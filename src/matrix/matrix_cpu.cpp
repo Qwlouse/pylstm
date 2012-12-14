@@ -83,6 +83,11 @@ MatrixView3DCPU::MatrixView3DCPU() :
   matrix_view_2d(NORMAL, 0, 0, 0, 0)
 {}
 
+MatrixView3DCPU::MatrixView3DCPU(size_type _n_rows, size_type _n_columns, size_type _n_slices) :
+  MatrixView3D(NORMAL, _n_rows, _n_columns, _n_slices, 0, 0),
+  matrix_view_2d(NORMAL, _n_rows, _n_columns * _n_slices, 0, 0)
+{}
+
 MatrixView2DCPU &MatrixView3DCPU::flatten() {
     return matrix_view_2d;
 }
@@ -100,6 +105,11 @@ MatrixView2DCPU::MatrixView2DCPU() :
   MatrixView2D(NORMAL, 0, 0, 0, 0)
 {}
 
+MatrixView2DCPU::MatrixView2DCPU(size_type _n_rows, size_type _n_columns) :
+  MatrixView2D(NORMAL, _n_rows, _n_columns, 0, 0)
+{}
+
+
 MatrixView2DCPU MatrixView2DCPU::T() {
   return MatrixView2DCPU(transpose(state), n_rows, n_columns, data, stride);
 }
@@ -108,10 +118,10 @@ void lay_out(MatrixView2DCPU &buffer_view, vector<MatrixView2DCPU*> &buffers) {
   d_type *data;
   size_t counter;
   for (size_t i(0); i < buffers.size(); ++i) {
-    ASSERT(counter < buffer_view.size());
+    ASSERT(counter < buffer_view.size);
     buffers[i]->data = data;
-    data += buffers[i]->size();
-    counter += buffers[i]->size();
+    data += buffers[i]->size;
+    counter += buffers[i]->size;
   }
 }
 
@@ -119,10 +129,10 @@ void lay_out(MatrixView2DCPU &buffer_view, vector<MatrixView3DCPU*> &buffers) {
   d_type *data;
   size_t counter;
   for (size_t i(0); i < buffers.size(); ++i) {
-    ASSERT(counter < buffer_view.size());
+    ASSERT(counter < buffer_view.size);
     buffers[i]->data = data;
-    data += buffers[i]->size();
-    counter += buffers[i]->size();
+    data += buffers[i]->size;
+    counter += buffers[i]->size;
   }
 }
 

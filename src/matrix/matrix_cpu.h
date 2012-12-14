@@ -6,7 +6,9 @@
 #include <vector>
 
 struct MatrixView2DCPU : public MatrixView2D {
-  MatrixView2DCPU(MatrixState _matrix_state, size_type _n_rows, size_type _n_columns, raw_ptr_type _data, size_type _stride);
+  MatrixView2DCPU();
+  MatrixView2DCPU(MatrixState _matrix_state, size_type _n_rows, size_type _n_columns, raw_ptr_type _data, size_type _stride = 0);
+  MatrixView2DCPU(size_type _n_rows, size_type _n_columns);
 
   MatrixView2DCPU T();
 };
@@ -15,6 +17,7 @@ struct MatrixView2DCPU : public MatrixView2D {
 struct MatrixView3DCPU : public MatrixView3D {
   MatrixView3DCPU();
   MatrixView3DCPU(MatrixState _matrix_state, size_type _n_rows, size_type _n_columns, size_type _n_slices, raw_ptr_type _data, size_type _stride);
+  MatrixView3DCPU(size_type _n_rows, size_type _n_columns, size_type _n_slices);
 
   MatrixView2DCPU &flatten();
   MatrixView2DCPU slice(size_type t);
