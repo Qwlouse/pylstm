@@ -13,9 +13,6 @@
 #include <iostream>
 
 struct LstmWeights {
-  //matrix_type hidden_bias, output_bias;
-  size_t n_input, n_cells, n_output;
-
   ///Variables defining sizes
   MatrixView2DCPU IX, IH, IS;  //!< inputs X, H, S to input gate I 
   MatrixView2DCPU FX, FH, FS;  //!< inputs X, H, S to forget gate F
@@ -23,11 +20,11 @@ struct LstmWeights {
   MatrixView2DCPU OX, OH, OS;  //!< inputs X, H, S to output gate O
 
   MatrixView2DCPU I_bias, F_bias, Z_bias, O_bias;   //!< bias to input gate, forget gate, state Z, output gate
-  MatrixCPU weights; 
+  //MatrixCPU weights; 
 
-  LstmWeights();
+  LstmWeights(size_t n_inputs, size_t n_cells);
 
-  size_t size()
+  size_t buffer_size();
 };
 
 struct LstmBuffers {
@@ -44,6 +41,10 @@ struct LstmBuffers {
   MatrixView3DCPU S;      //!< Sa =Cell State activations
   MatrixView3DCPU f_S;      //!< Sa =Cell State activations
   MatrixView3DCPU Hb;     //!< output of LSTM block
+
+  LstmBuffers(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
+  
+  size_t buffer_size();
 };
 
 struct LstmDeltas {
@@ -63,6 +64,9 @@ struct LstmDeltas {
 
 
   MatrixView3DCPU temp_hidden, temp_hidden2; 
+
+  LstmDeltas(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
+  size_t buffer_size();
 };
 
 void lstm_forward(LstmWeights &w, LstmBuffers &b, MatrixView3DCPU &x, MatrixView3DCPU &y);

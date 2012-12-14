@@ -100,11 +100,33 @@ MatrixView2DCPU::MatrixView2DCPU() :
   MatrixView2D(NORMAL, 0, 0, 0, 0)
 {}
 
-void MatrixView2DCPU::T() {
+MatrixView2DCPU MatrixView2DCPU::T() {
   return MatrixView2DCPU(!matrix_state, n_rows, n_columns, data, stride) :
 }
 
-std::ostream &operator<<(std::ostream &out, MatrixCPU &in) {
+void lay_out(MatrixView2DCPU &buffer_view, vector<MatrixView2DCPU*> &buffers) {
+  d_type *data;
+  size_t counter;
+  for (size_t i(0); i < buffers.size(); ++i) {
+    ASSERT(counter < buffer_view.size());
+    buffers[i]->data = data;
+    data += buffers[i]->size();
+    counter += buffers[i]->size();
+  }
+}
+
+void lay_out(MatrixView2DCPU &buffer_view, vector<MatrixView3DCPU*> &buffers) {
+  d_type *data;
+  size_t counter;
+  for (size_t i(0); i < buffers.size(); ++i) {
+    ASSERT(counter < buffer_view.size());
+    buffers[i]->data = data;
+    data += buffers[i]->size();
+    counter += buffers[i]->size();
+  }
+}
+
+ostream &operator<<(ostream &out, MatrixCPU &in) {
   for (size_t i(0); i < in.size; ++i) {
     out << in.data[i] << " ";
   }

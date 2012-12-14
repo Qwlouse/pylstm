@@ -7,6 +7,85 @@
 #include "lstm_layer.h"
 #include "matrix/matrix_operation_cpu.h"
 
+LstmWeights::LstmWeights(size_t n_inputs_, size_t n_cells_) :
+  n_inputs(n_inputs_), 
+  n_cells(n_cells_), 
+
+  IX(n_cells, n_inputs), IH(n_cells, n_cells), IS(n_cells, n_cells),
+  FX(n_cells, n_inputs), FH(n_cells, n_cells), FS(n_cells, n_cells),
+  ZX(n_cells, n_cells), ZH(n_cells, n_cells),
+  OX(n_cells, n_inputs), OH(n_cells, n_cells), OS(n_cells, n_cells),
+
+  I_bias(n_cells, 1), F_bias(n_cells, 1), Z_bias(n_cells, 1), O_bias(n_cells, 1)
+{
+}
+
+size_t LstmWeights::size() {
+  return IX.size() + IH.size() + IS.size() +  //!< inputs X, H, S to input gate I 
+  FX.size() + FH.size() + FS.size() +  //!< inputs X, H, S to forget gate F
+  ZX.size() + ZH.size() +      //!< inputs X, H, to state cell 
+  OX.size() + OH.size() + OS.size() +  //!< inputs X, H, S to output gate O
+
+  I_bias.size() + F_bias.size() + Z_bias.size() + O_bias.size();   //!< bias to input gate, forget gate, state Z, output gate
+}
+
+LstmBuffers::LstmBuffers(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_) :
+  n_inputs(n_inputs_), n_cells(n_cells_),
+  n_batches(n_batches_), time(time_),
+
+  //Views on all activations
+  Ia(n_cells, n_batches, time), Ib(n_cells, n_batches, time), //!< Input gate activation
+  Fa(n_cells, n_batches, time), Fb(n_cells, n_batches, time), //!< forget gate activation
+  Oa(n_cells, n_batches, time), Ob(n_cells, n_batches, time), //!< output gate activation
+
+  Za(n_cells, n_batches, time), Zb(n_cells, n_batches, time), //!< Za =Net Activation, Zb=f(Za)
+  S(n_cells, n_batches, time),      //!< Sa =Cell State activations
+  f_S(n_cells, n_batches, time),      //!< Sa =Cell State activations
+  Hb(n_cells, n_batches, time)     //!< output of LSTM block
+{}
+
+size_t LstmBuffers::buffer_size() {
+ //Views on all activations
+  return Ia.size() + Ib.size() + //!< Input gate activation
+    Fa.size() + Fb.size() + //!< forget gate activation
+    Oa.size() + Ob.size() + //!< output gate activation
+    
+    Za.size(), Zb.size() + //!< Za =Net Activation, Zb=f(Za)
+    S.size() +      //!< Sa =Cell State activations
+    f_S.size() +      //!< Sa =Cell State activations
+    Hb;     //!< output of LSTM block
+
+
+LstmDeltas::LstmDeltas(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_) :
+  ///Variables defining sizes
+  n_inputs(n_inputs_), n_cells(n_cells_),
+  n_batches(n_batches_), time(time_),
+
+  //Views on all activations
+  Ia(n_cells, n_batches, time), Ib(n_cells, n_batches, time), //Input gate activation
+  Fa(n_cells, n_batches, time), Fb(n_cells, n_batches, time), //forget gate activation
+  Oa(n_cells, n_batches, time), Ob(n_cells, n_batches, time), //output gate activation
+
+  Za(n_cells, n_batches, time), Zb(n_cells, n_batches, time), //Net Activation
+  S(n_cells, n_batches, time), //Cell activations
+  f_S(n_cells, n_batches, time), //cell state activations
+  Hb(n_cells, n_batches, time),     //!< output of LSTM block
+
+  temp_hidden(n_cells, n_batches, time), temp_hidden2(n_cells, n_batches, time)
+{}
+
+size_t LstmDeltas::buffer_size() {
+  return Ia.size() + Ib.size() + //Input gate activation
+    Fa.size() + Fb.size() + //forget gate activation
+    Oa.size() + Ob.size() + //output gate activation
+    
+    Za.size() + Zb.size() + //Net Activation
+    S.size() + //Cell activations
+    f_S.size() + //cell state activations
+    Hb.size() +     //!< output of LSTM block
+    temp_hidden.size() + temp_hidden2.size();
+}
+
 void lstm_forward(LstmWeights &w, LstmBuffers &b, MatrixView3DCPU &x, MatrixView3DCPU &y) {
   mult(w.IX, x.flatten(), b.Ia.flatten());
   mult(w.FX, x.flatten(), b.Fa.flatten());

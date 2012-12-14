@@ -3,11 +3,13 @@
 
 #include "matrix.h"
 #include <iostream>
+#include <vector>
 
 struct MatrixView2DCPU : public MatrixView2D {
   MatrixView2DCPU(MatrixState _matrix_state, size_type _n_rows, size_type _n_columns, raw_ptr_type _data, size_type _stride);
 
   MatrixView2DCPU();
+  MatrixView2DCPU MatrixView2DCPU::T();
 };
 
 
@@ -39,6 +41,8 @@ struct MatrixCPU : public Matrix {
 };
 
 
+void lay_out(MatrixView2DCPU &buffer_view, std::vector<MatrixView2DCPU*> &buffers);
+void lay_out(MatrixView2DCPU &buffer_view, std::vector<MatrixView3DCPU*> &buffers);
 
 std::ostream &operator<<(std::ostream &out, MatrixCPU &in);
 
