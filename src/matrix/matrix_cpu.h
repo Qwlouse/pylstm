@@ -8,8 +8,7 @@
 struct MatrixView2DCPU : public MatrixView2D {
   MatrixView2DCPU(MatrixState _matrix_state, size_type _n_rows, size_type _n_columns, raw_ptr_type _data, size_type _stride);
 
-  MatrixView2DCPU();
-  MatrixView2DCPU MatrixView2DCPU::T();
+  MatrixView2DCPU T();
 };
 
 

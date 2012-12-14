@@ -101,7 +101,7 @@ MatrixView2DCPU::MatrixView2DCPU() :
 {}
 
 MatrixView2DCPU MatrixView2DCPU::T() {
-  return MatrixView2DCPU(!matrix_state, n_rows, n_columns, data, stride) :
+  return MatrixView2DCPU(transpose(state), n_rows, n_columns, data, stride);
 }
 
 void lay_out(MatrixView2DCPU &buffer_view, vector<MatrixView2DCPU*> &buffers) {
