@@ -27,7 +27,7 @@ struct LstmWeights {
 
   LstmWeights();
 
-  size_t size()
+  size_t size();
 };
 
 struct LstmBuffers {
