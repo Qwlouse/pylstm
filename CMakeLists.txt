@@ -80,6 +80,10 @@ ELSEIF(CMAKE_COMPILER_IS_GNUCXX)
                     -Wconversion )#-Werror)
 ENDIF(DEFINED MSVC)
 
+IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+   ADD_DEFINITIONS(-I/usr/lib/c++/v1/ -libstd=libc++ -std=c++11)
+   MESSAGE("USING CLANG")
+ENDIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 #==============================================================================
 # External Libs
 #==============================================================================
@@ -104,7 +108,7 @@ INCLUDE_DIRECTORIES("${PROJECT_BINARY_DIR}/src")
 # Include the CMake script UseCython.cmake.  This defines add_cython_module().
 # Instruction for use can be found at the top of cmake/UseCython.cmake.
 INCLUDE(UseCython)
-
+INCLUDE_DIRECTORIES(/System/Library/Frameworks/Python.framework/Versions/2.7/Extras/lib/python/numpy/core/include/)
 # We reproduce the availability of the source files in the build tree.
 # That way we can run the unchanged setup.py from the build dir and install
 # both cython and pure python files.

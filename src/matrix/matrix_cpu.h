@@ -4,6 +4,8 @@
 #include "matrix.h"
 #include <iostream>
 #include <vector>
+#include <initializer_list>
+
 
 struct MatrixView2DCPU : public MatrixView2D {
   MatrixView2DCPU();
