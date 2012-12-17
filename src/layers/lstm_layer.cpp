@@ -3,9 +3,12 @@
  * \brief Implementation of the lstm_layer.
  */
 
+#include <vector>
 
 #include "lstm_layer.h"
 #include "matrix/matrix_operation_cpu.h"
+
+using namespace std;
 
 LstmWeights::LstmWeights(size_t n_inputs_, size_t n_cells_) :
   n_inputs(n_inputs_), 
@@ -27,6 +30,29 @@ size_t LstmWeights::buffer_size() {
   OX.size + OH.size + OS.size +  //!< inputs X, H, S to output gate O
 
   I_bias.size + F_bias.size + Z_bias.size + O_bias.size;   //!< bias to input gate, forget gate, state Z, output gate
+}
+
+void LstmWeights::allocate(MatrixView2DCPU &buffer_view) {
+  vector<MatrixView2DCPU*> views;
+
+  views.push_back(&IX);
+  views.push_back(&IH);
+  views.push_back(&IS);
+  views.push_back(&FX);
+  views.push_back(&FH);
+  views.push_back(&FS);
+  views.push_back(&ZX);
+  views.push_back(&ZH);
+  views.push_back(&OX);
+  views.push_back(&OH);
+  views.push_back(&OS);
+  
+  views.push_back(&I_bias);
+  views.push_back(&F_bias);
+  views.push_back(&Z_bias);
+  views.push_back(&O_bias);
+  
+  lay_out(buffer_view, views);
 }
 
 LstmBuffers::LstmBuffers(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_t time_) :
@@ -54,6 +80,25 @@ size_t LstmBuffers::buffer_size() {
     S.size +      //!< Sa =Cell State activations
     f_S.size +      //!< Sa =Cell State activations
     Hb.size;     //!< output of LSTM block
+}
+
+void LstmBuffers::allocate(MatrixView2DCPU &buffer_view) {
+  vector<MatrixView3DCPU*> views;
+  
+  views.push_back(&Ia);
+  views.push_back(&Ib); //Input gate activation
+  views.push_back(&Fa);
+  views.push_back(&Fb); //forget gate activation
+  views.push_back(&Oa);
+  views.push_back(&Ob); //output gate activation
+
+  views.push_back(&Za);
+  views.push_back(&Zb); //Net Activation
+  views.push_back(&S); //Cell activations
+  views.push_back(&f_S); //cell state activations
+  views.push_back(&Hb);     //!< output of LSTM block
+
+  lay_out(buffer_view, views);
 }
 
 LstmDeltas::LstmDeltas(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_t time_) :
@@ -84,6 +129,28 @@ size_t LstmDeltas::buffer_size() {
     f_S.size + //cell state activations
     Hb.size +     //!< output of LSTM block
     temp_hidden.size + temp_hidden2.size;
+}
+
+void LstmDeltas::allocate(MatrixView2DCPU &buffer_view) {
+  vector<MatrixView3DCPU*> views;
+  
+  views.push_back(&Ia);
+  views.push_back(&Ib); //Input gate activation
+  views.push_back(&Fa);
+  views.push_back(&Fb); //forget gate activation
+  views.push_back(&Oa);
+  views.push_back(&Ob); //output gate activation
+
+  views.push_back(&Za);
+  views.push_back(&Zb); //Net Activation
+  views.push_back(&S); //Cell activations
+  views.push_back(&f_S); //cell state activations
+  views.push_back(&Hb);     //!< output of LSTM block
+
+  views.push_back(&temp_hidden);
+  views.push_back(&temp_hidden2);
+
+  lay_out(buffer_view, views);
 }
 
 void lstm_forward(LstmWeights &w, LstmBuffers &b, MatrixView3DCPU &x, MatrixView3DCPU &y) {

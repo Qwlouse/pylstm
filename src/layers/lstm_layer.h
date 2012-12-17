@@ -27,11 +27,12 @@ struct LstmWeights {
   LstmWeights(size_t n_inputs, size_t n_cells);
 
   size_t buffer_size();
+  void allocate(MatrixView2DCPU &buffer_view);
 };
 
 struct LstmBuffers {
   ///Variables defining sizes
-  size_t n_inputs, n_outputs, n_cells;
+  size_t n_inputs, n_cells;
   size_t n_batches, time;
 
   //Views on all activations
@@ -47,11 +48,12 @@ struct LstmBuffers {
   LstmBuffers(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
   
   size_t buffer_size();
+  void allocate(MatrixView2DCPU &buffer_view);
 };
 
 struct LstmDeltas {
   ///Variables defining sizes
-  size_t n_inputs, n_outputs, n_cells;
+  size_t n_inputs, n_cells;
   size_t n_batches, time;
 
   //Views on all activations
@@ -64,10 +66,11 @@ struct LstmDeltas {
   MatrixView3DCPU f_S; //cell state activations
   MatrixView3DCPU Hb;     //!< output of LSTM block
 
-
   MatrixView3DCPU temp_hidden, temp_hidden2; 
 
   LstmDeltas(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
+  void allocate(MatrixView2DCPU &buffer_view);
+
   size_t buffer_size();
 };
 
