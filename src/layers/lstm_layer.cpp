@@ -50,7 +50,7 @@ size_t LstmBuffers::buffer_size() {
     Fa.size + Fb.size + //!< forget gate activation
     Oa.size + Ob.size + //!< output gate activation
     
-    Za.size, Zb.size + //!< Za =Net Activation, Zb=f(Za)
+    Za.size + Zb.size + //!< Za =Net Activation, Zb=f(Za)
     S.size +      //!< Sa =Cell State activations
     f_S.size +      //!< Sa =Cell State activations
     Hb.size;     //!< output of LSTM block
@@ -129,7 +129,7 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
 
   //clear_temp();
   //size_t end_time(b.batch_time - 1);
-  size_t end_time(b.time - 1);
+  int end_time = static_cast<int>(b.time - 1);
 
   //calculate t+1 values except for end_time+1 
   for(int t(end_time); t >= 0; --t){

@@ -5,7 +5,7 @@
 
 using namespace std;
 
-int main(int argc, char **argv) {
+int main(/*int argc, char **argv*/) {
   MatrixCPU a(10, 10, 1);
   MatrixCPU b(10, 10, 1);
   MatrixCPU c(10, 10, 1);
