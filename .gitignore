@@ -6,3 +6,10 @@
 
 # the build directory
 build
+
+# kate swap
+*.kate-swp
+
+# python binaries and caches
+*.py[co]
+__pycache__
