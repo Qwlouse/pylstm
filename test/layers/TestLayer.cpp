@@ -23,11 +23,11 @@ TEST(MatrixLayer, lstm_forward) {
   MatrixCPU store_d(d.buffer_size(), 1, 1);
   
   cout << "allocating w" << endl;
-  w.allocate(space_w);
+  w.allocate(store_w);
   cout << "allocating b" << endl;
-  b.allocate(space_b);
+  b.allocate(store_b);
   cout << "allocating d" << endl;
-  d.allocate(space_d);
+  d.allocate(store_d);
   
   MatrixCPU x(n_inputs, n_batches, n_time);
   MatrixCPU y(n_inputs, n_batches, n_time);
