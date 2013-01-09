@@ -6,3 +6,14 @@
 
 # the build directory
 build
+
+# kate swap
+*.kate-swp
+
+# python binaries and caches
+*.py[co]
+__pycache__
+
+# built python libraries (.so files on linux)
+# I've added this to be able to symlink built libraries in my working dir
+*.so

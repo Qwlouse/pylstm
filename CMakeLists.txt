@@ -128,6 +128,11 @@ ADD_SUBDIRECTORY(src)
 IF (UNIT_TESTS)
     ENABLE_TESTING()
     ADD_SUBDIRECTORY(test)
+    ADD_CUSTOM_TARGET(pytest
+                      nosetests
+                      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/pylstm
+                      COMMENT "Running all python tests using nosetest"
+                      )
 ENDIF(UNIT_TESTS)
 
 #==============================================================================

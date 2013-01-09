@@ -201,7 +201,7 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
 
   //clear_temp();
   //size_t end_time(b.batch_time - 1);
-  size_t end_time(b.time - 1);
+  int end_time = static_cast<int>(b.time - 1);
 
   //calculate t+1 values except for end_time+1 
   for(int t(end_time); t >= 0; --t){
