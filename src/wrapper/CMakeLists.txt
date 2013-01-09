@@ -1,3 +1,5 @@
+#SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/pylstm)
+SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/pylstm)
 # If the pyx file is a C++ file, we should specify that here.
 SET_SOURCE_FILES_PROPERTIES(
   py_matrix.pyx
