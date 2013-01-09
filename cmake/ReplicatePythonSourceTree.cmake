@@ -6,3 +6,6 @@ ENDIF (EXISTS "setup.py")
 
 FILE(COPY src/pylstm DESTINATION "${CMAKE_ARGV3}"
      FILES_MATCHING PATTERN "*.py")
+
+FILE(COPY test/pylstm/ DESTINATION "${CMAKE_ARGV3}/pylstm/test"
+     FILES_MATCHING PATTERN "*.py")
