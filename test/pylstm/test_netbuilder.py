@@ -2,7 +2,7 @@
 # coding=utf-8
 
 import unittest
-from netbuilder import NetworkBuilder, InvalidArchitectureError, ConstructionLayer
+from pylstm.netbuilder import NetworkBuilder, InvalidArchitectureError, ConstructionLayer
 
 class Foo(): pass
 
