@@ -76,7 +76,7 @@ size_t LstmBuffers::buffer_size() {
     Fa.size + Fb.size + //!< forget gate activation
     Oa.size + Ob.size + //!< output gate activation
     
-    Za.size, Zb.size + //!< Za =Net Activation, Zb=f(Za)
+    Za.size + Zb.size + //!< Za =Net Activation, Zb=f(Za)
     S.size +      //!< Sa =Cell State activations
     f_S.size +      //!< Sa =Cell State activations
     Hb.size;     //!< output of LSTM block
@@ -160,15 +160,16 @@ void lstm_forward(LstmWeights &w, LstmBuffers &b, MatrixView3DCPU &x, MatrixView
   mult(w.OX, x.flatten(), b.Oa.flatten());
 
   for (size_t t(0); t < b.time; ++t) {
-    //IF NEXT                                                                                                                                                                                                      
+    //IF NEXT                                                                                 
+
     if (t) {
       mult(w.FH, y.slice(t - 1), b.Fa.slice(t));
       mult(w.IH, y.slice(t - 1), b.Ia.slice(t));
       mult(w.OH, y.slice(t - 1), b.Oa.slice(t));
       mult(w.ZH, y.slice(t - 1), b.Za.slice(t));
 
-      dot_add(b.S.slice(t - 1), w.FS, b.Fa.slice(t));
-      dot_add(b.S.slice(t - 1), w.IS, b.Ia.slice(t));
+      mult_add(b.S.slice(t - 1), w.FS, b.Fa.slice(t));
+      mult_add(b.S.slice(t - 1), w.IS, b.Ia.slice(t));
     }
 
     add_into_b(w.F_bias, b.Fa.slice(t));
@@ -179,17 +180,21 @@ void lstm_forward(LstmWeights &w, LstmBuffers &b, MatrixView3DCPU &x, MatrixView
     apply_sigmoid(b.Fa.slice(t), b.Fb.slice(t));
     apply_sigmoid(b.Ia.slice(t), b.Ib.slice(t));
     apply_sigmoid(b.Za.slice(t), b.Zb.slice(t));
-   
+
     dot_add(b.Zb.slice(t), b.Ib.slice(t), b.S.slice(t));
+    
     if (t) 
       dot_add(b.S.slice(t - 1), b.Fb.slice(t), b.S.slice(t));
     apply_tanhx2(b.S.slice(t), b.f_S.slice(t));
 
-    dot_add(b.f_S.slice(t), w.OS, b.Oa.slice(t));
+    b.f_S.slice(t).print_me();
+    w.OS.print_me();
+    b.Oa.slice(t).print_me();
+    
+    mult_add(b.S.slice(t), w.OS, b.Oa.slice(t));
     apply_sigmoid(b.Oa.slice(t), b.Ob.slice(t));
     dot(b.f_S.slice(t), b.Ob.slice(t), y.slice(t));
   }
-  
 }
 
 void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCPU &y, MatrixView3DCPU &in_deltas, MatrixView3DCPU &out_deltas) {
@@ -201,19 +206,17 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
   //calculate t+1 values except for end_time+1 
   for(int t(end_time); t >= 0; --t){
     if (t<end_time) {
-      
       mult(w.IH.T(), d.Ia.slice(t+1), d.Hb.slice(t));
       mult(w.FH.T(), d.Fa.slice(t+1), d.Hb.slice(t));
       mult(w.ZH.T(), d.Za.slice(t+1), d.Hb.slice(t));
       mult(w.OH.T(), d.Oa.slice(t+1), d.Hb.slice(t));
       
-
       //! \f$\frac{dE}{dS} += \frac{dE}{dS^{t+1}} * b_F(t+1)\f$
       dot_add(d.S.slice(t+1), b.Fb.slice(t+1), d.S.slice(t));
       //! \f$\frac{dE}{dS} += \frac{dE}{da_I(t+1)} * W_{IS}\f$
-      dot_add(d.Ia.slice(t+1), w.IS, d.S.slice(t));
+      mult_add(d.Ia.slice(t+1), w.IS, d.S.slice(t));
       //! \f$\frac{dE}{dS} += \frac{dE}{da_F(t+1)} * W_{FS}\f$
-      dot_add(d.Fa.slice(t+1), w.FS, d.S.slice(t));
+      mult_add(d.Fa.slice(t+1), w.FS, d.S.slice(t));
     }
 
     //! \f$\frac{dE}{df_S} += \frac{dE}{dH} * b_O\f$  THIS IS WEIRD, IT GOES WITH NEXT LINE ??!?!
@@ -228,9 +231,8 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
     //! \f$\frac{dE}{dS} += \frac{dE}{df_S} * f'(s)\f$
     //tanh2_deriv(d.f_S.slice(t), b.S.slice(t), d.temp_hidden, d.S.slice(t));
 
-    
     //! \f$\frac{dE}{dS} += \frac{dE}{da_O} * W_OS\f$
-    dot_add(d.Oa.slice(t), w.OS, d.S.slice(t));
+    mult_add(d.Oa.slice(t), w.OS, d.S.slice(t));
     
     //! CELL ACTIVATION DERIVS
     //! \f$\frac{dE}{db_Z} = \frac{dE}{dS} * b_I\f$
@@ -248,7 +250,6 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
     if (t)
       //! \f$\frac{dE}{db_F} += \frac{dE}{dS} * s(t-1)\f$
       dot_add(d.S.slice(t), b.S.slice(t - 1), d.Fb.slice(t));
-    
     // \f$\frac{dE}{da_F} = \frac{dE}{db_F} * f'(a_F)\f$
     //sigmoid_deriv(d.Fb.slice(t), b.Fb.slice(t), d.temp_hidden, d.temp_hidden2, d.Fa.slice(t));    
    

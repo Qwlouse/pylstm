@@ -66,7 +66,7 @@ struct LstmDeltas {
   MatrixView3DCPU f_S; //cell state activations
   MatrixView3DCPU Hb;     //!< output of LSTM block
 
-  MatrixView3DCPU temp_hidden, temp_hidden2; 
+  MatrixView3DCPU temp_hidden, temp_hidden2;
 
   LstmDeltas(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
   void allocate(MatrixView2DCPU &buffer_view);

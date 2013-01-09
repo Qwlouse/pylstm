@@ -109,28 +109,47 @@ MatrixView2DCPU::MatrixView2DCPU(size_type _n_rows, size_type _n_columns) :
   MatrixView2D(NORMAL, _n_rows, _n_columns, 0, 0)
 {}
 
+void MatrixView2DCPU::print_me() {
+  cout << "MatrixCPU " << n_rows << " x " << n_columns << " x " << endl;
+
+  d_type* data_ptr = data;
+  cout << "=====================================\n";
+  for (int r = 0; r < n_rows; ++r) {
+    for (int c = 0; c < n_columns; ++c) {
+      cout << *data_ptr << " ";
+      data_ptr += n_rows;
+    }
+    data_ptr -= n_columns*n_rows - 1;
+    cout << '\n';
+  }
+  cout << "=====================================\n";
+}
+
 
 MatrixView2DCPU MatrixView2DCPU::T() {
   return MatrixView2DCPU(transpose(state), n_rows, n_columns, data, stride);
 }
 
 void lay_out(MatrixView2DCPU &buffer_view, vector<MatrixView2DCPU*> &buffers) {
-  d_type *data;
-  size_t counter;
+  d_type *data(buffer_view.data);
+  size_t counter(0);
   for (size_t i(0); i < buffers.size(); ++i) {
     ASSERT(counter < buffer_view.size);
-    buffers[i]->data = data;
+    buffers[i]->set_data(data);
     data += buffers[i]->size;
     counter += buffers[i]->size;
   }
 }
 
 void lay_out(MatrixView2DCPU &buffer_view, vector<MatrixView3DCPU*> &buffers) {
-  d_type *data;
-  size_t counter;
+  cout << "buffer_view size: " << buffer_view.size << endl;
+  d_type *data(buffer_view.data);
+  size_t counter(0);
   for (size_t i(0); i < buffers.size(); ++i) {
+    cout << "allocating buffer :" << i << endl;
+    cout << "counter: " << counter << endl;
     ASSERT(counter < buffer_view.size);
-    buffers[i]->data = data;
+    buffers[i]->set_data(data);
     data += buffers[i]->size;
     counter += buffers[i]->size;
   }

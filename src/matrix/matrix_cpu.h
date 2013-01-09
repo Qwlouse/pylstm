@@ -11,8 +11,10 @@ struct MatrixView2DCPU : public MatrixView2D {
   MatrixView2DCPU();
   MatrixView2DCPU(MatrixState _matrix_state, size_type _n_rows, size_type _n_columns, raw_ptr_type _data, size_type _stride = 0);
   MatrixView2DCPU(size_type _n_rows, size_type _n_columns);
-
+  void print_me();
   MatrixView2DCPU T();
+
+  void set_data(raw_ptr_type d) {data = d;}
 };
 
 
@@ -23,6 +25,8 @@ struct MatrixView3DCPU : public MatrixView3D {
 
   MatrixView2DCPU &flatten();
   MatrixView2DCPU slice(size_type t);
+
+  void set_data(raw_ptr_type d) {data = d; matrix_view_2d.set_data(d);}
 
   MatrixView2DCPU matrix_view_2d;
 };
@@ -40,7 +44,7 @@ struct MatrixCPU : public Matrix {
 	operator MatrixView2DCPU&() {return standard_view_2d;}
 	operator MatrixView3DCPU&() {return standard_view_3d;}
 
-	virtual void allocate();
+    virtual void allocate();
 	void print_me();
 };
 

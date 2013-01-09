@@ -26,8 +26,12 @@ struct Matrix {
 
   Matrix(size_type _n_rows, size_type _n_columns, size_type _n_slices);
   Matrix(d_type* _data, size_type _n_rows, size_type _n_columns, size_type _n_slices);
+
+  d_type &operator[](size_type const index) {return data[index];}
+
   virtual ~Matrix(){}
   virtual void allocate(){}
+
 };
 
 
@@ -42,7 +46,7 @@ struct MatrixView2D {
 	size_type stride;
 	
 	MatrixView2D(MatrixState _matrix_state, size_type _n_rows, size_type _n_columns, raw_ptr_type _data, size_type _stride);
-
+  d_type &operator[](size_type const index) {return data[index];}
 
 };
 
@@ -57,6 +61,7 @@ struct MatrixView3D {
 	size_type stride;
 	
 	MatrixView3D(MatrixState _matrix_state, size_type _n_rows, size_type _n_columns, size_type _n_slices, raw_ptr_type _data, size_type _stride);
+  d_type &operator[](size_type const index) {return data[index];}
 };
 
 #endif
