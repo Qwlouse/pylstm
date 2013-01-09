@@ -1,6 +1,7 @@
 import numpy as np
 cimport numpy as np
-cimport c_matrix
+from py_matrix cimport MatrixCPU
+cimport c_matrix as cm
 
 # http://stackoverflow.com/questions/3046305
 # http://article.gmane.org/gmane.comp.python.cython.user/5625
@@ -11,8 +12,8 @@ cdef class MatrixCPU:
         cdef np.ndarray[np.double_t, ndim=3, mode='c'] A
         # unbox NumPy array into numpy 3d member array A
         # make sure we have a contiguous array in C order
-        # this might produce a temporary copy
-        A = np.ascontiguousarray(np.swapaxes(array, 1, 2), dtype=np.float64)
+        # this might produce a copy
+        A = np.ascontiguousarray(array, dtype=np.float64)
 
         cdef np.npy_intp rows = A.shape[2]
         cdef np.npy_intp cols = A.shape[1]
