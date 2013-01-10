@@ -28,6 +28,15 @@ cdef class MatrixCPU:
     def print_me(self):
         self.thisptr.print_me()
 
+    def get_feature_count(self):
+        return self.thisptr.n_rows
+
+    def get_batch_count(self):
+        return self.thisptr.n_columns
+
+    def get_slice_count(self):
+        return self.thisptr.n_slices
+
 def dot(MatrixCPU a not None, MatrixCPU b not None, MatrixCPU out not None):
     cm.dot(a.get_2d_view(), b.get_2d_view(), out.get_2d_view())
 

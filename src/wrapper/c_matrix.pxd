@@ -6,12 +6,18 @@ cdef extern from "matrix.h":
 
 cdef extern from "matrix_cpu.h":
     cdef cppclass MatrixView2DCPU:
-        pass
+        int n_rows
+        int n_columns
 
     cdef cppclass MatrixView3DCPU:
-        pass
+        int n_rows
+        int n_columns
+        int n_slices
 
     cdef cppclass MatrixCPU:
+        int n_rows
+        int n_columns
+        int n_slices
         MatrixCPU(int, int, int)
         MatrixCPU(double*, int, int, int) #todo use d_type and size_t
         void print_me()
