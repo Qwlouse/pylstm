@@ -16,3 +16,8 @@ class MatrixCPUTest(unittest.TestCase):
         self.assertEqual(m.get_batch_count(), 3)
         self.assertEqual(m.get_slice_count(), 4)
 
+    def test_matrix_from_sizes_has_correct_shape(self):
+        m = pm.MatrixCPU(3, 5, 7)
+        self.assertEqual(m.get_feature_count(), 7)
+        self.assertEqual(m.get_batch_count(), 5)
+        self.assertEqual(m.get_slice_count(), 3)
