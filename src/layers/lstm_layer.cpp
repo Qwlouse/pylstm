@@ -32,7 +32,7 @@ size_t LstmWeights::buffer_size() {
   I_bias.size + F_bias.size + Z_bias.size + O_bias.size;   //!< bias to input gate, forget gate, state Z, output gate
 }
 
-void LstmWeights::allocate(MatrixView2DCPU &buffer_view) {
+void LstmWeights::allocate(MatrixView2DCPU buffer_view) {
   vector<MatrixView2DCPU*> views;
 
   views.push_back(&IX);
@@ -82,7 +82,7 @@ size_t LstmBuffers::buffer_size() {
     Hb.size;     //!< output of LSTM block
 }
 
-void LstmBuffers::allocate(MatrixView2DCPU &buffer_view) {
+void LstmBuffers::allocate(MatrixView2DCPU buffer_view) {
   vector<MatrixView3DCPU*> views;
   
   views.push_back(&Ia);
@@ -131,7 +131,7 @@ size_t LstmDeltas::buffer_size() {
     temp_hidden.size + temp_hidden2.size;
 }
 
-void LstmDeltas::allocate(MatrixView2DCPU &buffer_view) {
+void LstmDeltas::allocate(MatrixView2DCPU buffer_view) {
   vector<MatrixView3DCPU*> views;
   
   views.push_back(&Ia);

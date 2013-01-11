@@ -27,7 +27,7 @@ struct LstmWeights {
   LstmWeights(size_t n_inputs, size_t n_cells);
 
   size_t buffer_size();
-  void allocate(MatrixView2DCPU &buffer_view);
+  void allocate(MatrixView2DCPU buffer_view);
 };
 
 struct LstmBuffers {
@@ -48,7 +48,7 @@ struct LstmBuffers {
   LstmBuffers(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
   
   size_t buffer_size();
-  void allocate(MatrixView2DCPU &buffer_view);
+  void allocate(MatrixView2DCPU buffer_view);
 };
 
 struct LstmDeltas {
@@ -69,7 +69,7 @@ struct LstmDeltas {
   MatrixView3DCPU temp_hidden, temp_hidden2;
 
   LstmDeltas(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
-  void allocate(MatrixView2DCPU &buffer_view);
+  void allocate(MatrixView2DCPU buffer_view);
 
   size_t buffer_size();
 };
