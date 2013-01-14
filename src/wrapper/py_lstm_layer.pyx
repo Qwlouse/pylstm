@@ -46,13 +46,13 @@ cdef class LstmLayer:
     def get_input_size(self):
         return self.in_size
 
-    def get_weight_size(self):
+    def get_param_size(self):
         return clstm.LstmWeights(self.in_size, self.out_size).buffer_size()
 
-    def get_internal_state_size(self, batch_size=1, time_length=1):
+    def get_internal_state_size(self, time_length=1, batch_size=1):
         return clstm.LstmBuffers(self.in_size, self.out_size, batch_size, time_length).buffer_size()
 
-    def get_internal_error_state_size(self, batch_size=1, time_length=1):
+    def get_internal_error_state_size(self, time_length=1, batch_size=1):
         return clstm.LstmDeltas(self.in_size, self.out_size, batch_size, time_length).buffer_size()
 
     def create_input_view(self, input_buffer):
@@ -80,7 +80,7 @@ cdef class LstmLayer:
         deltas.thisptr.allocate(internal_error_buffer.get_2d_view())
         return deltas
 
-    def forward(self, MatrixCPU input, LstmParamBuffer param, LstmInternalBuffer internal, MatrixCPU output):
+    def forward(self, LstmParamBuffer param, LstmInternalBuffer internal, MatrixCPU input, MatrixCPU output):
         cdef cm.MatrixView3DCPU in_view = input.get_3d_view()
         cdef cm.MatrixView3DCPU out_view = output.get_3d_view()
         clstm.lstm_forward(deref(param.thisptr), deref(internal.thisptr), in_view, out_view)
