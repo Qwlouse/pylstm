@@ -1,9 +1,5 @@
 from libcpp cimport bool
 
-cdef extern from "matrix.h":
-    cdef enum MatrixState:
-        NORMAL, TRANSPOSED
-
 cdef extern from "matrix_cpu.h":
     cdef cppclass MatrixView2DCPU:
         int n_rows
@@ -22,6 +18,7 @@ cdef extern from "matrix_cpu.h":
         MatrixCPU(double*, int, int, int) #todo use d_type and size_t
         void print_me()
         MatrixView2DCPU standard_view_2d
+        MatrixView3DCPU standard_view_3d
 
 
 cdef extern from "matrix_operation_cpu.h":
