@@ -42,5 +42,7 @@ void apply_tanhx2(MatrixView2DCPU a, MatrixView2DCPU out);
 
 bool equals(MatrixView2DCPU a, MatrixView2DCPU out);
 
+void squash(MatrixView2DCPU a, MatrixView2DCPU b, d_type alpha);
+
 #endif
 

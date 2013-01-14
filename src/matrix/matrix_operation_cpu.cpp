@@ -123,3 +123,11 @@ bool equals(MatrixView2DCPU a, MatrixView2DCPU b) {
   return true;
 }
 
+
+void squash(MatrixView2DCPU a, MatrixView2DCPU b, d_type alpha = 1.0) {
+  assert(b.size == a.n_rows);
+
+  std::vector<d_type> scale(a.n_columns, 1);
+
+  dgemv(&NO_TRANS, &a.n_rows, &a.n_columns, &alpha, a.data, &a.n_rows, &scale[0], &diff_one, &double_one, b.data, &diff_one);
+}

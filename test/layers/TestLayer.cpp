@@ -30,8 +30,8 @@ TEST(MatrixLayer, lstm_forward) {
   d.allocate(store_d);
   
   MatrixCPU x(n_inputs, n_batches, n_time);
-  MatrixCPU y(n_inputs, n_batches, n_time);
-  MatrixCPU target(n_inputs, n_batches, n_time);
+  MatrixCPU y(n_cells, n_batches, n_time);
+  MatrixCPU target(n_cells, n_batches, n_time);
   
   MatrixCPU in_deltas(n_inputs, n_batches, n_time);
   MatrixCPU out_deltas(n_cells, n_batches, n_time);
@@ -40,7 +40,7 @@ TEST(MatrixLayer, lstm_forward) {
   cout << "running forward" << endl;
   lstm_forward(w, b, x, y);
   cout << "running backward" << endl;
-  lstm_backward(w, b, d, y, in_deltas, out_deltas);
+  //lstm_backward(w, b, d, y, in_deltas, out_deltas);
   cout << "done with tests" << endl;
   EXPECT_TRUE(true);
 }
