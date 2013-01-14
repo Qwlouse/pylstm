@@ -1,11 +1,9 @@
 #!/usr/bin/python
 # coding=utf-8
-
 import numpy as np
 cimport numpy as np
 cimport c_lstm_layer as clstm
 cimport c_matrix as cm
-from py_matrix cimport MatrixCPU
 from cython.operator cimport dereference as deref
 
 cdef class LstmParamBuffer:

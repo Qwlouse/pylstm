@@ -1,12 +1,21 @@
 import numpy as np
 cimport numpy as np
-from py_matrix cimport MatrixCPU
+
 cimport c_matrix as cm
 
 # http://stackoverflow.com/questions/3046305
 # http://article.gmane.org/gmane.comp.python.cython.user/5625
 
 cdef class MatrixCPU:
+    cdef cm.MatrixCPU *thisptr      # hold a C++ instance which we're wrapping
+    cdef np.ndarray A
+    
+    cdef cm.MatrixView2DCPU get_2d_view(self):
+        return self.thisptr.standard_view_2d
+
+    cdef cm.MatrixView3DCPU get_3d_view(self):
+        return self.thisptr.standard_view_3d
+
     def __cinit__(self, a, batch_size=0, time_size=0):
         cdef np.npy_intp rows
         cdef np.npy_intp cols
