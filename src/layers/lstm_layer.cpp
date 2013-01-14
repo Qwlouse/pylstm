@@ -16,7 +16,7 @@ LstmWeights::LstmWeights(size_t n_inputs_, size_t n_cells_) :
 
   IX(n_cells, n_inputs), IH(n_cells, n_cells), IS(n_cells, n_cells),
   FX(n_cells, n_inputs), FH(n_cells, n_cells), FS(n_cells, n_cells),
-  ZX(n_cells, n_cells), ZH(n_cells, n_cells),
+  ZX(n_cells, n_inputs), ZH(n_cells, n_cells),
   OX(n_cells, n_inputs), OH(n_cells, n_cells), OS(n_cells, n_cells),
 
   I_bias(n_cells, 1), F_bias(n_cells, 1), Z_bias(n_cells, 1), O_bias(n_cells, 1)
@@ -154,6 +154,7 @@ void LstmDeltas::allocate(MatrixView2DCPU &buffer_view) {
 }
 
 void lstm_forward(LstmWeights &w, LstmBuffers &b, MatrixView3DCPU &x, MatrixView3DCPU &y) {
+  
   mult(w.IX, x.flatten(), b.Ia.flatten());
   mult(w.FX, x.flatten(), b.Fa.flatten());
   mult(w.ZX, x.flatten(), b.Za.flatten());
@@ -161,13 +162,13 @@ void lstm_forward(LstmWeights &w, LstmBuffers &b, MatrixView3DCPU &x, MatrixView
 
   for (size_t t(0); t < b.time; ++t) {
     //IF NEXT                                                                                 
-
     if (t) {
+
       mult(w.FH, y.slice(t - 1), b.Fa.slice(t));
       mult(w.IH, y.slice(t - 1), b.Ia.slice(t));
       mult(w.OH, y.slice(t - 1), b.Oa.slice(t));
       mult(w.ZH, y.slice(t - 1), b.Za.slice(t));
-
+      
       mult_add(b.S.slice(t - 1), w.FS, b.Fa.slice(t));
       mult_add(b.S.slice(t - 1), w.IS, b.Ia.slice(t));
     }
@@ -180,7 +181,6 @@ void lstm_forward(LstmWeights &w, LstmBuffers &b, MatrixView3DCPU &x, MatrixView
     apply_sigmoid(b.Fa.slice(t), b.Fb.slice(t));
     apply_sigmoid(b.Ia.slice(t), b.Ib.slice(t));
     apply_sigmoid(b.Za.slice(t), b.Zb.slice(t));
-
     dot_add(b.Zb.slice(t), b.Ib.slice(t), b.S.slice(t));
     
     if (t) 
