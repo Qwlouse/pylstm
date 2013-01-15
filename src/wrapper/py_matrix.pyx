@@ -34,6 +34,14 @@ cdef class MatrixView:
     cdef cm.MatrixView2DCPU flatten2D(self):
         return self.view.flatten()
 
+    def assign(self, a):
+        cdef np.ndarray[np.double_t, ndim=3, mode='c'] A
+        A = np.ascontiguousarray(a, dtype=np.float64)
+        assert A.shape[0] == self.view.n_slices, "nr_slices mismatch"
+        assert A.shape[1] == self.view.n_columns, "nr_columns mismatch"
+        assert A.shape[2] == self.view.n_rows, "nr_rows mismatch"
+        self.mat = MatrixCPU(A)
+        self.view = self.mat.thisptr.standard_view_3d
 
     def print_me(self):
         self.view.print_me()

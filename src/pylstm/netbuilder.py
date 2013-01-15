@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # coding=utf-8
+import pylstm_wrapper
 
 class InvalidArchitectureError(RuntimeError):
     pass
@@ -49,6 +50,22 @@ def create_ConstructionLayer(LayerType):
 
 DummyLayer = create_ConstructionLayer(None)
 
+class Network(object):
+    def __init__(self, layers, views, param_buffer, internal_buffers, forward_buffers):
+        self.layers = layers
+        self.views = views
+        self.param_buffer = param_buffer
+        self.internal_buffers = internal_buffers
+        self.forward_buffers = forward_buffers
+        assert len(layers) == len(views) == len(internal_buffers)
+
+    def forward_pass(self, X):
+        self.forward_buffers[0].assign(X)
+        for l, v in zip(self.layers, self.views):
+            l.forward(**v)
+        Y = self.forward_buffers[-1]
+        return Y
+
 class NetworkBuilder():
     def __init__(self):
         self.input_layer = None
@@ -87,12 +104,51 @@ class NetworkBuilder():
                 rset = new_rset
         return lset, rset
 
+    def create_buffer(self, size):
+        return pylstm_wrapper.MatrixView(pylstm_wrapper.MatrixCPU(1, 1, size))
+
     def build(self):
-        if not self.output.sources:
-            raise InvalidArchitectureError()
+        """
+        Turn a _linear_ network graph into a Network object.
+        ATM More complicated graph layouts will give wrong results or fail.
+        """
+        cLayers = self.get_sorted_layers()
+        assert cLayers[0] is self.input_layer
+        assert cLayers[-1] is self.output
+        layers = [cl.instantiate() for cl in cLayers[1:-1]] # without in and out layer
+
+        total_param_size = sum(l.get_param_size() for l in layers)
+        param_buffer = self.create_buffer(total_param_size)
+        internal_buffers = []
+        in_buffer = self.create_buffer(self.input_layer.out_size)
+        forward_buffers = [in_buffer]
+        current_in_buffer = in_buffer
+        views = []
+        param_start = 0
+        for layer in layers:
+            param_size = layer.get_param_size()
+            param_view = param_buffer.slice(param_start, param_start + param_size)
+            param_start += param_size
+
+            internal_buffer = self.create_buffer(layer.get_internal_state_size())
+            internal_buffers.append(internal_buffer)
+
+            out_buffer = self.create_buffer(layer.get_output_size())
+            forward_buffers.append(out_buffer)
+
+            views.append(dict(
+                input=layer.create_input_view(current_in_buffer),
+                param=layer.create_param_view(param_view),
+                internal=layer.create_internal_view(internal_buffer),
+                output=layer.create_output_view(out_buffer)
+            ))
+            current_in_buffer = out_buffer
+        return Network(layers, views, param_buffer, internal_buffers, forward_buffers)
+
+
         # WIP...
 
 
 ################################################################################
 
-#LstmLayer = create_ConstructionLayer(layers.Lstm)
+LstmLayer = create_ConstructionLayer(pylstm_wrapper.LstmLayer)
