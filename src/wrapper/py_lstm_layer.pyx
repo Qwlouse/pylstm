@@ -59,27 +59,25 @@ cdef class LstmLayer:
     def create_output_view(self, output_buffer):
         return output_buffer
 
-    def create_param_view(self, MatrixCPU param_buffer):
+    def create_param_view(self, MatrixView param_buffer):
         params = LstmParamBuffer(self.in_size, self.out_size)
-        params.thisptr.allocate(param_buffer.get_2d_view())
+        params.thisptr.allocate(param_buffer.flatten2D())
         return params
 
-    def create_internal_view(self, MatrixCPU internal_buffer):
+    def create_internal_view(self, MatrixView internal_buffer):
         cdef int batch_size = internal_buffer.get_batch_count()
         cdef int time_length = internal_buffer.get_slice_count()
         internal = LstmInternalBuffer(self.in_size, self.out_size, batch_size, time_length)
-        internal.thisptr.allocate(internal_buffer.get_2d_view())
+        internal.thisptr.allocate(internal_buffer.flatten2D())
         return internal
 
-    def create_internal_error_view(self, MatrixCPU internal_error_buffer):
+    def create_internal_error_view(self, MatrixView internal_error_buffer):
         cdef int batch_size = internal_error_buffer.get_batch_count()
         cdef int time_length = internal_error_buffer.get_slice_count()
         deltas = LstmErrorBuffer(self.in_size, self.out_size, batch_size, time_length)
-        deltas.thisptr.allocate(internal_error_buffer.get_2d_view())
+        deltas.thisptr.allocate(internal_error_buffer.flatten2D())
         return deltas
 
-    def forward(self, LstmParamBuffer param, LstmInternalBuffer internal, MatrixCPU input, MatrixCPU output):
-        cdef cm.MatrixView3DCPU in_view = input.get_3d_view()
-        cdef cm.MatrixView3DCPU out_view = output.get_3d_view()
-        clstm.lstm_forward(deref(param.thisptr), deref(internal.thisptr), in_view, out_view)
+    def forward(self, LstmParamBuffer param, LstmInternalBuffer internal, MatrixView input, MatrixView output):
+        clstm.lstm_forward(deref(param.thisptr), deref(internal.thisptr), input.view, output.view)
 

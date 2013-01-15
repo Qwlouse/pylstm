@@ -6,6 +6,39 @@ cimport c_matrix as cm
 # http://stackoverflow.com/questions/3046305
 # http://article.gmane.org/gmane.comp.python.cython.user/5625
 
+# forward declaration
+cdef class MatrixCPU
+
+cdef class MatrixView:
+    cdef cm.MatrixView3DCPU view
+    cdef MatrixCPU mat
+    def __cinit__(self, MatrixCPU mat, start=0, stop=-1):
+        if (start, stop) == (0, -1):
+            self.view = mat.thisptr.standard_view_3d
+        else:
+            self.view = mat.thisptr.standard_view_3d.slice(start, stop)
+        self.mat = mat
+
+    def slice(self, int start, int stop):
+        return MatrixView(self.mat, start, stop)
+
+    def get_feature_count(self):
+        return self.mat.get_feature_count()
+
+    def get_batch_count(self):
+        return self.mat.get_batch_count()
+
+    def get_slice_count(self):
+        return self.view.n_slices
+
+    cdef cm.MatrixView2DCPU flatten2D(self):
+        return self.view.flatten()
+
+
+    def print_me(self):
+        self.view.print_me()
+
+
 cdef class MatrixCPU:
     cdef cm.MatrixCPU *thisptr      # hold a C++ instance which we're wrapping
     cdef np.ndarray A
@@ -46,6 +79,9 @@ cdef class MatrixCPU:
 
     def __dealloc__(self):
         del self.thisptr
+
+    def get_view(self):
+        return MatrixView(self, 0, self.get_slice_count())
 
     def print_me(self):
         self.thisptr.print_me()
