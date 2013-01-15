@@ -30,6 +30,7 @@ struct MatrixView3DCPU : public MatrixView3D {
   void set_data(raw_ptr_type d) {data = d; matrix_view_2d.set_data(d);}
 
   MatrixView2DCPU matrix_view_2d;
+  void print_me();
 };
 
 struct MatrixCPU : public Matrix {

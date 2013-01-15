@@ -53,8 +53,8 @@ MatrixCPU::~MatrixCPU() {
     delete[] data;
 }
 
-void MatrixCPU::print_me() {
-  cout << "MatrixCPU " << n_rows << " x " << n_columns << " x " << n_slices << '\n';
+void MatrixView3DCPU::print_me() {
+  cout << "Matrix 3D: " << n_rows << " x " << n_columns << " x " << n_slices << '\n';
 
   d_type* data_ptr = data;
   cout << "=====================================\n";
@@ -70,6 +70,10 @@ void MatrixCPU::print_me() {
     data_ptr += (n_columns-1)*n_rows;
     cout << "=====================================\n";
   }
+}
+
+void MatrixCPU::print_me() {
+  standard_view_3d.print_me();
 }
 
 //VIEWS
