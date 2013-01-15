@@ -25,6 +25,7 @@ struct MatrixView3DCPU : public MatrixView3D {
 
   MatrixView2DCPU &flatten();
   MatrixView2DCPU slice(size_type t);
+  MatrixView3DCPU slice(size_type start, size_type stop);
 
   void set_data(raw_ptr_type d) {data = d; matrix_view_2d.set_data(d);}
 
@@ -40,7 +41,6 @@ struct MatrixCPU : public Matrix {
     MatrixCPU(std::initializer_list<std::initializer_list<double>> values);
     MatrixCPU(d_type* _data, size_type _n_rows, size_type _n_columns, size_type _n_slices);
     virtual ~MatrixCPU();
-
 	operator MatrixView2DCPU&() {return standard_view_2d;}
 	operator MatrixView3DCPU&() {return standard_view_3d;}
 
