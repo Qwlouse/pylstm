@@ -44,7 +44,7 @@ cdef class LstmLayer:
     def get_input_size(self):
         return self.in_size
 
-    def get_param_size(self):
+    def get_param_size(self, time_length=1, batch_size=1):
         return clstm.LstmWeights(self.in_size, self.out_size).buffer_size()
 
     def get_internal_state_size(self, time_length=1, batch_size=1):
@@ -64,16 +64,12 @@ cdef class LstmLayer:
         params.thisptr.allocate(param_buffer.flatten2D())
         return params
 
-    def create_internal_view(self, MatrixView internal_buffer):
-        cdef int batch_size = internal_buffer.get_batch_count()
-        cdef int time_length = internal_buffer.get_slice_count()
+    def create_internal_view(self, MatrixView internal_buffer, time_length=1, batch_size=1):
         internal = LstmInternalBuffer(self.in_size, self.out_size, batch_size, time_length)
         internal.thisptr.allocate(internal_buffer.flatten2D())
         return internal
 
-    def create_internal_error_view(self, MatrixView internal_error_buffer):
-        cdef int batch_size = internal_error_buffer.get_batch_count()
-        cdef int time_length = internal_error_buffer.get_slice_count()
+    def create_internal_error_view(self, MatrixView internal_error_buffer, time_length=1, batch_size=1):
         deltas = LstmErrorBuffer(self.in_size, self.out_size, batch_size, time_length)
         deltas.thisptr.allocate(internal_error_buffer.flatten2D())
         return deltas

@@ -29,13 +29,13 @@ class LstmLayerTest(unittest.TestCase):
 
     def test_create_param_view(self):
         l = pw.LstmLayer(3, 7)
-        wm = pw.MatrixCPU(1, 1, l.get_param_size())
+        wm = pw.MatrixCPU(1, 1, l.get_param_size()).get_view()
         W = l.create_param_view(wm)
         self.assertIsNotNone(W)
 
     def test_create_internal_view(self):
         l = pw.LstmLayer(3, 7)
-        im = pw.MatrixCPU(1, 1, l.get_internal_state_size())
+        im = pw.MatrixCPU(1, 1, l.get_internal_state_size()).get_view()
         I = l.create_internal_view(im)
         self.assertIsNotNone(I)
 
@@ -46,11 +46,11 @@ class LstmLayerTest(unittest.TestCase):
         m = 3 # output size
 
         l = pw.LstmLayer(n, m)
-        X = pw.MatrixCPU(t, b, n)
-        Y = pw.MatrixCPU(t, b, m)
-        wm = pw.MatrixCPU(1, 1, l.get_param_size())
+        X = pw.MatrixCPU(t, b, n).get_view()
+        Y = pw.MatrixCPU(t, b, m).get_view()
+        wm = pw.MatrixCPU(1, 1, l.get_param_size()).get_view()
         W = l.create_param_view(wm)
-        im = pw.MatrixCPU(t, b, l.get_internal_state_size(t, b))
+        im = pw.MatrixCPU(t, b, l.get_internal_state_size(t, b)).get_view()
         I = l.create_internal_view(im)
         l.forward(W, I, X, Y)
 
