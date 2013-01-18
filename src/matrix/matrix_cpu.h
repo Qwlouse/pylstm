@@ -29,6 +29,11 @@ struct MatrixView3DCPU : public MatrixView3D {
   void set_data(raw_ptr_type d) {data = d; matrix_view_2d.set_data(d);}
 
   MatrixView2DCPU matrix_view_2d;
+
+  MatrixView3DCPU subslice(size_type start, size_type end);
+
+  operator MatrixView2DCPU() { return flatten(); }
+  
 };
 
 struct MatrixCPU : public Matrix {

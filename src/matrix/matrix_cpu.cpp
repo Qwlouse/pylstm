@@ -96,6 +96,11 @@ MatrixView2DCPU MatrixView3DCPU::slice(size_type t) {
   return MatrixView2DCPU(state, n_rows, n_columns, data + n_rows * n_columns * t, 0);
 }
 
+MatrixView3DCPU MatrixView3DCPU::subslice(size_type start, size_type end) {
+  ASSERT(end > start);
+  return MatrixView3DCPU(state, n_rows, n_columns, end - start - 1, data + start * n_rows * n_columns, stride);
+}
+
 ///Matrix View 2d cpu
 MatrixView2DCPU::MatrixView2DCPU(MatrixState _matrix_state, size_type _n_rows, size_type _n_columns, raw_ptr_type _data, size_type _stride) :
   MatrixView2D(_matrix_state, _n_rows, _n_columns, _data, _stride)

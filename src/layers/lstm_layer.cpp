@@ -257,5 +257,142 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
 }
 
 
+void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d, MatrixView3DCPU &y, MatrixView3DCPU input_batches, MatrixView3DCPU &in_deltas) {
 
+  size_t n_updates(b.time);
 
+  mult(d.output_deltas, d.Cb, delta_OT, 1.0 / n_updates);
+
+  mult(d.Za, input_batches.flatten().T(), grad.ZX, 1.0 / n_updates);
+  mult(d.Fa, input_batches.flatten().T(), grad.FX, 1.0 / n_updates);
+  mult(d.Ia, input_batches.flatten().T(), grad.IX, 1.0 / n_updates);
+  mult(d.Oa, input_batches.flatten().T(), grad.OX, 1.0 / n_updates);
+  
+  
+  multiply_normal_transpose_shifted(d.Za, b.Hb, grad.ZH, d_n_batches, 1.0 / n_updates);
+  multiply_normal_transpose_shifted(d.Fa, b.Hb, grad.FH, d_n_batches, 1.0 / n_updates);
+  multiply_normal_transpose_shifted(d.Ia, b.Hb, grad.IH, d_n_batches, 1.0 / n_updates);
+  multiply_normal_transpose_shifted(d.Oa, b.Hb, grad.OH, d_n_batches, 1.0 / n_updates);
+  
+  multiply_vector_shifted(d.Fa, b.S, grad.FS, d_n_batches);
+  multiply_vector_shifted(d.Ia, b.S, grad.IS, d_n_batches);
+  multiply_vector(d.Oa, b.S, grad.OS);
+  
+  mult(d.Fa.subslice(1, b.time).flatten(), b.S.subslice(0, b.time - 1).flatten().T(), grad.FS)
+  multiply_vector_shifted(d.Fa, b.S, blah.FS, d_n_batches);
+  multiply_vector_shifted(d.Ia, b.S, blah.IS, d_n_batches);
+  multiply_vector(d.Oa, b.S, grad.OS);
+  
+
+  squash(grad.FS, delta_cF, 1.0 / n_updates);
+  squash(grad.IS, delta_cI, 1.0 / n_updates);
+  squash(grad.OS, delta_cO, 1.0 / n_updates);
+
+  squash(d.Ia_deltas, delta_I_bias, 1.0 / n_updates);
+  squash(d.Fa_deltas, delta_F_bias, 1.0 / n_updates);
+  squash(d.Ca_deltas, delta_C_bias, 1.0 / n_updates);
+  squash(d.Oa_deltas, delta_O_bias, 1.0 / n_updates);
+  squash(d.output_deltas, delta_T_bias, 1.0 / n_updates);
+  
+  
+}
+
+/*
+std::vector<element_type> calculate_gradient(LSTM_Weights<matrix_type> &lstm_weights, matrix3d_type &input_batches) {
+
+    size_t n_updates(d_n_batches);
+    bool do_copy(false);
+    matrix_type delta_iI(lstm_weights.d_iI, do_copy), delta_hI(lstm_weights.d_hI, do_copy), delta_cI(lstm_weights.d_cI, do_copy);
+    matrix_type delta_iF(lstm_weights.d_iF, do_copy), delta_hF(lstm_weights.d_hF, do_copy), delta_cF(lstm_weights.d_cF, do_copy);
+    matrix_type delta_iC(lstm_weights.d_iC, do_copy), delta_hC(lstm_weights.d_hC, do_copy);
+    matrix_type delta_iO(lstm_weights.d_iO, do_copy), delta_hO(lstm_weights.d_hO, do_copy), delta_cO(lstm_weights.d_cO, do_copy);
+    matrix_type delta_OT(lstm_weights.d_OT, do_copy);
+
+    matrix_type delta_I_bias(lstm_weights.d_I_bias, do_copy);
+    matrix_type delta_F_bias(lstm_weights.d_F_bias, do_copy);
+    matrix_type delta_C_bias(lstm_weights.d_C_bias, do_copy);
+    matrix_type delta_O_bias(lstm_weights.d_O_bias, do_copy);
+    matrix_type delta_T_bias(lstm_weights.d_T_bias, do_copy);
+
+    multiply_normal_transpose(d_output_deltas, d_Cb, delta_OT, 1.0 / n_updates);
+    multiply_normal_transpose(d_Ca_deltas, input_batches, delta_iC, 1.0 / n_updates);
+    multiply_normal_transpose(d_Fa_deltas, input_batches, delta_iF, 1.0 / n_updates);
+    multiply_normal_transpose(d_Ia_deltas, input_batches, delta_iI, 1.0 / n_updates);
+    multiply_normal_transpose(d_Oa_deltas, input_batches, delta_iO, 1.0 / n_updates);
+    multiply_normal_transpose_shifted(d_Ca_deltas, d_Cb, delta_hC, d_n_batches, 1.0 / n_updates);
+
+    multiply_normal_transpose_shifted(d_Fa_deltas, d_Cb, delta_hF, d_n_batches, 1.0 / n_updates);
+    multiply_normal_transpose_shifted(d_Ia_deltas, d_Cb, delta_hI, d_n_batches, 1.0 / n_updates);
+    multiply_normal_transpose_shifted(d_Oa_deltas, d_Cb, delta_hO, d_n_batches, 1.0 / n_updates);
+
+    multiply_vector_shifted(d_Fa_deltas, d_S, d_Fa_peephole_delta, d_n_batches);
+    multiply_vector_shifted(d_Ia_deltas, d_S, d_Ia_peephole_delta, d_n_batches);
+    multiply_vector(d_Oa_deltas, d_S, d_Oa_peephole_delta);
+
+    squash(d_Fa_peephole_delta, delta_cF, 1.0 / n_updates);
+    squash(d_Ia_peephole_delta, delta_cI, 1.0 / n_updates);
+    squash(d_Oa_peephole_delta, delta_cO, 1.0 / n_updates);
+
+    //		multiply_vector_shifted(d_Fa_deltas, d_S, delta_cF, d_n_batches, 1.0 / n_updates);
+    //		multiply_vector_shifted(d_Ia_deltas, d_S, delta_cI, d_n_batches, 1.0 / n_updates);
+    //		multiply_vector(d_Oa_deltas, d_S, delta_cO, 1.0 / n_updates);
+
+    squash(d_Ia_deltas, delta_I_bias, 1.0 / n_updates);
+    squash(d_Fa_deltas, delta_F_bias, 1.0 / n_updates);
+    squash(d_Ca_deltas, delta_C_bias, 1.0 / n_updates);
+    squash(d_Oa_deltas, delta_O_bias, 1.0 / n_updates);
+    squash(d_output_deltas, delta_T_bias, 1.0 / n_updates);
+
+    //		matrix_type delta_ih(LSTM_weights.d_ih), delta_hh(LSTM_weights.d_hh), delta_ht(LSTM_weights.d_ht),
+    //				delta_hidden_bias(LSTM_weights.d_hidden_bias), delta_output_bias(LSTM_weights.d_output_bias);
+    //		delta_ih.clear();
+    //		delta_hh.clear();
+    //		delta_ht.clear();
+    //		delta_hidden_bias.clear();
+    //		delta_output_bias.clear();
+    //
+    //		multiply_normal_transpose(d_output_deltas, d_hidden_activations, delta_ht, 1.0 / n_updates);
+    //		multiply_normal_transpose(d_hidden_deltas, input_batches, delta_ih, 1.0 / n_updates);
+    //		multiply_normal_transpose_shifted(d_hidden_deltas, d_hidden_activations, delta_hh, d_n_batches, 1.0 / n_updates);
+    //
+    //		squash(d_hidden_deltas, delta_hidden_bias, 1.0 / n_updates);
+    //		squash(d_output_deltas, delta_output_bias, 1.0 / n_updates);
+    //
+    std::vector<element_type> gradient_values(lstm_weights.size());
+    std::vector<element_type>::iterator gradient_it(gradient_values.begin());
+
+    gradient_it = add_and_advance(delta_iI, gradient_it);
+    gradient_it = add_and_advance(delta_hI, gradient_it);
+    gradient_it = add_and_advance(delta_cI, gradient_it);
+    gradient_it = add_and_advance(delta_iF, gradient_it);
+    gradient_it = add_and_advance(delta_hF, gradient_it);
+    gradient_it = add_and_advance(delta_cF, gradient_it);
+    gradient_it = add_and_advance(delta_iC, gradient_it);
+    gradient_it = add_and_advance(delta_hC, gradient_it);
+    gradient_it = add_and_advance(delta_iO, gradient_it);
+    gradient_it = add_and_advance(delta_hO, gradient_it);
+    gradient_it = add_and_advance(delta_cO, gradient_it);
+    gradient_it = add_and_advance(delta_OT, gradient_it);
+
+    gradient_it = add_and_advance(delta_I_bias, gradient_it);
+    gradient_it = add_and_advance(delta_F_bias, gradient_it);
+    gradient_it = add_and_advance(delta_C_bias, gradient_it);
+    gradient_it = add_and_advance(delta_O_bias, gradient_it);
+    gradient_it = add_and_advance(delta_T_bias, gradient_it);
+    
+    //exit(1);
+
+    //		copy(delta_ih, gradient_it);
+    //		gradient_it += delta_ih.size();
+    //		copy(delta_hh, gradient_it);
+    //		gradient_it += delta_hh.size();
+    //		copy(delta_ht, gradient_it);
+    //		gradient_it += delta_ht.size();
+    //		copy(delta_hidden_bias, gradient_it);
+    //		gradient_it += delta_hidden_bias.size();
+    //		copy(delta_output_bias, gradient_it);
+    //
+    return gradient_values;
+  }
+
+*/
