@@ -9,6 +9,10 @@ cdef extern from "matrix_cpu.h":
         int n_rows
         int n_columns
         int n_slices
+        MatrixView2DCPU slice(int)
+        MatrixView3DCPU slice(int, int)
+        MatrixView2DCPU& flatten()
+        void print_me()
 
     cdef cppclass MatrixCPU:
         int n_rows

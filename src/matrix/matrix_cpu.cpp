@@ -44,7 +44,7 @@ MatrixCPU::MatrixCPU(d_type* _data, size_type _n_rows, size_type _n_columns, siz
 }
 
 void MatrixCPU::allocate() {
-  data = new d_type[size];	
+  data = new d_type[size];
 }
 
 
@@ -53,8 +53,8 @@ MatrixCPU::~MatrixCPU() {
     delete[] data;
 }
 
-void MatrixCPU::print_me() {
-  cout << "MatrixCPU " << n_rows << " x " << n_columns << " x " << n_slices << '\n';
+void MatrixView3DCPU::print_me() {
+  cout << "Matrix 3D: " << n_rows << " x " << n_columns << " x " << n_slices << '\n';
 
   d_type* data_ptr = data;
   cout << "=====================================\n";
@@ -70,6 +70,10 @@ void MatrixCPU::print_me() {
     data_ptr += (n_columns-1)*n_rows;
     cout << "=====================================\n";
   }
+}
+
+void MatrixCPU::print_me() {
+  standard_view_3d.print_me();
 }
 
 //VIEWS
@@ -96,10 +100,15 @@ MatrixView2DCPU MatrixView3DCPU::slice(size_type t) {
   return MatrixView2DCPU(state, n_rows, n_columns, data + n_rows * n_columns * t, 0);
 }
 
+
 MatrixView3DCPU MatrixView3DCPU::subslice(size_type start, size_type end) {
   ASSERT(end > start);
   return MatrixView3DCPU(state, n_rows, n_columns, end - start - 1, data + start * n_rows * n_columns, stride);
 }
+
+/*MatrixView3DCPU MatrixView3DCPU::slice(size_type start, size_type stop) {
+  return MatrixView3DCPU(state, n_rows, n_columns, stop-start, data + n_rows * n_columns * start, 0);
+  }*/
 
 ///Matrix View 2d cpu
 MatrixView2DCPU::MatrixView2DCPU(MatrixState _matrix_state, size_type _n_rows, size_type _n_columns, raw_ptr_type _data, size_type _stride) :
