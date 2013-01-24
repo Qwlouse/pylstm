@@ -81,6 +81,11 @@ class ConstructionLayerTests(unittest.TestCase):
         except:
             self.fail('Wrong Exception')
 
+class BufferManagerTests(unittest.TestCase):
+    def setUp(self):
+        pass
+
+
 
 class NetBuilderTests(unittest.TestCase):
     def setUp(self):

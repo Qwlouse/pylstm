@@ -59,21 +59,21 @@ cdef class LstmLayer:
     def create_output_view(self, output_buffer):
         return output_buffer
 
-    def create_param_view(self, MatrixView param_buffer):
+    def create_param_view(self, BufferView param_buffer):
         params = LstmParamBuffer(self.in_size, self.out_size)
         params.thisptr.allocate(param_buffer.flatten2D())
         return params
 
-    def create_internal_view(self, MatrixView internal_buffer, time_length=1, batch_size=1):
+    def create_internal_view(self, BufferView internal_buffer, time_length=1, batch_size=1):
         internal = LstmInternalBuffer(self.in_size, self.out_size, batch_size, time_length)
         internal.thisptr.allocate(internal_buffer.flatten2D())
         return internal
 
-    def create_internal_error_view(self, MatrixView internal_error_buffer, time_length=1, batch_size=1):
+    def create_internal_error_view(self, BufferView internal_error_buffer, time_length=1, batch_size=1):
         deltas = LstmErrorBuffer(self.in_size, self.out_size, batch_size, time_length)
         deltas.thisptr.allocate(internal_error_buffer.flatten2D())
         return deltas
 
-    def forward(self, LstmParamBuffer param, LstmInternalBuffer internal, MatrixView input, MatrixView output):
+    def forward(self, LstmParamBuffer param, LstmInternalBuffer internal, BufferView input, BufferView output):
         clstm.lstm_forward(deref(param.thisptr), deref(internal.thisptr), input.view, output.view)
 
