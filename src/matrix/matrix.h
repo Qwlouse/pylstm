@@ -62,6 +62,8 @@ struct MatrixView3D {
 	
 	MatrixView3D(MatrixState _matrix_state, size_type _n_rows, size_type _n_columns, size_type _n_slices, raw_ptr_type _data, size_type _stride);
   d_type &operator[](size_type const index) {return data[index];}
+  
+  
 };
 
 #endif
