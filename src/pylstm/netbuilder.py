@@ -2,6 +2,7 @@
 # coding=utf-8
 import pylstm_wrapper
 from collections import OrderedDict
+from pylstm.buffer_manager import BufferManager
 
 class InvalidArchitectureError(RuntimeError):
     pass
@@ -54,75 +55,96 @@ def create_ConstructionLayer(LayerType):
 
     return ConstructionLayer
 
-DummyLayer = create_ConstructionLayer(None)
-
 class Network(object):
-    def __init__(self, layers, views, param_buffer, internal_buffers, forward_buffers):
+    def __init__(self, layers, weight_manager, intern_manager, output_manager):
         self.layers = layers
-        self.views = views
-        self.param_buffer = param_buffer
-        self.internal_buffers = internal_buffers
-        self.forward_buffers = forward_buffers
-        assert len(layers) == len(views) == len(internal_buffers)
+        self.weight_manager = weight_manager
+        self.intern_manager = intern_manager
+        self.output_manager = output_manager
 
-    def forward_pass(self, X):
-        self.forward_buffers[0].assign(X)
-        for l, v in zip(self.layers, self.views):
-            l.forward(**v)
-        Y = self.forward_buffers[-1]
-        return Y
+    def get_param_size(self):
+        """
+        Returns the total size of all parameters.
+        """
+        return self.weight_manager.calculate_size()
 
-class BufferManager(object):
-    def __init__(self):
-        self.size_getters = {}
-        self.view_factories = {}
-        self.buffer = None
-        self.views = {}
+    def __getitem__(self, item):
+        """
+        Get the layer with the given name.
+        """
+        return self.layers[item]
 
-    def add(self, name, size_getter, view_factories):
-        self.buffer = None
-        self.size_getters[name] = size_getter
-        self.view_factories[name] = view_factories
+    def set_param_buffer(self, buffer):
+        """
+        Set the parameter buffer that holds all the weights.
+        """
+        self.weight_manager.initialize_buffer(buffer)
 
-    def calculate_size(self, slice_count=1, batch_count=1):
-        return sum(sg(slice_count, batch_count) for sg in self.size_getters)
+    def forward_pass(self, input_buffer):
+        f = input_buffer.get_feature_size()
+        t = input_buffer.get_time_size()
+        b = input_buffer.get_batch_size()
+        assert f == self.layers.values()[0].get_input_size()
+        self.intern_manager.set_dimensions(t, b)
+        self.output_manager.set_dimensions(t, b)
+        input_view = self.layers.values()[0].create_input_view(input_buffer, t, b)
+        #forward(LstmParamBuffer param, LstmInternalBuffer internal, BufferView input, BufferView output):
+        for n, l in self.layers.items()[:-1]:
+            param = self.weight_manager.get_buffer(n)[0]
+            internal = self.intern_manager.get_buffer(n)[0]
+            out = self.output_manager.get_buffer(n)
+            l.forward(param, internal, input_view, out[0])
+            input_view = out[1]
+        return input_view
 
-    def initialize_buffer(self, slice_count=1, batch_count=1):
-        total_size = self.calculate_size(slice_count, batch_count)
-        self.buffer = pylstm_wrapper.MatrixView(
-            pylstm_wrapper.MatrixCPU(total_size, 1, 1))
+class Layer:
+    def __init__(self, in_size, out_size):
+        self.in_size = in_size
+        self.out_size = out_size
 
-    def lay_out_views(self, slice_count=1, batch_count=1):
-        param_start = 0
-        for name, vfs in self.view_factories.items():
-            param_size = self.size_getters[name](slice_count, batch_count)
-            param_view = self.buffer.slice(param_start, param_start + param_size)
-            param_start += param_size
-            self.views[name] = [vf(param_view, slice_count, batch_count) for vf in vfs]
+    def get_output_size(self):
+        return self.out_size
 
-    def get_buffer(self, name, slice_count=1, batch_count=1):
-        if not self.buffer:
-            self.initialize_buffer(slice_count, batch_count)
-            self.lay_out_views(slice_count, batch_count)
-        else:
-            # check sizes
-            new_size = self.calculate_size(slice_count, batch_count)
-            if new_size > self.buffer.get_slice_count():
-                self.initialize_buffer(slice_count, batch_count)
-            if new_size < self.buffer.get_slice_count():
-                self.lay_out_views(slice_count, batch_count)
-        return self.views[name]
+    def get_input_size(self):
+        return self.in_size
 
+    def get_param_size(self, time_length=1, batch_size=1):
+        return 0
 
+    def get_internal_state_size(self, time_length=1, batch_size=1):
+        return 0
+
+    def get_internal_error_state_size(self, time_length=1, batch_size=1):
+        return 0
+
+    def create_input_view(self, input_buffer, time_length=1, batch_size=1):
+        return input_buffer
+
+    def create_output_view(self, output_buffer, time_length=1, batch_size=1):
+        return output_buffer
+
+    def create_param_view(self, param_buffer, time_length=1, batch_size=1):
+        return None
+
+    def create_internal_view(self, internal_buffer, time_length=1, batch_size=1):
+        return None
+
+    def create_internal_error_view(self, internal_error_buffer, time_length=1, batch_size=1):
+        return None
+
+    def forward(self, param, internal, input, output):
+        pass
+
+DummyLayer = create_ConstructionLayer(Layer)
 
 class NetworkBuilder():
     def __init__(self):
         self.input_layer = None
-        self.output = DummyLayer(0)
+        self.output = DummyLayer(0, "Output")
 
     def input(self, size=None):
         if size :
-            self.input_layer = DummyLayer(size)
+            self.input_layer = DummyLayer(size, "Input")
         return self.input_layer
 
     def get_sorted_layers(self):
@@ -146,8 +168,8 @@ class NetworkBuilder():
         growing = True
         while growing:
             growing = False
-            new_lset = {s for s in l.sources for l in rset}
-            new_rset = {t for t in l.targets for l in lset}
+            new_lset = {s for l in rset for s in l.sources}
+            new_rset = {t for l in lset for t in l.targets}
             if len(new_lset) > len(lset) or\
                len(new_rset) > len(rset)    :
                 growing = True
@@ -158,52 +180,13 @@ class NetworkBuilder():
     def create_buffer(self, size):
         return pylstm_wrapper.MatrixView(pylstm_wrapper.MatrixCPU(1, 1, size))
 
-    def build(self):
-        """
-        Turn a _linear_ network graph into a Network object.
-        ATM More complicated graph layouts will give wrong results or fail.
-        """
-        cLayers = self.get_sorted_layers()
-        assert cLayers[0] is self.input_layer
-        assert cLayers[-1] is self.output
-        layers = [cl.instantiate() for cl in cLayers[1:-1]] # without in and out layer
-
-        total_param_size = sum(l.get_param_size() for l in layers) or 1
-        param_buffer = self.create_buffer(total_param_size)
-        internal_buffers = []
-        in_buffer = self.create_buffer(self.input_layer.out_size)
-        forward_buffers = [in_buffer]
-        current_in_buffer = in_buffer
-        views = []
-        param_start = 0
-        for layer in layers:
-            param_size = layer.get_param_size()
-            param_view = param_buffer.slice(param_start, param_start + param_size)
-            param_start += param_size
-
-            internal_buffer = self.create_buffer(layer.get_internal_state_size())
-            internal_buffers.append(internal_buffer)
-
-            out_buffer = self.create_buffer(layer.get_output_size())
-            forward_buffers.append(out_buffer)
-
-            views.append(dict(
-                input=layer.create_input_view(current_in_buffer),
-                param=layer.create_param_view(param_view),
-                internal=layer.create_internal_view(internal_buffer),
-                output=layer.create_output_view(out_buffer)
-            ))
-            current_in_buffer = out_buffer
-        return Network(layers, views, param_buffer, internal_buffers, forward_buffers)
-
-
     def get_named_layers(self):
         # instantiate all the layers with names
         cLayers = self.get_sorted_layers()
         assert cLayers[0] is self.input_layer
         assert cLayers[-1] is self.output
         layers = OrderedDict()
-        for l in cLayers[1:-1]:
+        for l in cLayers[1:]:
             layer = l.instantiate()
             name = l.get_name()
             # ensure unique name
@@ -215,9 +198,9 @@ class NetworkBuilder():
                     idx += 1
             l.name = name
             layers[l.name] = layer
-        return layers, cLayers
+        return layers, cLayers[1:]
 
-    def build2(self):
+    def build(self):
         layers, cLayers = self.get_named_layers()
 
         weight_manager = BufferManager()
@@ -229,17 +212,16 @@ class NetworkBuilder():
             intern_manager.add(name, l.get_internal_state_size, [l.create_internal_view])
 
         output_manager = BufferManager()
-        for layer in cLayers.items():
+        for layer in cLayers[:-1]:
             lset, rset = self.get_forward_closure(layer)
             assert len(lset)==len(rset)==1, "Complicated Architectures not supported yet"
             name = lset.pop().name
             l = layers[name]
             r = layers[rset.pop().name]
-            output_manager.add(name, l.get_output_buffer_size, [l.create_output_view, r.create_input_view])
+            output_manager.add(name, l.get_output_size, [l.create_output_view, r.create_input_view])
 
-
-
-        # WIP...
+        net = Network(layers, weight_manager, intern_manager, output_manager)
+        return net
 
 
 ################################################################################

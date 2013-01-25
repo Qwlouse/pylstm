@@ -34,9 +34,13 @@ class BufferManager(object):
     def calculate_size(self):
         return sum(sg(self.slice_count, self.batch_count) for sg in self.size_getters.values())
 
-    def initialize_buffer(self):
+    def initialize_buffer(self, buffer=None):
         total_size = self.calculate_size()
-        self.buffer = pylstm_wrapper.BufferView(total_size)
+        if buffer is None:
+            self.buffer = pylstm_wrapper.BufferView(total_size)
+        else:
+            assert len(buffer) >= total_size
+            self.buffer = buffer
         self.views = None
 
     def lay_out_views(self):

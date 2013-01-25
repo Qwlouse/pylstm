@@ -38,7 +38,7 @@ cdef class LstmLayer:
         self.in_size = in_size
         self.out_size = out_size
 
-    def get_output_size(self):
+    def get_output_size(self, time_length=1, batch_size=1):
         return self.out_size
 
     def get_input_size(self):
@@ -53,13 +53,13 @@ cdef class LstmLayer:
     def get_internal_error_state_size(self, time_length=1, batch_size=1):
         return clstm.LstmDeltas(self.in_size, self.out_size, batch_size, time_length).buffer_size()
 
-    def create_input_view(self, input_buffer):
+    def create_input_view(self, input_buffer, time_length=1, batch_size=1):
         return input_buffer
 
-    def create_output_view(self, output_buffer):
+    def create_output_view(self, output_buffer, time_length=1, batch_size=1):
         return output_buffer
 
-    def create_param_view(self, BufferView param_buffer):
+    def create_param_view(self, BufferView param_buffer, time_length=1, batch_size=1):
         params = LstmParamBuffer(self.in_size, self.out_size)
         params.thisptr.allocate(param_buffer.flatten2D())
         return params

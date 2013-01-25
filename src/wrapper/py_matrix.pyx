@@ -44,6 +44,9 @@ cdef class BufferView:
     cdef cm.MatrixView3DCPU view
     cdef Buffer B
 
+    cdef cm.MatrixView2DCPU flatten2D(self):
+        return self.view.flatten()
+
     def __cinit__(self, a=None, batches=1, features=1):
         if a is None:
             self.view = cm.MatrixView3DCPU()
@@ -70,11 +73,17 @@ cdef class BufferView:
             b.B = self.B
             return b
 
+    def get_feature_size(self):
+        return self.view.n_rows
+
+    def get_batch_size(self):
+        return self.view.n_columns
+
+    def get_time_size(self):
+        return self.view.n_slices
+
     def print_me(self):
         self.view.print_me()
-
-    cdef cm.MatrixView2DCPU flatten2D(self):
-        return self.view.flatten()
 
 
 
