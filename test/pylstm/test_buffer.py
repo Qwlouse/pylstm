@@ -2,23 +2,9 @@
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 
-
 import unittest
 import numpy as np
 from pylstm.pylstm_wrapper import BufferView as Buffer
-#class Buffer(object):
-#    def __init__(self, a):
-#        if isinstance(a, int):
-#            self.data = np.zeros((a,))
-#        else:
-#            self.data = np.array(a).flatten()
-#
-#    def __len__(self):
-#        return len(self.data)
-#
-#    def __getitem__(self, item):
-#        return self.data[item]
-
 
 
 class BufferTest(unittest.TestCase):
