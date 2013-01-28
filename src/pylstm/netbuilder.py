@@ -2,7 +2,7 @@
 # coding=utf-8
 import pylstm_wrapper
 from collections import OrderedDict
-from pylstm.buffer_manager import BufferManager
+from buffer_manager import BufferManager
 
 class InvalidArchitectureError(RuntimeError):
     pass

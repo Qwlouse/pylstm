@@ -11,12 +11,14 @@ cdef class Buffer:
     cdef np.ndarray A
 
     def __cinit__(self, a):
-        cdef np.ndarray[np.double_t, ndim=1, mode='c'] A
+        cdef np.ndarray[np.double_t, ndim=3, mode='c'] A
         if isinstance(a, int):
             self.thisptr = new cm.MatrixCPU(1, 1, a)
         else:
-            A = np.ascontiguousarray(a, dtype=np.float64).flatten()
-            self.thisptr = new cm.MatrixCPU(&A[0], 1, 1, A.shape[0])
+            if len(a.shape) == 1:
+                a = a.reshape(-1, 1, 1)
+            A = np.ascontiguousarray(a, dtype=np.float64)
+            self.thisptr = new cm.MatrixCPU(&A[0,0,0], A.shape[2], A.shape[1], A.shape[0])
             self.A = A # make sure numpy array does not get GCed
 
     def __dealloc__(self):

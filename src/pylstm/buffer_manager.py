@@ -44,7 +44,7 @@ class BufferManager(object):
         self.views = None
 
     def lay_out_views(self):
-        assert self.buffer
+        assert self.buffer is not None
         param_start = 0
         self.views = dict()
         for name, vfs in self.view_factories.items():
@@ -54,8 +54,8 @@ class BufferManager(object):
             self.views[name] = [vf(param_view, self.slice_count, self.batch_count) for vf in vfs]
 
     def get_buffer(self, name):
-        if not self.buffer:
+        if self.buffer is None:
             self.initialize_buffer()
-        if not self.views:
+        if self.views is None:
             self.lay_out_views()
         return self.views[name]
