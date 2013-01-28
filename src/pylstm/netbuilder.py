@@ -88,7 +88,6 @@ class Network(object):
         self.intern_manager.set_dimensions(t, b)
         self.output_manager.set_dimensions(t, b)
         input_view = self.layers.values()[0].create_input_view(input_buffer, t, b)
-        #forward(LstmParamBuffer param, LstmInternalBuffer internal, BufferView input, BufferView output):
         for n, l in self.layers.items()[:-1]:
             param = self.weight_manager.get_buffer(n)[0]
             internal = self.intern_manager.get_buffer(n)[0]
@@ -135,7 +134,8 @@ class Layer:
     def forward(self, param, internal, input, output):
         pass
 
-DummyLayer = create_ConstructionLayer(Layer)
+    def backward(self, param, internal, err, output, in_deltas, out_deltas):
+        pass
 
 class NetworkBuilder():
     def __init__(self):
@@ -226,4 +226,5 @@ class NetworkBuilder():
 
 ################################################################################
 
+DummyLayer = create_ConstructionLayer(Layer)
 LstmLayer = create_ConstructionLayer(pylstm_wrapper.LstmLayer)

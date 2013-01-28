@@ -77,3 +77,6 @@ cdef class LstmLayer:
     def forward(self, LstmParamBuffer param, LstmInternalBuffer internal, BufferView input, BufferView output):
         clstm.lstm_forward(deref(param.thisptr), deref(internal.thisptr), input.view, output.view)
 
+    def backward(self, LstmParamBuffer param, LstmInternalBuffer internal, LstmErrorBuffer err, BufferView output, BufferView in_deltas, BufferView out_deltas):
+        clstm.lstm_backward(deref(param.thisptr), deref(internal.thisptr), deref(err.thisptr), output.view, in_deltas.view, out_deltas.view)
+
