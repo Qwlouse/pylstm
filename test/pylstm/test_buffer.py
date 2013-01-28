@@ -22,14 +22,6 @@ class BufferTest(unittest.TestCase):
         for i in range(len(a)):
             self.assertEqual(b[i], a[i])
 
-    def test_construction_with_2d_nparray(self):
-        a = np.array([[1,2,3],[4,4,4]])
-        b = Buffer(a)
-        self.assertEqual(len(b), len(a.flatten()))
-        for i in range(len(b)):
-            self.assertEqual(b[i], a.flatten()[i])
-
-
     def test_construction_with_3d_nparray(self):
         a = np.array([[[1,2,3],[4,4,4]],[[1,2,3],[4,4,4]]])
         b = Buffer(a)
