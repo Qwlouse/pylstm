@@ -56,7 +56,7 @@ class NetworkBuilder():
         assert cLayers[0] is self.input_layer
         assert cLayers[-1] is self.output
         layers = OrderedDict()
-        for l in cLayers[1:]:
+        for l in cLayers:
             layer = l.instantiate()
             name = l.get_name()
             # ensure unique name
@@ -68,17 +68,17 @@ class NetworkBuilder():
                     idx += 1
             l.name = name
             layers[l.name] = layer
-        return layers, cLayers[1:]
+        return layers, cLayers
 
     def build(self):
         layers, cLayers = self.get_named_layers()
 
         weight_manager = BufferManager()
-        for name, l in layers.items():
+        for name, l in layers[1:-1].items():
             weight_manager.add(name, l.get_param_size, [l.create_param_view])
 
         intern_manager = BufferManager()
-        for name, l in layers.items():
+        for name, l in layers[1:-1].items():
             intern_manager.add(name, l.get_internal_state_size, [l.create_internal_view])
 
         output_manager = BufferManager()

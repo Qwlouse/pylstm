@@ -15,6 +15,15 @@ class Network(object):
         """
         return self.weight_manager.calculate_size()
 
+    def get_param_view_for(self, name):
+        return self.weight_manager.get_buffer(name)[0]
+
+    def get_intern_view_for(self, name):
+        return self.intern_manager.get_buffer(name)[0]
+
+    def get_output_view_for(self, name):
+        return self.output_manager.get_buffer(name)[0]
+
     def __getitem__(self, item):
         """
         Get the layer with the given name.
