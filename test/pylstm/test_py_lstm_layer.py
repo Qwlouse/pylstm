@@ -2,7 +2,7 @@
 # coding=utf-8
 import unittest
 import numpy as np
-import pylstm.pylstm_wrapper as pw
+import pylstm.wrapper as pw
 
 
 class LstmLayerTest(unittest.TestCase):

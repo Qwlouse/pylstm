@@ -4,7 +4,7 @@
 from __future__ import division, print_function, unicode_literals
 import numpy as np
 from netbuilder import NetworkBuilder, LstmLayer
-import pylstm_wrapper as pw
+import wrapper as pw
 
 # Instantiate a NetworkBuilder
 netb = NetworkBuilder()

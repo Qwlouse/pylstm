@@ -1,15 +1,11 @@
 import numpy as np
-cimport numpy as np
 
-cimport c_matrix as cm
+
 
 # http://stackoverflow.com/questions/3046305
 # http://article.gmane.org/gmane.comp.python.cython.user/5625
 
 cdef class Buffer:
-    cdef cm.MatrixCPU *thisptr      # hold a C++ instance which we're wrapping
-    cdef np.ndarray A
-
     def __cinit__(self, a):
         cdef np.ndarray[np.double_t, ndim=3, mode='c'] A
         if isinstance(a, int):
@@ -43,9 +39,6 @@ cdef class Buffer:
 
 
 cdef class BufferView:
-    cdef cm.MatrixView3DCPU view
-    cdef Buffer B
-
     cdef cm.MatrixView2DCPU flatten2D(self):
         return self.view.flatten()
 

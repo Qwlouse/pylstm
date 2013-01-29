@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # coding=utf-8
-import pylstm_wrapper
+import wrapper
 from collections import OrderedDict
 from buffer_manager import BufferManager
 
@@ -178,7 +178,7 @@ class NetworkBuilder():
         return lset, rset
 
     def create_buffer(self, size):
-        return pylstm_wrapper.MatrixView(pylstm_wrapper.MatrixCPU(1, 1, size))
+        return wrapper.BufferView(1, 1, size)
 
     def get_named_layers(self):
         # instantiate all the layers with names
@@ -227,4 +227,4 @@ class NetworkBuilder():
 ################################################################################
 
 DummyLayer = create_ConstructionLayer(Layer)
-LstmLayer = create_ConstructionLayer(pylstm_wrapper.LstmLayer)
+LstmLayer = create_ConstructionLayer(wrapper.LstmLayer)

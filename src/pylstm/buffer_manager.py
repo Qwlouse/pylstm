@@ -2,7 +2,7 @@
 # coding=utf-8
 
 from __future__ import division, print_function, unicode_literals
-import pylstm_wrapper
+import wrapper
 
 class BufferManager(object):
     def __init__(self, slice_count=1, batch_count=1):
@@ -37,7 +37,7 @@ class BufferManager(object):
     def initialize_buffer(self, buffer=None):
         total_size = self.calculate_size()
         if buffer is None:
-            self.buffer = pylstm_wrapper.BufferView(total_size)
+            self.buffer = wrapper.BufferView(total_size)
         else:
             assert len(buffer) >= total_size
             self.buffer = buffer
