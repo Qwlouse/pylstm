@@ -34,10 +34,12 @@ class Layer(object):
         return 0
 
     def create_input_view(self, input_buffer, time_length, batch_size):
-        return input_buffer
+        assert len(input_buffer) == self.get_input_buffer_size(time_length, batch_size)
+        return input_buffer.reshape(time_length, batch_size, self.in_size)
 
     def create_output_view(self, output_buffer, time_length, batch_size):
-        return output_buffer
+        assert len(output_buffer) == self.get_output_buffer_size(time_length, batch_size)
+        return output_buffer.reshape(time_length, batch_size, self.out_size)
 
     def create_param_view(self, param_buffer, time_length=1, batch_size=1):
         return None
