@@ -61,7 +61,7 @@ cdef class BufferView:
             return self.view[item]
         elif isinstance(item, slice):
             start = item.start or 0
-            stop = item.stop or len(self)
+            stop = item.stop or self.get_time_size()
 
             b = BufferView()
             b.view = self.view.slice(start, stop)
@@ -76,6 +76,9 @@ cdef class BufferView:
 
     def get_time_size(self):
         return self.view.n_slices
+
+    def shape(self):
+        return self.get_time_size(), self.get_batch_size(), self.get_feature_size()
 
     def print_me(self):
         self.view.print_me()

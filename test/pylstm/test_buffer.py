@@ -49,3 +49,13 @@ class BufferTest(unittest.TestCase):
         v = b[4:6]
         self.assertEqual(v[0], 4)
         self.assertEqual(v[1], 5)
+
+    def test_slicing_3dview_has_correct_shapes(self):
+        a = np.zeros((11, 9, 7))
+        b = BufferView(a)
+        self.assertEqual(b[1:3].shape(), (2, 9, 7))
+        self.assertEqual(b[3:11].shape(), (8, 9, 7))
+        self.assertEqual(b[:3].shape(), (3, 9, 7))
+        self.assertEqual(b[5:].shape(), (6, 9, 7))
+        self.assertEqual(b[:].shape(), (11, 9, 7))
+
