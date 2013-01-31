@@ -74,13 +74,13 @@ class NetworkBuilder():
         layers, cLayers = self.get_named_layers()
 
         weight_manager = BufferManager()
-        for name, l in layers[1:-1].items():
+        for name, l in layers.items()[1:-1]:
             sources = {}
             sinks = {name: (l.get_param_size, l.create_param_view)}
             weight_manager.add(sources, sinks)
 
         intern_manager = BufferManager()
-        for name, l in layers[1:-1].items():
+        for name, l in layers.items()[1:-1]:
             sources = {}
             sinks = {name: (l.get_internal_state_size, l.create_internal_view)}
             intern_manager.add(sources, sinks)
@@ -89,8 +89,15 @@ class NetworkBuilder():
         for layer in cLayers[:-1]:
             lset, rset = self.get_forward_closure(layer)
             assert len(lset)==len(rset)==1, "Complicated Architectures not supported yet"
-            sources = {n.name : (n.get_input_size, n.create_input_view) for n in rset}
-            sinks = {n.name : (n.get_output_size, n.create_output_view) for n in lset}
+            sources = dict()
+            for n in rset:
+                l = layers[n.name]
+                sources[n.name] = (l.get_input_size, l.create_input_view)
+            sinks = dict()
+            for n in lset:
+                l = layers[n.name]
+                sinks[n.name] = (l.get_output_size, l.create_output_view)
+
             output_manager.add(sources, sinks)
 
         net = Network(layers, weight_manager, intern_manager, output_manager)

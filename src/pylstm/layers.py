@@ -12,10 +12,10 @@ class Layer(object):
         self.in_size = in_size
         self.out_size = out_size
 
-    def get_output_size(self):
+    def get_output_size(self, time_length=1, batch_size=1):
         return self.out_size
 
-    def get_input_size(self):
+    def get_input_size(self, time_length=1, batch_size=1):
         return self.in_size
 
     def get_param_size(self, time_length=1, batch_size=1):
