@@ -80,6 +80,30 @@ cdef class BufferView:
     def shape(self):
         return self.get_time_size(), self.get_batch_size(), self.get_feature_size()
 
+    def reshape(self, time_size, batch_size, feature_size):
+        if time_size == -1:
+            assert batch_size >= 1
+            assert feature_size >= 1
+            time_size = len(self) // (batch_size * feature_size)
+        elif batch_size == -1:
+            assert time_size >= 1
+            assert feature_size >= 1
+            batch_size = len(self) // (time_size * feature_size)
+        elif feature_size == -1:
+            assert time_size >= 1
+            assert batch_size >= 1
+            feature_size = len(self) // (time_size * batch_size)
+        assert time_size >= 1
+        assert batch_size >= 1
+        assert feature_size >= 1
+        assert time_size * batch_size * feature_size == len(self)
+        b = BufferView()
+        b.view = cm.MatrixView3DCPU(feature_size, batch_size, time_size)
+        b.view.set_data(&self.view[0])
+        b.B = self.B
+        return b
+
+
     def print_me(self):
         self.view.print_me()
 

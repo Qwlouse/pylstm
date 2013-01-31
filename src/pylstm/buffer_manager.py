@@ -98,7 +98,7 @@ class BufferManager(object):
             self.buffer = wrapper.BufferView(total_size)
         else:
             assert len(buffer) >= total_size
-            self.buffer = buffer
+            self.buffer = buffer.reshape(-1, 1, 1)
         self.views_ready = False
 
     def lay_out_buffer_hubs(self):

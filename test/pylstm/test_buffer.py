@@ -59,3 +59,28 @@ class BufferTest(unittest.TestCase):
         self.assertEqual(b[5:].shape(), (6, 9, 7))
         self.assertEqual(b[:].shape(), (11, 9, 7))
 
+    def test_reshape_view_has_correct_shape(self):
+        a = np.zeros((12, 2, 1))
+        b = BufferView(a)
+        self.assertEqual(b.reshape(4, 3, 2).shape(), (4, 3, 2))
+        self.assertEqual(b.reshape(1, 1, 24).shape(), (1, 1, 24))
+        self.assertEqual(b.reshape(1, 6, 4).shape(), (1, 6, 4))
+
+    def test_reshape_view_with_negative_value_has_correct_shape(self):
+        a = np.zeros((12, 2, 1))
+        b = BufferView(a)
+        self.assertEqual(b.reshape(-1, 3, 2).shape(), (4, 3, 2))
+        self.assertEqual(b.reshape(1, 1, -1).shape(), (1, 1, 24))
+        self.assertEqual(b.reshape(1, -1, 4).shape(), (1, 6, 4))
+
+    def test_reshape_view_with_multiple_negative_values_raises(self):
+        a = np.zeros((12, 2, 1))
+        b = BufferView(a)
+        self.assertRaises(AssertionError, b.reshape, -1, -1, 1)
+        self.assertRaises(AssertionError, b.reshape, -1, 4, -1)
+        self.assertRaises(AssertionError, b.reshape, 6, -1, -1)
+
+    def test_reshape_view_with_negative_values_raises_if_indivisible(self):
+        a = np.zeros((12, 2, 1))
+        b = BufferView(a)
+        self.assertRaises(AssertionError, b.reshape, -1, 7, 2)
