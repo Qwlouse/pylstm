@@ -37,11 +37,17 @@ cdef class LstmLayer:
         self.in_size = in_size
         self.out_size = out_size
 
-    def get_output_size(self, time_length=1, batch_size=1):
+    def get_output_size(self):
         return self.out_size
 
-    def get_input_size(self, time_length=1, batch_size=1):
+    def get_input_size(self):
         return self.in_size
+
+    def get_input_buffer_size(self, time_length=1, batch_size=1):
+        return self.in_size * time_length * batch_size
+
+    def get_output_buffer_size(self, time_length=1, batch_size=1):
+        return self.out_size * time_length * batch_size
 
     def get_param_size(self, time_length=1, batch_size=1):
         return clstm.LstmWeights(self.in_size, self.out_size).buffer_size()
@@ -53,10 +59,12 @@ cdef class LstmLayer:
         return clstm.LstmDeltas(self.in_size, self.out_size, batch_size, time_length).buffer_size()
 
     def create_input_view(self, input_buffer, time_length=1, batch_size=1):
-        return input_buffer
+        assert len(input_buffer) == self.get_input_buffer_size(time_length, batch_size)
+        return input_buffer.reshape(time_length, batch_size, self.in_size)
 
     def create_output_view(self, output_buffer, time_length=1, batch_size=1):
-        return output_buffer
+        assert len(output_buffer) == self.get_output_buffer_size(time_length, batch_size)
+        return output_buffer.reshape(time_length, batch_size, self.out_size)
 
     def create_param_view(self, BufferView param_buffer, time_length=1, batch_size=1):
         params = LstmParamBuffer(self.in_size, self.out_size)

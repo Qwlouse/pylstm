@@ -39,6 +39,64 @@ class LstmLayerTest(unittest.TestCase):
         I = l.create_internal_view(im)
         self.assertIsNotNone(I)
 
+    def test_create_input_view_with_single_sample(self):
+        l = pw.LstmLayer(3, 7)
+        im = pw.BufferView(l.get_input_size())
+        I = l.create_input_view(im)
+        self.assertIsNotNone(I)
+        self.assertEqual(len(I), 3)
+        self.assertEqual(I.shape(), (1, 1, 3))
+
+    def test_create_input_view_with_3d_buffer(self):
+        l = pw.LstmLayer(3, 7)
+        t = 9
+        b = 5
+        im = pw.BufferView(t, b, l.get_input_size())
+        I = l.create_input_view(im, t, b)
+        self.assertIsNotNone(I)
+        self.assertEqual(len(I), 3 * t * b)
+        self.assertEqual(I.shape(), (t, b, 3))
+
+    def test_create_input_view_with_1d_buffer(self):
+        l = pw.LstmLayer(3, 7)
+        t = 9
+        b = 5
+        im = pw.BufferView( l.get_input_buffer_size(t, b))
+        I = l.create_input_view(im, t, b)
+        self.assertIsNotNone(I)
+        self.assertEqual(len(I), 3 * t * b)
+        self.assertEqual(I.shape(), (t, b, 3))
+
+
+    def test_create_output_view_with_single_sample(self):
+        l = pw.LstmLayer(3, 7)
+        im = pw.BufferView(l.get_output_size())
+        I = l.create_output_view(im)
+        self.assertIsNotNone(I)
+        self.assertEqual(len(I), 7)
+        self.assertEqual(I.shape(), (1, 1, 7))
+
+    def test_create_output_view_with_3d_buffer(self):
+        l = pw.LstmLayer(3, 7)
+        t = 9
+        b = 5
+        im = pw.BufferView(t, b, l.get_output_size())
+        I = l.create_output_view(im, t, b)
+        self.assertIsNotNone(I)
+        self.assertEqual(len(I), 7 * t * b)
+        self.assertEqual(I.shape(), (t, b, 7))
+
+    def test_create_output_view_with_1d_buffer(self):
+        l = pw.LstmLayer(3, 7)
+        t = 9
+        b = 5
+        im = pw.BufferView( l.get_output_buffer_size(t, b))
+        I = l.create_output_view(im, t, b)
+        self.assertIsNotNone(I)
+        self.assertEqual(len(I), 7 * t * b)
+        self.assertEqual(I.shape(), (t, b, 7))
+
+
     def test_forward_pass(self):
         t = 1 # time
         b = 1 # batches
