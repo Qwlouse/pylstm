@@ -3,11 +3,11 @@
 from __future__ import division, print_function, unicode_literals
 
 class Network(object):
-    def __init__(self, layers, weight_manager, intern_manager, output_manager):
+    def __init__(self, layers, weight_manager, intern_manager, in_out_manager):
         self.layers = layers
         self.weight_manager = weight_manager
         self.intern_manager = intern_manager
-        self.output_manager = output_manager
+        self.in_out_manager = in_out_manager
 
     def get_param_size(self):
         """
@@ -22,7 +22,7 @@ class Network(object):
         return self.intern_manager.get_buffer(name)[0]
 
     def get_output_view_for(self, name):
-        return self.output_manager.get_buffer(name)[0]
+        return self.in_out_manager.get_buffer(name)[0]
 
     def __getitem__(self, item):
         """
@@ -43,15 +43,15 @@ class Network(object):
         b = input_buffer.get_batch_size()
         assert f == self.layers.values()[0].get_output_size()
         self.intern_manager.set_dimensions(t, b)
-        self.output_manager.set_dimensions(t, b)
+        self.in_out_manager.set_dimensions(t, b)
         # inject the input buffer
-        self.output_manager.get_sink_view("Input").as_array()[:] = input_buffer.as_array()
+        self.in_out_manager.get_sink_view("Input").as_array()[:] = input_buffer.as_array()
         # execute all the intermediate layers
         for n, l in self.layers.items()[1:-1]:
             param = self.weight_manager.get_source_view(n)
             internal = self.intern_manager.get_source_view(n)
-            out = self.output_manager.get_sink_view(n)
-            input_view = self.output_manager.get_source_view(n)
+            out = self.in_out_manager.get_sink_view(n)
+            input_view = self.in_out_manager.get_source_view(n)
             l.forward(param, internal, input_view, out)
         # read the output buffer
-        return self.output_manager.get_source_view("Output")
+        return self.in_out_manager.get_source_view("Output")
