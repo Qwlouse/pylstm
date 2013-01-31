@@ -55,6 +55,7 @@ class NetworkBuilder():
         cLayers = self.get_sorted_layers()
         assert cLayers[0] is self.input_layer
         assert cLayers[-1] is self.output
+        self.output.out_size = self.output.get_input_size()
         layers = OrderedDict()
         for l in cLayers:
             layer = l.instantiate()
@@ -85,6 +86,12 @@ class NetworkBuilder():
             sources = {name: (l.get_internal_state_size, l.create_internal_view)}
             intern_manager.add(sources, sinks)
 
+        intern_delta_manager = BufferManager()
+        for name, l in layers.items()[1:-1]:
+            sinks = {}
+            sources = {name: (l.get_internal_error_state_size, l.create_internal_error_view)}
+            intern_delta_manager.add(sources, sinks)
+
         in_out_manager = BufferManager()
         for layer in cLayers[:-1]:
             lset, rset = self.get_forward_closure(layer)
@@ -97,9 +104,22 @@ class NetworkBuilder():
             for n in lset:
                 l = layers[n.name]
                 sinks[n.name] = (l.get_output_buffer_size, l.create_output_view)
-
             in_out_manager.add(sources, sinks)
 
-        net = Network(layers, weight_manager, intern_manager, in_out_manager)
+        delta_manager = BufferManager()
+        for layer in cLayers[:-1]:
+            lset, rset = self.get_forward_closure(layer)
+            assert len(lset)==len(rset)==1, "Complicated Architectures not supported yet"
+            sources = dict()
+            for n in rset:
+                l = layers[n.name]
+                sources[n.name] = (l.get_input_buffer_size, l.create_input_view)
+            sinks = dict()
+            for n in lset:
+                l = layers[n.name]
+                sinks[n.name] = (l.get_output_buffer_size, l.create_output_view)
+            delta_manager.add(sources, sinks)
+
+        net = Network(layers, weight_manager, intern_manager, in_out_manager, intern_delta_manager, delta_manager)
         return net
 

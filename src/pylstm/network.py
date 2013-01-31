@@ -3,11 +3,13 @@
 from __future__ import division, print_function, unicode_literals
 
 class Network(object):
-    def __init__(self, layers, weight_manager, intern_manager, in_out_manager):
+    def __init__(self, layers, weight_manager, intern_manager, in_out_manager, intern_delta_manager, delta_manager):
         self.layers = layers
         self.weight_manager = weight_manager
         self.intern_manager = intern_manager
         self.in_out_manager = in_out_manager
+        self.intern_delta_manager = intern_delta_manager
+        self.delta_manager = delta_manager
 
     def get_param_size(self):
         """
@@ -43,7 +45,9 @@ class Network(object):
         b = input_buffer.get_batch_size()
         assert f == self.layers.values()[0].get_output_size()
         self.intern_manager.set_dimensions(t, b)
+        self.intern_delta_manager.set_dimensions(t, b)
         self.in_out_manager.set_dimensions(t, b)
+        self.delta_manager.set_dimensions(t, b)
         # inject the input buffer
         self.in_out_manager.get_sink_view("Input").as_array()[:] = input_buffer.as_array()
         # execute all the intermediate layers
@@ -55,3 +59,21 @@ class Network(object):
             l.forward(param, internal, input_view, out)
         # read the output buffer
         return self.in_out_manager.get_source_view("Output")
+
+    def backward_pass(self, delta_buffer):
+        # dimensions should already be set through forward_pass
+        # inject delta_buffer
+        out_view = self.delta_manager.get_source_view("Output").as_array()
+        out_view[:] = delta_buffer.as_array()
+        # execute all the intermediate layers backwards
+        for n, l in self.layers.items()[-2:0:-1]:
+            param = self.weight_manager.get_source_view(n)
+            internal = self.intern_manager.get_source_view(n)
+            intern_delta = self.intern_delta_manager.get_source_view(n)
+            out = self.in_out_manager.get_sink_view(n)
+            delta_in = self.delta_manager.get_sink_view(n)
+            delta_out = self.delta_manager.get_source_view(n)
+            l.backward(param, internal, intern_delta, out, delta_in, delta_out)
+            foo = 10
+        # read the final delta buffer
+        return self.delta_manager.get_sink_view("Input")
