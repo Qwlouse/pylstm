@@ -44,13 +44,14 @@ class Network(object):
         assert f == self.layers.values()[0].get_output_size()
         self.intern_manager.set_dimensions(t, b)
         self.output_manager.set_dimensions(t, b)
-        # place the input buffer
-        input_layer = self.layers.values()[0]
-        input_view = input_layer.create_output_view(input_buffer, t, b)
+        # inject the input buffer
+        self.output_manager.get_sink_view("Input").as_array()[:] = input_buffer.as_array()
+        # execute all the intermediate layers
         for n, l in self.layers.items()[1:-1]:
             param = self.weight_manager.get_source_view(n)
             internal = self.intern_manager.get_source_view(n)
             out = self.output_manager.get_sink_view(n)
+            input_view = self.output_manager.get_source_view(n)
             l.forward(param, internal, input_view, out)
-            input_view = out
+        # read the output buffer
         return self.output_manager.get_source_view("Output")
