@@ -1,5 +1,6 @@
 import numpy as np
 cimport numpy as np
+from cpython cimport PyObject, Py_INCREF
 
 # Numpy must be initialized. When using numpy from C or Cython you must
 # _always_ do that, or you will have segfaults
@@ -71,14 +72,22 @@ cdef class BufferView:
             b.B = self.B
             return b
 
-    def __array__(self):
+    # from here: https://gist.github.com/1249305
+    def as_array(self):
         cdef np.npy_intp shape[3]
+        cdef np.ndarray ndarray
         shape[0] = <np.npy_intp> self.get_time_size()
         shape[1] = <np.npy_intp> self.get_batch_size()
         shape[2] = <np.npy_intp> self.get_feature_size()
         # Create a 3D array
         ndarray = np.PyArray_SimpleNewFromData(3, shape, np.NPY_FLOAT64, self.view.data)
+        # Assign our object to the 'base' of the ndarray object
+        ndarray.base = <PyObject*> self
+        # Increment the reference count, as the above assignement was done in
+        # C, and Python does not know that there is this additional reference
+        Py_INCREF(self)
         return ndarray
+
 
     def get_feature_size(self):
         return self.view.n_rows
