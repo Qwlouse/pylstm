@@ -53,4 +53,4 @@ class Network(object):
             out = self.output_manager.get_sink_view(n)
             l.forward(param, internal, input_view, out)
             input_view = out
-        return input_view
+        return self.output_manager.get_source_view("Output")

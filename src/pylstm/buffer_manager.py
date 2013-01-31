@@ -42,11 +42,14 @@ class BufferHub(object):
             size = sg(self.slice_count, self.batch_count)
             self.views[n] = vf(self.buffer[start : start+size], self.slice_count, self.batch_count)
             start += size
-
+        sink_size = start
+        start = 0
         for n, (sg, vf) in self.sources.items():
             size = sg(self.slice_count, self.batch_count)
             self.views[n] = vf(self.buffer[start : start+size], self.slice_count, self.batch_count)
             start += size
+        source_size = start
+        assert sink_size == 0 or source_size == 0 or (sink_size == source_size == self.get_size())
 
     def get_buffer(self, name):
         assert self.buffer is not None
