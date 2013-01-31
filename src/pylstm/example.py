@@ -10,7 +10,7 @@ import wrapper as pw
 # Instantiate a NetworkBuilder
 netb = NetworkBuilder()
 # add one layer of three LSTM nodes
-netb.input(5) >> LstmLayer(3) >> netb.output
+netb.input(5) >> LstmLayer(7) >> LstmLayer(11) >> LstmLayer(3) >> netb.output
 # build the network (no buffers are constructed so far)
 net = netb.build()
 # create some random weights (we don't care about dimensions. Just for the size)
@@ -18,11 +18,11 @@ weights = pw.BufferView(np.random.randn(net.get_param_size()))
 # and set them as the parameter buffer
 net.set_param_buffer(weights)
 # create some random inputs (1 time slice, 1 batch, 5 features)
-X = pw.BufferView(np.random.randn(2, 3, 5))
+X = np.random.randn(2, 3, 5)
 # do one forward pass (now the buffers are constructed)
 out = net.forward_pass(X)
 # do one backward pass (now the error buffers are constructed)
-E = pw.BufferView(np.random.randn(2, 3, 3))
+E = np.random.randn(2, 3, 3)
 out_delta = net.backward_pass(E)
 # the out buffer contains the results. Print them:
 out.print_me()
@@ -32,3 +32,4 @@ out_delta.print_me()
 print("Output:")
 print(out.as_array())
 #print(out[0], out[1], out[2])
+

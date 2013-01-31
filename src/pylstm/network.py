@@ -40,16 +40,14 @@ class Network(object):
 
     def forward_pass(self, input_buffer):
         # determine dimensions and set buffer managers accordingly
-        f = input_buffer.get_feature_size()
-        t = input_buffer.get_time_size()
-        b = input_buffer.get_batch_size()
+        t, b, f = input_buffer.shape
         assert f == self.layers.values()[0].get_output_size()
         self.intern_manager.set_dimensions(t, b)
         self.intern_delta_manager.set_dimensions(t, b)
         self.in_out_manager.set_dimensions(t, b)
         self.delta_manager.set_dimensions(t, b)
         # inject the input buffer
-        self.in_out_manager.get_sink_view("Input").as_array()[:] = input_buffer.as_array()
+        self.in_out_manager.get_sink_view("Input").as_array()[:] = input_buffer
         # execute all the intermediate layers
         for n, l in self.layers.items()[1:-1]:
             param = self.weight_manager.get_source_view(n)
@@ -64,7 +62,7 @@ class Network(object):
         # dimensions should already be set through forward_pass
         # inject delta_buffer
         out_view = self.delta_manager.get_source_view("Output").as_array()
-        out_view[:] = delta_buffer.as_array()
+        out_view[:] = delta_buffer
         # execute all the intermediate layers backwards
         for n, l in self.layers.items()[-2:0:-1]:
             param = self.weight_manager.get_source_view(n)
