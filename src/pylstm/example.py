@@ -33,3 +33,23 @@ print("Output:")
 print(out.as_array())
 #print(out[0], out[1], out[2])
 
+
+############ Training Example ##############################
+# create and randomly initialize a network
+netb = NetworkBuilder()
+netb.input(5) >> LstmLayer(3) >> netb.output
+net = netb.build()
+net.set_param_buffer(pw.BufferView(np.random.randn(net.get_param_size())))
+
+# Create a Training Dataset
+X = np.random.randn(10, 50, 5)
+T = np.random.randn(10, 50, 3)
+
+#t = SgdTrainer(learning_rate=.5, momentum=0.1, error_fkt=mse)
+#t.train(net, X, T, epochs=100)
+
+#out = net.forward_pass(X)
+#deltas = T - out
+#d = net.backward_pass(deltas)
+#grad = np.zeros(net.get_param_size())
+#net.calculate_gradient(grad)
