@@ -32,6 +32,7 @@ class BufferHub(object):
 
     def set_buffer(self, buffer):
         self.buffer = buffer
+        self.buffer = buffer.reshape(-1, 1, 1)
         self.views = None
 
     def create_views(self):
@@ -109,6 +110,7 @@ class BufferManager(object):
             bview = self.buffer[param_start : param_start + param_size]
             bh.set_buffer(bview)
             param_start += param_size
+        self.views_ready = True
 
     def get_source_view(self, name):
         if self.buffer is None:
