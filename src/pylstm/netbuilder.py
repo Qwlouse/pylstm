@@ -75,14 +75,14 @@ class NetworkBuilder():
 
         weight_manager = BufferManager()
         for name, l in layers.items()[1:-1]:
-            sources = {}
-            sinks = {name: (l.get_param_size, l.create_param_view)}
+            sinks = {}
+            sources = {name: (l.get_param_size, l.create_param_view)}
             weight_manager.add(sources, sinks)
 
         intern_manager = BufferManager()
         for name, l in layers.items()[1:-1]:
-            sources = {}
-            sinks = {name: (l.get_internal_state_size, l.create_internal_view)}
+            sinks = {}
+            sources = {name: (l.get_internal_state_size, l.create_internal_view)}
             intern_manager.add(sources, sinks)
 
         output_manager = BufferManager()

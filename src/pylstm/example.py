@@ -26,4 +26,5 @@ out.print_me()
 
 # we could also access the results like this:
 print("Output:")
-print(out[0], out[1], out[2])
+print(out.as_array())
+#print(out[0], out[1], out[2])
