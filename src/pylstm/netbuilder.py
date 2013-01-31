@@ -92,11 +92,11 @@ class NetworkBuilder():
             sources = dict()
             for n in rset:
                 l = layers[n.name]
-                sources[n.name] = (l.get_input_size, l.create_input_view)
+                sources[n.name] = (l.get_input_buffer_size, l.create_input_view)
             sinks = dict()
             for n in lset:
                 l = layers[n.name]
-                sinks[n.name] = (l.get_output_size, l.create_output_view)
+                sinks[n.name] = (l.get_output_buffer_size, l.create_output_view)
 
             output_manager.add(sources, sinks)
 

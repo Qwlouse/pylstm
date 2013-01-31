@@ -18,7 +18,7 @@ weights = pw.BufferView(np.random.randn(net.get_param_size()))
 # and set them as the parameter buffer
 net.set_param_buffer(weights)
 # create some random inputs (1 time slice, 1 batch, 5 features)
-X = pw.BufferView(np.random.randn(1, 1, 5))
+X = pw.BufferView(np.random.randn(2, 3, 5))
 # do one forward pass (now the buffers are constructed with t=1 and b=1)
 out = net.forward_pass(X)
 # the out buffer contains the results. Print them:
