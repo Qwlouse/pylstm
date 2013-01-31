@@ -1,6 +1,9 @@
 import numpy as np
+cimport numpy as np
 
-
+# Numpy must be initialized. When using numpy from C or Cython you must
+# _always_ do that, or you will have segfaults
+np.import_array()
 
 # http://stackoverflow.com/questions/3046305
 # http://article.gmane.org/gmane.comp.python.cython.user/5625
@@ -67,6 +70,15 @@ cdef class BufferView:
             b.view = self.view.slice(start, stop)
             b.B = self.B
             return b
+
+    def __array__(self):
+        cdef np.npy_intp shape[3]
+        shape[0] = <np.npy_intp> self.get_time_size()
+        shape[1] = <np.npy_intp> self.get_batch_size()
+        shape[2] = <np.npy_intp> self.get_feature_size()
+        # Create a 3D array
+        ndarray = np.PyArray_SimpleNewFromData(3, shape, np.NPY_FLOAT64, self.view.data)
+        return ndarray
 
     def get_feature_size(self):
         return self.view.n_rows

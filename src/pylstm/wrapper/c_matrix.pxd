@@ -13,6 +13,7 @@ cdef extern from "matrix_cpu.h":
         int n_columns
         int n_slices
         int size
+        double* data
 
         MatrixView3DCPU()
         MatrixView3DCPU(int, int, int)
