@@ -132,8 +132,8 @@ class NpForwardLayer(Layer): # todo: bias
             out_slice[:] = sigmoid(in_slice.dot(param))
 
     def backward(self, param, internal, err, output, in_deltas, out_deltas):
-        for in_slice, out_slice in zip(in_deltas, out_deltas):
-            out_slice[:] = sigmoid_inv(in_slice).dot(param.T)
+        for in_slice, out_slice, y_slice in zip(in_deltas, out_deltas, output):
+            out_slice[:] = (sigmoid_inv(y_slice)*in_slice).dot(param.T)
 
 
 
