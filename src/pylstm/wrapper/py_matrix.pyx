@@ -1,15 +1,15 @@
 import numpy as np
 cimport numpy as np
+from cpython cimport PyObject, Py_INCREF
 
-cimport c_matrix as cm
+# Numpy must be initialized. When using numpy from C or Cython you must
+# _always_ do that, or you will have segfaults
+np.import_array()
 
 # http://stackoverflow.com/questions/3046305
 # http://article.gmane.org/gmane.comp.python.cython.user/5625
 
 cdef class Buffer:
-    cdef cm.MatrixCPU *thisptr      # hold a C++ instance which we're wrapping
-    cdef np.ndarray A
-
     def __cinit__(self, a):
         cdef np.ndarray[np.double_t, ndim=3, mode='c'] A
         if isinstance(a, int):
@@ -43,9 +43,6 @@ cdef class Buffer:
 
 
 cdef class BufferView:
-    cdef cm.MatrixView3DCPU view
-    cdef Buffer B
-
     cdef cm.MatrixView2DCPU flatten2D(self):
         return self.view.flatten()
 
@@ -68,12 +65,29 @@ cdef class BufferView:
             return self.view[item]
         elif isinstance(item, slice):
             start = item.start or 0
-            stop = item.stop or len(self)
+            stop = item.stop or self.get_time_size()
 
             b = BufferView()
             b.view = self.view.slice(start, stop)
             b.B = self.B
             return b
+
+    # from here: https://gist.github.com/1249305
+    def as_array(self):
+        cdef np.npy_intp shape[3]
+        cdef np.ndarray ndarray
+        shape[0] = <np.npy_intp> self.get_time_size()
+        shape[1] = <np.npy_intp> self.get_batch_size()
+        shape[2] = <np.npy_intp> self.get_feature_size()
+        # Create a 3D array
+        ndarray = np.PyArray_SimpleNewFromData(3, shape, np.NPY_FLOAT64, self.view.data)
+        # Assign our object to the 'base' of the ndarray object
+        ndarray.base = <PyObject*> self
+        # Increment the reference count, as the above assignement was done in
+        # C, and Python does not know that there is this additional reference
+        Py_INCREF(self)
+        return ndarray
+
 
     def get_feature_size(self):
         return self.view.n_rows
@@ -83,6 +97,33 @@ cdef class BufferView:
 
     def get_time_size(self):
         return self.view.n_slices
+
+    def shape(self):
+        return self.get_time_size(), self.get_batch_size(), self.get_feature_size()
+
+    def reshape(self, time_size, batch_size, feature_size):
+        if time_size == -1:
+            assert batch_size >= 1
+            assert feature_size >= 1
+            time_size = len(self) // (batch_size * feature_size)
+        elif batch_size == -1:
+            assert time_size >= 1
+            assert feature_size >= 1
+            batch_size = len(self) // (time_size * feature_size)
+        elif feature_size == -1:
+            assert time_size >= 1
+            assert batch_size >= 1
+            feature_size = len(self) // (time_size * batch_size)
+        assert time_size >= 1
+        assert batch_size >= 1
+        assert feature_size >= 1
+        assert time_size * batch_size * feature_size == len(self)
+        b = BufferView()
+        b.view = cm.MatrixView3DCPU(feature_size, batch_size, time_size)
+        b.view.set_data(&self.view[0])
+        b.B = self.B
+        return b
+
 
     def print_me(self):
         self.view.print_me()

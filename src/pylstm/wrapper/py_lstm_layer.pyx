@@ -1,10 +1,9 @@
 #!/usr/bin/python
 # coding=utf-8
-import numpy as np
-cimport numpy as np
 cimport c_lstm_layer as clstm
 cimport c_matrix as cm
 from cython.operator cimport dereference as deref
+from py_matrix cimport BufferView
 
 cdef class LstmParamBuffer:
     cdef clstm.LstmWeights* thisptr
@@ -38,11 +37,17 @@ cdef class LstmLayer:
         self.in_size = in_size
         self.out_size = out_size
 
-    def get_output_size(self, time_length=1, batch_size=1):
+    def get_output_size(self):
         return self.out_size
 
     def get_input_size(self):
         return self.in_size
+
+    def get_input_buffer_size(self, time_length=1, batch_size=1):
+        return self.in_size * time_length * batch_size
+
+    def get_output_buffer_size(self, time_length=1, batch_size=1):
+        return self.out_size * time_length * batch_size
 
     def get_param_size(self, time_length=1, batch_size=1):
         return clstm.LstmWeights(self.in_size, self.out_size).buffer_size()
@@ -54,10 +59,12 @@ cdef class LstmLayer:
         return clstm.LstmDeltas(self.in_size, self.out_size, batch_size, time_length).buffer_size()
 
     def create_input_view(self, input_buffer, time_length=1, batch_size=1):
-        return input_buffer
+        assert len(input_buffer) == self.get_input_buffer_size(time_length, batch_size)
+        return input_buffer.reshape(time_length, batch_size, self.in_size)
 
     def create_output_view(self, output_buffer, time_length=1, batch_size=1):
-        return output_buffer
+        assert len(output_buffer) == self.get_output_buffer_size(time_length, batch_size)
+        return output_buffer.reshape(time_length, batch_size, self.out_size)
 
     def create_param_view(self, BufferView param_buffer, time_length=1, batch_size=1):
         params = LstmParamBuffer(self.in_size, self.out_size)
@@ -76,4 +83,7 @@ cdef class LstmLayer:
 
     def forward(self, LstmParamBuffer param, LstmInternalBuffer internal, BufferView input, BufferView output):
         clstm.lstm_forward(deref(param.thisptr), deref(internal.thisptr), input.view, output.view)
+
+    def backward(self, LstmParamBuffer param, LstmInternalBuffer internal, LstmErrorBuffer err, BufferView output, BufferView in_deltas, BufferView out_deltas):
+        clstm.lstm_backward(deref(param.thisptr), deref(internal.thisptr), deref(err.thisptr), output.view, in_deltas.view, out_deltas.view)
 
