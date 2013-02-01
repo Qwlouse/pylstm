@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
+import wrapper as pw
 
 class Network(object):
     def __init__(self, layers, weight_manager, intern_manager, in_out_manager, intern_delta_manager, delta_manager):
@@ -36,7 +37,10 @@ class Network(object):
         """
         Set the parameter buffer that holds all the weights.
         """
-        self.weight_manager.initialize_buffer(buffer)
+        if isinstance(buffer, pw.BufferView):
+            self.weight_manager.initialize_buffer(buffer)
+        else:
+            self.weight_manager.initialize_buffer(pw.BufferView(buffer))
 
     def forward_pass(self, input_buffer):
         # determine dimensions and set buffer managers accordingly
