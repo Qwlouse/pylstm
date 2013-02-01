@@ -256,46 +256,40 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
   }
 }
 
-/*
 void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d, MatrixView3DCPU &y, MatrixView3DCPU input_batches, MatrixView3DCPU &in_deltas) {
 
-  size_t n_updates(b.time);
+  size_t n_time(b.time);
 
-  mult(d.output_deltas, d.Cb, delta_OT, 1.0 / n_updates);
+  //mult(d.output_deltas, d.Cb, delta_OT, 1.0 / n_time);
 
-  mult(d.Za, input_batches.flatten().T(), grad.ZX, 1.0 / n_updates);
-  mult(d.Fa, input_batches.flatten().T(), grad.FX, 1.0 / n_updates);
-  mult(d.Ia, input_batches.flatten().T(), grad.IX, 1.0 / n_updates);
-  mult(d.Oa, input_batches.flatten().T(), grad.OX, 1.0 / n_updates);
+  mult(d.Za, input_batches.T(), grad.ZX, 1.0 / n_time);
+  mult(d.Fa, input_batches.T(), grad.FX, 1.0 / n_time);
+  mult(d.Ia, input_batches.T(), grad.IX, 1.0 / n_time);
+  mult(d.Oa, input_batches.T(), grad.OX, 1.0 / n_time);
   
-  
-  multiply_normal_transpose_shifted(d.Za, b.Hb, grad.ZH, d_n_batches, 1.0 / n_updates);
-  multiply_normal_transpose_shifted(d.Fa, b.Hb, grad.FH, d_n_batches, 1.0 / n_updates);
-  multiply_normal_transpose_shifted(d.Ia, b.Hb, grad.IH, d_n_batches, 1.0 / n_updates);
-  multiply_normal_transpose_shifted(d.Oa, b.Hb, grad.OH, d_n_batches, 1.0 / n_updates);
-  
-  multiply_vector_shifted(d.Fa, b.S, grad.FS, d_n_batches);
-  multiply_vector_shifted(d.Ia, b.S, grad.IS, d_n_batches);
-  multiply_vector(d.Oa, b.S, grad.OS);
-  
-  mult(d.Fa.subslice(1, b.time).flatten(), b.S.subslice(0, b.time - 1).flatten().T(), grad.FS)
-  multiply_vector_shifted(d.Fa, b.S, blah.FS, d_n_batches);
-  multiply_vector_shifted(d.Ia, b.S, blah.IS, d_n_batches);
-  multiply_vector(d.Oa, b.S, grad.OS);
-  
+  mult(d.Za.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.ZH, 1.0 / n_time);
+  mult(d.Fa.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.FH, 1.0 / n_time);
+  mult(d.Ia.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.IH, 1.0 / n_time);
+  mult(d.Oa.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.OH, 1.0 / n_time);
 
-  squash(grad.FS, delta_cF, 1.0 / n_updates);
-  squash(grad.IS, delta_cI, 1.0 / n_updates);
-  squash(grad.OS, delta_cO, 1.0 / n_updates);
+  
+  mult(d.Fa.subslice(1, n_time).flatten(), b.S.subslice(0, n_time - 1).T(), grad.FS, 1.0 / n_time);
 
-  squash(d.Ia_deltas, delta_I_bias, 1.0 / n_updates);
-  squash(d.Fa_deltas, delta_F_bias, 1.0 / n_updates);
-  squash(d.Ca_deltas, delta_C_bias, 1.0 / n_updates);
-  squash(d.Oa_deltas, delta_O_bias, 1.0 / n_updates);
-  squash(d.output_deltas, delta_T_bias, 1.0 / n_updates);
+  //shifted
+  dot_squash(d.Fa.subslice(1, n_time), b.S.subslice(0, n_time - 1), grad.FS);
+  dot_squash(d.Ia.subslice(1, n_time), b.S.subslice(0, n_time - 1), grad.IS);
+
+  //not shifted
+  dot_squash(d.Oa, b.S, grad.OS);
   
+  squash(d.Ia, grad.I_bias, 1.0 / n_time);
+  squash(d.Fa, grad.F_bias, 1.0 / n_time);
+  squash(d.Za, grad.Z_bias, 1.0 / n_time);
+
+  //Where are the outputs
+  //squash(d.output_deltas, grad.O_bias, 1.0 / n_time);
   
-}*/
+}
 
 /*
 std::vector<element_type> calculate_gradient(LSTM_Weights<matrix_type> &lstm_weights, matrix3d_type &input_batches) {

@@ -43,6 +43,8 @@ void add_scalar(MatrixView2DCPU a, d_type b) {
 ///Elementwise multiplication
 void dot(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
   ASSERT(a.size == b.size);
+  ASSERT(a.state == NORMAL && b.state == NORMAL && out.state == NORMAL);
+
   dgbmv(&NO_TRANS, &a.size, &a.size, &diff_zero, &diff_zero, &double_one,
           a.data, &diff_one,
           b.data, &diff_one,
@@ -53,11 +55,72 @@ void dot(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
 ///Elementwise multiplication and add
 void dot_add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
   ASSERT(a.size == b.size);
+  ASSERT(a.state == NORMAL && b.state == NORMAL && out.state == NORMAL);
+
   dgbmv(&NO_TRANS, &a.size, &a.size, &diff_zero, &diff_zero, &double_one,
           a.data, &diff_one,
           b.data, &diff_one,
           &double_one,
           out.data, &diff_one);
+}
+
+///Elementwise multiplication and add, with squash to size of out (out is smaller than a and b)
+void dot_add_squash(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type const scale) {
+  ASSERT(a.size == b.size);
+  ASSERT(a.size % out.size == 0);
+  ASSERT(a.state == NORMAL && b.state == NORMAL && out.state == NORMAL);
+  
+  raw_ptr_type a_i(a.data), b_i(b.data), a_end(a.data + a.size);
+  raw_ptr_type out_start(out.data), out_i(out.data), out_end(out.data + out.size);
+
+  for (; a_i != a_end; ++a_i, ++b_i, ++out_i) {
+    if (out_i == out_end)
+      out_i = out_start;
+    *out_i += *a_i * *b_i * scale;
+  }
+}
+
+
+///Elementwise multiplication, with squash to size of out (out is smaller than a and b)
+void dot_squash(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type const scale) {
+  ASSERT(a.size == b.size);
+  ASSERT(a.size % out.size == 0);
+  ASSERT(a.state == NORMAL && b.state == NORMAL && out.state == NORMAL);
+  
+  raw_ptr_type a_i(a.data), b_i(b.data), a_end(a.data + a.size);
+  raw_ptr_type out_start(out.data), out_i(out.data), out_end(out.data + out.size);
+
+  fill(out_start, out_end, 0.0);
+
+  for (; a_i != a_end; ++a_i, ++b_i, ++out_i) {
+    if (out_i == out_end)
+      out_i = out_start;
+    *out_i += *a_i * *b_i * scale;
+  }
+  if (scale != 1.0) {
+    out_i = out_start;
+    for (; out_i != out_start; ++out_i)
+      *out_i *= scale;
+  }
+}
+
+void squash(MatrixView2DCPU a, MatrixView2DCPU out, d_type const scale) {
+  raw_ptr_type a_i(a.data), a_end(a.data + a.size);
+  raw_ptr_type out_start(out.data), out_i(out.data), out_end(out.data + out.size);
+
+  fill(out_start, out_end, 0.0);
+
+  for (; a_i != a_end; ++a_i, ++out_i) {
+    if (out_i == out_end)
+      out_i = out_start;
+    *out_i += *a_i;
+  }
+
+  if (scale != 1.0) {
+    out_i = out_start;
+    for (; out_i != out_start; ++out_i)
+      *out_i *= scale;
+  }
 }
 
 inline double sigmoid(double val) {
@@ -88,7 +151,32 @@ void apply_tanhx2(MatrixView2DCPU a, MatrixView2DCPU out) {
 }
 
 
-void mult(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
+void mult(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type scale) {
+	char a_state = (a.state == NORMAL) ? 'N' : 'T';
+	char b_state = (b.state == NORMAL) ? 'N' : 'T';
+    
+    cout << a_state << " " << b_state << " " << a.n_rows << " " << b.n_rows << " " << a.n_columns << " " << b.n_columns << " " << a.data << " " << b.data << endl;
+
+	dgemm(&a_state, &b_state, &a.n_rows, &b.n_columns, &a.n_columns,
+		&scale,
+		a.data,
+		&a.n_rows, b.data, &b.n_rows, &double_zero, out.data, &out.n_rows);
+}
+
+
+void mult_add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type scale) {
+	char a_state = (a.state == NORMAL) ? 'N' : 'T';
+	char b_state = (b.state == NORMAL) ? 'N' : 'T';
+    
+    cout << a_state << " " << b_state << " " << a.n_rows << " " << b.n_rows << " " << a.n_columns << " " << b.n_columns << " " << a.data << " " << b.data << endl;
+
+	dgemm(&a_state, &b_state, &a.n_rows, &b.n_columns, &a.n_columns,
+		&scale,
+		a.data,
+		&a.n_rows, b.data, &b.n_rows, &double_one, out.data, &out.n_rows);
+}
+
+void mult_vector(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
 	char a_state = (a.state == NORMAL) ? 'N' : 'T';
 	char b_state = (b.state == NORMAL) ? 'N' : 'T';
     
@@ -100,20 +188,6 @@ void mult(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
 		&a.n_rows, b.data, &b.n_rows, &double_zero, out.data, &out.n_rows);
 }
 
-
-void mult_add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
-	char a_state = (a.state == NORMAL) ? 'N' : 'T';
-	char b_state = (b.state == NORMAL) ? 'N' : 'T';
-    
-    cout << a_state << " " << b_state << " " << a.n_rows << " " << b.n_rows << " " << a.n_columns << " " << b.n_columns << " " << a.data << " " << b.data << endl;
-
-	dgemm(&a_state, &b_state, &a.n_rows, &b.n_columns, &a.n_columns,
-		&double_one,
-		a.data,
-		&a.n_rows, b.data, &b.n_rows, &double_one, out.data, &out.n_rows);
-}
-
-
 bool equals(MatrixView2DCPU a, MatrixView2DCPU b) {
   if (a.n_rows != b.n_rows || a.n_columns != b.n_columns)
     return false;
@@ -123,11 +197,3 @@ bool equals(MatrixView2DCPU a, MatrixView2DCPU b) {
   return true;
 }
 
-
-void squash(MatrixView2DCPU a, MatrixView2DCPU b, d_type alpha = 1.0) {
-  assert(b.size == a.n_rows);
-
-  std::vector<d_type> scale(a.n_columns, 1);
-
-  dgemv(&NO_TRANS, &a.n_rows, &a.n_columns, &alpha, a.data, &a.n_rows, &scale[0], &diff_one, &double_one, b.data, &diff_one);
-}
