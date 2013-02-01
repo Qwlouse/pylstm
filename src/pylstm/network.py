@@ -18,6 +18,12 @@ class Network(object):
         """
         return self.weight_manager.calculate_size()
 
+    def get_input_size(self):
+        return self.layers["Input"].get_output_size()
+
+    def get_output_size(self):
+        return self.layers["Output"].get_input_size()
+
     def get_param_view_for(self, name):
         return self.weight_manager.get_buffer(name)[0]
 
