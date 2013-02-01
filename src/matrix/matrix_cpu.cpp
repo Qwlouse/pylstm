@@ -148,6 +148,10 @@ MatrixView2DCPU MatrixView2DCPU::T() {
   return MatrixView2DCPU(transpose(state), n_rows, n_columns, data, stride);
 }
 
+MatrixView2DCPU MatrixView3DCPU::T() {
+  return flatten().T();
+}
+
 void lay_out(MatrixView2DCPU &buffer_view, vector<MatrixView2DCPU*> &buffers) {
   d_type *data(buffer_view.data);
   size_t counter(0);

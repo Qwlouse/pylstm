@@ -20,16 +20,25 @@ void add_into_b(MatrixView2DCPU a, MatrixView2DCPU b);
 void add_scalar(MatrixView2DCPU a, d_type b);
 
 ///Matrix multiplication
-void mult(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out);
+void mult(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type scale = 1.0);
 
 ///Matrix multiplication and addition
-void mult_add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out);
+void mult_add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type scale = 1.0);
 
 ///Elementwise multiplication
 void dot(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out);
 
 ///Elementwise multiplication and add
 void dot_add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out);
+
+///Elementwise multiplication and add, with squash to size of out (out is smaller than a and b)
+void dot_add_squash(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type const scale = 1.0);
+
+///Elementwise multiplication, with squash to size of out (out is smaller than a and b)
+void dot_squash(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type const scale = 1.0);
+
+///squash
+void squash(MatrixView2DCPU a, MatrixView2DCPU out, d_type scale = 1.0);
 
 ///Apply sigmoid to all units
 void apply_sigmoid(MatrixView2DCPU a, MatrixView2DCPU out);
