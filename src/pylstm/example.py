@@ -4,13 +4,13 @@
 from __future__ import division, print_function, unicode_literals
 import numpy as np
 from netbuilder import NetworkBuilder
-from layers import LstmLayer
+from layers import LstmLayer, NpFwdLayer
 import wrapper as pw
 
 # Instantiate a NetworkBuilder
 netb = NetworkBuilder()
 # add one layer of three LSTM nodes
-netb.input(5) >> LstmLayer(7) >> LstmLayer(11) >> LstmLayer(3) >> netb.output
+netb.input(5) >> NpFwdLayer(3) >> netb.output
 # build the network (no buffers are constructed so far)
 net = netb.build()
 # create some random weights (we don't care about dimensions. Just for the size)
@@ -36,10 +36,10 @@ print(out.as_array())
 
 ############ Training Example ##############################
 # create and randomly initialize a network
-netb = NetworkBuilder()
-netb.input(5) >> LstmLayer(3) >> netb.output
-net = netb.build()
-net.set_param_buffer(pw.BufferView(np.random.randn(net.get_param_size())))
+#netb = NetworkBuilder()
+#netb.input(5) >> LstmLayer(3) >> netb.output
+#net = netb.build()
+#net.set_param_buffer(pw.BufferView(np.random.randn(net.get_param_size())))
 
 # Create a Training Dataset
 X = np.random.randn(10, 50, 5)

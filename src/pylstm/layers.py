@@ -2,6 +2,7 @@
 # coding=utf-8
 
 from __future__ import division, print_function, unicode_literals
+import numpy as np
 import wrapper
 
 class InvalidArchitectureError(RuntimeError):
@@ -106,7 +107,39 @@ def create_ConstructionLayer(LayerType):
     return ConstructionLayer
 
 
+def sigmoid(x):
+    return 1./(1 + np.exp(-x))
+
+def sigmoid_inv(y):
+    return y * (1 - y)
+
+
+class NpForwardLayer(Layer): # todo: bias
+    def get_param_size(self, time_length=1, batch_size=1):
+        return self.in_size * self.out_size
+
+    def create_input_view(self, input_buffer, time_length, batch_size):
+        return super(NpForwardLayer, self).create_input_view(input_buffer, time_length, batch_size).as_array()
+
+    def create_output_view(self, output_buffer, time_length, batch_size):
+        return super(NpForwardLayer, self).create_output_view(output_buffer, time_length, batch_size).as_array()
+
+    def create_param_view(self, param_buffer, time_length=1, batch_size=1):
+        return param_buffer.as_array().reshape(self.in_size, self.out_size)
+
+    def forward(self, param, internal, input, output):
+        for in_slice, out_slice in zip(input, output):
+            out_slice[:] = sigmoid(in_slice.dot(param))
+
+    def backward(self, param, internal, err, output, in_deltas, out_deltas):
+        for in_slice, out_slice in zip(in_deltas, out_deltas):
+            out_slice[:] = sigmoid_inv(in_slice).dot(param.T)
+
+
+
+
 ################################################################################
 
 DummyLayer = create_ConstructionLayer(Layer)
 LstmLayer = create_ConstructionLayer(wrapper.LstmLayer)
+NpFwdLayer = create_ConstructionLayer(NpForwardLayer)
