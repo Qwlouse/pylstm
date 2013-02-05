@@ -40,7 +40,7 @@ TEST(MatrixLayer, lstm_forward) {
   cout << "running forward" << endl;
   lstm_forward(w, b, x, y);
   cout << "running backward" << endl;
-  //lstm_backward(w, b, d, y, in_deltas, out_deltas);
+  lstm_backward(w, b, d, y, in_deltas, out_deltas);
   cout << "done with tests" << endl;
   EXPECT_TRUE(true);
 }
