@@ -2,7 +2,10 @@
 # coding=utf-8
 
 from __future__ import division, print_function, unicode_literals
-from pylstm.layers import NpFwdLayer
+import sys
+sys.path.append('.')
+sys.path.append('..')
+from pylstm.layers import NpFwdLayer, LstmLayer
 from pylstm.netbuilder import NetworkBuilder
 from scipy.optimize import approx_fprime
 import numpy as np
@@ -26,7 +29,7 @@ def check_deltas(net, X = None):
 
 if __name__ == "__main__":
     netb  = NetworkBuilder()
-    netb.input(5) >> NpFwdLayer(7) >> netb.output
+    netb.input(5) >> LstmLayer(7) >> netb.output
     net = netb.build()
     weights = np.random.randn(net.get_param_size())
     # and set them as the parameter buffer
