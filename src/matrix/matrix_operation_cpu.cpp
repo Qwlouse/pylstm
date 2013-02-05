@@ -38,7 +38,18 @@ void add_scalar(MatrixView2DCPU a, d_type b) {
 }
 
 
+///Copy stuff
+void copy(MatrixView2DCPU a, MatrixView2DCPU b) {
+  ASSERT(a.size == b.size);
+  ptrdiff_t ridiculous(a.size);
+  dcopy(&ridiculous, a.data, &diff_one, b.data, &diff_one);
+}
 
+void copy(MatrixView3DCPU a, MatrixView3DCPU b) {
+  ASSERT(a.size == b.size);
+  ptrdiff_t ridiculous(a.size);
+  dcopy(&ridiculous, a.data, &diff_one, b.data, &diff_one);
+}
 
 ///Elementwise multiplication
 void dot(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {

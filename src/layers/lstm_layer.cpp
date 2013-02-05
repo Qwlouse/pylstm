@@ -203,8 +203,16 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
   //size_t end_time(b.batch_time - 1);
   int end_time = static_cast<int>(b.time - 1);
 
+  //add in_deltas?
+  //d.Hb.slice(t) = in_deltas(t);
+
+  copy(out_deltas, d.Hb);
+
   //calculate t+1 values except for end_time+1 
   for(int t(end_time); t >= 0; --t){
+
+  
+
     if (t<end_time) {
       mult(w.IH.T(), d.Ia.slice(t+1), d.Hb.slice(t));
       mult(w.FH.T(), d.Fa.slice(t+1), d.Hb.slice(t));
@@ -256,30 +264,43 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
   }
 }
 
-void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d, MatrixView3DCPU &y, MatrixView3DCPU input_batches, MatrixView3DCPU &in_deltas) {
+//void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d, MatrixView3DCPU &y, MatrixView3DCPU input_batches, MatrixView3DCPU &in_deltas) {
+void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d, MatrixView3DCPU &y, MatrixView3DCPU input_batches)  {
 
   size_t n_time(b.time);
 
   //mult(d.output_deltas, d.Cb, delta_OT, 1.0 / n_time);
 
+  //! \f$\frac{dE}{dW_ZX} += \frac{dE}{da_Z} * x(t)\f$
+  //! \f$\frac{dE}{dW_FX} += \frac{dE}{da_F} * x(t)\f$
+  //! \f$\frac{dE}{dW_IX} += \frac{dE}{da_I} * x(t)\f$
+  //! \f$\frac{dE}{dW_OX} += \frac{dE}{da_O} * x(t)\f$
   mult(d.Za, input_batches.T(), grad.ZX, 1.0 / n_time);
   mult(d.Fa, input_batches.T(), grad.FX, 1.0 / n_time);
   mult(d.Ia, input_batches.T(), grad.IX, 1.0 / n_time);
   mult(d.Oa, input_batches.T(), grad.OX, 1.0 / n_time);
   
+
+  //! \f$\frac{dE}{dW_ZH} += \frac{dE}{da_Z} * h(t-1)\f$
+  //! \f$\frac{dE}{dW_FH} += \frac{dE}{da_F} * h(t-1)\f$
+  //! \f$\frac{dE}{dW_IH} += \frac{dE}{da_I} * h(t-1)\f$
+  //! \f$\frac{dE}{dW_OH} += \frac{dE}{da_O} * h(t-1)\f$
   mult(d.Za.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.ZH, 1.0 / n_time);
   mult(d.Fa.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.FH, 1.0 / n_time);
   mult(d.Ia.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.IH, 1.0 / n_time);
   mult(d.Oa.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.OH, 1.0 / n_time);
 
-  
+  //do we need this line?
   mult(d.Fa.subslice(1, n_time).flatten(), b.S.subslice(0, n_time - 1).T(), grad.FS, 1.0 / n_time);
 
   //shifted
+  //! \f$\frac{dE}{dW_FS} += \frac{dE}{da_F} * s(t-1)\f$
+  //! \f$\frac{dE}{dW_IS} += \frac{dE}{da_I} * s(t-1)\f$
   dot_squash(d.Fa.subslice(1, n_time), b.S.subslice(0, n_time - 1), grad.FS);
   dot_squash(d.Ia.subslice(1, n_time), b.S.subslice(0, n_time - 1), grad.IS);
 
   //not shifted
+  //! \f$\frac{dE}{dW_OS} += \frac{dE}{da_O} * s(t)\f$
   dot_squash(d.Oa, b.S, grad.OS);
   
   squash(d.Ia, grad.I_bias, 1.0 / n_time);
