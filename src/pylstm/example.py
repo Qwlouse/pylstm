@@ -3,8 +3,11 @@
 
 from __future__ import division, print_function, unicode_literals
 import numpy as np
-from netbuilder import NetworkBuilder
-from layers import LstmLayer, NpFwdLayer
+import sys
+sys.path.append('.')
+sys.path.append('..')
+from pylstm.netbuilder import NetworkBuilder
+from pylstm.layers import LstmLayer, NpFwdLayer
 
 # Instantiate a NetworkBuilder
 netb = NetworkBuilder()
