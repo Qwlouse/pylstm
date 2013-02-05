@@ -82,8 +82,8 @@ class Network(object):
             internal = self.intern_manager.get_source_view(n)
             intern_delta = self.intern_delta_manager.get_source_view(n)
             out = self.in_out_manager.get_sink_view(n)
-            delta_in = self.delta_manager.get_sink_view(n)
-            delta_out = self.delta_manager.get_source_view(n)
+            delta_in = self.delta_manager.get_source_view(n)
+            delta_out = self.delta_manager.get_sink_view(n)
             l.backward(param, internal, intern_delta, out, delta_in, delta_out)
             foo = 10
         # read the final delta buffer

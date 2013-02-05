@@ -28,6 +28,7 @@ E = np.random.randn(2, 3, 3)
 out_delta = net.backward_pass(E)
 # the out buffer contains the results. Print them:
 out.print_me()
+print("Deltas:")
 out_delta.print_me()
 #grad = net.calc_gradient()
 #print("Gradient:")
