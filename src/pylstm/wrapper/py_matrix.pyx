@@ -114,9 +114,9 @@ cdef class BufferView:
             assert time_size >= 1
             assert batch_size >= 1
             feature_size = len(self) // (time_size * batch_size)
-        assert time_size >= 1
-        assert batch_size >= 1
-        assert feature_size >= 1
+        #assert time_size >= 1
+        #assert batch_size >= 1
+        #assert feature_size >= 1
         assert time_size * batch_size * feature_size == len(self)
         b = BufferView()
         b.view = cm.MatrixView3DCPU(feature_size, batch_size, time_size)
