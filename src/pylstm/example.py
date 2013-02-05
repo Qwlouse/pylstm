@@ -12,7 +12,7 @@ from pylstm.layers import LstmLayer, NpFwdLayer
 # Instantiate a NetworkBuilder
 netb = NetworkBuilder()
 # add one layer of three LSTM nodes
-netb.input(5) >> NpFwdLayer(3) >> netb.output
+netb.input(5) >> LstmLayer(3) >> netb.output
 # build the network (no buffers are constructed so far)
 net = netb.build()
 # create some random weights (we don't care about dimensions. Just for the size)
@@ -29,6 +29,9 @@ out_delta = net.backward_pass(E)
 # the out buffer contains the results. Print them:
 out.print_me()
 out_delta.print_me()
+#grad = net.calc_gradient()
+#print("Gradient:")
+#grad.print_me()
 
 # we could also access the results like this:
 print("Output:")

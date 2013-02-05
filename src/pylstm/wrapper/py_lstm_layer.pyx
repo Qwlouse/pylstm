@@ -87,3 +87,6 @@ cdef class LstmLayer:
     def backward(self, LstmParamBuffer param, LstmInternalBuffer internal, LstmErrorBuffer err, BufferView output, BufferView in_deltas, BufferView out_deltas):
         clstm.lstm_backward(deref(param.thisptr), deref(internal.thisptr), deref(err.thisptr), output.view, in_deltas.view, out_deltas.view)
 
+    def gradient(self, LstmParamBuffer param, LstmParamBuffer grad, LstmInternalBuffer internal, LstmErrorBuffer err, BufferView output, BufferView input):
+        clstm.lstm_grad(deref(param.thisptr), deref(grad.thisptr), deref(internal.thisptr), deref(err.thisptr), output.view, input.view)
+

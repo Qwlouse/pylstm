@@ -1,12 +1,15 @@
 #!/usr/bin/python
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
+from copy import deepcopy
+import numpy as np
 import wrapper as pw
 
 class Network(object):
     def __init__(self, layers, weight_manager, intern_manager, in_out_manager, intern_delta_manager, delta_manager):
         self.layers = layers
         self.weight_manager = weight_manager
+        self.grad_manager = deepcopy(weight_manager)
         self.intern_manager = intern_manager
         self.in_out_manager = in_out_manager
         self.intern_delta_manager = intern_delta_manager
@@ -85,3 +88,18 @@ class Network(object):
             foo = 10
         # read the final delta buffer
         return self.delta_manager.get_sink_view("Input")
+
+    def calc_gradient(self):
+        self.grad_manager.initialize_buffer(pw.BufferView(self.get_param_size()))
+        for n, l in self.layers.items()[-2:0:-1]:
+            param = self.weight_manager.get_source_view(n)
+            grad = self.grad_manager.get_source_view(n)
+            internal = self.intern_manager.get_source_view(n)
+            intern_delta = self.intern_delta_manager.get_source_view(n)
+            out = self.in_out_manager.get_sink_view(n)
+            input_view = self.in_out_manager.get_source_view(n)
+            l.gradient(param, grad, internal, intern_delta, out, input_view)
+
+        return self.grad_manager.buffer
+
+

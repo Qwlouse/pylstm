@@ -57,6 +57,9 @@ class Layer(object):
     def backward(self, param, internal, err, output, in_deltas, out_deltas):
         pass
 
+    def gradient(self, param, grad, internal, err, output, input):
+        pass
+
 
 def create_ConstructionLayer(LayerType):
     class ConstructionLayer(object):
@@ -134,6 +137,9 @@ class NpForwardLayer(Layer): # todo: bias
     def backward(self, param, internal, err, output, in_deltas, out_deltas):
         for in_slice, out_slice, y_slice in zip(in_deltas, out_deltas, output):
             out_slice[:] = (sigmoid_inv(y_slice)*in_slice).dot(param.T)
+
+    def gradient(self, param, grad, internal, err, output, input):
+        pass
 
 
 
