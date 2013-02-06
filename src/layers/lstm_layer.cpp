@@ -265,9 +265,9 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
     
 
     //dE/dx 
-    mult(w.IX.T(), d.Ia.slice(t+1), in_deltas.slice(t));
-    mult(w.ZX.T(), d.Za.slice(t+1), in_deltas.slice(t));
-    mult(w.FX.T(), d.Fa.slice(t+1), in_deltas.slice(t));
+    mult(w.IX.T(), d.Ia.slice(t), in_deltas.slice(t));
+    mult(w.ZX.T(), d.Za.slice(t), in_deltas.slice(t));
+    mult(w.FX.T(), d.Fa.slice(t), in_deltas.slice(t));
 
   }
   
