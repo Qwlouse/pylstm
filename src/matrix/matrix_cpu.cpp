@@ -164,12 +164,12 @@ void lay_out(MatrixView2DCPU &buffer_view, vector<MatrixView2DCPU*> &buffers) {
 }
 
 void lay_out(MatrixView2DCPU &buffer_view, vector<MatrixView3DCPU*> &buffers) {
-  cout << "buffer_view size: " << buffer_view.size << endl;
+  //cout << "buffer_view size: " << buffer_view.size << endl;
   d_type *data(buffer_view.data);
   size_t counter(0);
   for (size_t i(0); i < buffers.size(); ++i) {
-    cout << "allocating buffer :" << i << endl;
-    cout << "counter: " << counter << endl;
+    //cout << "allocating buffer :" << i << endl;
+    //cout << "counter: " << counter << endl;
     ASSERT(counter < buffer_view.size);
     buffers[i]->set_data(data);
     data += buffers[i]->size;

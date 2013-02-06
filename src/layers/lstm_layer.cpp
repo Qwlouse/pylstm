@@ -271,11 +271,6 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
 
   }
   
-  
-    cout << "IN DELTAS " << endl;
-    in_deltas.print_me();
-
-
 }
 
 //void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d, MatrixView3DCPU &y, MatrixView3DCPU input_batches, MatrixView3DCPU &in_deltas) {
