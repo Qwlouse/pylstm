@@ -36,6 +36,12 @@ class Network(object):
     def get_output_view_for(self, name):
         return self.in_out_manager.get_buffer(name)[0]
 
+    def clear_internal_state(self):
+        if self.intern_manager.buffer:
+            self.intern_manager.buffer.as_array()[:] = 0.
+        if self.intern_delta_manager.buffer:
+            self.intern_delta_manager.buffer.as_array()[:] = 0.
+
     def __getitem__(self, item):
         """
         Get the layer with the given name.

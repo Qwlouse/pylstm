@@ -19,7 +19,7 @@ net = netb.build()
 weights = np.random.randn(net.get_param_size())
 # and set them as the parameter buffer
 net.set_param_buffer(weights)
-# create some random inputs (1 time slice, 1 batch, 5 features)
+# create some random inputs (2 time slice, 3 batch, 5 features)
 X = np.random.randn(2, 3, 5)
 # do one forward pass (now the buffers are constructed)
 out = net.forward_pass(X)
@@ -32,12 +32,8 @@ print("Deltas:")
 out_delta.print_me()
 #grad = net.calc_gradient()
 #print("Gradient:")
-#grad.print_me()
 
-# we could also access the results like this:
-print("Output:")
-print(out.as_array())
-#print(out[0], out[1], out[2])
+print("Output1:", out)
 
 
 ############ Training Example ##############################
