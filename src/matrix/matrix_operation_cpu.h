@@ -46,16 +46,23 @@ void squash(MatrixView2DCPU a, MatrixView2DCPU out, d_type scale = 1.0);
 
 ///Apply sigmoid to all units
 void apply_sigmoid(MatrixView2DCPU a, MatrixView2DCPU out);
+void apply_sigmoid(MatrixView3DCPU a, MatrixView3DCPU out);
+void apply_sigmoid_deriv(MatrixView2DCPU a, MatrixView2DCPU out);
+void apply_sigmoid_deriv(MatrixView3DCPU a, MatrixView3DCPU out);
 
 ///Apply tanh to all units
 void apply_tanh(MatrixView2DCPU a, MatrixView2DCPU out);
+void apply_tanh(MatrixView3DCPU a, MatrixView3DCPU out);
+void apply_tanh_deriv(MatrixView2DCPU a, MatrixView2DCPU out);
 
 ///Apply tanh * 2 to all units
 void apply_tanhx2(MatrixView2DCPU a, MatrixView2DCPU out);
+void apply_tanhx2(MatrixView2DCPU a, MatrixView2DCPU out);
+void apply_tanhx2_deriv(MatrixView2DCPU a, MatrixView2DCPU out);
 
 bool equals(MatrixView2DCPU a, MatrixView2DCPU out);
 
-void squash(MatrixView2DCPU a, MatrixView2DCPU b, d_type alpha);
+
 
 #endif
 

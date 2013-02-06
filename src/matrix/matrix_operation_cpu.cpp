@@ -138,6 +138,10 @@ inline double sigmoid(double val) {
   return 1.0 / (1.0 + exp(-val));
 }
 
+inline double sigmoid_deriv(double val) {
+  return sigmoid(val) * (1 - sigmoid(val));
+}
+
 inline double tanhx2(double val) {
   return 2.0 * tanh(val);
 }
@@ -146,9 +150,32 @@ inline double tanh_(double val) {
   return tanh(val);
 }
 
+inline double tanh_deriv(double val) {
+  return 1-(tanh(val)*tanh(val));
+}
+
+
+inline double tanhx2_deriv(double val) {
+  return 2 * tanh_deriv(val);
+}
+
+
+
 ///Apply sigmoid to all units
 void apply_sigmoid(MatrixView2DCPU a, MatrixView2DCPU out) {
   transform(a.data, a.data + a.size, out.data, sigmoid);
+}
+
+void apply_sigmoid(MatrixView3DCPU a, MatrixView3DCPU out) {
+  transform(a.data, a.data + a.size, out.data, sigmoid);
+}
+
+void apply_sigmoid_deriv(MatrixView2DCPU a, MatrixView2DCPU out) {
+  transform(a.data, a.data + a.size, out.data, sigmoid_deriv);
+}
+
+void apply_sigmoid_deriv(MatrixView3DCPU a, MatrixView3DCPU out) {
+  transform(a.data, a.data + a.size, out.data, sigmoid_deriv);
 }
 
 ///Apply tanh to all units
@@ -156,9 +183,26 @@ void apply_tanh(MatrixView2DCPU a, MatrixView2DCPU out) {
   transform(a.data, a.data + a.size, out.data, tanh_);
 }
 
+void apply_tanh(MatrixView3DCPU a, MatrixView3DCPU out) {
+  transform(a.data, a.data + a.size, out.data, tanh_);
+}
+
+void apply_tanh_deriv(MatrixView2DCPU a, MatrixView2DCPU out) {
+  transform(a.data, a.data + a.size, out.data, tanh_deriv);
+}
+
+
 ///Apply tanh * 2to all units
 void apply_tanhx2(MatrixView2DCPU a, MatrixView2DCPU out) {
   transform(a.data, a.data + a.size, out.data, tanhx2);
+}
+
+void apply_tanhx2(MatrixView3DCPU a, MatrixView3DCPU out) {
+  transform(a.data, a.data + a.size, out.data, tanhx2);
+}
+
+void apply_tanhx2_deriv(MatrixView2DCPU a, MatrixView2DCPU out) {
+  transform(a.data, a.data + a.size, out.data, tanhx2_deriv);
 }
 
 
@@ -166,12 +210,26 @@ void mult(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type scal
 	char a_state = (a.state == NORMAL) ? 'N' : 'T';
 	char b_state = (b.state == NORMAL) ? 'N' : 'T';
     
-    cout << a_state << " " << b_state << " " << a.n_rows << " " << b.n_rows << " " << a.n_columns << " " << b.n_columns << " " << a.data << " " << b.data << endl;
+	size_type lda = (a.state == NORMAL) ? a.n_rows : a.n_columns;
+	size_type ldan = (a.state == NORMAL) ? a.n_columns : a.n_rows;
+	size_type ldb = (b.state == NORMAL) ? b.n_columns : b.n_rows;
+	size_type ldbn = (b.state == NORMAL) ? b.n_rows : b.n_columns;
+	
 
+	cout << "a: state: " << a_state << " = " << a.n_rows << "x" << a.n_columns << 
+	  "b: state: " << b_state << " = " << b.n_rows << "x" << b.n_columns <<
+	  "out: state: " << out.state << " = " << out.n_rows << "x" << out.n_columns << endl;
+	/*
 	dgemm(&a_state, &b_state, &a.n_rows, &b.n_columns, &a.n_columns,
 		&scale,
 		a.data,
 		&a.n_rows, b.data, &b.n_rows, &double_zero, out.data, &out.n_rows);
+	*/
+	
+	dgemm(&a_state, &b_state, &lda, &ldb, &ldan, &scale, a.data,
+		&a.n_rows, b.data, &b.n_rows, &double_zero, out.data, &out.n_rows);
+
+
 }
 
 
