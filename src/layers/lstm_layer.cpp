@@ -186,9 +186,9 @@ void lstm_forward(LstmWeights &w, LstmBuffers &b, MatrixView3DCPU &x, MatrixView
       dot_add(b.S.slice(t - 1), b.Fb.slice(t), b.S.slice(t));
     apply_tanhx2(b.S.slice(t), b.f_S.slice(t));
 
-    b.f_S.slice(t).print_me();
-    w.OS.print_me();
-    b.Oa.slice(t).print_me();
+    //b.f_S.slice(t).print_me();
+    //w.OS.print_me();
+    //b.Oa.slice(t).print_me();
     
     mult_add(b.S.slice(t), w.OS, b.Oa.slice(t));
     apply_sigmoid(b.Oa.slice(t), b.Ob.slice(t));
