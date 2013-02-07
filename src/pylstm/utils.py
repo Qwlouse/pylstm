@@ -30,15 +30,13 @@ def check_deltas(net, X = None):
 
 def check_gradient(net, X = None):
     
-    X = rnd.randn(net.get_input_size())
-    
-    print "shit"
+    X = rnd.randn(net.get_input_size()*2)
 
     def f(w):
 
         net.clear_internal_state()
         net.set_param_buffer(w)
-        out = net.forward_pass(X.reshape(1,1,-1)).as_array()
+        out = net.forward_pass(X.reshape(2,1,-1)).as_array()
         
         return .5*np.sum(out**2)
 
@@ -48,9 +46,9 @@ def check_gradient(net, X = None):
     
     net.clear_internal_state()
     net.set_param_buffer(weights)
-    out = net.forward_pass(X.reshape(1,1,-1)).as_array()
+    out = net.forward_pass(X.reshape(2,1,-1)).as_array()
     delta_calc = net.backward_pass(out).as_array()
-    grad_calc = net.calculate_gradient().as_array()
+    grad_calc = net.calc_gradient().as_array()
     
     return np.sum((grad_approx - grad_calc)**2), grad_calc, grad_approx
 

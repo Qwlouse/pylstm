@@ -76,7 +76,7 @@ SET( ENV{EXTERNAL_WARNINGS_NOT_ERRORS} TRUE)
 IF(DEFINED MSVC)
     ADD_DEFINITIONS(/W3 /wd4996)
 ELSEIF(CMAKE_COMPILER_IS_GNUCXX)
-    ADD_DEFINITIONS(-Wall -Wextra -Wno-sign-compare -ansi -fPIC -std=c++0x #-Weffc++ -pedantic
+    ADD_DEFINITIONS(-Wall -Wextra -Wno-sign-compare -ansi -fPIC -std=c++0x -g -ggdb#-Weffc++ -pedantic
                     -Wconversion )#-Werror)
 ENDIF(DEFINED MSVC)
 
