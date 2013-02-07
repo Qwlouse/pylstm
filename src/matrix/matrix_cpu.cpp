@@ -106,8 +106,8 @@ MatrixView3DCPU MatrixView3DCPU::slice(size_type start, size_type stop) {
 
 
 MatrixView3DCPU MatrixView3DCPU::subslice(size_type start, size_type end) {
-  ASSERT(end > start);
-  return MatrixView3DCPU(state, n_rows, n_columns, end - start - 1, data + start * n_rows * n_columns, stride);
+  ASSERT(end >=start);
+  return MatrixView3DCPU(state, n_rows, n_columns, end - start + 1, data + start * n_rows * n_columns, stride);
 }
 
 /*MatrixView3DCPU MatrixView3DCPU::slice(size_type start, size_type stop) {

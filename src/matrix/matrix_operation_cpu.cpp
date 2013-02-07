@@ -139,7 +139,9 @@ inline double sigmoid(double val) {
 }
 
 inline double sigmoid_deriv(double val) {
-  return sigmoid(val) * (1 - sigmoid(val));
+
+  return 1.0 / (1.0 + exp(-val));
+  //return (sigmoid(val) * (1 - sigmoid(val)));
 }
 
 inline double tanhx2(double val) {
@@ -151,12 +153,12 @@ inline double tanh_(double val) {
 }
 
 inline double tanh_deriv(double val) {
-  return 1-(tanh(val)*tanh(val));
+  return (1-(tanh(val)*tanh(val)));
 }
 
 
 inline double tanhx2_deriv(double val) {
-  return 2 * tanh_deriv(val);
+  return (2 * tanh_deriv(val));
 }
 
 
