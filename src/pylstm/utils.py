@@ -22,10 +22,37 @@ def check_deltas(net, X = None):
     if X is None:
         X = rnd.randn(net.get_input_size())
 
-    delta_approx = approx_fprime(X, f, 1e-1)
+    delta_approx = approx_fprime(X, f, 1e-7)
     out = net.forward_pass(X.reshape(1,1,-1)).as_array()
     delta_calc = net.backward_pass(out).as_array()
     return np.sum((delta_approx - delta_calc)**2), delta_calc, delta_approx
+
+
+def check_gradient(net, X = None):
+    
+    X = rnd.randn(net.get_input_size())
+    
+    print "shit"
+
+    def f(w):
+
+        net.clear_internal_state()
+        net.set_param_buffer(w)
+        out = net.forward_pass(X.reshape(1,1,-1)).as_array()
+        
+        return .5*np.sum(out**2)
+
+    weights = rnd.randn(net.get_param_size())
+
+    grad_approx = approx_fprime(weights, f, 1e-7)
+    
+    net.clear_internal_state()
+    net.set_param_buffer(weights)
+    out = net.forward_pass(X.reshape(1,1,-1)).as_array()
+    delta_calc = net.backward_pass(out).as_array()
+    grad_calc = net.calculate_gradient().as_array()
+    
+    return np.sum((grad_approx - grad_calc)**2), grad_calc, grad_approx
 
 
 
@@ -34,11 +61,11 @@ if __name__ == "__main__":
     netb.input(5) >> LstmLayer(7) >> netb.output
     net = netb.build()
 
-    weights = rnd.randn(net.get_param_size())
+    #weights = rnd.randn(net.get_param_size())
     # and set them as the parameter buffer
-    net.set_param_buffer(weights)
+    #net.set_param_buffer(weights)
 
-    print(check_deltas(net))
+    print(check_gradient(net))
 
 
 
