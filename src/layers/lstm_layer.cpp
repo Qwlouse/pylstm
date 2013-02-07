@@ -233,37 +233,17 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
     //! \f$\frac{dE}{da_O} = \frac{dE}{db_O} * f'(a_O)\f$
     //sigmoid_deriv(d.Ob.slice(t), b.Ob.slice(t), d.temp_hidden, d.temp_hidden2, d.Oa.slice(t)); //o = -o^2
 
-    cout << "1" << endl;
-                d.Ia.slice(t).print_me();
-
-
     apply_sigmoid_deriv(b.Ob.slice(t), d.Oa.slice(t)); //s'(O_a) == s(O_b) * (1 - s(O_b)) 
-
-    cout << "Oa after sigmoid" << endl;
-    d.Oa.print_me();
-
-    cout << "2" << endl;
-                d.Ia.slice(t).print_me();
 
     //! \f$\frac{dE}{dS} += \frac{dE}{df_S} * f'(s)\f$
     //tanh2_deriv(d.f_S.slice(t), b.S.slice(t), d.temp_hidden, d.S.slice(t));
     apply_tanhx2_deriv(b.S.slice(t), d.S.slice(t));
 
-    cout << "3" << endl;
-    d.Ia.slice(t).print_me();
-
-
-	      
 
     //! \f$\frac{dE}{dS} += \frac{dE}{da_O} * W_OS\f$
-		
-    cout << "major fuck up here" << endl;
-    //mult_add(d.Oa.slice(t), w.OS, d.S.slice(t));
+    //changed to dot_add from mult_add
+    dot_add(d.Oa.slice(t), w.OS, d.S.slice(t));
     
-    cout << "4" << endl;
-    d.Ia.slice(t).print_me();
-    
-
     //! CELL ACTIVATION DERIVS
     //! \f$\frac{dE}{db_Z} = \frac{dE}{dS} * b_I\f$
     dot_add(d.S.slice(t), b.Ib.slice(t), d.Zb.slice(t));
@@ -276,13 +256,14 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
     dot_add(d.S.slice(t), b.Zb.slice(t), d.Ib.slice(t));
     //! \f$\frac{dE}{da_I} = \frac{dE}{db_I} * f'(a_I) \f$
     //sigmoid_deriv(d.Ib.slice(t), b.Ib.slice(t), d.temp_hidden, d.temp_hidden2, d.Ia.slice(t));
-    b.Ib.print_me();
+    
     apply_sigmoid_deriv(b.Ib.slice(t), d.Ia.slice(t));
 
     //! FORGET GATE DERIVS
     if (t)
       //! \f$\frac{dE}{db_F} += \frac{dE}{dS} * s(t-1)\f$
       dot_add(d.S.slice(t), b.S.slice(t - 1), d.Fb.slice(t));
+    
     // \f$\frac{dE}{da_F} = \frac{dE}{db_F} * f'(a_F)\f$
     //sigmoid_deriv(d.Fb.slice(t), b.Fb.slice(t), d.temp_hidden, d.temp_hidden2, d.Fa.slice(t));    
     apply_sigmoid_deriv(b.Fb.slice(t), d.Fa.slice(t));    
@@ -292,9 +273,8 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
     mult(w.IX.T(), d.Ia.slice(t), in_deltas.slice(t));
     mult(w.ZX.T(), d.Za.slice(t), in_deltas.slice(t));
     mult(w.FX.T(), d.Fa.slice(t), in_deltas.slice(t));
-
+    
   }
-  
 }
 
 //void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d, MatrixView3DCPU &y, MatrixView3DCPU input_batches, MatrixView3DCPU &in_deltas) {
@@ -312,7 +292,7 @@ void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d,
   mult(d.Fa, input_batches.T(), grad.FX, 1.0 / (double) n_time);
   mult(d.Ia, input_batches.T(), grad.IX, 1.0 / (double) n_time);
   mult(d.Oa, input_batches.T(), grad.OX, 1.0 / (double) n_time);
-   
+ 
 
   //! \f$\frac{dE}{dW_ZH} += \frac{dE}{da_Z} * h(t-1)\f$
   //! \f$\frac{dE}{dW_FH} += \frac{dE}{da_F} * h(t-1)\f$
@@ -323,16 +303,15 @@ void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d,
   mult(d.Fa.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.FH, 1.0 / (double) n_time);
   mult(d.Ia.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.IH, 1.0 / (double) n_time);
   mult(d.Oa.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.OH, 1.0 / (double) n_time);
+ 
 
   //do we need this line?
-  mult(d.Fa.subslice(1, n_time).flatten(), b.S.subslice(0, n_time - 1).T(), grad.FS, 1.0 / (double) n_time);
-
+  //mult(d.Fa.subslice(1, n_time).flatten(), b.S.subslice(0, n_time - 1).T(), grad.FS, 1.0 / (double) n_time);
+ 
   //shifted
   //! \f$\frac{dE}{dW_FS} += \frac{dE}{da_F} * s(t-1)\f$
   //! \f$\frac{dE}{dW_IS} += \frac{dE}{da_I} * s(t-1)\f$
 
-  cout << "dFa" << d.Fa.subslice(1, n_time).size << "gradFS" << grad.FS.size << endl;
-  cout << "dIa" << b.S.subslice(0, n_time-1).size << "gradIS" << grad.IS.size << endl;
   dot_squash(d.Fa.subslice(1, n_time), b.S.subslice(0, n_time - 1), grad.FS);
   dot_squash(d.Ia.subslice(1, n_time), b.S.subslice(0, n_time - 1), grad.IS);
 
