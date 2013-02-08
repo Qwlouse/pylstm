@@ -50,26 +50,31 @@ def check_gradient(net, X = None):
     net.clear_internal_state()
     net.set_param_buffer(weights)
     out = net.forward_pass(X.reshape(timesteps,1,-1)).as_array()
-    #print(out) 
-    err1 = out.copy()
-
-    tmpweights = weights
-    tmpweights[0] += 1e-7
-
-    net.clear_internal_state()
-    net.set_param_buffer(tmpweights)
-    newout = net.forward_pass(X.reshape(timesteps,1,-1)).as_array()
+    realerror = .5*(out.copy())**2
     
+    differrors=np.zeros((weights.shape))
+    i = 0 
+    eps = 1e-7
+    for x in weights:
+        tmpweights = weights
+        tmpweights[i] += eps        
+        net.clear_internal_state()
+        net.set_param_buffer(tmpweights)
+        newout = net.forward_pass(X.reshape(timesteps,1,-1)).as_array()
+        
     #print(newout)
-    err2 = newout.copy()
-    print("error1: ", err1, "type: ", type(err1), " ",err1.shape)
-    print("error2: ", err2, "type: ", type(err2), " ", err2.shape) 
-  
-    differrors = err1 - err2
-    print("differr", differrors)
+        err2 = .5*(newout.copy())**2
+        #print("error1: ", err1, "type: ", type(err1), " ",err1.shape)
+        #print("error2: ", err2, "type: ", type(err2), " ",err2.shape) 
+        
+        differrors[i] = (realerror-err2)/eps
+       
+        tmpweights[i] -= eps        
 
+        i+=1
     #print(err1-err2)
     
+    print(differrors)
 
     grad_approx = approx_fprime(weights, f, 1e-7)
     
