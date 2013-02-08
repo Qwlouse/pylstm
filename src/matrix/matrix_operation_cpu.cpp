@@ -53,26 +53,58 @@ void copy(MatrixView3DCPU a, MatrixView3DCPU b) {
 
 ///Elementwise multiplication
 void dot(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
-  ASSERT(a.size == b.size);
+  ASSERT(a.size == out.size);
+  ASSERT(a.size >= b.size);
+  ASSERT(a.size % b.size == 0);
+
   ASSERT(a.state == NORMAL && b.state == NORMAL && out.state == NORMAL);
 
-  dgbmv(&NO_TRANS, &a.size, &a.size, &diff_zero, &diff_zero, &double_one,
-          a.data, &diff_one,
-          b.data, &diff_one,
-          &double_zero,
-          out.data, &diff_one);
-}
+  fill(out.data, out.data + out.size, 0.0);
 
-///Elementwise multiplication and add
-void dot_add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
-  ASSERT(a.size == b.size);
-  ASSERT(a.state == NORMAL && b.state == NORMAL && out.state == NORMAL);
-
-  dgbmv(&NO_TRANS, &a.size, &a.size, &diff_zero, &diff_zero, &double_one,
+  if (a.size == b.size) {
+    dgbmv(&NO_TRANS, &a.size, &a.size, &diff_zero, &diff_zero, &double_one,
           a.data, &diff_one,
           b.data, &diff_one,
           &double_one,
           out.data, &diff_one);
+  } else {
+    raw_ptr_type a_i(a.data), a_end(a.data + a.size), out_i(out.data);
+    raw_ptr_type b_start(b.data), b_i(b.data), b_end(b.data + b.size);
+    
+    for (; a_i != a_end; ++a_i, ++b_i, ++out_i) {
+      if (b_i == b_end)
+	b_i = b_start;
+      *out_i += *a_i * *b_i;
+    }
+    
+  }
+}
+
+///Elementwise multiplication and add
+void dot_add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
+  ASSERT(a.size == out.size);
+  ASSERT(a.size >= b.size);
+  ASSERT(a.size % b.size == 0);
+
+  ASSERT(a.state == NORMAL && b.state == NORMAL && out.state == NORMAL);
+
+  if (a.size == b.size) {
+    dgbmv(&NO_TRANS, &a.size, &a.size, &diff_zero, &diff_zero, &double_one,
+          a.data, &diff_one,
+          b.data, &diff_one,
+          &double_one,
+          out.data, &diff_one);
+  } else {
+    raw_ptr_type a_i(a.data), a_end(a.data + a.size), out_i(out.data);
+    raw_ptr_type b_start(b.data), b_i(b.data), b_end(b.data + b.size);
+    
+    for (; a_i != a_end; ++a_i, ++b_i, ++out_i) {
+      if (b_i == b_end)
+	b_i = b_start;
+      *out_i += *a_i * *b_i;
+    }
+    
+  }
 }
 
 ///Elementwise multiplication and add, with squash to size of out (out is smaller than a and b)
