@@ -43,16 +43,19 @@ def check_gradient(net, X = None):
     weights = rnd.randn(net.get_param_size())
     #print(weights)
 
-    tmpweights = weights
-    tmpweights[0] += 1e-7
+
     #print(tmpweights)
 
     
-
+    net.clear_internal_state()
+    net.set_param_buffer(weights)
     out = net.forward_pass(X.reshape(timesteps,1,-1)).as_array()
     #print(out) 
     err1 = out.copy()
-  
+
+    tmpweights = weights
+    tmpweights[0] += 1e-7
+
     net.clear_internal_state()
     net.set_param_buffer(tmpweights)
     newout = net.forward_pass(X.reshape(timesteps,1,-1)).as_array()
@@ -95,7 +98,7 @@ if __name__ == "__main__":
     #print(a)
     #print(b.squeeze())
     print(c)
-    print(b.squeeze()-c)
+    print(b.squeeze())
 
 
 
