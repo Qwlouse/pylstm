@@ -30,9 +30,10 @@ def check_deltas(net, X = None):
 
 def check_gradient(net, X = None):
     
-    X = np.ones(net.get_input_size())
+    timesteps = 2
+    X = np.ones(net.get_input_size()*timesteps)
     #X = rnd.randn(net.get_input_size()*1)
-    timesteps = 1
+
     def f(w):
 
         net.clear_internal_state()
@@ -69,7 +70,7 @@ def check_gradient(net, X = None):
         #print("error1: ", err1, "type: ", type(err1), " ",err1.shape)
         #print("error2: ", err2, "type: ", type(err2), " ",err2.shape) 
         
-        differrors[i] = (realerror-err2)/eps
+        #differrors[i] = (realerror-err2)/eps
        
         tmpweights[i] -= eps        
 
