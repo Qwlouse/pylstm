@@ -114,7 +114,9 @@ LstmDeltas::LstmDeltas(size_t n_inputs_, size_t n_cells_, size_t n_batches_, siz
   Za(n_cells, n_batches, time), Zb(n_cells, n_batches, time), //Net Activation
   S(n_cells, n_batches, time), //Cell activations
   f_S(n_cells, n_batches, time), //cell state activations
-  Hb(n_cells, n_batches, time)     //!< output of LSTM block
+  Hb(n_cells, n_batches, time),     //!< output of LSTM block
+  
+  tmp1(n_cells, n_batches, time) // for calculating derivs
 
   //temp_hidden(n_cells, n_batches, time), temp_hidden2(n_cells, n_batches, time)
 {}
@@ -128,7 +130,7 @@ size_t LstmDeltas::buffer_size() {
     S.size + //Cell activations
     f_S.size + //cell state activations
     Hb.size +     //!< output of LSTM block
-    0; //temp_hidden.size + temp_hidden2.size;
+    tmp1.size; //temp_hidden.size + temp_hidden2.size;
 }
 
 void LstmDeltas::allocate(MatrixView2DCPU buffer_view) {
@@ -147,6 +149,7 @@ void LstmDeltas::allocate(MatrixView2DCPU buffer_view) {
   views.push_back(&f_S); //cell state activations
   views.push_back(&Hb);     //!< output of LSTM block
 
+  views.push_back(&tmp1);
   //views.push_back(&temp_hidden);
   //views.push_back(&temp_hidden2);
 
@@ -160,9 +163,9 @@ void lstm_forward(LstmWeights &w, LstmBuffers &b, MatrixView3DCPU &x, MatrixView
   mult(w.OX, x.flatten(), b.Oa.flatten());
 
   for (size_t t(0); t < b.time; ++t) {
+    
     //IF NEXT                                                                                 
-    if (t) {
-
+    if (t) { 
       mult(w.FH, y.slice(t - 1), b.Fa.slice(t));
       mult(w.IH, y.slice(t - 1), b.Ia.slice(t));
       mult(w.OH, y.slice(t - 1), b.Oa.slice(t));
@@ -181,17 +184,31 @@ void lstm_forward(LstmWeights &w, LstmBuffers &b, MatrixView3DCPU &x, MatrixView
     apply_sigmoid(b.Ia.slice(t), b.Ib.slice(t));
     apply_sigmoid(b.Za.slice(t), b.Zb.slice(t));
     dot_add(b.Zb.slice(t), b.Ib.slice(t), b.S.slice(t));
-   
+ 
+
+
     if (t) 
       dot_add(b.S.slice(t - 1), b.Fb.slice(t), b.S.slice(t));
     apply_tanhx2(b.S.slice(t), b.f_S.slice(t));
- 
+
     dot_add(b.S.slice(t), w.OS, b.Oa.slice(t));
+    
     //mult_add(b.S.slice(t), w.OS, b.Oa.slice(t));
     apply_sigmoid(b.Oa.slice(t), b.Ob.slice(t));
+    //copy(b.Oa.slice(t), b.Ob.slice(t));
+    
     dot(b.f_S.slice(t), b.Ob.slice(t), y.slice(t));
-  }
+    
+    /*
+    cout << "f_s =  "; 
+    b.f_S.slice(t).print_me(); 
+    cout << "   Ob = "; 
+    b.Ob.slice(t).print_me(); 
+    cout << "    y =  "; 
+    y.print_me();
+    */
 
+  }
 }
 
 void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCPU &y, MatrixView3DCPU &in_deltas, MatrixView3DCPU &out_deltas) {
@@ -205,10 +222,13 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
 
   copy(out_deltas, d.Hb);
   
+  /*cout << "incoming deltas" << endl;
+  //out_deltas.print_me();*/
+
   //calculate t+1 values except for end_time+1 
   for(int t(end_time); t >= 0; --t){
-
     if (t<end_time) { 
+
       mult(w.IH.T(), d.Ia.slice(t+1), d.Hb.slice(t));
       mult(w.FH.T(), d.Fa.slice(t+1), d.Hb.slice(t));
       mult(w.ZH.T(), d.Za.slice(t+1), d.Hb.slice(t));
@@ -224,17 +244,35 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
 
     //! \f$\frac{dE}{df_S} += \frac{dE}{dH} * b_O\f$  THIS IS WEIRD, IT GOES WITH NEXT LINE ??!?!
     dot_add(d.Hb.slice(t), b.Ob.slice(t), d.f_S.slice(t));
-    
+  
+
+    //cout << "BEFORE COMPUTING: " << endl;
+    //cout << "dHb = "; d.Hb.print_me();
+    //cout << "b.f_S = "; b.f_S.print_me();
+    //cout << "dOb = "; d.Ob.print_me();
+  
+  
     //OUTPUT GATES DERIVS
     //! \f$\frac{dE}{db_O} = \frac{dE}{dH} * f(s) * f(a_O)\f$
-    dot_add(d.Hb.slice(t), d.f_S.slice(t), d.Ob.slice(t));
+    dot_add(d.Hb.slice(t), b.f_S.slice(t), d.Ob.slice(t));
+    
+    //cout << "AFTER: " << endl;
+    //cout << "dHb = "; d.Hb.print_me();
+    //cout << "b.f_S = "; b.f_S.print_me();
+    //cout << "dOb = "; d.Ob.print_me();
+    //cout << "f_S = "; b.f_S.print_me();
+
     //! \f$\frac{dE}{da_O} = \frac{dE}{db_O} * f'(a_O)\f$
     //sigmoid_deriv(d.Ob.slice(t), b.Ob.slice(t), d.temp_hidden, d.temp_hidden2, d.Oa.slice(t)); //o = -o^2
-    apply_sigmoid_deriv(b.Ob.slice(t), d.Oa.slice(t)); //s'(O_a) == s(O_b) * (1 - s(O_b)) 
+    apply_sigmoid_deriv(b.Ob.slice(t), d.tmp1.slice(t)); //s'(O_a) == s(O_b) * (1 - s(O_b)) 
+    dot(d.Ob.slice(t), d.tmp1.slice(t), d.Oa.slice(t));
+
 
     //! \f$\frac{dE}{dS} += \frac{dE}{df_S} * f'(s)\f$
     //tanh2_deriv(d.f_S.slice(t), b.S.slice(t), d.temp_hidden, d.S.slice(t));
-    apply_tanhx2_deriv(b.S.slice(t), d.S.slice(t));
+    apply_tanhx2_deriv(b.S.slice(t), d.tmp1.slice(t));
+    //copy(d.tmp1.slice(t), d.S.slice(t));
+    dot(d.f_S.slice(t), d.tmp1.slice(t), d.S.slice(t));
 
     //! \f$\frac{dE}{dS} += \frac{dE}{da_O} * W_OS\f$
     //changed to dot_add from mult_add
@@ -245,16 +283,23 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
     dot_add(d.S.slice(t), b.Ib.slice(t), d.Zb.slice(t));
     //! \f$dE/da_Z = dE/db_Z * f'(a_Z)\f$
     //tanh2_deriv(d.Zb.slice(t), b.Zb.slice(t), d.temp_hidden, d.Za.slice(t));
-    apply_tanhx2_deriv(b.Zb.slice(t), d.Za.slice(t));
+    //apply_tanhx2_deriv(b.Zb.slice(t), d.Za.slice(t));
+    //apply_tanhx2_deriv(b.Zb.slice(t), d.tmp1.slice(t));
+    apply_sigmoid_deriv(b.Zb.slice(t), d.tmp1.slice(t));
+    dot(d.Zb.slice(t), d.tmp1.slice(t), d.Za.slice(t));
     
+
+
     //! INPUT GATE DERIVS
     //! \f$\frac{dE}{db_I} = \frac{dE}{dS} * b_Z \f$
     dot_add(d.S.slice(t), b.Zb.slice(t), d.Ib.slice(t));
     //! \f$\frac{dE}{da_I} = \frac{dE}{db_I} * f'(a_I) \f$
     //sigmoid_deriv(d.Ib.slice(t), b.Ib.slice(t), d.temp_hidden, d.temp_hidden2, d.Ia.slice(t));
     
-    apply_sigmoid_deriv(b.Ib.slice(t), d.Ia.slice(t));
-
+    //apply_sigmoid_deriv(b.Ib.slice(t), d.Ia.slice(t));
+    apply_sigmoid_deriv(b.Ib.slice(t), d.tmp1.slice(t));
+    dot(d.Ib.slice(t), d.tmp1.slice(t), d.Ia.slice(t));
+    
     //! FORGET GATE DERIVS
     if (t)
       //! \f$\frac{dE}{db_F} += \frac{dE}{dS} * s(t-1)\f$
@@ -262,8 +307,9 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
     
     // \f$\frac{dE}{da_F} = \frac{dE}{db_F} * f'(a_F)\f$
     //sigmoid_deriv(d.Fb.slice(t), b.Fb.slice(t), d.temp_hidden, d.temp_hidden2, d.Fa.slice(t));    
-    apply_sigmoid_deriv(b.Fb.slice(t), d.Fa.slice(t));    
-    
+    //apply_sigmoid_deriv(b.Fb.slice(t), d.Fa.slice(t));    
+    apply_sigmoid_deriv(b.Fb.slice(t), d.tmp1.slice(t));    
+    dot(d.Fb.slice(t), d.tmp1.slice(t), d.Fa.slice(t));
 
     //dE/dx 
     mult(w.IX.T(), d.Ia.slice(t), in_deltas.slice(t));
@@ -280,8 +326,6 @@ void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d,
 
   //mult(d.output_deltas, d.Cb, delta_OT, 1.0 / n_time);
 
-
-
   //! \f$\frac{dE}{dW_ZX} += \frac{dE}{da_Z} * x(t)\f$
   //! \f$\frac{dE}{dW_FX} += \frac{dE}{da_F} * x(t)\f$
   //! \f$\frac{dE}{dW_IX} += \frac{dE}{da_I} * x(t)\f$
@@ -295,12 +339,16 @@ void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d,
   //! \f$\frac{dE}{dW_FH} += \frac{dE}{da_F} * h(t-1)\f$
   //! \f$\frac{dE}{dW_IH} += \frac{dE}{da_I} * h(t-1)\f$
   //! \f$\frac{dE}{dW_OH} += \frac{dE}{da_O} * h(t-1)\f$
+								       
+  if (n_time > 1) {
+    mult(d.Za.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.ZH, 1.0 / (double) n_time);
+    mult(d.Fa.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.FH, 1.0 / (double) n_time);
+    mult(d.Ia.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.IH, 1.0 / (double) n_time);
+    mult(d.Oa.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.OH, 1.0 / (double) n_time);
+  }
 
-  mult(d.Za.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.ZH, 1.0 / (double) n_time);
-  mult(d.Fa.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.FH, 1.0 / (double) n_time);
-  mult(d.Ia.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.IH, 1.0 / (double) n_time);
-  mult(d.Oa.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.OH, 1.0 / (double) n_time);
- 
+  cout << "b.S(t-1) = " << endl; b.S.subslice(0,n_time-1).print_me(); 
+
   //do we need this line?
   //mult(d.Fa.subslice(1, n_time).flatten(), b.S.subslice(0, n_time - 1).T(), grad.FS, 1.0 / (double) n_time);
  
@@ -308,8 +356,10 @@ void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d,
   //! \f$\frac{dE}{dW_FS} += \frac{dE}{da_F} * s(t-1)\f$
   //! \f$\frac{dE}{dW_IS} += \frac{dE}{da_I} * s(t-1)\f$
 
-  dot_squash(d.Fa.subslice(1, n_time), b.S.subslice(0, n_time - 1), grad.FS);
-  dot_squash(d.Ia.subslice(1, n_time), b.S.subslice(0, n_time - 1), grad.IS);
+  if (n_time > 1) {
+    dot_squash(d.Fa.subslice(1, n_time), b.S.subslice(0, n_time - 1), grad.FS);
+    dot_squash(d.Ia.subslice(1, n_time), b.S.subslice(0, n_time - 1), grad.IS);
+  }
 
 
   //not shifted
@@ -319,6 +369,7 @@ void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d,
   squash(d.Ia, grad.I_bias, 1.0 / (double) n_time);
   squash(d.Fa, grad.F_bias, 1.0 / (double) n_time);
   squash(d.Za, grad.Z_bias, 1.0 / (double) n_time);
+  squash(d.Oa, grad.O_bias, 1.0 / (double) n_time);
 
   //Where are the outputs
   //squash(d.output_deltas, grad.O_bias, 1.0 / n_time);
