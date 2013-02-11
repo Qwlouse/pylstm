@@ -163,24 +163,22 @@ void lstm_forward(LstmWeights &w, LstmBuffers &b, MatrixView3DCPU &x, MatrixView
   mult(w.ZX, x.flatten(), b.Za.flatten());
   mult(w.OX, x.flatten(), b.Oa.flatten());
 
-  cout << "b.Fa"; b.Fa.flatten().print_me();
-
   for (size_t t(0); t < b.time; ++t) {
     
     //IF NEXT                                                                                 
     if (t) { 
-      cout << " y.slice(t-1) "; y.slice(t-1).print_me();
+      
 
-      mult(w.FH, y.slice(t - 1), b.Fa.slice(t));
-      mult(w.IH, y.slice(t - 1), b.Ia.slice(t));
-      mult(w.OH, y.slice(t - 1), b.Oa.slice(t));
-      mult(w.ZH, y.slice(t - 1), b.Za.slice(t));
+      mult_add(w.FH, y.slice(t - 1), b.Fa.slice(t));
+      mult_add(w.IH, y.slice(t - 1), b.Ia.slice(t));
+      mult_add(w.OH, y.slice(t - 1), b.Oa.slice(t));
+      mult_add(w.ZH, y.slice(t - 1), b.Za.slice(t));
       
       mult_add(b.S.slice(t - 1), w.FS, b.Fa.slice(t));
       mult_add(b.S.slice(t - 1), w.IS, b.Ia.slice(t));
 
     }
- 
+
     add_into_b(w.F_bias, b.Fa.slice(t));
     add_into_b(w.I_bias, b.Ia.slice(t));
     add_into_b(w.Z_bias, b.Za.slice(t));
@@ -188,11 +186,9 @@ void lstm_forward(LstmWeights &w, LstmBuffers &b, MatrixView3DCPU &x, MatrixView
     
     apply_sigmoid(b.Fa.slice(t), b.Fb.slice(t));
     apply_sigmoid(b.Ia.slice(t), b.Ib.slice(t));
-    apply_sigmoid(b.Za.slice(t), b.Zb.slice(t));
+    apply_tanhx2(b.Za.slice(t), b.Zb.slice(t));
     dot_add(b.Zb.slice(t), b.Ib.slice(t), b.S.slice(t));
  
-
-
     if (t) 
       dot_add(b.S.slice(t - 1), b.Fb.slice(t), b.S.slice(t));
     apply_tanhx2(b.S.slice(t), b.f_S.slice(t));
@@ -205,16 +201,21 @@ void lstm_forward(LstmWeights &w, LstmBuffers &b, MatrixView3DCPU &x, MatrixView
     
     dot(b.f_S.slice(t), b.Ob.slice(t), y.slice(t));
     
-    /*
-    cout << "f_s =  "; 
-    b.f_S.slice(t).print_me(); 
-    cout << "   Ob = "; 
-    b.Ob.slice(t).print_me(); 
-    cout << "    y =  "; 
-    y.print_me();
-    */
+   }
 
-  }
+  /*  
+  cout << "b.Ia"; b.Ia.flatten().print_me();
+  cout << "b.Ib"; b.Ib.flatten().print_me();
+  cout << "b.Fa"; b.Fa.flatten().print_me();
+  cout << "b.Fb"; b.Fb.flatten().print_me();
+  cout << "b.Za"; b.Za.flatten().print_me();
+  cout << "b.Zb"; b.Zb.flatten().print_me();
+  cout << "b.Oa"; b.Oa.flatten().print_me();
+  cout << "b.S"; b.S.flatten().print_me();
+  //cout << "b.S"; b.S.flatten().print_me();
+  */
+  //cout << "b.y"; y.flatten().print_me();
+
 }
 
 void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCPU &y, MatrixView3DCPU &in_deltas, MatrixView3DCPU &out_deltas) {
@@ -228,17 +229,17 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
 
   copy(out_deltas, d.Hb);
   
-  /*cout << "incoming deltas" << endl;
-  //out_deltas.print_me();*/
+  //cout << "incoming deltas" << endl;
+  //out_deltas.print_me();
 
   //calculate t+1 values except for end_time+1 
   for(int t(end_time); t >= 0; --t){
     if (t<end_time) { 
 
-      mult(w.IH.T(), d.Ia.slice(t+1), d.Hb.slice(t));
-      mult(w.FH.T(), d.Fa.slice(t+1), d.Hb.slice(t));
-      mult(w.ZH.T(), d.Za.slice(t+1), d.Hb.slice(t));
-      mult(w.OH.T(), d.Oa.slice(t+1), d.Hb.slice(t));
+      mult_add(w.IH.T(), d.Ia.slice(t+1), d.Hb.slice(t));
+      mult_add(w.FH.T(), d.Fa.slice(t+1), d.Hb.slice(t));
+      mult_add(w.ZH.T(), d.Za.slice(t+1), d.Hb.slice(t));
+      mult_add(w.OH.T(), d.Oa.slice(t+1), d.Hb.slice(t));
       
       //! \f$\frac{dE}{dS} += \frac{dE}{dS^{t+1}} * b_F(t+1)\f$
       dot_add(d.S.slice(t+1), b.Fb.slice(t+1), d.S.slice(t));
@@ -279,7 +280,7 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
     //tanh2_deriv(d.Zb.slice(t), b.Zb.slice(t), d.temp_hidden, d.Za.slice(t));
     //apply_tanhx2_deriv(b.Zb.slice(t), d.Za.slice(t));
     //apply_tanhx2_deriv(b.Zb.slice(t), d.tmp1.slice(t));
-    apply_sigmoid_deriv(b.Zb.slice(t), d.tmp1.slice(t));
+    apply_tanhx2_deriv(b.Za.slice(t), d.tmp1.slice(t));
     dot(d.Zb.slice(t), d.tmp1.slice(t), d.Za.slice(t));
     
 
@@ -324,13 +325,10 @@ void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d,
   //! \f$\frac{dE}{dW_FX} += \frac{dE}{da_F} * x(t)\f$
   //! \f$\frac{dE}{dW_IX} += \frac{dE}{da_I} * x(t)\f$
   //! \f$\frac{dE}{dW_OX} += \frac{dE}{da_O} * x(t)\f$
-  mult(d.Za, input_batches.T(), grad.ZX, 1.0 / (double) n_time);
-  mult(d.Fa, input_batches.T(), grad.FX, 1.0 / (double) n_time);
-  mult(d.Ia, input_batches.T(), grad.IX, 1.0 / (double) n_time);
-  mult(d.Oa, input_batches.T(), grad.OX, 1.0 / (double) n_time);
-
-  cout << "d.FA " << endl; d.Fa.print_me();
-
+  mult(d.Za, input_batches.T(), grad.ZX, 1.0 / 1.0); //(double) n_time);
+  mult(d.Fa, input_batches.T(), grad.FX, 1.0 / 1.0); //(double) n_time);
+  mult(d.Ia, input_batches.T(), grad.IX, 1.0 / 1.0); //(double) n_time);
+  mult(d.Oa, input_batches.T(), grad.OX, 1.0 / 1.0); //(double) n_time);
 
   //! \f$\frac{dE}{dW_ZH} += \frac{dE}{da_Z} * h(t-1)\f$
   //! \f$\frac{dE}{dW_FH} += \frac{dE}{da_F} * h(t-1)\f$
@@ -343,12 +341,19 @@ void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d,
     //mult(d.Fa.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.FH, 1.0 / (double) n_time);
     //mult(d.Oa.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.OH, 1.0 / (double) n_time);
 	
-    mult(d.Ia.subslice(1, n_time), y.subslice(0, n_time - 1).T(), grad.IH, 1.0 / (double) n_time);
-    mult(d.Za.subslice(1, n_time), y.subslice(0, n_time - 1).T(), grad.ZH, 1.0 / (double) n_time);
-    mult(d.Fa.subslice(1, n_time), y.subslice(0, n_time - 1).T(), grad.FH, 1.0 / (double) n_time);
-    mult(d.Oa.subslice(1, n_time), y.subslice(0, n_time - 1).T(), grad.OH, 1.0 / (double) n_time);
+    mult(d.Ia.subslice(1, n_time-1), y.subslice(0, n_time - 2).T(), grad.IH, 1.0 / 1.0); //(double) n_time);
+    mult(d.Za.subslice(1, n_time-1), y.subslice(0, n_time - 2).T(), grad.ZH, 1.0 / 1.0); //(double) n_time);
+    mult(d.Fa.subslice(1, n_time-1), y.subslice(0, n_time - 2).T(), grad.FH, 1.0 / 1.0); //(double) n_time);
+    mult(d.Oa.subslice(1, n_time-1), y.subslice(0, n_time - 2).T(), grad.OH, 1.0 / 1.0); //(double) n_time);
 
   }
+
+
+  cout << "n_time " << n_time << endl; 
+  cout << "d.Hb " ; d.Hb.subslice(0,n_time-1).print_me();
+  cout << "d.Oa " ; d.Oa.subslice(0,n_time-1).print_me();
+  cout << "gradOH "; grad.OH.print_me();
+
 
   //do we need this line?
   //mult(d.Fa.subslice(1, n_time).flatten(), b.S.subslice(0, n_time - 1).T(), grad.FS, 1.0 / (double) n_time);
@@ -358,8 +363,8 @@ void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d,
   //! \f$\frac{dE}{dW_IS} += \frac{dE}{da_I} * s(t-1)\f$
 
   if (n_time > 1) {
-    dot_squash(d.Fa.subslice(1, n_time), b.S.subslice(0, n_time - 1), grad.FS);
-    dot_squash(d.Ia.subslice(1, n_time), b.S.subslice(0, n_time - 1), grad.IS);
+    dot_squash(d.Fa.subslice(1, n_time-1), b.S.subslice(0, n_time - 2), grad.FS);
+    dot_squash(d.Ia.subslice(1, n_time-1), b.S.subslice(0, n_time - 2), grad.IS);
   }
 
 
@@ -374,6 +379,7 @@ void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d,
 
   //Where are the outputs
   //squash(d.output_deltas, grad.O_bias, 1.0 / n_time);
+  
   
 }
 
