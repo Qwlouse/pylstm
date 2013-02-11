@@ -2,8 +2,10 @@
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 
-import unittest
+import gc
 import numpy as np
+import unittest
+
 from pylstm.wrapper import BufferView
 
 
@@ -84,3 +86,24 @@ class BufferTest(unittest.TestCase):
         a = np.zeros((12, 2, 1))
         b = BufferView(a)
         self.assertRaises(AssertionError, b.reshape, -1, 7, 2)
+
+    def test_memory_management1(self):
+        b = BufferView(10)
+        a = b.as_array()
+        del b
+        gc.collect()
+        a[1] = 1
+        del a
+        gc.collect()
+        ## self.assert_no_segfault()  :-)
+
+    def test_memory_management2(self):
+        a = np.array([[[1, 2, 3]]])
+        b = BufferView(a)
+        del a
+        gc.collect()
+        c = b[1]
+        del c
+        del b
+        gc.collect()
+        ## self.assert_no_segfault()  :-)
