@@ -42,7 +42,6 @@ class BufferManagerTest(unittest.TestCase):
         bm.set_dimensions(2, 3)
         self.assertEqual(bm.calculate_size(), 23)
 
-
     def test_calculate_size_with_multiple_size_getters(self):
         bm = BufferManager()
         sg1 = lambda t, b : 10*t + b
@@ -61,10 +60,13 @@ class BufferManagerTest(unittest.TestCase):
         sg1 = lambda t, b : 2 * t + b
         sg2 = lambda t, b : t + 3*b
         view_factory = lambda x, t, b : x
-        bm.add({'foo1': (sg1, view_factory)}, {'foo2': (sg2, view_factory)})
+        bm.add({'foo1': (sg1, view_factory), 'foo2': (sg2, view_factory)}, {})
 
         self.assertEqual(len(bm.get_source_view('foo1')), 3)
-        self.assertEqual(len(bm.get_sink_view('foo2')), 4)
+        self.assertEqual(len(bm.get_source_view('foo2')), 4)
         bm.set_dimensions(2, 3)
         self.assertEqual(len(bm.get_source_view('foo1')), 7)
-        self.assertEqual(len(bm.get_sink_view('foo2')), 11)
+        self.assertEqual(len(bm.get_source_view('foo2')), 11)
+
+if __name__ == "__main__":
+    unittest.main()
