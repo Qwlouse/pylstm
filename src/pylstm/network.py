@@ -29,13 +29,13 @@ class Network(object):
         return self.layers["Output"].get_input_size()
 
     def get_param_view_for(self, name):
-        return self.weight_manager.get_buffer(name)[0]
+        return self.weight_manager.get_source_view(name)
 
     def get_intern_view_for(self, name):
-        return self.intern_manager.get_buffer(name)[0]
+        return self.intern_manager.get_source_view(name)
 
     def get_output_view_for(self, name):
-        return self.in_out_manager.get_buffer(name)[0]
+        return self.in_out_manager.get_source_view(name)
 
     def clear_internal_state(self):
         if self.intern_manager.buffer:

@@ -35,6 +35,10 @@ out_delta.print_me()
 #print("Gradient:")
 
 print("Output1:", out)
+############ Accessing Weights Example ##############################
+lstm_weights = net.get_param_view_for("LstmLayer")
+print("LSTM Weights for IX:")
+lstm_weights.get_IX().print_me()
 
 
 ############ Training Example ##############################
