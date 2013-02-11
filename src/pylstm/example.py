@@ -7,12 +7,13 @@ import sys
 sys.path.append('.')
 sys.path.append('..')
 from pylstm.netbuilder import NetworkBuilder
-from pylstm.layers import LstmLayer, NpFwdLayer
+from pylstm.layers import LstmLayer
 
 # Instantiate a NetworkBuilder
 netb = NetworkBuilder()
 # add one layer of three LSTM nodes
 netb.input(5) >> LstmLayer(3) >> netb.output
+
 # build the network (no buffers are constructed so far)
 net = netb.build()
 # create some random weights (we don't care about dimensions. Just for the size)

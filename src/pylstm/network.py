@@ -2,11 +2,12 @@
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 from copy import deepcopy
-import numpy as np
 import wrapper as pw
 
+
 class Network(object):
-    def __init__(self, layers, weight_manager, intern_manager, in_out_manager, intern_delta_manager, delta_manager):
+    def __init__(self, layers, weight_manager, intern_manager, in_out_manager,
+                 intern_delta_manager, delta_manager):
         self.layers = layers
         self.weight_manager = weight_manager
         self.grad_manager = deepcopy(weight_manager)
@@ -48,14 +49,14 @@ class Network(object):
         """
         return self.layers[item]
 
-    def set_param_buffer(self, buffer):
+    def set_param_buffer(self, buffer_view):
         """
         Set the parameter buffer that holds all the weights.
         """
-        if isinstance(buffer, pw.BufferView):
-            self.weight_manager.initialize_buffer(buffer)
+        if isinstance(buffer_view, pw.BufferView):
+            self.weight_manager.initialize_buffer(buffer_view)
         else:
-            self.weight_manager.initialize_buffer(pw.BufferView(buffer))
+            self.weight_manager.initialize_buffer(pw.BufferView(buffer_view))
 
     def forward_pass(self, input_buffer):
         # determine dimensions and set buffer managers accordingly
@@ -91,12 +92,12 @@ class Network(object):
             delta_in = self.delta_manager.get_source_view(n)
             delta_out = self.delta_manager.get_sink_view(n)
             l.backward(param, internal, intern_delta, out, delta_in, delta_out)
-            foo = 10
         # read the final delta buffer
         return self.delta_manager.get_sink_view("Input")
 
     def calc_gradient(self):
-        self.grad_manager.initialize_buffer(pw.BufferView(self.get_param_size()))
+        self.grad_manager.initialize_buffer(
+            pw.BufferView(self.get_param_size()))
         for n, l in self.layers.items()[-2:0:-1]:
             param = self.weight_manager.get_source_view(n)
             grad = self.grad_manager.get_source_view(n)
@@ -105,7 +106,4 @@ class Network(object):
             out = self.in_out_manager.get_sink_view(n)
             input_view = self.in_out_manager.get_source_view(n)
             l.gradient(param, grad, internal, intern_delta, out, input_view)
-
         return self.grad_manager.buffer
-
-

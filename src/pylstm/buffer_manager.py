@@ -4,8 +4,10 @@
 from __future__ import division, print_function, unicode_literals
 import wrapper
 
+
 class BufferHub(object):
-    def __init__(self, sources, sinks, slices=1, batches=1, connections="full"): # only full connection supported so far
+    def __init__(self, sources, sinks, slices=1, batches=1):
+        # only full connection supported so far
         self.sources = sources
         self.sinks = sinks
         self.buffer = None
@@ -25,14 +27,14 @@ class BufferHub(object):
     def get_size(self):
         if len(self.sinks) > 0:
             return sum(sg(self.slice_count, self.batch_count)
-                for n, (sg, vf) in self.sinks.items())
+                       for n, (sg, vf) in self.sinks.items())
         else:
-            return sum(sg( self.slice_count, self.batch_count)
-                for n, (sg, vf) in self.sources.items())
+            return sum(sg(self.slice_count, self.batch_count)
+                       for n, (sg, vf) in self.sources.items())
 
-    def set_buffer(self, buffer):
-        self.buffer = buffer
-        self.buffer = buffer.reshape(-1, 1, 1)
+    def set_buffer(self, buffer_view):
+        self.buffer = buffer_view
+        self.buffer = buffer_view.reshape(-1, 1, 1)
         self.views = None
 
     def create_views(self):
@@ -40,22 +42,26 @@ class BufferHub(object):
         start = 0
         for n, (sg, vf) in self.sinks.items():
             size = sg(self.slice_count, self.batch_count)
-            self.views[n] = vf(self.buffer[start : start+size], self.slice_count, self.batch_count)
+            self.views[n] = vf(self.buffer[start: start + size],
+                               self.slice_count, self.batch_count)
             start += size
         sink_size = start
         start = 0
         for n, (sg, vf) in self.sources.items():
             size = sg(self.slice_count, self.batch_count)
-            self.views[n] = vf(self.buffer[start : start+size], self.slice_count, self.batch_count)
+            self.views[n] = vf(self.buffer[start: start + size],
+                               self.slice_count, self.batch_count)
             start += size
         source_size = start
-        assert sink_size == 0 or source_size == 0 or (sink_size == source_size == self.get_size())
+        assert sink_size == 0 or source_size == 0 or (
+            sink_size == source_size == self.get_size())
 
     def get_buffer(self, name):
         assert self.buffer is not None
         if self.views is None:
             self.create_views()
         return self.views[name]
+
 
 class BufferManager(object):
     def __init__(self, slice_count=1, batch_count=1):
@@ -96,13 +102,13 @@ class BufferManager(object):
     def calculate_size(self):
         return sum(bh.get_size() for bh in self.buffer_hubs)
 
-    def initialize_buffer(self, buffer=None):
+    def initialize_buffer(self, buffer_view=None):
         total_size = self.calculate_size()
-        if buffer is None:
+        if buffer_view is None:
             self.buffer = wrapper.BufferView(total_size)
         else:
-            assert len(buffer) >= total_size
-            self.buffer = buffer.reshape(-1, 1, 1)
+            assert len(buffer_view) >= total_size
+            self.buffer = buffer_view.reshape(-1, 1, 1)
         self.views_ready = False
 
     def lay_out_buffer_hubs(self):
@@ -110,7 +116,7 @@ class BufferManager(object):
         param_start = 0
         for bh in self.buffer_hubs:
             param_size = bh.get_size()
-            bview = self.buffer[param_start : param_start + param_size]
+            bview = self.buffer[param_start: param_start + param_size]
             bh.set_buffer(bview)
             param_start += param_size
         self.views_ready = True
