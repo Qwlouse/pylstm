@@ -58,6 +58,9 @@ class Network(object):
         else:
             self.weight_manager.initialize_buffer(pw.BufferView(buffer_view))
 
+    def get_param_buffer(self):
+        return self.weight_manager.buffer
+
     def forward_pass(self, input_buffer):
         # determine dimensions and set buffer managers accordingly
         t, b, f = input_buffer.shape
