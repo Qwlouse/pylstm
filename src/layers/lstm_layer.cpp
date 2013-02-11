@@ -157,15 +157,20 @@ void LstmDeltas::allocate(MatrixView2DCPU buffer_view) {
 }
 
 void lstm_forward(LstmWeights &w, LstmBuffers &b, MatrixView3DCPU &x, MatrixView3DCPU &y) {
+  
   mult(w.IX, x.flatten(), b.Ia.flatten());
   mult(w.FX, x.flatten(), b.Fa.flatten());
   mult(w.ZX, x.flatten(), b.Za.flatten());
   mult(w.OX, x.flatten(), b.Oa.flatten());
 
+  cout << "b.Fa"; b.Fa.flatten().print_me();
+
   for (size_t t(0); t < b.time; ++t) {
     
     //IF NEXT                                                                                 
     if (t) { 
+      cout << " y.slice(t-1) "; y.slice(t-1).print_me();
+
       mult(w.FH, y.slice(t - 1), b.Fa.slice(t));
       mult(w.IH, y.slice(t - 1), b.Ia.slice(t));
       mult(w.OH, y.slice(t - 1), b.Oa.slice(t));
@@ -173,6 +178,7 @@ void lstm_forward(LstmWeights &w, LstmBuffers &b, MatrixView3DCPU &x, MatrixView
       
       mult_add(b.S.slice(t - 1), w.FS, b.Fa.slice(t));
       mult_add(b.S.slice(t - 1), w.IS, b.Ia.slice(t));
+
     }
  
     add_into_b(w.F_bias, b.Fa.slice(t));
@@ -245,22 +251,10 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
     //! \f$\frac{dE}{df_S} += \frac{dE}{dH} * b_O\f$  THIS IS WEIRD, IT GOES WITH NEXT LINE ??!?!
     dot_add(d.Hb.slice(t), b.Ob.slice(t), d.f_S.slice(t));
   
-
-    //cout << "BEFORE COMPUTING: " << endl;
-    //cout << "dHb = "; d.Hb.print_me();
-    //cout << "b.f_S = "; b.f_S.print_me();
-    //cout << "dOb = "; d.Ob.print_me();
-  
   
     //OUTPUT GATES DERIVS
     //! \f$\frac{dE}{db_O} = \frac{dE}{dH} * f(s) * f(a_O)\f$
     dot_add(d.Hb.slice(t), b.f_S.slice(t), d.Ob.slice(t));
-    
-    //cout << "AFTER: " << endl;
-    //cout << "dHb = "; d.Hb.print_me();
-    //cout << "b.f_S = "; b.f_S.print_me();
-    //cout << "dOb = "; d.Ob.print_me();
-    //cout << "f_S = "; b.f_S.print_me();
 
     //! \f$\frac{dE}{da_O} = \frac{dE}{db_O} * f'(a_O)\f$
     //sigmoid_deriv(d.Ob.slice(t), b.Ob.slice(t), d.temp_hidden, d.temp_hidden2, d.Oa.slice(t)); //o = -o^2
@@ -335,19 +329,26 @@ void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d,
   mult(d.Ia, input_batches.T(), grad.IX, 1.0 / (double) n_time);
   mult(d.Oa, input_batches.T(), grad.OX, 1.0 / (double) n_time);
 
+  cout << "d.FA " << endl; d.Fa.print_me();
+
+
   //! \f$\frac{dE}{dW_ZH} += \frac{dE}{da_Z} * h(t-1)\f$
   //! \f$\frac{dE}{dW_FH} += \frac{dE}{da_F} * h(t-1)\f$
   //! \f$\frac{dE}{dW_IH} += \frac{dE}{da_I} * h(t-1)\f$
   //! \f$\frac{dE}{dW_OH} += \frac{dE}{da_O} * h(t-1)\f$
 								       
   if (n_time > 1) {
-    mult(d.Za.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.ZH, 1.0 / (double) n_time);
-    mult(d.Fa.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.FH, 1.0 / (double) n_time);
-    mult(d.Ia.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.IH, 1.0 / (double) n_time);
-    mult(d.Oa.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.OH, 1.0 / (double) n_time);
-  }
+    //mult(d.Ia.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.IH, 1.0 / (double) n_time);
+    //mult(d.Za.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.ZH, 1.0 / (double) n_time);
+    //mult(d.Fa.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.FH, 1.0 / (double) n_time);
+    //mult(d.Oa.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.OH, 1.0 / (double) n_time);
+	
+    mult(d.Ia.subslice(1, n_time), y.subslice(0, n_time - 1).T(), grad.IH, 1.0 / (double) n_time);
+    mult(d.Za.subslice(1, n_time), y.subslice(0, n_time - 1).T(), grad.ZH, 1.0 / (double) n_time);
+    mult(d.Fa.subslice(1, n_time), y.subslice(0, n_time - 1).T(), grad.FH, 1.0 / (double) n_time);
+    mult(d.Oa.subslice(1, n_time), y.subslice(0, n_time - 1).T(), grad.OH, 1.0 / (double) n_time);
 
-  cout << "b.S(t-1) = " << endl; b.S.subslice(0,n_time-1).print_me(); 
+  }
 
   //do we need this line?
   //mult(d.Fa.subslice(1, n_time).flatten(), b.S.subslice(0, n_time - 1).T(), grad.FS, 1.0 / (double) n_time);
