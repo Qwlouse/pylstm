@@ -65,6 +65,7 @@ struct LstmDeltas {
   MatrixView3DCPU S; //Cell activations
   MatrixView3DCPU f_S; //cell state activations
   MatrixView3DCPU Hb;     //!< output of LSTM block
+  MatrixView3DCPU tmp1;
 
   //MatrixView3DCPU temp_hidden, temp_hidden2;
 

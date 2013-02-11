@@ -30,7 +30,8 @@ def check_deltas(net, X = None):
 
 def check_gradient(net, X = None):
     
-    X = rnd.randn(net.get_input_size()*1)
+    X = np.ones(net.get_input_size())
+    #X = rnd.randn(net.get_input_size()*1)
     timesteps = 1
     def f(w):
 
@@ -40,7 +41,8 @@ def check_gradient(net, X = None):
         
         return .5*np.sum(out**2)
 
-    weights = rnd.randn(net.get_param_size())
+    weights = np.ones(net.get_param_size())
+    #weights = rnd.randn(net.get_param_size())
     #print(weights)
 
 
