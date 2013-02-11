@@ -10,6 +10,60 @@ cdef class LstmParamBuffer:
     def __cinit__(self, int in_size, int out_size):
         self.thisptr = new clstm.LstmWeights(in_size, out_size)
 
+    cdef BufferView create_BufferView_from_2dview(self, cm.MatrixView2DCPU view):
+        buffer_view = BufferView()
+        buffer_view.view = cm.MatrixView3DCPU(view.n_rows, view.n_columns, 1)
+        buffer_view.view.set_data(&view[0])
+        return buffer_view
+
+    def get_IX(self):
+        return self.create_BufferView_from_2dview(self.thisptr.IX)
+
+    def get_IH(self):
+        return self.create_BufferView_from_2dview(self.thisptr.IH)
+
+    def get_IS(self):
+        return self.create_BufferView_from_2dview(self.thisptr.IS)
+
+    def get_FX(self):
+        return self.create_BufferView_from_2dview(self.thisptr.FX)
+
+    def get_FH(self):
+        return self.create_BufferView_from_2dview(self.thisptr.FH)
+
+    def get_FS(self):
+        return self.create_BufferView_from_2dview(self.thisptr.FS)
+
+    def get_ZH(self):
+        return self.create_BufferView_from_2dview(self.thisptr.ZH)
+
+    def get_ZX(self):
+        return self.create_BufferView_from_2dview(self.thisptr.ZX)
+
+    def get_OX(self):
+        return self.create_BufferView_from_2dview(self.thisptr.OX)
+
+    def get_OH(self):
+        return self.create_BufferView_from_2dview(self.thisptr.OH)
+
+    def get_OS(self):
+        return self.create_BufferView_from_2dview(self.thisptr.OS)
+
+    def get_I_bias(self):
+        return self.create_BufferView_from_2dview(self.thisptr.I_bias)
+
+    def get_F_bias(self):
+        return self.create_BufferView_from_2dview(self.thisptr.F_bias)
+
+    def get_Z_bias(self):
+        return self.create_BufferView_from_2dview(self.thisptr.Z_bias)
+
+    def get_O_bias(self):
+        return self.create_BufferView_from_2dview(self.thisptr.O_bias)
+
+
+
+
     def __dealloc__(self):
         del self.thisptr
 

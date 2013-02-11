@@ -7,12 +7,13 @@ import sys
 sys.path.append('.')
 sys.path.append('..')
 from pylstm.netbuilder import NetworkBuilder
-from pylstm.layers import LstmLayer, NpFwdLayer
+from pylstm.layers import LstmLayer
 
 # Instantiate a NetworkBuilder
 netb = NetworkBuilder()
 # add one layer of three LSTM nodes
 netb.input(5) >> LstmLayer(3) >> netb.output
+
 # build the network (no buffers are constructed so far)
 net = netb.build()
 # create some random weights (we don't care about dimensions. Just for the size)
@@ -34,6 +35,10 @@ out_delta.print_me()
 #print("Gradient:")
 
 print("Output1:", out)
+############ Accessing Weights Example ##############################
+lstm_weights = net.get_param_view_for("LstmLayer")
+print("LSTM Weights for IX:")
+lstm_weights.get_IX().print_me()
 
 
 ############ Training Example ##############################

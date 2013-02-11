@@ -5,8 +5,10 @@ from __future__ import division, print_function, unicode_literals
 import numpy as np
 import wrapper
 
+
 class InvalidArchitectureError(RuntimeError):
     pass
+
 
 class Layer(object):
     def __init__(self, in_size, out_size):
@@ -35,11 +37,13 @@ class Layer(object):
         return 0
 
     def create_input_view(self, input_buffer, time_length, batch_size):
-        assert len(input_buffer) == self.get_input_buffer_size(time_length, batch_size)
+        assert len(input_buffer) == self.get_input_buffer_size(time_length,
+                                                               batch_size)
         return input_buffer.reshape(time_length, batch_size, self.in_size)
 
     def create_output_view(self, output_buffer, time_length, batch_size):
-        assert len(output_buffer) == self.get_output_buffer_size(time_length, batch_size)
+        assert len(output_buffer) == self.get_output_buffer_size(time_length,
+                                                                 batch_size)
         return output_buffer.reshape(time_length, batch_size, self.out_size)
 
     def create_param_view(self, param_buffer, time_length=1, batch_size=1):
@@ -51,19 +55,19 @@ class Layer(object):
     def create_internal_error_view(self, error_buffer, time_length, batch_size):
         return None
 
-    def forward(self, param, internal, input, output):
+    def forward(self, param, internal, in_view, out_view):
         pass
 
-    def backward(self, param, internal, err, output, in_deltas, out_deltas):
+    def backward(self, param, internal, err, out_view, in_deltas, out_deltas):
         pass
 
-    def gradient(self, param, grad, internal, err, output, input):
+    def gradient(self, param, grad, internal, err, out_view, in_view):
         pass
 
 
 def create_ConstructionLayer(LayerType):
     class ConstructionLayer(object):
-        def __init__(self, out_size, name = None, **layer_kwargs):
+        def __init__(self, out_size, name=None, **layer_kwargs):
             self.out_size = out_size
             self.name = name
             self.targets = []
@@ -75,14 +79,14 @@ def create_ConstructionLayer(LayerType):
 
         def instantiate(self):
             return self.LayerType(self.get_input_size(),
-                self.out_size, **self.layer_kwargs)
+                                  self.out_size, **self.layer_kwargs)
 
         def get_input_size(self):
             return sum(s.out_size for s in self.sources)
 
         def get_depth(self):
             if self.depth is None:
-                self.depth = float('inf') # marker for "get_depth" in progress
+                self.depth = float('inf')  # marker for "get_depth" in progress
                 self.depth = max(s.get_depth() for s in self.sources) + 1
             return self.depth
 
@@ -111,37 +115,40 @@ def create_ConstructionLayer(LayerType):
 
 
 def sigmoid(x):
-    return 1./(1 + np.exp(-x))
+    return 1. / (1 + np.exp(-x))
+
 
 def sigmoid_inv(y):
     return y * (1 - y)
 
 
-class NpForwardLayer(Layer): # todo: bias
+class NpForwardLayer(Layer):  # TODO: bias
     def get_param_size(self, time_length=1, batch_size=1):
         return self.in_size * self.out_size
 
     def create_input_view(self, input_buffer, time_length, batch_size):
-        return super(NpForwardLayer, self).create_input_view(input_buffer, time_length, batch_size).as_array()
+        return super(NpForwardLayer, self).create_input_view(input_buffer,
+                                                             time_length,
+                                                             batch_size).as_array()
 
     def create_output_view(self, output_buffer, time_length, batch_size):
-        return super(NpForwardLayer, self).create_output_view(output_buffer, time_length, batch_size).as_array()
+        return super(NpForwardLayer, self).create_output_view(output_buffer,
+                                                              time_length,
+                                                              batch_size).as_array()
 
     def create_param_view(self, param_buffer, time_length=1, batch_size=1):
         return param_buffer.as_array().reshape(self.in_size, self.out_size)
 
-    def forward(self, param, internal, input, output):
-        for in_slice, out_slice in zip(input, output):
+    def forward(self, param, internal, in_view, out_view):
+        for in_slice, out_slice in zip(in_view, out_view):
             out_slice[:] = sigmoid(in_slice.dot(param))
 
-    def backward(self, param, internal, err, output, in_deltas, out_deltas):
-        for out_slice, in_slice, y_slice in zip(out_deltas, in_deltas, output):
-            in_slice[:] = (sigmoid_inv(y_slice)*out_slice).dot(param.T)
+    def backward(self, param, internal, err, out_view, in_deltas, out_deltas):
+        for out_slice, in_slice, y_slice in zip(out_deltas, in_deltas, out_view):
+            in_slice[:] = (sigmoid_inv(y_slice) * out_slice).dot(param.T)
 
-    def gradient(self, param, grad, internal, err, output, input):
+    def gradient(self, param, grad, internal, err, out_view, in_view):
         pass
-
-
 
 
 ################################################################################

@@ -7,13 +7,14 @@ from layers import DummyLayer, InvalidArchitectureError
 from network import Network
 import wrapper
 
+
 class NetworkBuilder():
     def __init__(self):
         self.input_layer = None
         self.output = DummyLayer(0, "Output")
 
     def input(self, size=None):
-        if size :
+        if size:
             self.input_layer = DummyLayer(size, "Input")
         return self.input_layer
 
@@ -41,7 +42,7 @@ class NetworkBuilder():
             new_lset = {s for l in rset for s in l.sources}
             new_rset = {t for l in lset for t in l.targets}
             if len(new_lset) > len(lset) or\
-               len(new_rset) > len(rset)    :
+               len(new_rset) > len(rset):
                 growing = True
                 lset = new_lset
                 rset = new_rset
@@ -65,7 +66,7 @@ class NetworkBuilder():
                 basename = name
                 idx = 1
                 while name in layers:
-                    name = basename + "_%d"%idx
+                    name = basename + "_%d" % idx
                     idx += 1
             l.name = name
             layers[l.name] = layer
@@ -77,39 +78,46 @@ class NetworkBuilder():
         weight_manager = BufferManager()
         for name, l in layers.items()[1:-1]:
             sinks = {}
-            sources = {name: (l.get_param_size, l.create_param_view)}
+            sources = {name: (l.get_param_size,
+                              l.create_param_view)}
             weight_manager.add(sources, sinks)
 
         intern_manager = BufferManager()
         for name, l in layers.items()[1:-1]:
             sinks = {}
-            sources = {name: (l.get_internal_state_size, l.create_internal_view)}
+            sources = {name: (l.get_internal_state_size,
+                              l.create_internal_view)}
             intern_manager.add(sources, sinks)
 
         intern_delta_manager = BufferManager()
         for name, l in layers.items()[1:-1]:
             sinks = {}
-            sources = {name: (l.get_internal_error_state_size, l.create_internal_error_view)}
+            sources = {name: (l.get_internal_error_state_size,
+                              l.create_internal_error_view)}
             intern_delta_manager.add(sources, sinks)
 
         in_out_manager = BufferManager()
         for layer in cLayers[:-1]:
             lset, rset = self.get_forward_closure(layer)
-            assert len(lset)==len(rset)==1, "Complicated Architectures not supported yet"
+            assert len(lset) == len(rset) == 1, \
+                "Complicated Architectures not supported yet"
             sources = dict()
             for n in rset:
                 l = layers[n.name]
-                sources[n.name] = (l.get_input_buffer_size, l.create_input_view)
+                sources[n.name] = (l.get_input_buffer_size,
+                                   l.create_input_view)
             sinks = dict()
             for n in lset:
                 l = layers[n.name]
-                sinks[n.name] = (l.get_output_buffer_size, l.create_output_view)
+                sinks[n.name] = (l.get_output_buffer_size,
+                                 l.create_output_view)
             in_out_manager.add(sources, sinks)
 
         delta_manager = BufferManager()
         for layer in cLayers[:-1]:
             lset, rset = self.get_forward_closure(layer)
-            assert len(lset)==len(rset)==1, "Complicated Architectures not supported yet"
+            assert len(lset) == len(rset) == 1, \
+                "Complicated Architectures not supported yet"
             sources = dict()
             for n in rset:
                 l = layers[n.name]
@@ -120,6 +128,6 @@ class NetworkBuilder():
                 sinks[n.name] = (l.get_output_buffer_size, l.create_output_view)
             delta_manager.add(sources, sinks)
 
-        net = Network(layers, weight_manager, intern_manager, in_out_manager, intern_delta_manager, delta_manager)
+        net = Network(layers, weight_manager, intern_manager, in_out_manager,
+                      intern_delta_manager, delta_manager)
         return net
-

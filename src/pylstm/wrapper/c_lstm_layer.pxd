@@ -2,6 +2,14 @@ from c_matrix cimport MatrixView2DCPU, MatrixView3DCPU
 
 cdef extern from "lstm_layer.h":
     cdef cppclass LstmWeights:
+        int n_inputs
+        int n_cells
+        MatrixView2DCPU IX, IH, IS
+        MatrixView2DCPU FX, FH, FS
+        MatrixView2DCPU ZX, ZH
+        MatrixView2DCPU OX, OH, OS
+        MatrixView2DCPU I_bias, F_bias, Z_bias, O_bias
+
         LstmWeights(int, int)
         int buffer_size()
         void allocate(MatrixView2DCPU)
