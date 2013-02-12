@@ -96,33 +96,38 @@ h^t &=& b_{O}^t f(s^t) \\
 
 \subsubsection{input ($in$), forget ($\phi$), cell}
 \begin{eqnarray*}
-Ra_{in}^t &=& V_{in,x}x^t + W_{in,h}Rb_h^{t-1}+ V_{in,h}b_h^{t-1} + V_{in,s}s^{t-1} + W_{in,s}Rs^{t-1} \\
-Rb_{in}^t &=& f'_{in}(a_{in}^t)(Ra_{in}^t) \\
+Ra_{I}^t &=& V_{I,X}x^t + W_{I,H}Rh^{t-1} + V_{I,H}h^{t-1} + W_{I,S}Rs^{t-1} + V_{I,S}s^{t-1}\\
+Rb_{I}^t &=& f'(a_{I}^t)Ra_{I}^t \\
 \\
-Ra_{\phi}^t &=& V_{\phi, x}x^t + W_{\phi, h}Rb_h^{t-1} + V_{\phi, h}b_h^{t-1} + V_{\phi, s}s^{t-1} + W_{\phi, s}Rs^{t-1}\\
-Rb_{\phi}^t &=& f'_{\phi}(a_{\phi}^t)(Ra_{\phi}^t) \\
+Ra_{F}^t &=& V_{F, X}x^t + W_{F, H}Rh^{t-1} + V_{F, H}h^{t-1} + W_{F, S}Rs^{t-1} + V_{F, S}s^{t-1} \\
+Rb_{F}^t &=& f'(a_{F}^t) Ra_{F}^t \\
 \\
-Ra_s^t &=& V_{s,x}x_i^t + V_{s,h}b_h^{t-1} + W_{s,h}Rb_h^{t-1} \\
-Rs^t &=& Rb_{\phi}^ts^{t-1} + b_{\phi}^tRs^{t-1} + Rb_{in}^tf(a_s^t) + b_{in}^tf'(a_s^t)(Ra_s^t) \\  
+Ra_{Z}^t &=& W_{Z,X}x_i^t + W_{Z,H} Rh^{t-1} + V_{Z,H} h^{t-1} \\
+Rb_{Z} &=& f'(a_{Z}^t) Ra_{Z}^t 
+\end{eqnarray*}
+
+
+\subsubsection{state cell value}
+\begin{eqnarray*}
+Rs^t &=& Rb_{F}^ts^{t-1} + b_{F}^tRs^{t-1} + Rb_{I}^t b_Z^t + b_{I}^t Rb_Z^t \\  
 \end{eqnarray*}
 
 \subsubsection{output gate (O)}
 \begin{eqnarray*}
-Ra_{\omega}^t &=& V_{\omega,x}x^t + V_{\omega,h}b_h^{t-1} + W_{\omega,h}Rb_h^{t-1} + V_{\omega,s}s^t + W_{\omega,s}Rs^t \\
-Rb_{\omega}^t &=& f'_{\omega}(a_{\omega})(Ra_{\omega}) \\
+Ra_{O}^t &=& W_{O,X}x^t + W_{O,H}Rh^{t-1} + V_{O,H}h^{t-1} + W_{O,S}Rs^t + V_{O,S}s^t \\
+b_{O}^t &=& f'(a_{O})Ra_{O} \\
 \end{eqnarray*}
 
-\subsubsection{hidden cells (trivial, but nonetheless)}
+\subsubsection{hidden cells}
 \begin{eqnarray*}
-Ra_h^t &=& Rb_{\omega}^t f(s^t)+b_{\omega}^t f'(s^t)(Rs^t) \\
-Rb_h^t &=& Ra_h^t 
+Rh^t &=& Rb_{O}^t f(s^t) + b_{O}^t f'(s^t)Rs^t \\
 \end{eqnarray*}
 
-\subsubsection{output cells}
-\begin{eqnarray*}
-Ra_y^t &=& V_{y,h}b_h^t + W_{y,h}Rb_h^t \\
-Ry^t &=& f'_y(a_y^t)(Ra_y^t) 
-\end{eqnarray*}
+%\subsubsection{output cells}
+%\begin{eqnarray*}
+%Ra_y^t &=& V_{y,h}b_h^t + W_{y,h}Rb_h^t \\
+%Ry^t &=& f'_y(a_y^t)(Ra_y^t) 
+%\end{eqnarray*}
 
 \subsection{backwards pass}
 For gauss-newton method, take output of f1 pass, $Ry^t$, and push that through the normal backwards pass, rather than $\frac{dE}{dy^t} = d^t - y^t$. Use $\frac{RdE}{d*}$ variables instead of $\frac{dE}{d*}$ 
