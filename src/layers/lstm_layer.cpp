@@ -187,7 +187,8 @@ void lstm_forward(LstmWeights &w, LstmBuffers &b, MatrixView3DCPU &x, MatrixView
     apply_sigmoid(b.Fa.slice(t), b.Fb.slice(t));
     apply_sigmoid(b.Ia.slice(t), b.Ib.slice(t));
     apply_tanhx2(b.Za.slice(t), b.Zb.slice(t));
-    dot_add(b.Zb.slice(t), b.Ib.slice(t), b.S.slice(t));
+    //dot_add(b.Zb.slice(t), b.Ib.slice(t), b.S.slice(t));
+    dot(b.Zb.slice(t), b.Ib.slice(t), b.S.slice(t));
  
     if (t) 
       dot_add(b.S.slice(t - 1), b.Fb.slice(t), b.S.slice(t));
@@ -325,11 +326,11 @@ void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d,
   //! \f$\frac{dE}{dW_FX} += \frac{dE}{da_F} * x(t)\f$
   //! \f$\frac{dE}{dW_IX} += \frac{dE}{da_I} * x(t)\f$
   //! \f$\frac{dE}{dW_OX} += \frac{dE}{da_O} * x(t)\f$
-  mult(d.Za, input_batches.T(), grad.ZX, 1.0 / 1.0); //(double) n_time);
-  mult(d.Fa, input_batches.T(), grad.FX, 1.0 / 1.0); //(double) n_time);
-  mult(d.Ia, input_batches.T(), grad.IX, 1.0 / 1.0); //(double) n_time);
-  mult(d.Oa, input_batches.T(), grad.OX, 1.0 / 1.0); //(double) n_time);
-
+  mult(d.Za, input_batches.T(), grad.ZX); //  1.0 / 1.0); //(double) n_time);
+  mult(d.Fa, input_batches.T(), grad.FX); // 1.0 / 1.0); //(double) n_time);
+  mult(d.Ia, input_batches.T(), grad.IX); //1.0 / 1.0); //(double) n_time);
+  mult(d.Oa, input_batches.T(), grad.OX); // 1.0 / 1.0); //(double) n_time);
+  
   //! \f$\frac{dE}{dW_ZH} += \frac{dE}{da_Z} * h(t-1)\f$
   //! \f$\frac{dE}{dW_FH} += \frac{dE}{da_F} * h(t-1)\f$
   //! \f$\frac{dE}{dW_IH} += \frac{dE}{da_I} * h(t-1)\f$
@@ -341,18 +342,24 @@ void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d,
     //mult(d.Fa.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.FH, 1.0 / (double) n_time);
     //mult(d.Oa.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.OH, 1.0 / (double) n_time);
 	
-    mult(d.Ia.subslice(1, n_time-1), y.subslice(0, n_time - 2).T(), grad.IH, 1.0 / 1.0); //(double) n_time);
-    mult(d.Za.subslice(1, n_time-1), y.subslice(0, n_time - 2).T(), grad.ZH, 1.0 / 1.0); //(double) n_time);
-    mult(d.Fa.subslice(1, n_time-1), y.subslice(0, n_time - 2).T(), grad.FH, 1.0 / 1.0); //(double) n_time);
-    mult(d.Oa.subslice(1, n_time-1), y.subslice(0, n_time - 2).T(), grad.OH, 1.0 / 1.0); //(double) n_time);
+    //mult(d.Ia.subslice(1, n_time-1), y.subslice(0, n_time - 2).T(), grad.IH, 1.0 / 1.0); //(double) n_time);
+    //mult(d.Za.subslice(1, n_time-1), y.subslice(0, n_time - 2).T(), grad.ZH, 1.0 / 1.0); //(double) n_time);
+    //mult(d.Fa.subslice(1, n_time-1), y.subslice(0, n_time - 2).T(), grad.FH, 1.0 / 1.0); //(double) n_time);
+    //mult(d.Oa.subslice(1, n_time-1), y.subslice(0, n_time - 2).T(), grad.OH, 1.0 / 1.0); //(double) n_time);
+
+    mult(d.Ia.subslice(1, n_time-1), y.subslice(0, n_time - 2).T(), grad.IH); //(double) n_time);
+    mult(d.Za.subslice(1, n_time-1), y.subslice(0, n_time - 2).T(), grad.ZH); //(double) n_time);
+    mult(d.Fa.subslice(1, n_time-1), y.subslice(0, n_time - 2).T(), grad.FH); //(double) n_time);
+    mult(d.Oa.subslice(1, n_time-1), y.subslice(0, n_time - 2).T(), grad.OH); //(double) n_time);
+
 
   }
 
 
-  cout << "n_time " << n_time << endl; 
-  cout << "d.Hb " ; d.Hb.subslice(0,n_time-1).print_me();
-  cout << "d.Oa " ; d.Oa.subslice(0,n_time-1).print_me();
-  cout << "gradOH "; grad.OH.print_me();
+  //cout << "n_time " << n_time << endl; 
+  //cout << "d.Hb " ; d.Hb.subslice(0,n_time-1).print_me();
+  //cout << "d.Oa " ; d.Oa.subslice(0,n_time-1).print_me();
+  //cout << "gradOH "; grad.OH.print_me();
 
 
   //do we need this line?
