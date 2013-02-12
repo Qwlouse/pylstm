@@ -20,11 +20,9 @@ class SgdTrainer(object):
         self.learning_rate = learning_rate
         self.error_fkt = error_fkt()
 
-    def train(self, net, X, T, epochs=100, clear=False):
+    def train(self, net, X, T, epochs=100):
         weights = net.get_param_buffer()
         for epoch in range(1, epochs + 1):
-            if clear:
-                net.clear_internal_state()
             out = net.forward_pass(X).as_array()
             error = self.error_fkt.forward_pass(out, T)
             print("Epoch %d:\tError = %0.4f" % (epoch, error))
@@ -42,11 +40,9 @@ if __name__ == "__main__":
     netb = NetworkBuilder()
     netb.input(4) >> LstmLayer(3) >> netb.output
     net = netb.build()
-    net.set_param_buffer(rnd.randn(net.get_param_size()))
+    weight = rnd.randn(net.get_param_size())
+    net.set_param_buffer(weight.copy())
     trainer = SgdTrainer(learning_rate=0.01)
     X = rnd.randn(2, 5, 4)
     T = rnd.randn(2, 5, 3)
-    print("Run with internal state clearing")
-    trainer.train(net, X, T, epochs=10, clear=True)
-    print("Run without internal state clearing")
     trainer.train(net, X, T, epochs=10)
