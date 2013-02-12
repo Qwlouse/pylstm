@@ -251,12 +251,12 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
     }
 
     //! \f$\frac{dE}{df_S} += \frac{dE}{dH} * b_O\f$  THIS IS WEIRD, IT GOES WITH NEXT LINE ??!?!
-    dot_add(d.Hb.slice(t), b.Ob.slice(t), d.f_S.slice(t));
+    dot(d.Hb.slice(t), b.Ob.slice(t), d.f_S.slice(t));
     
   
     //OUTPUT GATES DERIVS
     //! \f$\frac{dE}{db_O} = \frac{dE}{dH} * f(s) * f(a_O)\f$
-    dot_add(d.Hb.slice(t), b.f_S.slice(t), d.Ob.slice(t));
+    dot(d.Hb.slice(t), b.f_S.slice(t), d.Ob.slice(t));
 
     //! \f$\frac{dE}{da_O} = \frac{dE}{db_O} * f'(a_O)\f$
     //sigmoid_deriv(d.Ob.slice(t), b.Ob.slice(t), d.temp_hidden, d.temp_hidden2, d.Oa.slice(t)); //o = -o^2
@@ -276,7 +276,7 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
     
     //! CELL ACTIVATION DERIVS
     //! \f$\frac{dE}{db_Z} = \frac{dE}{dS} * b_I\f$
-    dot_add(d.S.slice(t), b.Ib.slice(t), d.Zb.slice(t));
+    dot(d.S.slice(t), b.Ib.slice(t), d.Zb.slice(t));
     //! \f$dE/da_Z = dE/db_Z * f'(a_Z)\f$
     //tanh2_deriv(d.Zb.slice(t), b.Zb.slice(t), d.temp_hidden, d.Za.slice(t));
     //apply_tanhx2_deriv(b.Zb.slice(t), d.Za.slice(t));
@@ -288,7 +288,7 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
 
     //! INPUT GATE DERIVS
     //! \f$\frac{dE}{db_I} = \frac{dE}{dS} * b_Z \f$
-    dot_add(d.S.slice(t), b.Zb.slice(t), d.Ib.slice(t));
+    dot(d.S.slice(t), b.Zb.slice(t), d.Ib.slice(t));
     //! \f$\frac{dE}{da_I} = \frac{dE}{db_I} * f'(a_I) \f$
     //sigmoid_deriv(d.Ib.slice(t), b.Ib.slice(t), d.temp_hidden, d.temp_hidden2, d.Ia.slice(t));
     
@@ -299,7 +299,7 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
     //! FORGET GATE DERIVS
     if (t)
       //! \f$\frac{dE}{db_F} += \frac{dE}{dS} * s(t-1)\f$
-      dot_add(d.S.slice(t), b.S.slice(t - 1), d.Fb.slice(t));
+      dot(d.S.slice(t), b.S.slice(t - 1), d.Fb.slice(t));
     
     // \f$\frac{dE}{da_F} = \frac{dE}{db_F} * f'(a_F)\f$
     //sigmoid_deriv(d.Fb.slice(t), b.Fb.slice(t), d.temp_hidden, d.temp_hidden2, d.Fa.slice(t));    
