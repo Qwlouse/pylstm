@@ -14,11 +14,13 @@ rnd = np.random.RandomState(12345)
 
 
 def check_gradient(net):
-    timesteps = 7
+    timesteps = 3
     n_batches = 1
 
-    X = np.ones((timesteps, n_batches, net.get_input_size()))
-    weights = np.ones(net.get_param_size())
+    #X = np.ones((timesteps, n_batches, net.get_input_size()))
+    X = rnd.randn(timesteps, n_batches, net.get_input_size())
+    #weights = np.ones(net.get_param_size())
+    weights = rnd.randn(net.get_param_size())
     net.set_param_buffer(weights)
 
     out = net.forward_pass(X).as_array()
