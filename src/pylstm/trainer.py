@@ -8,11 +8,11 @@ rnd = np.random.RandomState(12345)
 
 
 class MeanSquaredError(object):
-    def forward_pass(self, X, T):
-        return np.sum((X - T) ** 2)
+    def forward_pass(self, Y, T):
+        return 0.5 * np.sum((Y - T) ** 2)
 
-    def backward_pass(self, X, T):
-        return X - T
+    def backward_pass(self, Y, T):
+        return Y - T
 
 
 class SgdTrainer(object):
@@ -24,7 +24,7 @@ class SgdTrainer(object):
         weights = net.get_param_buffer()
         for epoch in range(1, epochs + 1):
             out = net.forward_pass(X).as_array()
-            error = self.error_fkt.forward_pass(out, T)
+            error = self.error_fkt.forward_pass(out, T) / X.shape[1]
             print("Epoch %d:\tError = %0.4f" % (epoch, error))
             deltas = self.error_fkt.backward_pass(out, T)
             net.backward_pass(deltas)
