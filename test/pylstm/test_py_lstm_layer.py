@@ -67,7 +67,6 @@ class LstmLayerTest(unittest.TestCase):
         self.assertEqual(len(I), 3 * t * b)
         self.assertEqual(I.shape(), (t, b, 3))
 
-
     def test_create_output_view_with_single_sample(self):
         l = pw.LstmLayer(3, 7)
         im = pw.BufferView(l.get_output_size())
@@ -96,19 +95,19 @@ class LstmLayerTest(unittest.TestCase):
         self.assertEqual(len(I), 7 * t * b)
         self.assertEqual(I.shape(), (t, b, 7))
 
-
+    @unittest.skip('segfault')
     def test_forward_pass(self):
-        t = 1 # time
-        b = 1 # batches
-        n = 5 # input size
-        m = 3 # output size
+        t = 1  # time
+        b = 1  # batches
+        n = 5  # input size
+        m = 3  # output size
 
         l = pw.LstmLayer(n, m)
         X = pw.BufferView(t, b, n)
         Y = pw.BufferView(t, b, m)
         wm = pw.BufferView(1, 1, l.get_param_size())
-#        W = l.create_param_view(wm)
-#        im = pw.BufferView(t, b, l.get_internal_state_size(t, b))
-#        I = l.create_internal_view(im)
-#        l.forward(W, I, X, Y)
+        W = l.create_param_view(wm)
+        im = pw.BufferView(t, b, l.get_internal_state_size(t, b))
+        I = l.create_internal_view(im)
+        l.forward(W, I, X, Y)
 

@@ -4,7 +4,7 @@
 from __future__ import division, print_function, unicode_literals
 import numpy as np
 import wrapper
-rnd = np.random.RandomState()
+rnd = np.random.RandomState(12345)
 
 
 class MeanSquaredError(object):
@@ -20,10 +20,11 @@ class SgdTrainer(object):
         self.learning_rate = learning_rate
         self.error_fkt = error_fkt()
 
-    def train(self, net, X, T, epochs=100):
+    def train(self, net, X, T, epochs=100, clear=False):
         weights = net.get_param_buffer()
         for epoch in range(1, epochs + 1):
-            net.clear_internal_state()
+            if clear:
+                net.clear_internal_state()
             out = net.forward_pass(X).as_array()
             error = self.error_fkt.forward_pass(out, T)
             print("Epoch %d:\tError = %0.4f" % (epoch, error))
@@ -45,4 +46,7 @@ if __name__ == "__main__":
     trainer = SgdTrainer(learning_rate=0.01)
     X = rnd.randn(2, 5, 4)
     T = rnd.randn(2, 5, 3)
+    print("Run with internal state clearing")
+    trainer.train(net, X, T, epochs=10, clear=True)
+    print("Run without internal state clearing")
     trainer.train(net, X, T, epochs=10)
