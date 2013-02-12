@@ -1,7 +1,6 @@
 #!/usr/bin/python
 # coding=utf-8
 import unittest
-import numpy as np
 import pylstm.wrapper as pw
 
 
@@ -95,7 +94,6 @@ class LstmLayerTest(unittest.TestCase):
         self.assertEqual(len(I), 7 * t * b)
         self.assertEqual(I.shape(), (t, b, 7))
 
-    @unittest.skip('segfault')
     def test_forward_pass(self):
         t = 1  # time
         b = 1  # batches

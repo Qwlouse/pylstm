@@ -8,7 +8,7 @@ from network import Network
 import wrapper
 
 
-class NetworkBuilder():
+class NetworkBuilder(object):
     def __init__(self):
         self.input_layer = None
         self.output = DummyLayer(0, "Output")

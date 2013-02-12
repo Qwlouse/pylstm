@@ -49,13 +49,13 @@ cdef class BufferView:
     def __cinit__(self, a=None, batches=1, features=1):
         if a is None:
             self.view = cm.MatrixView3DCPU()
-        else:
-            self.B = Buffer(a)
-            self.view = self.B.get_standard_view()
-
-        if isinstance(a, int):
+        elif isinstance(a, int):
+            self.B = Buffer(a * batches * features)
             self.view = cm.MatrixView3DCPU(features, batches, a)
             self.view.set_data(&self.B.thisptr[0][0])
+        else: # a is np array
+            self.B = Buffer(a)
+            self.view = self.B.get_standard_view()
 
     def __len__(self):
         return self.view.size
