@@ -167,42 +167,41 @@ void lstm_forward(LstmWeights &w, LstmBuffers &b, MatrixView3DCPU &x, MatrixView
     
     //IF NEXT                                                                                 
     if (t) { 
-      
-
+  
       mult_add(w.FH, y.slice(t - 1), b.Fa.slice(t));
       mult_add(w.IH, y.slice(t - 1), b.Ia.slice(t));
       mult_add(w.OH, y.slice(t - 1), b.Oa.slice(t));
       mult_add(w.ZH, y.slice(t - 1), b.Za.slice(t));
-      
-      mult_add(b.S.slice(t - 1), w.FS, b.Fa.slice(t));
-      mult_add(b.S.slice(t - 1), w.IS, b.Ia.slice(t));
-
+  
+      dot_add(b.S.slice(t - 1), w.FS, b.Fa.slice(t));
+      dot_add(b.S.slice(t - 1), w.IS, b.Ia.slice(t));
     }
 
     add_into_b(w.F_bias, b.Fa.slice(t));
     add_into_b(w.I_bias, b.Ia.slice(t));
     add_into_b(w.Z_bias, b.Za.slice(t));
     add_into_b(w.O_bias, b.Oa.slice(t));
-    
+
     apply_sigmoid(b.Fa.slice(t), b.Fb.slice(t));
     apply_sigmoid(b.Ia.slice(t), b.Ib.slice(t));
     apply_tanhx2(b.Za.slice(t), b.Zb.slice(t));
     //dot_add(b.Zb.slice(t), b.Ib.slice(t), b.S.slice(t));
     dot(b.Zb.slice(t), b.Ib.slice(t), b.S.slice(t));
- 
+
     if (t) 
       dot_add(b.S.slice(t - 1), b.Fb.slice(t), b.S.slice(t));
     apply_tanhx2(b.S.slice(t), b.f_S.slice(t));
 
     dot_add(b.S.slice(t), w.OS, b.Oa.slice(t));
-    
+
     //mult_add(b.S.slice(t), w.OS, b.Oa.slice(t));
     apply_sigmoid(b.Oa.slice(t), b.Ob.slice(t));
     //copy(b.Oa.slice(t), b.Ob.slice(t));
-    
+
     dot(b.f_S.slice(t), b.Ob.slice(t), y.slice(t));
     
    }
+
 
   /*  
   cout << "b.Ia"; b.Ia.flatten().print_me();
@@ -236,23 +235,24 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
   //calculate t+1 values except for end_time+1 
   for(int t(end_time); t >= 0; --t){
     if (t<end_time) { 
-
+    
       mult_add(w.IH.T(), d.Ia.slice(t+1), d.Hb.slice(t));
       mult_add(w.FH.T(), d.Fa.slice(t+1), d.Hb.slice(t));
       mult_add(w.ZH.T(), d.Za.slice(t+1), d.Hb.slice(t));
       mult_add(w.OH.T(), d.Oa.slice(t+1), d.Hb.slice(t));
-      
+  
       //! \f$\frac{dE}{dS} += \frac{dE}{dS^{t+1}} * b_F(t+1)\f$
       dot_add(d.S.slice(t+1), b.Fb.slice(t+1), d.S.slice(t));
       //! \f$\frac{dE}{dS} += \frac{dE}{da_I(t+1)} * W_{IS}\f$
-      mult_add(d.Ia.slice(t+1), w.IS, d.S.slice(t));
+      
+      dot_add(d.Ia.slice(t+1), w.IS, d.S.slice(t));
       //! \f$\frac{dE}{dS} += \frac{dE}{da_F(t+1)} * W_{FS}\f$
-      mult_add(d.Fa.slice(t+1), w.FS, d.S.slice(t));
+      dot_add(d.Fa.slice(t+1), w.FS, d.S.slice(t)); 
     }
 
     //! \f$\frac{dE}{df_S} += \frac{dE}{dH} * b_O\f$  THIS IS WEIRD, IT GOES WITH NEXT LINE ??!?!
     dot_add(d.Hb.slice(t), b.Ob.slice(t), d.f_S.slice(t));
-  
+    
   
     //OUTPUT GATES DERIVS
     //! \f$\frac{dE}{db_O} = \frac{dE}{dH} * f(s) * f(a_O)\f$
