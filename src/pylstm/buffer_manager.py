@@ -2,12 +2,15 @@
 # coding=utf-8
 
 from __future__ import division, print_function, unicode_literals
+import numpy as np
 import wrapper
 
 
 class BufferHub(object):
-    def __init__(self, sources, sinks, slices=1, batches=1):
+    def __init__(self, sources, sinks, slices=1, batches=1, con_table=None):
         # only full connection supported so far
+        assert con_table is None or np.all(con_table == 1), \
+            "Only full connections supported so far."
         self.sources = sources
         self.sinks = sinks
         self.buffer = None
@@ -25,36 +28,39 @@ class BufferHub(object):
         self.views = None
 
     def get_size(self):
+        # with full connections the size is determined by the sum of all sources
+        # or by the size of any single sink
         if len(self.sinks) > 0:
-            return sum(sg(self.slice_count, self.batch_count)
-                       for n, (sg, vf) in self.sinks.items())
+            # get a sink
+            sg, vf = self.sinks.values()[0]
+            return sg(self.slice_count, self.batch_count)
         else:
             return sum(sg(self.slice_count, self.batch_count)
-                       for n, (sg, vf) in self.sources.items())
+                       for (sg, vf) in self.sources.values())
 
     def set_buffer(self, buffer_view):
         self.buffer = buffer_view
         self.buffer = buffer_view.reshape(-1, 1, 1)
         self.views = None
 
-    def create_views(self):
-        self.views = {}
-        start = 0
-        for n, (sg, vf) in self.sinks.items():
-            size = sg(self.slice_count, self.batch_count)
-            self.views[n] = vf(self.buffer[start: start + size],
-                               self.slice_count, self.batch_count)
-            start += size
-        sink_size = start
+    def _lay_out_source_buffers(self):
         start = 0
         for n, (sg, vf) in self.sources.items():
             size = sg(self.slice_count, self.batch_count)
             self.views[n] = vf(self.buffer[start: start + size],
                                self.slice_count, self.batch_count)
             start += size
-        source_size = start
-        assert sink_size == 0 or source_size == 0 or (
-            sink_size == source_size == self.get_size())
+        return start
+
+    def create_views(self):
+        self.views = {}
+        source_size = self._lay_out_source_buffers()
+        assert source_size == 0 or (source_size == self.get_size())
+
+        for n, (sg, vf) in self.sinks.items():
+            size = sg(self.slice_count, self.batch_count)
+            assert size == source_size
+            self.views[n] = vf(self.buffer, self.slice_count, self.batch_count)
 
     def get_buffer(self, name):
         assert self.buffer is not None
@@ -76,9 +82,11 @@ class BufferManager(object):
         self.buffers_by_sinks = {}
         self.buffer_hubs = []
 
-    def add(self, sources, sinks):
+    def add(self, sources, sinks, con_table=None):
         self.buffer = None
-        bh = BufferHub(sources, sinks, self.slice_count, self.batch_count)
+        bh = BufferHub(sources, sinks,
+                       self.slice_count, self.batch_count,
+                       con_table)
         self.buffer_hubs.append(bh)
         for n in sources:
             self.buffers_by_source[n] = bh
@@ -121,16 +129,16 @@ class BufferManager(object):
             param_start += param_size
         self.views_ready = True
 
-    def get_source_view(self, name):
+    def ensure_initialization(self):
         if self.buffer is None:
             self.initialize_buffer()
         if not self.views_ready:
             self.lay_out_buffer_hubs()
+
+    def get_source_view(self, name):
+        self.ensure_initialization()
         return self.buffers_by_source[name].get_buffer(name)
 
     def get_sink_view(self, name):
-        if self.buffer is None:
-            self.initialize_buffer()
-        if not self.views_ready:
-            self.lay_out_buffer_hubs()
+        self.ensure_initialization()
         return self.buffers_by_sinks[name].get_buffer(name)

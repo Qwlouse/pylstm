@@ -5,7 +5,7 @@ from __future__ import division, print_function, unicode_literals
 import sys
 sys.path.append('.')
 sys.path.append('..')
-from pylstm.layers import NpFwdLayer, LstmLayer
+from pylstm.layers import  LstmLayer
 from pylstm.netbuilder import NetworkBuilder
 from scipy.optimize import approx_fprime
 import numpy as np
@@ -15,7 +15,7 @@ rnd = np.random.RandomState(12345)
 
 def check_gradient(net):
     timesteps = 5
-    n_batches = 5
+    n_batches = 10
 
     X = np.ones((timesteps, n_batches, net.get_input_size()))
     #X = rnd.randn(timesteps, n_batches, net.get_input_size())
@@ -34,8 +34,9 @@ def check_gradient(net):
         return .5 * np.sum(out ** 2)#/n_batches
 
     grad_approx = approx_fprime(weights, f, 1e-7)
-    return np.sum((grad_approx - grad_calc.squeeze()) ** 2), grad_calc, grad_approx
 
+    approx_error = np.sum((grad_approx - grad_calc.squeeze()) ** 2) / n_batches
+    return approx_error, grad_calc, grad_approx
 
 
 if __name__ == "__main__":
