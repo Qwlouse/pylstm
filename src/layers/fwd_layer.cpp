@@ -78,7 +78,7 @@ void FwdDeltas::allocate(MatrixView2DCPU buffer_view) {
 void fwd_forward(FwdWeights &w, FwdBuffers &b, MatrixView3DCPU &x, MatrixView3DCPU &y) {
   mult(w.HX, x.flatten(), b.Ha.flatten());
 
-  add_into_b(w.H_bias, b.Ha);
+  add_vector_into(w.H_bias, b.Ha);
   apply_sigmoid(b.Ha, y);
 }
 
