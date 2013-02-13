@@ -29,24 +29,24 @@ class NetworkBuilder(object):
 
     def get_forward_closure(self, layer):
         """
-        for a given layer return two sets of layers such that:
-          * the given layer is in the first set
-          * the second set contains all the target layers of the first set
-          * the first set contains all the source layers of the second set
+        for a given layer return two sets of layer names such that:
+          * the given layer is in the source_set
+          * the sink_set contains all the target layers of the source_set
+          * the source_set contains all the source layers of the sink_set
         """
-        lset = {layer}
-        rset = set(layer.targets)
+        source_set = {layer}
+        sink_set = set(layer.targets)
         growing = True
         while growing:
             growing = False
-            new_lset = {s for l in rset for s in l.sources}
-            new_rset = {t for l in lset for t in l.targets}
-            if len(new_lset) > len(lset) or\
-               len(new_rset) > len(rset):
+            new_source_set = {s for l in sink_set for s in l.sources}
+            new_sink_set = {t for l in source_set for t in l.targets}
+            if len(new_source_set) > len(source_set) or\
+                    len(new_sink_set) > len(sink_set):
                 growing = True
-                lset = new_lset
-                rset = new_rset
-        return lset, rset
+                source_set = new_source_set
+                sink_set = new_sink_set
+        return {l.name for l in source_set}, {l.name for l in sink_set}
 
     def create_buffer(self, size):
         return wrapper.BufferView(1, 1, size)
@@ -93,19 +93,14 @@ class NetworkBuilder(object):
         in_out_manager = BufferManager()
         delta_manager = BufferManager()
         for layer in cLayers[:-1]:
-            lset, rset = self.get_forward_closure(layer)
-            assert len(lset) == len(rset) == 1, \
+            source_set, sink_set = self.get_forward_closure(layer)
+            assert len(source_set) == len(sink_set) == 1, \
                 "Complicated Architectures not supported yet"
-            sources = dict()
-            for n in rset:
-                l = layers[n.name]
-                sources[n.name] = (l.get_input_buffer_size,
-                                   l.create_input_view)
-            sinks = dict()
-            for n in lset:
-                l = layers[n.name]
-                sinks[n.name] = (l.get_output_buffer_size,
-                                 l.create_output_view)
+            sinks = {n: (layers[n].get_input_buffer_size,
+                         layers[n].create_input_view) for n in sink_set}
+            sources = {n: (layers[n].get_output_buffer_size,
+                           layers[n].create_output_view) for n in source_set}
+
             in_out_manager.add(sources, sinks)
             delta_manager.add(sources, sinks)
 

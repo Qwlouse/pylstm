@@ -70,33 +70,37 @@ class Network(object):
         self.in_out_manager.set_dimensions(t, b)
         self.delta_manager.set_dimensions(t, b)
         # inject the input buffer
-        self.in_out_manager.get_sink_view("Input").as_array()[:] = input_buffer
+        self.in_out_manager.get_source_view("Input").as_array()[:] = input_buffer
         # execute all the intermediate layers
         for n, l in self.layers.items()[1:-1]:
             param = self.weight_manager.get_source_view(n)
             internal = self.intern_manager.get_source_view(n)
-            out = self.in_out_manager.get_sink_view(n)
-            input_view = self.in_out_manager.get_source_view(n)
+
+            out = self.in_out_manager.get_source_view(n)
+            input_view = self.in_out_manager.get_sink_view(n)
+
             l.forward(param, internal, input_view, out)
         # read the output buffer
-        return self.in_out_manager.get_source_view("Output")
+        return self.in_out_manager.get_sink_view("Output")
 
     def backward_pass(self, delta_buffer):
         # dimensions should already be set through forward_pass
         # inject delta_buffer
-        out_view = self.delta_manager.get_source_view("Output").as_array()
+        out_view = self.delta_manager.get_sink_view("Output").as_array()
         out_view[:] = delta_buffer
         # execute all the intermediate layers backwards
         for n, l in self.layers.items()[-2:0:-1]:
             param = self.weight_manager.get_source_view(n)
             internal = self.intern_manager.get_source_view(n)
             intern_delta = self.intern_delta_manager.get_source_view(n)
-            out = self.in_out_manager.get_sink_view(n)
-            delta_in = self.delta_manager.get_source_view(n)
-            delta_out = self.delta_manager.get_sink_view(n)
+
+            out = self.in_out_manager.get_source_view(n)
+            delta_in = self.delta_manager.get_sink_view(n)
+            delta_out = self.delta_manager.get_source_view(n)
+
             l.backward(param, internal, intern_delta, out, delta_in, delta_out)
         # read the final delta buffer
-        return self.delta_manager.get_sink_view("Input")
+        return self.delta_manager.get_source_view("Input")
 
     def calc_gradient(self):
         self.grad_manager.initialize_buffer(
@@ -106,7 +110,9 @@ class Network(object):
             grad = self.grad_manager.get_source_view(n)
             internal = self.intern_manager.get_source_view(n)
             intern_delta = self.intern_delta_manager.get_source_view(n)
-            out = self.in_out_manager.get_sink_view(n)
-            input_view = self.in_out_manager.get_source_view(n)
+
+            out = self.in_out_manager.get_source_view(n)
+            input_view = self.in_out_manager.get_sink_view(n)
+
             l.gradient(param, grad, internal, intern_delta, out, input_view)
         return self.grad_manager.buffer
