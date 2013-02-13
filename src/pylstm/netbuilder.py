@@ -6,6 +6,7 @@ from buffer_manager import BufferManager
 from layers import DummyLayer, InvalidArchitectureError
 from network import Network
 import wrapper
+import numpy as np
 
 
 class NetworkBuilder(object):
@@ -29,11 +30,12 @@ class NetworkBuilder(object):
 
     def get_forward_closure(self, layer):
         """
-        for a given layer return two sets of layer names such that:
+        For a given layer return two sorted lists of layer names such that:
           * the given layer is in the source_set
           * the sink_set contains all the target layers of the source_set
           * the source_set contains all the source layers of the sink_set
         """
+        # grow the two sets
         source_set = {layer}
         sink_set = set(layer.targets)
         growing = True
@@ -46,7 +48,18 @@ class NetworkBuilder(object):
                 growing = True
                 source_set = new_source_set
                 sink_set = new_sink_set
-        return {l.name for l in source_set}, {l.name for l in sink_set}
+        # turn into sorted lists
+        source_list = sorted([l for l in source_set], key=lambda x: x.name)
+        sink_list = sorted([l for l in sink_set], key=lambda x: x.name)
+        # set up connection table
+        connection_table = np.zeros((len(source_list), len(sink_list)))
+        for i, source in enumerate(source_list):
+            for sink in source.targets:
+                connection_table[i, sink_list.index(sink)] = 1
+        # convert to lists of names
+        source_name_list = [s.name for s in source_list]
+        sink_name_list = [s.name for s in sink_list]
+        return source_name_list, sink_name_list, connection_table
 
     def create_buffer(self, size):
         return wrapper.BufferView(1, 1, size)
@@ -93,16 +106,16 @@ class NetworkBuilder(object):
         in_out_manager = BufferManager()
         delta_manager = BufferManager()
         for layer in cLayers[:-1]:
-            source_set, sink_set = self.get_forward_closure(layer)
-            assert len(source_set) == len(sink_set) == 1, \
-                "Complicated Architectures not supported yet"
+            source_list, sink_list, con_table = self.get_forward_closure(layer)
+            assert np.all(con_table == 1), \
+                "Sparse Architectures not supported yet"
             sinks = {n: (layers[n].get_input_buffer_size,
-                         layers[n].create_input_view) for n in sink_set}
+                         layers[n].create_input_view) for n in sink_list}
             sources = {n: (layers[n].get_output_buffer_size,
-                           layers[n].create_output_view) for n in source_set}
+                           layers[n].create_output_view) for n in source_list}
 
-            in_out_manager.add(sources, sinks)
-            delta_manager.add(sources, sinks)
+            in_out_manager.add(sources, sinks, con_table)
+            delta_manager.add(sources, sinks, con_table)
 
         net = Network(layers, weight_manager, intern_manager, in_out_manager,
                       intern_delta_manager, delta_manager)
