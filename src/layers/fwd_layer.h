@@ -33,7 +33,7 @@ struct FwdBuffers {
   size_t n_batches, time;
 
   //Views on all activations
-  MatrixView3DCPU Ha, Hb; //!< Hidden unit activation and output
+  MatrixView3DCPU Ha; //!< Hidden unit activation and output
 
   FwdBuffers(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
   

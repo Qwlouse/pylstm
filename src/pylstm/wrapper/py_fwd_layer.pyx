@@ -76,7 +76,7 @@ cdef class FwdLayer(object):
         return internal
 
     def create_internal_error_view(self, BufferView internal_error_buffer, time_length=1, batch_size=1):
-        deltas = FwdParamBuffer(self.in_size, self.out_size, batch_size, time_length)
+        deltas = FwdErrorBuffer(self.in_size, self.out_size, batch_size, time_length)
         deltas.thisptr.allocate(internal_error_buffer.flatten2D())
         return deltas
 
