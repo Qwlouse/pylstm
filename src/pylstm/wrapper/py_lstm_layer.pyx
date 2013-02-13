@@ -5,7 +5,7 @@ cimport c_matrix as cm
 from cython.operator cimport dereference as deref
 from py_matrix cimport BufferView
 
-cdef class LstmParamBuffer:
+cdef class LstmParamBuffer(object):
     cdef clstm.LstmWeights* thisptr
     def __cinit__(self, int in_size, int out_size):
         self.thisptr = new clstm.LstmWeights(in_size, out_size)
@@ -67,7 +67,7 @@ cdef class LstmParamBuffer:
     def __dealloc__(self):
         del self.thisptr
 
-cdef class LstmInternalBuffer:
+cdef class LstmInternalBuffer(object):
     cdef clstm.LstmBuffers* thisptr
     def __cinit__(self, int in_size, int out_size, int batch_size, int time_length):
         self.thisptr = new clstm.LstmBuffers(in_size, out_size, batch_size, time_length)
@@ -75,7 +75,7 @@ cdef class LstmInternalBuffer:
     def __dealloc__(self):
         del self.thisptr
 
-cdef class LstmErrorBuffer:
+cdef class LstmErrorBuffer(object):
     cdef clstm.LstmDeltas* thisptr
     def __cinit__(self, int in_size, int out_size, int batch_size, int time_length):
         self.thisptr = new clstm.LstmDeltas(in_size, out_size, batch_size, time_length)
@@ -83,7 +83,7 @@ cdef class LstmErrorBuffer:
     def __dealloc__(self):
         del self.thisptr
 
-cdef class LstmLayer:
+cdef class LstmLayer(object):
     cdef int in_size
     cdef int out_size
 

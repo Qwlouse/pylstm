@@ -3,6 +3,7 @@ SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/pylstm/wrapper)
 SET_SOURCE_FILES_PROPERTIES(
   py_matrix.pyx
   py_lstm_layer.pyx
+  py_fwd_layer.pyx
   PROPERTIES CYTHON_IS_CXX TRUE )
 
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/src/matrix)
@@ -14,3 +15,5 @@ TARGET_LINK_LIBRARIES(py_matrix matrix)
 CYTHON_ADD_MODULE(py_lstm_layer py_lstm_layer.pyx)
 TARGET_LINK_LIBRARIES(py_lstm_layer layers)
 
+CYTHON_ADD_MODULE(py_fwd_layer py_fwd_layer.pyx)
+TARGET_LINK_LIBRARIES(py_fwd_layer layers)

@@ -1,6 +1,7 @@
 # The layers library
 ADD_LIBRARY(layers SHARED
-            lstm_layer.cpp            
+            lstm_layer.cpp
+            fwd_layer.cpp
             )
 
 TARGET_LINK_LIBRARIES(layers ${MATLAB_LIBRARIES} core matrix)
