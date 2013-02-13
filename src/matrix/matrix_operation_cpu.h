@@ -19,9 +19,11 @@ void add_into_b(MatrixView2DCPU a, MatrixView2DCPU b);
 ///Add scalar b to every element in a
 void add_scalar(MatrixView2DCPU a, d_type b);
 
+void add_vector_into(MatrixView2DCPU arg1, MatrixView2DCPU arg2);
+
 ///Copy
 void copy(MatrixView2DCPU a, MatrixView2DCPU b);
-void copy(MatrixView3DCPU a, MatrixView3DCPU b);\
+void copy(MatrixView3DCPU a, MatrixView3DCPU b);
 
 ///Matrix multiplication
 void mult(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type scale = 1.0);
