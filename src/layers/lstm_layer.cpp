@@ -182,10 +182,10 @@ void lstm_forward(LstmWeights &w, LstmBuffers &b, MatrixView3DCPU &x, MatrixView
       dot_add(b.S.slice(t - 1), w.IS, b.Ia.slice(t));
     }
 
-    add_into_b(w.F_bias, b.Fa.slice(t));
-    add_into_b(w.I_bias, b.Ia.slice(t));
-    add_into_b(w.Z_bias, b.Za.slice(t));
-    add_into_b(w.O_bias, b.Oa.slice(t));
+    add_vector_into(w.F_bias, b.Fa.slice(t));
+    add_vector_into(w.I_bias, b.Ia.slice(t));
+    add_vector_into(w.Z_bias, b.Za.slice(t));
+    add_vector_into(w.O_bias, b.Oa.slice(t));
 
     apply_sigmoid(b.Fa.slice(t), b.Fb.slice(t));
     apply_sigmoid(b.Ia.slice(t), b.Ib.slice(t));
@@ -206,7 +206,6 @@ void lstm_forward(LstmWeights &w, LstmBuffers &b, MatrixView3DCPU &x, MatrixView
     dot(b.f_S.slice(t), b.Ob.slice(t), y.slice(t));
     
    }
-
 }
 
 void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCPU &y, MatrixView3DCPU &in_deltas, MatrixView3DCPU &out_deltas) {
@@ -344,7 +343,6 @@ void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d,
 
   }
 
-
   //cout << "n_time " << n_time << endl; 
   //cout << "d.Hb " ; d.Hb.subslice(0,n_time-1).print_me();
   //cout << "d.Oa " ; d.Oa.subslice(0,n_time-1).print_me();
@@ -368,10 +366,15 @@ void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d,
   //! \f$\frac{dE}{dW_OS} += \frac{dE}{da_O} * s(t)\f$
   dot_squash(d.Oa, b.S, grad.OS);
   
-  squash(d.Ia, grad.I_bias, 1.0 / (double) n_time);
-  squash(d.Fa, grad.F_bias, 1.0 / (double) n_time);
-  squash(d.Za, grad.Z_bias, 1.0 / (double) n_time);
-  squash(d.Oa, grad.O_bias, 1.0 / (double) n_time);
+  //squash(d.Ia, grad.I_bias, 1.0 / (double) n_time);
+  //squash(d.Fa, grad.F_bias, 1.0 / (double) n_time);
+  //squash(d.Za, grad.Z_bias, 1.0 / (double) n_time);
+  //squash(d.Oa, grad.O_bias, 1.0 / (double) n_time);
+  
+  squash(d.Ia, grad.I_bias); //, 1.0 / (double) n_time);
+  squash(d.Fa, grad.F_bias); //, 1.0 / (double) n_time);
+  squash(d.Za, grad.Z_bias); //, 1.0 / (double) n_time);
+  squash(d.Oa, grad.O_bias, 1.0 / (double)n_time); //, 1.0 / (double) n_time);
 
   //Where are the outputs
   //squash(d.output_deltas, grad.O_bias, 1.0 / n_time);
@@ -409,14 +412,14 @@ void lstm_Rpass(LstmWeights &w, LstmWeights &v,  LstmBuffers &b, LstmBuffers &Rb
       dot_add(b.S.slice(t - 1), v.IS, Rb.Ia.slice(t));
     }
 
-    /// CHECK THIS SHIT!!! 
+    /// CHECK THIS SHIT!!
     //add_vector(d_RFa.matrix_from_slice(t), v.d_F_bias);
     //add_vector(d_RIa.matrix_from_slice(t), v.d_I_bias);
     //add_vector(d_RCa.matrix_from_slice(t), v.d_C_bias);
-    add_into_b(w.F_bias, b.Fa.slice(t));
-    add_into_b(w.I_bias, b.Ia.slice(t));
-    add_into_b(w.Z_bias, b.Za.slice(t));
-    add_into_b(w.O_bias, b.Oa.slice(t));
+    add_vector_into(w.F_bias, b.Fa.slice(t));
+    add_vector_into(w.I_bias, b.Ia.slice(t));
+    add_vector_into(w.Z_bias, b.Za.slice(t));
+    add_vector_into(w.O_bias, b.Oa.slice(t));
     
 
     //double check form of simoid deriv, should it get b.Ia or b.Ib?
@@ -461,7 +464,6 @@ void lstm_Rpass(LstmWeights &w, LstmWeights &v,  LstmBuffers &b, LstmBuffers &Rb
     dot(b.f_S.slice(t), Rb.Ob.slice(t), Ry.slice(t));
     apply_tanhx2_deriv(b.S.slice(t), Rb.tmp1.slice(t));
     dot_add(Rb.Ob.slice(t), Rb.tmp1.slice(t), Ry.slice(t));
-
    }
 }
 

@@ -38,6 +38,18 @@ void add_scalar(MatrixView2DCPU a, d_type b) {
 }
 
 
+void add_vector_into(MatrixView2DCPU arg1, MatrixView2DCPU arg2) {
+  raw_ptr_type it(arg1.data), end(arg1.data + arg1.size), begin(arg1.data);
+  raw_ptr_type it2(arg2.data), end2(arg2.data + arg2.size);
+  
+  for (; it2 != end2; ++it2, ++it) {
+    if (it == end)
+      it = begin;
+    *it2 += *it;
+  }
+}
+
+
 ///Copy stuff
 void copy(MatrixView2DCPU a, MatrixView2DCPU b) {
   ASSERT(a.size == b.size);
