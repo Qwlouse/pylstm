@@ -14,14 +14,17 @@ rnd = np.random.RandomState(12345)
 
 
 def check_gradient(net):
-    timesteps = 5
-    n_batches = 10
+    timesteps = 15
+    n_batches = 1
 
-    X = np.ones((timesteps, n_batches, net.get_input_size()))
-    #X = rnd.randn(timesteps, n_batches, net.get_input_size())
+    #X = np.ones((timesteps, n_batches, net.get_input_size()))
+    X = rnd.randn(timesteps, n_batches, net.get_input_size())
     weights = np.ones(net.get_param_size())
     #weights = rnd.randn(net.get_param_size())
     net.set_param_buffer(weights)
+    IX = net.get_param_view_for('LstmLayer').get_IX().as_array().flatten()
+    IX[:] = np.random.randn(len(IX))
+
 
     out = net.forward_pass(X).as_array()
     
