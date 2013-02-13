@@ -11,9 +11,8 @@ FwdWeights::FwdWeights(size_t n_inputs_, size_t n_cells_) :
   n_inputs(n_inputs_), 
   n_cells(n_cells_), 
 
-  HX(n_cells, n_inputs); 
- 
-H_bias(n_cells, 1); 
+  HX(n_cells, n_inputs), 
+  H_bias(n_cells, 1); 
 {
 }
 
@@ -56,23 +55,28 @@ size_t FwdDeltas::buffer_size() {
 void fwd_forward(FwdWeights &w, FwdBuffers &b, MatrixView3DCPU &x, MatrixView3DCPU &y) {
   mult(w.HX, x.flatten(), b.Ha.flatten());
 
-  for (size_t t(0); t < b.time; ++t) {
-    add_into_b(w.H_bias, b.Ha.slice(t));
-    apply_sigmoid(b.Ha.slice(t), b.Hb.slice(t));
-      
-  }  
+  add_into_b(w.H_bias, b.Ha);
+  apply_sigmoid(b.Ha, b.Hb);
+
+  //for (size_t t(0); t < b.time; ++t) {
+  //  add_into_b(w.H_bias, b.Ha.slice(t));
+  // apply_sigmoid(b.Ha.slice(t), b.Hb.slice(t));     
+  //}  
 }
 
 void fwd_backward(FwdWeights &w, FwdBuffers &b, FwdDeltas &d, MatrixView3DCPU &y, MatrixView3DCPU &in_deltas, MatrixView3DCPU &out_deltas) {
 
   size_t end_time(b.time - 1);
 
+
+  mult(w.HH.T(), d.Hb.slice, d.Hb);
+
   //calculate t+1 values except for end_time+1 
-  for(int t(end_time); t >= 0; --t){
-    if (t<end_time) {
-      
-      mult(w.HH.T(), d.Hb.slice(t+1), d.Hb.slice(t));
-    }
+  //for(int t(end_time); t >= 0; --t){
+  //  if (t<end_time) {
+  //    
+  //    mult(w.HH.T(), d.Hb.slice(t+1), d.Hb.slice(t));
+  //  }
 
     // \f$\frac{dE}{da_H} = \frac{dE}{db_H} * f'(a_H)\f$
     //sigmoid_deriv(d.Hb.slice(t), b.Hb.slice(t), d.temp_hidden, d.temp_hidden2, d.Ha.slice(t));    
@@ -80,6 +84,9 @@ void fwd_backward(FwdWeights &w, FwdBuffers &b, FwdDeltas &d, MatrixView3DCPU &y
   }
 }
 
+void fwd_grad(FwdWeights &w, FwdWeights &grad, FwdBuffers &b, FwdDeltas &d, MatrixView3DCPU &y, MatrixView3DCPU input_batches)  {
 
-
-
+  mult(d.Ha, input_batches.T(), grad.HX); 
+  squash(d.Ha, grad.H_bias); 
+  
+}
