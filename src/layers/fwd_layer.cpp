@@ -6,7 +6,9 @@
 
 #include "fwd_layer.h"
 #include "matrix/matrix_operation_cpu.h"
+#include <vector>
 
+using std::vector;
 FwdWeights::FwdWeights(size_t n_inputs_, size_t n_cells_) :
   n_inputs(n_inputs_), 
   n_cells(n_cells_), 
@@ -20,6 +22,16 @@ size_t FwdWeights::buffer_size() {
   return HX.size + H_bias.size;  //!< inputs X, H, to cells H + bias to H
 
 }
+
+void FwdWeights::allocate(MatrixView2DCPU buffer_view) {
+  vector<MatrixView2DCPU*> views;
+
+  views.push_back(&HX);
+  views.push_back(&H_bias);
+
+  lay_out(buffer_view, views);
+}
+
 
 FwdBuffers::FwdBuffers(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_t time_) :
   n_inputs(n_inputs_), n_cells(n_cells_),
@@ -36,6 +48,15 @@ size_t FwdBuffers::buffer_size() {
     
 }
 
+void FwdBuffers::allocate(MatrixView2DCPU buffer_view) {
+  vector<MatrixView3DCPU*> views;
+
+  views.push_back(&Ha);
+  views.push_back(&Hb);
+
+  lay_out(buffer_view, views);
+}
+
 FwdDeltas::FwdDeltas(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_t time_) :
   ///Variables defining sizes
   n_inputs(n_inputs_), n_cells(n_cells_),
@@ -48,8 +69,17 @@ FwdDeltas::FwdDeltas(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_
 {}
 
 size_t FwdDeltas::buffer_size() {
-  return Ha.size + Hb.size + //Hidden unit activation
-    temp_hidden.size + temp_hidden2.size; //temp vars
+  return Ha.size + Hb.size; //Hidden unit activation
+//    temp_hidden.size + temp_hidden2.size; //temp vars
+}
+
+void FwdDeltas::allocate(MatrixView2DCPU buffer_view) {
+  vector<MatrixView3DCPU*> views;
+
+  views.push_back(&Ha);
+  views.push_back(&Hb);
+
+  lay_out(buffer_view, views);
 }
 
 void fwd_forward(FwdWeights &w, FwdBuffers &b, MatrixView3DCPU &x, MatrixView3DCPU &y) {

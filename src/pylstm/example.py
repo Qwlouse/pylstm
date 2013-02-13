@@ -69,8 +69,5 @@ netb.input(2) >> LstmLayer(3) >> l >> netb.output
 netb.input() >> LstmLayer(3) >> l
 net = netb.build()
 net.set_param_buffer(np.random.randn(net.get_param_size()))
-timesteps = 30
-X, T = generate_memo_problem(5,  2, 32, timesteps)
 
-t = SgdTrainer(learning_rate=.01)
 t.train(net, X, T, epochs=50)

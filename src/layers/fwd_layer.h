@@ -24,6 +24,7 @@ struct FwdWeights {
   FwdWeights(size_t n_inputs, size_t n_cells);
 
   size_t buffer_size();
+  void allocate(MatrixView2DCPU buffer_view);
 };
 
 struct FwdBuffers {
@@ -37,6 +38,7 @@ struct FwdBuffers {
   FwdBuffers(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
   
   size_t buffer_size();
+  void allocate(MatrixView2DCPU buffer_view);
 };
 
 struct FwdDeltas {
@@ -47,10 +49,11 @@ struct FwdDeltas {
   //Views on all activations
   MatrixView3DCPU Ha, Hb; //Hidden unit activation and output
 
-  MatrixView3DCPU temp_hidden, temp_hidden2; //temp values, neccessary? 
+  //MatrixView3DCPU temp_hidden, temp_hidden2; //temp values, neccessary?
 
   FwdDeltas(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
   size_t buffer_size();
+  void allocate(MatrixView2DCPU buffer_view);
 };
 
 void fwd_forward(FwdWeights &w, FwdBuffers &b, MatrixView3DCPU &x, MatrixView3DCPU &y);
