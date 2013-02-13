@@ -62,6 +62,11 @@ void apply_tanhx2(MatrixView2DCPU a, MatrixView2DCPU out);
 void apply_tanhx2(MatrixView2DCPU a, MatrixView2DCPU out);
 void apply_tanhx2_deriv(MatrixView2DCPU a, MatrixView2DCPU out);
 
+/// Apply softmax function
+void apply_softmax(MatrixView2DCPU arg1, MatrixView2DCPU arg2);
+void softmax_deriv(MatrixView2DCPU in_deltas, MatrixView2DCPU activations, MatrixView2DCPU activation_tmp, MatrixView2DCPU deltas);
+
+///check if a==out
 bool equals(MatrixView2DCPU a, MatrixView2DCPU out);
 
 

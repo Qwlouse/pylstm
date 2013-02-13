@@ -119,6 +119,72 @@ void dot_add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
   }
 }
 
+
+
+void mult(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type scale) {
+  char a_state = (a.state == NORMAL) ? 'N' : 'T';
+  char b_state = (b.state == NORMAL) ? 'N' : 'T';
+  
+  size_type lda = (a.state == NORMAL) ? a.n_rows : a.n_columns;
+  size_type ldan = (a.state == NORMAL) ? a.n_columns : a.n_rows;
+  size_type ldb = (b.state == NORMAL) ? b.n_columns : b.n_rows;
+  size_type ldbn = (b.state == NORMAL) ? b.n_rows : b.n_columns;
+  
+  
+  //cout << "a: state: " << a_state << " = " << a.n_rows << "x" << a.n_columns << 
+  //  "b: state: " << b_state << " = " << b.n_rows << "x" << b.n_columns <<
+  //  "out: state: " << out.state << " = " << out.n_rows << "x" << out.n_columns << endl;
+  
+
+  /*
+    dgemm(&a_state, &b_state, &a.n_rows, &b.n_columns, &a.n_columns,
+    &scale,
+    a.data,
+    &a.n_rows, b.data, &b.n_rows, &double_zero, out.data, &out.n_rows);
+  */
+  
+  dgemm(&a_state, &b_state, &lda, &ldb, &ldan, &scale, a.data,
+	&a.n_rows, b.data, &b.n_rows, &double_zero, out.data, &out.n_rows);
+  
+  
+}
+
+
+void mult_add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type scale) {
+  char a_state = (a.state == NORMAL) ? 'N' : 'T';
+  char b_state = (b.state == NORMAL) ? 'N' : 'T';
+  
+  //cout << a_state << " " << b_state << " " << a.n_rows << " " << b.n_rows << " " << a.n_columns << " " << b.n_columns << " " << a.data << " " << b.data << endl;
+  
+  dgemm(&a_state, &b_state, &a.n_rows, &b.n_columns, &a.n_columns,
+		&scale,
+	a.data,
+	&a.n_rows, b.data, &b.n_rows, &double_one, out.data, &out.n_rows);
+}
+
+void mult_vector(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
+  char a_state = (a.state == NORMAL) ? 'N' : 'T';
+  char b_state = (b.state == NORMAL) ? 'N' : 'T';
+  
+  //cout << a_state << " " << b_state << " " << a.n_rows << " " << b.n_rows << " " << a.n_columns << " " << b.n_columns << " " << a.data << " " << b.data << endl;
+  
+  dgemm(&a_state, &b_state, &a.n_rows, &b.n_columns, &a.n_columns,
+	&double_one,
+	a.data,
+	&a.n_rows, b.data, &b.n_rows, &double_zero, out.data, &out.n_rows);
+}
+
+bool equals(MatrixView2DCPU a, MatrixView2DCPU b) {
+  if (a.n_rows != b.n_rows || a.n_columns != b.n_columns)
+    return false;
+  for (size_t i(0); i < a.size; ++i)
+    if (a.data[i] != b.data[i])
+      return false;
+  return true;
+}
+
+
+
 ///Elementwise multiplication and add, with squash to size of out (out is smaller than a and b)
 void dot_add_squash(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type const scale) {
   ASSERT(a.size == b.size);
@@ -253,65 +319,77 @@ void apply_tanhx2_deriv(MatrixView2DCPU a, MatrixView2DCPU out) {
 }
 
 
-void mult(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type scale) {
-  char a_state = (a.state == NORMAL) ? 'N' : 'T';
-  char b_state = (b.state == NORMAL) ? 'N' : 'T';
-  
-  size_type lda = (a.state == NORMAL) ? a.n_rows : a.n_columns;
-  size_type ldan = (a.state == NORMAL) ? a.n_columns : a.n_rows;
-  size_type ldb = (b.state == NORMAL) ? b.n_columns : b.n_rows;
-  size_type ldbn = (b.state == NORMAL) ? b.n_rows : b.n_columns;
-  
-  
-  //cout << "a: state: " << a_state << " = " << a.n_rows << "x" << a.n_columns << 
-  //  "b: state: " << b_state << " = " << b.n_rows << "x" << b.n_columns <<
-  //  "out: state: " << out.state << " = " << out.n_rows << "x" << out.n_columns << endl;
-  
+void apply_softmax(MatrixView2DCPU arg1, MatrixView2DCPU arg2) {
 
-  /*
-    dgemm(&a_state, &b_state, &a.n_rows, &b.n_columns, &a.n_columns,
-    &scale,
-    a.data,
-    &a.n_rows, b.data, &b.n_rows, &double_zero, out.data, &out.n_rows);
-  */
-  
-  dgemm(&a_state, &b_state, &lda, &ldb, &ldan, &scale, a.data,
-	&a.n_rows, b.data, &b.n_rows, &double_zero, out.data, &out.n_rows);
-  
-  
+  std::vector<double> totals(arg1.n_columns);
+
+  raw_ptr_type it(arg1.data);
+  raw_ptr_type end(arg1.data + arg1.size);
+  raw_ptr_type it2(arg2.data);
+
+  std::vector<double>::iterator total_it = totals.begin();
+  //  std::vector<double>::raw_ptr_type total_it = totals.data;
+//  std::cout << arg1.rows << std::endl;
+  size_t counter(0), count_to(arg1.n_rows);
+  for (; it != end; ++it, ++it2, ++counter) {
+	  if (counter == count_to) {counter = 0; ++total_it;}
+	*it2 = exp(*it); //exp(*it / temperature);
+	*total_it += *it2;
+  }
+
+  total_it = totals.begin();
+  counter = 0;
+  {
+	raw_ptr_type it(arg2.data);
+	raw_ptr_type end(arg2.data + arg2.size);
+	for (; it != end; ++it, ++counter) {
+	  if (counter == count_to) {counter = 0; ++total_it;}
+	  *it = *it / *total_it; //exp(*it / temperature);
+
+	}
+  }
 }
 
 
-void mult_add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type scale) {
-  char a_state = (a.state == NORMAL) ? 'N' : 'T';
-  char b_state = (b.state == NORMAL) ? 'N' : 'T';
-  
-  //cout << a_state << " " << b_state << " " << a.n_rows << " " << b.n_rows << " " << a.n_columns << " " << b.n_columns << " " << a.data << " " << b.data << endl;
-  
-  dgemm(&a_state, &b_state, &a.n_rows, &b.n_columns, &a.n_columns,
-		&scale,
-	a.data,
-	&a.n_rows, b.data, &b.n_rows, &double_one, out.data, &out.n_rows);
-}
+void softmax_deriv(MatrixView2DCPU in_deltas, MatrixView2DCPU activations, MatrixView2DCPU activation_tmp, MatrixView2DCPU deltas) {
+  std::vector<double> totals(activations.n_columns);
 
-void mult_vector(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
-  char a_state = (a.state == NORMAL) ? 'N' : 'T';
-  char b_state = (b.state == NORMAL) ? 'N' : 'T';
-  
-  //cout << a_state << " " << b_state << " " << a.n_rows << " " << b.n_rows << " " << a.n_columns << " " << b.n_columns << " " << a.data << " " << b.data << endl;
-  
-  dgemm(&a_state, &b_state, &a.n_rows, &b.n_columns, &a.n_columns,
-	&double_one,
-	a.data,
-	&a.n_rows, b.data, &b.n_rows, &double_zero, out.data, &out.n_rows);
-}
+  raw_ptr_type it(activations.data);
+  raw_ptr_type end(activations.data+activations.size);
+  raw_ptr_type it2(activation_tmp.data);
 
-bool equals(MatrixView2DCPU a, MatrixView2DCPU b) {
-  if (a.n_rows != b.n_rows || a.n_columns != b.n_columns)
-    return false;
-  for (size_t i(0); i < a.size; ++i)
-    if (a.data[i] != b.data[i])
-      return false;
-  return true;
-}
+  std::vector<double>::iterator total_it = totals.begin();
+  size_t counter(0), count_to(activations.n_rows);
 
+  for (; it != end; ++it, ++it2, ++counter) {
+    if (counter == count_to) {counter = 0; ++total_it;}
+    *it2 = exp(*it);
+    *total_it += *it2;
+  }
+
+  total_it = totals.begin();
+
+  it = activation_tmp.data;
+  end = activation_tmp.data+activation_tmp.size;
+
+  raw_ptr_type delta_it(deltas.data);
+  raw_ptr_type in_delta_it(in_deltas.data);
+
+  for (; it != end; ++total_it, it += count_to, in_delta_it += count_to) {
+	 double total_2(*total_it * *total_it);
+    raw_ptr_type ref(it);
+    raw_ptr_type row_it(ref), row_end(ref + count_to);
+    
+    for(; row_it != row_end; ++row_it, ++delta_it) {
+      raw_ptr_type row2_it(ref), row2_end(ref + count_to);
+      raw_ptr_type in_delta_loop(in_delta_it);
+      for(; row2_it != row2_end; ++row2_it, ++in_delta_loop) {
+		if (row_it == row2_it)
+		  *delta_it += *in_delta_loop * (*row_it * *total_it - *row_it * *row_it) / total_2;
+		else
+		  *delta_it += -*in_delta_loop * (*row_it * *row2_it) / total_2;
+	//std::cout << *delta_it << " ";
+      }
+    }
+  }  
+}
