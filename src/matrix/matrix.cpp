@@ -1,37 +1,22 @@
 #include "matrix.h"
 #include <algorithm>
 
-Matrix::Matrix(size_type _n_rows, size_type _n_columns, size_type _n_slices) :
-  n_rows(_n_rows),
-  n_columns(_n_columns),
-  n_slices(_n_slices),
-  data(NULL),
-  size(n_rows * n_columns * n_slices)
-{}
+Matrix::Matrix(const data_ptr data, const size_t offset, const MatrixState state, const size_t n_rows, const size_t n_columns, const size_t n_slices) :
+	state(state),
+	offset(offset),
+	data(data),
+	n_rows(n_rows),
+	n_columns(n_columns),
+	n_slices(n_slices),
+	size(n_rows * n_columns * n_slices)
+{ }
 
-Matrix::Matrix(d_type* _data, size_type _n_rows, size_type _n_columns, size_type _n_slices) :
-  n_rows(_n_rows),
-  n_columns(_n_columns),
-  n_slices(_n_slices),
-  data(_data),
-  size(n_rows * n_columns * n_slices)
-{}
-
-MatrixView2D::MatrixView2D(MatrixState _state, size_type _n_rows, size_type _n_columns, raw_ptr_type _data, size_type _stride) :
-  state(_state),
-  n_rows(_n_rows),
-  n_columns(_n_columns),
-  data(_data),
-  size(n_rows * n_columns),
-  stride(_stride)
-{}
-
-MatrixView3D::MatrixView3D(MatrixState _state, size_type _n_rows, size_type _n_columns, size_type _n_slices, raw_ptr_type _data, size_type _stride) :
-  state(_state),
-  n_rows(_n_rows),
-  n_columns(_n_columns),
-  n_slices(_n_slices),
-  data(_data),
-  size(n_rows * n_columns * n_slices),
-  stride(_stride)
-{}
+Matrix::Matrix(MatrixState state, size_t n_rows, size_t n_columns, size_t n_slices) :
+	state(state),
+	offset(0),
+	data(new d_type[10]),
+	n_rows(n_rows),
+	n_columns(n_columns),
+	n_slices(n_slices),
+	size(n_rows * n_columns * n_slices)
+{ }

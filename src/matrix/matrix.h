@@ -1,5 +1,6 @@
-#ifndef __MATRIX_H__
-#define __MATRIX_H__
+#pragma once
+#include <boost/shared_array.hpp>
+#include <cstddef>
 
 enum MatrixState {
 	NORMAL,
@@ -11,60 +12,28 @@ inline MatrixState transpose(MatrixState s) {
 };
 
 typedef double d_type;
-typedef long int size_type;
-typedef d_type* raw_ptr_type;
+using std::size_t;
 
-struct MatrixView;
 
-struct Matrix {
-	size_type n_rows;
-	size_type n_columns;
-	size_type n_slices;
-	raw_ptr_type data;
+typedef boost::shared_array<d_type> data_ptr;
 
-	size_type size;
+class Matrix {
+private:
+	const MatrixState state;
+	const size_t offset;
+	const data_ptr data;
+public:
+	const size_t n_rows;
+	const size_t n_columns;
+	const size_t n_slices;
+	const size_t size;
 
-  Matrix(size_type _n_rows, size_type _n_columns, size_type _n_slices);
-  Matrix(d_type* _data, size_type _n_rows, size_type _n_columns, size_type _n_slices);
+	Matrix(const data_ptr data, const size_t offset, const MatrixState state, const size_t n_rows, const size_t n_columns, const size_t n_slices);
+	Matrix(MatrixState state, size_t n_rows, size_t n_columns, size_t n_slices);
+	virtual ~Matrix() { };
 
-  d_type &operator[](size_type const index) {return data[index];}
-
-  virtual ~Matrix(){}
-  virtual void allocate(){}
-
+	inline d_type &operator[](size_t index) {return data[index];}
+	inline d_type* get_data() {return &data[0];}
 };
 
-
-
-struct MatrixView2D {
-	MatrixState state;
-	size_type n_rows;
-	size_type n_columns;
-	raw_ptr_type data;
-
-	size_type size;
-	size_type stride;
-	
-	MatrixView2D(MatrixState _matrix_state, size_type _n_rows, size_type _n_columns, raw_ptr_type _data, size_type _stride);
-  d_type &operator[](size_type const index) {return data[index];}
-
-};
-
-struct MatrixView3D {
-	MatrixState state;
-	size_type n_rows;
-	size_type n_columns;
-	size_type n_slices;
-	raw_ptr_type data;
-
-	size_type size;
-	size_type stride;
-	
-	MatrixView3D(MatrixState _matrix_state, size_type _n_rows, size_type _n_columns, size_type _n_slices, raw_ptr_type _data, size_type _stride);
-  d_type &operator[](size_type const index) {return data[index];}
-  
-  
-};
-
-#endif
 

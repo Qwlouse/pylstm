@@ -1,4 +1,4 @@
-#include "matrix_operation_cpu.h"
+#include "matrix_operation.h"
 #include <iostream>
 #include <algorithm>
 #include <math.h>
@@ -8,16 +8,20 @@
 using namespace std;
 
 static d_type double_one = 1.0;
-static d_type double_zero = 0.0;
+//static d_type double_zero = 0.0;
 //static d_type double_min_one = -1.0;
-static char NO_TRANS = 'N';
+//static char NO_TRANS = 'N';
 //static char TRANS = 'T';
 static ptrdiff_t diff_one = 1;
-static ptrdiff_t diff_zero = 0;
+//static ptrdiff_t diff_zero = 0;
 
-void add_into_b(MatrixView2DCPU a, MatrixView2DCPU b) {
-  //size_type len(a.size);
-  daxpy(&a.size, &double_one, a.data, &diff_one, b.data, &diff_one);
+void add_into_b(Matrix& a, Matrix& b) {
+    //size_type len(a.size);
+    // daxpy(n, a, x, incx, y, incy)
+    // for i = 0 to n : y[i*incy] += a * x[i*incx]
+	//
+	long int n = a.size;
+    daxpy(&n, &double_one, a.get_data(), &diff_one, b.get_data(), &diff_one);
 }
 
 /*
@@ -28,7 +32,7 @@ void add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
     
   }
 }
-*/
+
 
 void add_scalar(MatrixView2DCPU a, d_type b) {
   //MatrixView2DCPU::iterator it(arg1.begin());
@@ -261,7 +265,7 @@ void mult(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type scal
     &scale,
     a.data,
     &a.n_rows, b.data, &b.n_rows, &double_zero, out.data, &out.n_rows);
-  */
+  *  /
   
   dgemm(&a_state, &b_state, &lda, &ldb, &ldan, &scale, a.data,
 	&a.n_rows, b.data, &b.n_rows, &double_zero, out.data, &out.n_rows);
@@ -302,4 +306,4 @@ bool equals(MatrixView2DCPU a, MatrixView2DCPU b) {
       return false;
   return true;
 }
-
+*/
