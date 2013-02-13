@@ -76,27 +76,22 @@ class NetworkBuilder(object):
         layers, cLayers = self.get_named_layers()
 
         weight_manager = BufferManager()
-        for name, l in layers.items()[1:-1]:
-            sinks = {}
-            sources = {name: (l.get_param_size,
-                              l.create_param_view)}
-            weight_manager.add(sources, sinks)
-
         intern_manager = BufferManager()
-        for name, l in layers.items()[1:-1]:
-            sinks = {}
-            sources = {name: (l.get_internal_state_size,
-                              l.create_internal_view)}
-            intern_manager.add(sources, sinks)
-
         intern_delta_manager = BufferManager()
         for name, l in layers.items()[1:-1]:
-            sinks = {}
+            sources = {name: (l.get_param_size, l.create_param_view)}
+            weight_manager.add(sources, {})
+
+            sources = {name: (l.get_internal_state_size,
+                              l.create_internal_view)}
+            intern_manager.add(sources, {})
+
             sources = {name: (l.get_internal_error_state_size,
                               l.create_internal_error_view)}
-            intern_delta_manager.add(sources, sinks)
+            intern_delta_manager.add(sources, {})
 
         in_out_manager = BufferManager()
+        delta_manager = BufferManager()
         for layer in cLayers[:-1]:
             lset, rset = self.get_forward_closure(layer)
             assert len(lset) == len(rset) == 1, \
@@ -112,20 +107,6 @@ class NetworkBuilder(object):
                 sinks[n.name] = (l.get_output_buffer_size,
                                  l.create_output_view)
             in_out_manager.add(sources, sinks)
-
-        delta_manager = BufferManager()
-        for layer in cLayers[:-1]:
-            lset, rset = self.get_forward_closure(layer)
-            assert len(lset) == len(rset) == 1, \
-                "Complicated Architectures not supported yet"
-            sources = dict()
-            for n in rset:
-                l = layers[n.name]
-                sources[n.name] = (l.get_input_buffer_size, l.create_input_view)
-            sinks = dict()
-            for n in lset:
-                l = layers[n.name]
-                sinks[n.name] = (l.get_output_buffer_size, l.create_output_view)
             delta_manager.add(sources, sinks)
 
         net = Network(layers, weight_manager, intern_manager, in_out_manager,

@@ -37,22 +37,19 @@ class BufferHub(object):
         self.buffer = buffer_view.reshape(-1, 1, 1)
         self.views = None
 
+    def _lay_out_buffer(self, side):
+        start = 0
+        for n, (sg, vf) in side.items():
+            size = sg(self.slice_count, self.batch_count)
+            self.views[n] = vf(self.buffer[start: start + size],
+                               self.slice_count, self.batch_count)
+            start += size
+        return start
+
     def create_views(self):
         self.views = {}
-        start = 0
-        for n, (sg, vf) in self.sinks.items():
-            size = sg(self.slice_count, self.batch_count)
-            self.views[n] = vf(self.buffer[start: start + size],
-                               self.slice_count, self.batch_count)
-            start += size
-        sink_size = start
-        start = 0
-        for n, (sg, vf) in self.sources.items():
-            size = sg(self.slice_count, self.batch_count)
-            self.views[n] = vf(self.buffer[start: start + size],
-                               self.slice_count, self.batch_count)
-            start += size
-        source_size = start
+        sink_size = self._lay_out_buffer(self.sinks)
+        source_size = self._lay_out_buffer(self.sources)
         assert sink_size == 0 or source_size == 0 or (
             sink_size == source_size == self.get_size())
 
@@ -121,16 +118,16 @@ class BufferManager(object):
             param_start += param_size
         self.views_ready = True
 
-    def get_source_view(self, name):
+    def ensure_initialization(self):
         if self.buffer is None:
             self.initialize_buffer()
         if not self.views_ready:
             self.lay_out_buffer_hubs()
+
+    def get_source_view(self, name):
+        self.ensure_initialization()
         return self.buffers_by_source[name].get_buffer(name)
 
     def get_sink_view(self, name):
-        if self.buffer is None:
-            self.initialize_buffer()
-        if not self.views_ready:
-            self.lay_out_buffer_hubs()
+        self.ensure_initialization()
         return self.buffers_by_sinks[name].get_buffer(name)

@@ -6,7 +6,7 @@ import numpy as np
 import wrapper
 
 
-class InvalidArchitectureError(RuntimeError):
+class InvalidArchitectureError(Exception):
     pass
 
 
