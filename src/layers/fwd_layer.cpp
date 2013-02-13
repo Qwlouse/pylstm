@@ -12,7 +12,7 @@ FwdWeights::FwdWeights(size_t n_inputs_, size_t n_cells_) :
   n_cells(n_cells_), 
 
   HX(n_cells, n_inputs), 
-  H_bias(n_cells, 1); 
+  H_bias(n_cells, 1)
 {
 }
 
@@ -44,7 +44,7 @@ FwdDeltas::FwdDeltas(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_
   //Views on all activations
   Ha(n_cells, n_batches, time), Hb(n_cells, n_batches, time) //Input gate activation
  
-  temp_hidden(n_cells, n_batches, time), temp_hidden2(n_cells, n_batches, time)
+  //temp_hidden(n_cells, n_batches, time), temp_hidden2(n_cells, n_batches, time)
 {}
 
 size_t FwdDeltas::buffer_size() {
@@ -69,7 +69,7 @@ void fwd_backward(FwdWeights &w, FwdBuffers &b, FwdDeltas &d, MatrixView3DCPU &y
   size_t end_time(b.time - 1);
 
 
-  mult(w.HH.T(), d.Hb.slice, d.Hb);
+  mult(w.HX.T(), d.Hb, d.Hb);
 
   //calculate t+1 values except for end_time+1 
   //for(int t(end_time); t >= 0; --t){
@@ -81,7 +81,7 @@ void fwd_backward(FwdWeights &w, FwdBuffers &b, FwdDeltas &d, MatrixView3DCPU &y
     // \f$\frac{dE}{da_H} = \frac{dE}{db_H} * f'(a_H)\f$
     //sigmoid_deriv(d.Hb.slice(t), b.Hb.slice(t), d.temp_hidden, d.temp_hidden2, d.Ha.slice(t));    
    
-  }
+  //}
 }
 
 void fwd_grad(FwdWeights &w, FwdWeights &grad, FwdBuffers &b, FwdDeltas &d, MatrixView3DCPU &y, MatrixView3DCPU input_batches)  {
