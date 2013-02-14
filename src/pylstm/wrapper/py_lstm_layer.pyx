@@ -144,3 +144,5 @@ cdef class LstmLayer(object):
     def gradient(self, LstmParamBuffer param, LstmParamBuffer grad, LstmInternalBuffer internal, LstmErrorBuffer err, BufferView output, BufferView input):
         clstm.lstm_grad(deref(param.thisptr), deref(grad.thisptr), deref(internal.thisptr), deref(err.thisptr), output.view, input.view)
 
+    def r_pass(self, LstmParamBuffer param, LstmParamBuffer v, LstmInternalBuffer internal, LstmInternalBuffer r_internal, BufferView input_view, BufferView out, BufferView r_out):
+        clstm.lstm_Rpass(deref(param.thisptr), deref(v.thisptr),  deref(internal.thisptr), deref(r_internal.thisptr), input_view.view, out.view, r_out.view)
