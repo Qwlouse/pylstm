@@ -10,8 +10,12 @@
 #include <blas.h>
 #include <cstddef>
 
+
+///Compare two matrices
+bool equals(Matrix a, Matrix out);
+
 ///Elementwise add
-void add(Matrix a, Matrix b, Matrix out);
+//void add(Matrix a, Matrix b, Matrix out);
 
 ///Elementwise a+b into b
 void add_into_b(Matrix a, Matrix b);
@@ -60,7 +64,7 @@ void add_into_b(Matrix a, Matrix b);
 //void apply_tanhx2(MatrixView2DCPU a, MatrixView2DCPU out);
 //void apply_tanhx2_deriv(MatrixView2DCPU a, MatrixView2DCPU out);
 //
-//bool equals(MatrixView2DCPU a, MatrixView2DCPU out);
+
 //
 
 

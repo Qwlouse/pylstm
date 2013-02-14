@@ -15,7 +15,23 @@ static d_type double_one = 1.0;
 static ptrdiff_t diff_one = 1;
 //static ptrdiff_t diff_zero = 0;
 
-void add_into_b(Matrix& a, Matrix& b) {
+bool equals(Matrix a, Matrix b) {
+	if (a.n_rows != b.n_rows || a.n_columns != b.n_columns || a.n_slices != b.n_slices) {
+		return false;
+	}
+	for (size_t slice = 0; slice < a.n_slices; ++slice ) {
+		for (size_t column = 0; column < a.n_columns; ++column ) {
+			for (size_t row = 0; row < a.n_rows; ++row ) {
+				if (a.get(row, column, slice) != b.get(row, column, slice)) {
+					return false;
+				}
+			}
+		}
+	}
+    return true;
+}
+
+void add_into_b(Matrix a, Matrix b) {
     //size_type len(a.size);
     // daxpy(n, a, x, incx, y, incy)
     // for i = 0 to n : y[i*incy] += a * x[i*incx]
@@ -298,12 +314,5 @@ void mult_vector(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
 	&a.n_rows, b.data, &b.n_rows, &double_zero, out.data, &out.n_rows);
 }
 
-bool equals(MatrixView2DCPU a, MatrixView2DCPU b) {
-  if (a.n_rows != b.n_rows || a.n_columns != b.n_columns)
-    return false;
-  for (size_t i(0); i < a.size; ++i)
-    if (a.data[i] != b.data[i])
-      return false;
-  return true;
-}
+
 */
