@@ -153,13 +153,18 @@ void mult(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type scal
 void mult_add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type scale) {
   char a_state = (a.state == NORMAL) ? 'N' : 'T';
   char b_state = (b.state == NORMAL) ? 'N' : 'T';
+
+  size_type lda = (a.state == NORMAL) ? a.n_rows : a.n_columns;
+  size_type ldan = (a.state == NORMAL) ? a.n_columns : a.n_rows;
+  size_type ldb = (b.state == NORMAL) ? b.n_columns : b.n_rows;
+
   
   //cout << a_state << " " << b_state << " " << a.n_rows << " " << b.n_rows << " " << a.n_columns << " " << b.n_columns << " " << a.data << " " << b.data << endl;
   
-  dgemm(&a_state, &b_state, &a.n_rows, &b.n_columns, &a.n_columns,
-		&scale,
-	a.data,
+  dgemm(&a_state, &b_state, &lda, &ldb, &ldan, &scale, a.data,
 	&a.n_rows, b.data, &b.n_rows, &double_one, out.data, &out.n_rows);
+
+
 }
 
 void mult_vector(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
