@@ -233,11 +233,16 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
   
       //! \f$\frac{dE}{dS} += \frac{dE}{dS^{t+1}} * b_F(t+1)\f$
       dot_add(d.S.slice(t+1), b.Fb.slice(t+1), d.S.slice(t));
-      //! \f$\frac{dE}{dS} += \frac{dE}{da_I(t+1)} * W_{IS}\f$
       
+      //cout << "b.Fb.slice(t+1)" << t; b.Fb.slice(t+1).print_me();
+      //cout << "d.S.slice(t+1)" << t; d.S.slice(t+1).print_me();
+      
+      //! \f$\frac{dE}{dS} += \frac{dE}{da_I(t+1)} * W_{IS}\f$
       dot_add(d.Ia.slice(t+1), w.IS, d.S.slice(t));
+
       //! \f$\frac{dE}{dS} += \frac{dE}{da_F(t+1)} * W_{FS}\f$
       dot_add(d.Fa.slice(t+1), w.FS, d.S.slice(t)); 
+
     }
 
     //! \f$\frac{dE}{df_S} += \frac{dE}{dH} * b_O\f$  THIS IS WEIRD, IT GOES WITH NEXT LINE ??!?!
@@ -258,7 +263,8 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
     //tanh2_deriv(d.f_S.slice(t), b.S.slice(t), d.temp_hidden, d.S.slice(t));
     apply_tanhx2_deriv(b.S.slice(t), d.tmp1.slice(t));
     //copy(d.tmp1.slice(t), d.S.slice(t));
-    dot(d.f_S.slice(t), d.tmp1.slice(t), d.S.slice(t));
+    dot_add(d.f_S.slice(t), d.tmp1.slice(t), d.S.slice(t));
+
 
     //! \f$\frac{dE}{dS} += \frac{dE}{da_O} * W_OS\f$
     //changed to dot_add from mult_add
@@ -283,8 +289,8 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
     //apply_sigmoid_deriv(b.Ib.slice(t), d.Ia.slice(t));
     apply_sigmoid_deriv(b.Ib.slice(t), d.tmp1.slice(t));
     dot(d.Ib.slice(t), d.tmp1.slice(t), d.Ia.slice(t));
-    
-    //! FORGET GATE DERIVS
+ 
+   //! FORGET GATE DERIVS
     if (t)
       //! \f$\frac{dE}{db_F} += \frac{dE}{dS} * s(t-1)\f$
       dot(d.S.slice(t), b.S.slice(t - 1), d.Fb.slice(t));
@@ -343,6 +349,7 @@ void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d,
 
 
   }
+
 
   //cout << "n_time " << n_time << endl; 
   //cout << "d.Hb " ; d.Hb.subslice(0,n_time-1).print_me();
