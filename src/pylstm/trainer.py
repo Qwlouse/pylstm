@@ -15,17 +15,21 @@ class MeanSquaredError(object):
         return Y - T
 
 
+def print_error_per_epoch(epoch, error):
+    print("Epoch %d:\tError = %0.4f" % (epoch, error))
+
+
 class SgdTrainer(object):
     def __init__(self, learning_rate=0.1, error_fkt=MeanSquaredError):
         self.learning_rate = learning_rate
         self.error_fkt = error_fkt()
 
-    def train(self, net, X, T, epochs=100):
+    def train(self, net, X, T, epochs=100, callback=print_error_per_epoch):
         weights = net.get_param_buffer()
         for epoch in range(1, epochs + 1):
             out = net.forward_pass(X).as_array()
             error = self.error_fkt.forward_pass(out, T) / X.shape[1]
-            print("Epoch %d:\tError = %0.4f" % (epoch, error))
+            callback(epoch, error)
             deltas = self.error_fkt.backward_pass(out, T)
             net.backward_pass(deltas)
             grad = net.calc_gradient()
