@@ -134,31 +134,87 @@ For gauss-newton method, take output of f1 pass, $Ry^t$, and push that through t
 
 \subsection{Pseudo-code}
 
+\subsection{Pseudo-code}
+
 \begin{algorithm}
 \caption{Hessian-Free LSTM}
 \begin{algorithmic}[0]
 \Procedure{HF-LSTM}{$a,b$}
 %\State $r\gets a\bmod b$
-\For{$i\gets 1,epochs$}
-\State $g\gets Full Gradient$
+\While{$i \leq epochs$}
+\State $grad\gets Full Gradient$
 \State $x \gets selected HF Batch$
-\Procedure{conj-grad}{$g, x, V, \lambda$}
-\State LATER
+\State $\Delta ws, idxs=conj-grad(GDOTV, grad, w0)$
+\State Select best $\Delta ws$
+\State Backtrack 
+\State update weights
+\State i=i+1
+\EndWhile
+\EndProcedure 
+
+\Procedure{conj-grad}{GDOTV, b, x0, }
+
+\State $r=gdotv(w0)-b$
+\State $p=-r$
+\State $w=w0$
+\State $val=.5(-b+r)^Tw$
+
+\While{$i \leq maxIters$}
+\State $Ap=Afunc(p)$
+\State $pAp = p^TAp$ \Comment{pAp should be positive}
+\State $\alpha = (r^Ty)/pAp$
+\State $w+=\alpha p$
+\State $r_{new} = r + \alpha Ap$
+\State $\beta = (r_{new}^T*r_{new})/(r^Tr)$
+\State $p = -r + \beta p$
+\State $r = r_{new}$
+\State $y = y_{new}$
+
+\State i=i+1;
+\EndWhile
 \EndProcedure
 
-\EndFor\label{}
 
-\Procedure{gdotv}{$g, x, V$}
-\State $states\gets f0pass(x)$
-\State $\delta 's\gets bptt(x, states)$
-\State $Rs \gets f1pass(x, states)$
+\Procedure{gdotv}{$g, w, V$}
+\State $states\gets fwdpass(w)$
+%\State $\delta 's\gets bptt(x, states)$
+\State $Rs \gets f1pass(w)$
 \State $GV \gets bptt(Rs)$
 \EndProcedure
 
 %\State \textbf{return} $b$\Comment{The gcd is b}
-\EndProcedure
+%\EndProcedure
 
 \end{algorithmic}
 \end{algorithm}
 
 \end{document}
+
+
+%% \begin{algorithm}
+%% \caption{Hessian-Free LSTM}
+%% \begin{algorithmic}[0]
+%% \Procedure{HF-LSTM}{$a,b$}
+%% %\State $r\gets a\bmod b$
+%% \For{$i\gets 1,epochs$}
+%% \State $g\gets Full Gradient$
+%% \State $x \gets selected HF Batch$
+%% \Procedure{conj-grad}{$g, x, V, \lambda$}
+%% \State LATER
+%% \EndProcedure
+
+%% \EndFor\label{}
+
+%% \Procedure{gdotv}{$g, x, V$}
+%% \State $states\gets f0pass(x)$
+%% \State $\delta 's\gets bptt(x, states)$
+%% \State $Rs \gets f1pass(x, states)$
+%% \State $GV \gets bptt(Rs)$
+%% \EndProcedure
+
+%% %\State \textbf{return} $b$\Comment{The gcd is b}
+%% \EndProcedure
+
+%% \end{algorithmic}
+%% \end{algorithm}
+%% \end{document}
