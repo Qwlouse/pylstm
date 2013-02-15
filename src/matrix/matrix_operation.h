@@ -21,23 +21,33 @@ bool equals(Matrix a, Matrix out);
 void add_into_b(Matrix a, Matrix b);
 
 ///Add scalar b to every element in a
-//void add_scalar(MatrixView2DCPU a, d_type b);
+void add_scalar(Matrix a, d_type b);
+
+///Elementwise multiplication
+void dot(Matrix a, Matrix b, Matrix out);
+
+///Elementwise multiplication and add
+void dot_add(Matrix a, Matrix b, Matrix out);
+
+///Matrix multiplication
+void mult(Matrix a, Matrix b, Matrix out, d_type scale = 1.0);
+
+///Matrix multiplication and addition
+void mult_add(Matrix a, Matrix b, Matrix out, d_type scale = 1.0);
+
+
 //
 /////Copy
 //void copy(MatrixView2DCPU a, MatrixView2DCPU b);
 //void copy(MatrixView3DCPU a, MatrixView3DCPU b);\
 //
-/////Matrix multiplication
-//void mult(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type scale = 1.0);
+
 //
-/////Matrix multiplication and addition
-//void mult_add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type scale = 1.0);
+
 //
-/////Elementwise multiplication
-//void dot(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out);
+
 //
-/////Elementwise multiplication and add
-//void dot_add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out);
+
 //
 /////Elementwise multiplication and add, with squash to size of out (out is smaller than a and b)
 //void dot_add_squash(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type const scale = 1.0);

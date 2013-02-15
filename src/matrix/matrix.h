@@ -20,10 +20,10 @@ typedef boost::shared_array<d_type> data_ptr;
 
 class Matrix {
 private:
-	const MatrixState state;
 	const size_t offset;
 	const data_ptr data;
 public:
+	const MatrixState state;
 	const size_t n_rows;
 	const size_t n_columns;
 	const size_t n_slices;
@@ -39,6 +39,7 @@ public:
 	d_type& get(size_t row, size_t col, size_t slice);
 	inline d_type* get_data() {return &data[0];}
 	Matrix T();
+	void print_me();
 };
 
 

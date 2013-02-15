@@ -8,12 +8,12 @@
 using namespace std;
 
 static d_type double_one = 1.0;
-//static d_type double_zero = 0.0;
+static d_type double_zero = 0.0;
 //static d_type double_min_one = -1.0;
-//static char NO_TRANS = 'N';
+static char NO_TRANS = 'N';
 //static char TRANS = 'T';
 static ptrdiff_t diff_one = 1;
-//static ptrdiff_t diff_zero = 0;
+static ptrdiff_t diff_zero = 0;
 
 bool equals(Matrix a, Matrix b) {
 	if (a.n_rows != b.n_rows || a.n_columns != b.n_columns || a.n_slices != b.n_slices) {
@@ -36,8 +36,186 @@ void add_into_b(Matrix a, Matrix b) {
     // daxpy(n, a, x, incx, y, incy)
     // for i = 0 to n : y[i*incy] += a * x[i*incx]
 	//
+	ASSERT(a.state == b.state);
 	long int n = a.size;
     daxpy(&n, &double_one, a.get_data(), &diff_one, b.get_data(), &diff_one);
+}
+
+void add_scalar(Matrix a, d_type b) {
+	//MatrixView2DCPU::iterator it(arg1.begin());
+	//	MatrixView2DCPU::iterator end(arg1.end());
+	//for (;it != end; ++it) *it += arg2;
+	long int n = a.size;
+	daxpy(&n, &double_one, &b, &diff_zero, a.get_data(), &diff_one);
+}
+
+///Elementwise multiplication
+void dot(Matrix a, Matrix b, Matrix out) {
+	ASSERT(a.size == out.size);
+	ASSERT(a.size >= b.size);
+	ASSERT(a.size % b.size == 0);
+
+	ASSERT(a.state == NORMAL && b.state == NORMAL && out.state == NORMAL);
+
+	fill(out.get_data(), out.get_data() + out.size, 0.0);
+
+	if (a.size == b.size) {
+		long int n = a.size;
+		dgbmv(&NO_TRANS, &n, &n, &diff_zero, &diff_zero, &double_one,
+				a.get_data(), &diff_one,
+				b.get_data(), &diff_one,
+				&double_one,
+				out.get_data(), &diff_one);
+	} else {
+		d_type* a_i(a.get_data());
+		d_type* a_end(a.get_data() + a.size);
+		d_type* out_i(out.get_data());
+		d_type* b_start(b.get_data());
+		d_type* b_i(b.get_data());
+		d_type* b_end(b.get_data() + b.size);
+
+		for (; a_i != a_end; ++a_i, ++b_i, ++out_i) {
+			if (b_i == b_end)
+				b_i = b_start;
+			*out_i += *a_i * *b_i;
+		}
+
+	}
+}
+
+///Elementwise multiplication and add
+void dot_add(Matrix a, Matrix b, Matrix out) {
+	ASSERT(a.size == out.size);
+	ASSERT(a.size >= b.size);
+	ASSERT(a.size % b.size == 0);
+
+	ASSERT(a.state == NORMAL && b.state == NORMAL && out.state == NORMAL);
+
+	if (a.size == b.size) {
+		long int n = a.size;
+		dgbmv(&NO_TRANS, &n, &n, &diff_zero, &diff_zero, &double_one,
+				a.get_data(), &diff_one,
+				b.get_data(), &diff_one,
+				&double_one,
+				out.get_data(), &diff_one);
+	} else {
+		d_type* a_i(a.get_data());
+		d_type* a_end(a.get_data() + a.size);
+		d_type* out_i(out.get_data());
+		d_type* b_start(b.get_data());
+		d_type* b_i(b.get_data());
+		d_type* b_end(b.get_data() + b.size);
+
+		for (; a_i != a_end; ++a_i, ++b_i, ++out_i) {
+			if (b_i == b_end)
+				b_i = b_start;
+			*out_i += *a_i * *b_i;
+		}
+
+	}
+}
+
+void mult(Matrix a, Matrix b, Matrix out, d_type scale) {
+  char a_state = (a.state == NORMAL) ? 'N' : 'T';
+  char b_state = (b.state == NORMAL) ? 'N' : 'T';
+  ASSERT(a.n_slices == 1);
+  ASSERT(b.n_slices == 1);
+  ASSERT(out.n_slices == 1);
+
+  ptrdiff_t lda = (a.state == NORMAL) ? a.n_rows : a.n_columns;
+  ptrdiff_t ldan = (a.state == NORMAL) ? a.n_columns : a.n_rows;
+  ptrdiff_t ldb = (b.state == NORMAL) ? b.n_columns : b.n_rows;
+  ptrdiff_t ldbn = (b.state == NORMAL) ? b.n_rows : b.n_columns;
+
+  /*
+    dgemm(&a_state, &b_state, &a.n_rows, &b.n_columns, &a.n_columns,
+    &scale,
+    a.data,
+    &a.n_rows, b.data, &b.n_rows, &double_zero, out.data, &out.n_rows);
+  */
+  ptrdiff_t a_rows = a.n_rows;
+  ptrdiff_t b_rows = b.n_rows;
+  ptrdiff_t out_rows = out.n_rows;
+
+  dgemm(&a_state, &b_state, &lda, &ldb, &ldan, &scale, a.get_data(),
+	&a_rows, b.get_data(), &b_rows, &double_zero, out.get_data(), &out_rows);
+}
+
+void mult_add(Matrix a, Matrix b, Matrix out, d_type scale) {
+	char a_state = (a.state == NORMAL) ? 'N' : 'T';
+	char b_state = (b.state == NORMAL) ? 'N' : 'T';
+
+	//cout << a_state << " " << b_state << " " << a.n_rows << " " << b.n_rows << " " << a.n_columns << " " << b.n_columns << " " << a.data << " " << b.data << endl;
+	ptrdiff_t a_rows = a.n_rows;
+	ptrdiff_t a_columns = a.n_columns;
+	ptrdiff_t b_rows = b.n_rows;
+	ptrdiff_t b_columns = b.n_columns;
+	ptrdiff_t out_rows = out.n_rows;
+	dgemm(&a_state, &b_state, &a_rows, &b_columns, &a_columns,
+			&scale,
+			a.get_data(),
+			&a_rows, b.get_data(), &b_rows, &double_one, out.get_data(), &out_rows);
+}
+
+
+inline double sigmoid(double val) {
+  return 1.0 / (1.0 + exp(-val));
+}
+
+inline double sigmoid_deriv(double val) {
+  //return 1.0 / (1.0 + exp(-val));
+  return ((val) * (1 - (val)));
+}
+
+inline double tanhx2(double val) {
+  return 2.0 * tanh(val);
+}
+
+inline double tanh_(double val) {
+  return tanh(val);
+}
+
+inline double tanh_deriv(double val) {
+  return (1-(tanh(val)*tanh(val)));
+  //return (1-(val*val));
+}
+
+inline double tanhx2_deriv(double val) {
+  return (2 * tanh_deriv(val));
+}
+
+///Apply sigmoid to all units
+void apply_sigmoid(Matrix a, Matrix out) {
+  transform(a.get_data(), a.get_data() + a.size, out.get_data(), sigmoid);
+}
+
+void apply_sigmoid_deriv(Matrix a, Matrix out) {
+  transform(a.get_data(), a.get_data() + a.size, out.get_data(), sigmoid_deriv);
+}
+
+///Apply tanh to all units
+void apply_tanh(Matrix a, Matrix out) {
+  transform(a.get_data(), a.get_data() + a.size, out.get_data(), tanh_);
+}
+
+void apply_tanh_deriv(Matrix a, Matrix out) {
+  transform(a.get_data(), a.get_data() + a.size, out.get_data(), tanh_deriv);
+}
+
+///Apply tanh * 2to all units
+void apply_tanhx2(Matrix a, Matrix out) {
+  transform(a.get_data(), a.get_data() + a.size, out.get_data(), tanhx2);
+}
+
+void apply_tanhx2_deriv(Matrix a, Matrix out) {
+  transform(a.get_data(), a.get_data() + a.size, out.get_data(), tanhx2_deriv);
+}
+
+///Copy the data of one matrix into another
+void copy(Matrix a, Matrix b) {
+  ASSERT(a.size == b.size);
+  ptrdiff_t ridiculous(a.size);
+  dcopy(&ridiculous, a.get_data(), &diff_one, b.get_data(), &diff_one);
 }
 
 /*
@@ -45,25 +223,11 @@ void add_into_b(Matrix a, Matrix b) {
 void add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
   if (a.data == out.data) {
   } else if() {
-    
+
   }
 }
 
 
-void add_scalar(MatrixView2DCPU a, d_type b) {
-  //MatrixView2DCPU::iterator it(arg1.begin());
-  //	MatrixView2DCPU::iterator end(arg1.end());
-  //for (;it != end; ++it) *it += arg2;
-  daxpy(&a.size, &double_one, &b, &diff_zero, a.data, &diff_one);
-}
-
-
-///Copy stuff
-void copy(MatrixView2DCPU a, MatrixView2DCPU b) {
-  ASSERT(a.size == b.size);
-  ptrdiff_t ridiculous(a.size);
-  dcopy(&ridiculous, a.data, &diff_one, b.data, &diff_one);
-}
 
 void copy(MatrixView3DCPU a, MatrixView3DCPU b) {
   ASSERT(a.size == b.size);
@@ -71,61 +235,6 @@ void copy(MatrixView3DCPU a, MatrixView3DCPU b) {
   dcopy(&ridiculous, a.data, &diff_one, b.data, &diff_one);
 }
 
-///Elementwise multiplication
-void dot(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
-  ASSERT(a.size == out.size);
-  ASSERT(a.size >= b.size);
-  ASSERT(a.size % b.size == 0);
-
-  ASSERT(a.state == NORMAL && b.state == NORMAL && out.state == NORMAL);
-
-  fill(out.data, out.data + out.size, 0.0);
-
-  if (a.size == b.size) {
-    dgbmv(&NO_TRANS, &a.size, &a.size, &diff_zero, &diff_zero, &double_one,
-          a.data, &diff_one,
-          b.data, &diff_one,
-          &double_one,
-          out.data, &diff_one);
-  } else {
-    raw_ptr_type a_i(a.data), a_end(a.data + a.size), out_i(out.data);
-    raw_ptr_type b_start(b.data), b_i(b.data), b_end(b.data + b.size);
-    
-    for (; a_i != a_end; ++a_i, ++b_i, ++out_i) {
-      if (b_i == b_end)
-	b_i = b_start;
-      *out_i += *a_i * *b_i;
-    }
-    
-  }
-}
-
-///Elementwise multiplication and add
-void dot_add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
-  ASSERT(a.size == out.size);
-  ASSERT(a.size >= b.size);
-  ASSERT(a.size % b.size == 0);
-
-  ASSERT(a.state == NORMAL && b.state == NORMAL && out.state == NORMAL);
-
-  if (a.size == b.size) {
-    dgbmv(&NO_TRANS, &a.size, &a.size, &diff_zero, &diff_zero, &double_one,
-          a.data, &diff_one,
-          b.data, &diff_one,
-          &double_one,
-          out.data, &diff_one);
-  } else {
-    raw_ptr_type a_i(a.data), a_end(a.data + a.size), out_i(out.data);
-    raw_ptr_type b_start(b.data), b_i(b.data), b_end(b.data + b.size);
-    
-    for (; a_i != a_end; ++a_i, ++b_i, ++out_i) {
-      if (b_i == b_end)
-	b_i = b_start;
-      *out_i += *a_i * *b_i;
-    }
-    
-  }
-}
 
 ///Elementwise multiplication and add, with squash to size of out (out is smaller than a and b)
 void dot_add_squash(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type const scale) {
@@ -186,121 +295,7 @@ void squash(MatrixView2DCPU a, MatrixView2DCPU out, d_type const scale) {
   }
 }
 
-inline double sigmoid(double val) {
-  return 1.0 / (1.0 + exp(-val));
-}
 
-inline double sigmoid_deriv(double val) {
-
-  //return 1.0 / (1.0 + exp(-val));
-  return ((val) * (1 - (val)));
-}
-
-inline double tanhx2(double val) {
-  return 2.0 * tanh(val);
-}
-
-inline double tanh_(double val) {
-  return tanh(val);
-}
-
-inline double tanh_deriv(double val) {
-  return (1-(tanh(val)*tanh(val)));
-  //return (1-(val*val));
-}
-
-
-inline double tanhx2_deriv(double val) {
-  return (2 * tanh_deriv(val));
-}
-
-
-
-///Apply sigmoid to all units
-void apply_sigmoid(MatrixView2DCPU a, MatrixView2DCPU out) {
-  transform(a.data, a.data + a.size, out.data, sigmoid);
-}
-
-void apply_sigmoid(MatrixView3DCPU a, MatrixView3DCPU out) {
-  transform(a.data, a.data + a.size, out.data, sigmoid);
-}
-
-void apply_sigmoid_deriv(MatrixView2DCPU a, MatrixView2DCPU out) {
-  transform(a.data, a.data + a.size, out.data, sigmoid_deriv);
-}
-
-void apply_sigmoid_deriv(MatrixView3DCPU a, MatrixView3DCPU out) {
-  transform(a.data, a.data + a.size, out.data, sigmoid_deriv);
-}
-
-///Apply tanh to all units
-void apply_tanh(MatrixView2DCPU a, MatrixView2DCPU out) {
-  transform(a.data, a.data + a.size, out.data, tanh_);
-}
-
-void apply_tanh(MatrixView3DCPU a, MatrixView3DCPU out) {
-  transform(a.data, a.data + a.size, out.data, tanh_);
-}
-
-void apply_tanh_deriv(MatrixView2DCPU a, MatrixView2DCPU out) {
-  transform(a.data, a.data + a.size, out.data, tanh_deriv);
-}
-
-
-///Apply tanh * 2to all units
-void apply_tanhx2(MatrixView2DCPU a, MatrixView2DCPU out) {
-  transform(a.data, a.data + a.size, out.data, tanhx2);
-}
-
-void apply_tanhx2(MatrixView3DCPU a, MatrixView3DCPU out) {
-  transform(a.data, a.data + a.size, out.data, tanhx2);
-}
-
-void apply_tanhx2_deriv(MatrixView2DCPU a, MatrixView2DCPU out) {
-  transform(a.data, a.data + a.size, out.data, tanhx2_deriv);
-}
-
-
-void mult(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type scale) {
-  char a_state = (a.state == NORMAL) ? 'N' : 'T';
-  char b_state = (b.state == NORMAL) ? 'N' : 'T';
-  
-  size_type lda = (a.state == NORMAL) ? a.n_rows : a.n_columns;
-  size_type ldan = (a.state == NORMAL) ? a.n_columns : a.n_rows;
-  size_type ldb = (b.state == NORMAL) ? b.n_columns : b.n_rows;
-  size_type ldbn = (b.state == NORMAL) ? b.n_rows : b.n_columns;
-  
-  
-  //cout << "a: state: " << a_state << " = " << a.n_rows << "x" << a.n_columns << 
-  //  "b: state: " << b_state << " = " << b.n_rows << "x" << b.n_columns <<
-  //  "out: state: " << out.state << " = " << out.n_rows << "x" << out.n_columns << endl;
-  
-
-  /*
-    dgemm(&a_state, &b_state, &a.n_rows, &b.n_columns, &a.n_columns,
-    &scale,
-    a.data,
-    &a.n_rows, b.data, &b.n_rows, &double_zero, out.data, &out.n_rows);
-  *  /
-  
-  dgemm(&a_state, &b_state, &lda, &ldb, &ldan, &scale, a.data,
-	&a.n_rows, b.data, &b.n_rows, &double_zero, out.data, &out.n_rows);
-  
-  
-}
-
-
-void mult_add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type scale) {
-  char a_state = (a.state == NORMAL) ? 'N' : 'T';
-  char b_state = (b.state == NORMAL) ? 'N' : 'T';
-  
-  //cout << a_state << " " << b_state << " " << a.n_rows << " " << b.n_rows << " " << a.n_columns << " " << b.n_columns << " " << a.data << " " << b.data << endl;
-  
-  dgemm(&a_state, &b_state, &a.n_rows, &b.n_columns, &a.n_columns,
-		&scale,
-	a.data,
-	&a.n_rows, b.data, &b.n_rows, &double_one, out.data, &out.n_rows);
-}
 
 void mult_vector(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
   char a_state = (a.state == NORMAL) ? 'N' : 'T';
