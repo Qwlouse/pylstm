@@ -288,9 +288,7 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
     mult(w.IX.T(), d.Ia.slice(t), in_deltas.slice(t));
     mult_add(w.ZX.T(), d.Za.slice(t), in_deltas.slice(t));
     mult_add(w.FX.T(), d.Fa.slice(t), in_deltas.slice(t));    
-
   }
-
 }
 
 //void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d, MatrixView3DCPU &y, MatrixView3DCPU input_batches, MatrixView3DCPU &in_deltas) {
@@ -422,6 +420,98 @@ void lstm_Rpass(LstmWeights &w, LstmWeights &v,  LstmBuffers &b, LstmBuffers &Rb
     dot_add(Rb.Ob.slice(t), Rb.tmp1.slice(t), Ry.slice(t));
    }
 }
+
+
+//instead of normal deltas buffer, pass in empty Rdeltas buffer, and instead of out_deltas, pass in the Ry value calculated by the Rfwd pass
+void lstm_Rbackward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCPU &y, MatrixView3DCPU &in_deltas, MatrixView3DCPU &out_deltas, LstmBuffers &Rb, double lambda, double mu) {
+
+  int end_time = static_cast<int>(b.time - 1);
+
+  copy(out_deltas, d.Hb);
+  
+  //calculate t+1 values except for end_time+1 
+  for(int t(end_time); t >= 0; --t){
+    if (t<end_time) { 
+    
+      mult_add(w.IH.T(), d.Ia.slice(t+1), d.Hb.slice(t));
+      mult_add(w.FH.T(), d.Fa.slice(t+1), d.Hb.slice(t));
+      mult_add(w.ZH.T(), d.Za.slice(t+1), d.Hb.slice(t));
+      mult_add(w.OH.T(), d.Oa.slice(t+1), d.Hb.slice(t));
+  
+      //! \f$\frac{dE}{dS} += \frac{dE}{dS^{t+1}} * b_F(t+1)\f$
+      dot_add(d.S.slice(t+1), b.Fb.slice(t+1), d.S.slice(t));
+      
+      //! \f$\frac{dE}{dS} += \frac{dE}{da_I(t+1)} * W_{IS}\f$
+      dot_add(d.Ia.slice(t+1), w.IS, d.S.slice(t));
+
+      //! \f$\frac{dE}{dS} += \frac{dE}{da_F(t+1)} * W_{FS}\f$
+      dot_add(d.Fa.slice(t+1), w.FS, d.S.slice(t)); 
+    }
+
+    //structural damping
+    copy(Rb.Hb.slice(t), d.tmp1.slice(t));
+    scale_into(d.tmp1.slice(t), lambda*mu);
+    add_vector_into(d.tmp1.slice(t), d.Hb.slice(t));
+    
+    //! \f$\frac{dE}{df_S} += \frac{dE}{dH} * b_O\f$  saves intermediate value, used for dE/dS
+    dot(d.Hb.slice(t), b.Ob.slice(t), d.f_S.slice(t));
+    
+    //OUTPUT GATES DERIVS
+    //! \f$\frac{dE}{db_O} = \frac{dE}{dH} * f(s) * f(a_O)\f$
+    dot(d.Hb.slice(t), b.f_S.slice(t), d.Ob.slice(t));
+
+    //! \f$\frac{dE}{da_O} = \frac{dE}{db_O} * f'(a_O)\f$
+    apply_sigmoid_deriv(b.Ob.slice(t), d.tmp1.slice(t)); //s'(O_a) == s(O_b) * (1 - s(O_b)) 
+    dot(d.Ob.slice(t), d.tmp1.slice(t), d.Oa.slice(t));
+    
+    //State cell derivs
+    //! \f$\frac{dE}{dS} += \frac{dE}{df_S} * f'(s)\f$
+    apply_tanhx2_deriv(b.S.slice(t), d.tmp1.slice(t));
+    dot_add(d.f_S.slice(t), d.tmp1.slice(t), d.S.slice(t));
+
+    //! \f$\frac{dE}{dS} += \frac{dE}{da_O} * W_OS\f$
+    dot_add(d.Oa.slice(t), w.OS, d.S.slice(t));
+    
+    //! CELL ACTIVATION DERIVS
+    //! \f$\frac{dE}{db_Z} = \frac{dE}{dS} * b_I\f$
+    dot(d.S.slice(t), b.Ib.slice(t), d.Zb.slice(t));
+    //! \f$dE/da_Z = dE/db_Z * f'(a_Z)\f$
+    apply_tanhx2_deriv(b.Za.slice(t), d.tmp1.slice(t));
+    dot(d.Zb.slice(t), d.tmp1.slice(t), d.Za.slice(t));
+
+    //structural damping (this may be in the wrong place, but trying to follow previous version)
+    scale_into(d.tmp1.slice(t), lambda*mu);
+    dot_add(d.tmp1.slice(t), Rb.Za.slice(t), d.Za.slice(t)); 
+    
+    //! INPUT GATE DERIVS
+    //! \f$\frac{dE}{db_I} = \frac{dE}{dS} * b_Z \f$
+    dot(d.S.slice(t), b.Zb.slice(t), d.Ib.slice(t));
+
+    //! \f$\frac{dE}{da_I} = \frac{dE}{db_I} * f'(a_I) \f$
+    //sigmoid_deriv(d.Ib.slice(t), b.Ib.slice(t), d.temp_hidden, d.temp_hidden2, d.Ia.slice(t));
+    
+    //apply_sigmoid_deriv(b.Ib.slice(t), d.Ia.slice(t));
+    apply_sigmoid_deriv(b.Ib.slice(t), d.tmp1.slice(t));
+    dot(d.Ib.slice(t), d.tmp1.slice(t), d.Ia.slice(t));
+ 
+   //! FORGET GATE DERIVS
+    if (t)
+      //! \f$\frac{dE}{db_F} += \frac{dE}{dS} * s(t-1)\f$
+      dot(d.S.slice(t), b.S.slice(t - 1), d.Fb.slice(t));
+    
+    // \f$\frac{dE}{da_F} = \frac{dE}{db_F} * f'(a_F)\f$
+    apply_sigmoid_deriv(b.Fb.slice(t), d.tmp1.slice(t));    
+    dot(d.Fb.slice(t), d.tmp1.slice(t), d.Fa.slice(t));
+
+    //dE/dx 
+    mult(w.IX.T(), d.Ia.slice(t), in_deltas.slice(t));
+    mult_add(w.ZX.T(), d.Za.slice(t), in_deltas.slice(t));
+    mult_add(w.FX.T(), d.Fa.slice(t), in_deltas.slice(t));    
+  
+    
+  }
+}
+
 
 /*
 
