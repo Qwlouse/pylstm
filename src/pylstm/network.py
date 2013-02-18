@@ -9,11 +9,17 @@ class Network(object):
     def __init__(self, layers, weight_manager, intern_manager, in_out_manager,
                  intern_delta_manager, delta_manager):
         self.layers = layers
+
         self.weight_manager = weight_manager
         self.grad_manager = deepcopy(weight_manager)
+        self.v_manager = deepcopy(weight_manager)
+
         self.intern_manager = intern_manager
-        self.in_out_manager = in_out_manager
+        self.r_intern_manager = deepcopy(intern_manager)
         self.intern_delta_manager = intern_delta_manager
+
+        self.in_out_manager = in_out_manager
+        self.r_in_out_manager = deepcopy(in_out_manager)
         self.delta_manager = delta_manager
 
     def get_param_size(self):
@@ -116,3 +122,6 @@ class Network(object):
 
             l.gradient(param, grad, internal, intern_delta, out, input_view)
         return self.grad_manager.buffer
+
+    def hessian_pass(self, v, lambda_=0., mu=0.):
+        pass # what to do exactly?
