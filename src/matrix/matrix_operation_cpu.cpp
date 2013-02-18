@@ -249,6 +249,14 @@ void squash(MatrixView2DCPU a, MatrixView2DCPU out, d_type const scale) {
   }
 }
 
+void scale(MatrixView2DCPU arg1, d_type alpha) {
+	size_type len(arg1.size);
+	dscal(&len, &alpha, arg1.data, &diff_one);
+	//return arg1;
+}
+
+
+
 inline double sigmoid(double val) {
   return 1.0 / (1.0 + exp(-val));
 }
