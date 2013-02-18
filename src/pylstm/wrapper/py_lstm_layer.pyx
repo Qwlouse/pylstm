@@ -146,3 +146,6 @@ cdef class LstmLayer(object):
 
     def r_pass(self, LstmParamBuffer param, LstmParamBuffer v, LstmInternalBuffer internal, LstmInternalBuffer r_internal, BufferView input_view, BufferView out, BufferView r_out):
         clstm.lstm_Rpass(deref(param.thisptr), deref(v.thisptr),  deref(internal.thisptr), deref(r_internal.thisptr), input_view.view, out.view, r_out.view)
+
+    def r_backward(self, LstmParamBuffer param, LstmInternalBuffer internal, LstmErrorBuffer err, BufferView out, BufferView in_deltas, BufferView out_deltas, LstmInternalBuffer r_internal, float _lambda, float mu):
+        clstm.lstm_Rbackward(deref(param.thisptr), deref(internal.thisptr), deref(err.thisptr), out.view, in_deltas.view, out_deltas.view, deref(r_internal.thisptr), _lambda, mu)
