@@ -249,7 +249,7 @@ void squash(MatrixView2DCPU a, MatrixView2DCPU out, d_type const scale) {
   }
 }
 
-void scale(MatrixView2DCPU arg1, d_type alpha) {
+void scale_into(MatrixView2DCPU arg1, d_type alpha) {
 	size_type len(arg1.size);
 	dscal(&len, &alpha, arg1.data, &diff_one);
 	//return arg1;

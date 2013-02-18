@@ -47,7 +47,7 @@ void dot_squash(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_typ
 void squash(MatrixView2DCPU a, MatrixView2DCPU out, d_type scale = 1.0);
 
 //scale values by alpha
-void scale(MatrixView2DCPU arg1, d_type alpha);
+void scale_into(MatrixView2DCPU arg1, d_type alpha);
 
 ///Apply sigmoid to all units
 void apply_sigmoid(MatrixView2DCPU a, MatrixView2DCPU out);
