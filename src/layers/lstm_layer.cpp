@@ -162,7 +162,7 @@ void LstmDeltas::allocate(MatrixView2DCPU buffer_view) {
 }
 
 void lstm_forward(LstmWeights &w, LstmBuffers &b, MatrixView3DCPU &x, MatrixView3DCPU &y) {
-  
+
   mult(w.IX, x.flatten(), b.Ia.flatten());
   mult(w.FX, x.flatten(), b.Fa.flatten());
   mult(w.ZX, x.flatten(), b.Za.flatten());
@@ -214,14 +214,8 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
   //size_t end_time(b.batch_time - 1);
   int end_time = static_cast<int>(b.time - 1);
 
-  //add in_deltas?
-  //d.Hb.slice(t) = in_deltas(t);
-
   copy(out_deltas, d.Hb);
   
-  //cout << "incoming deltas" << endl;
-  //out_deltas.print_me();
-
   //calculate t+1 values except for end_time+1 
   for(int t(end_time); t >= 0; --t){
     if (t<end_time) { 
@@ -233,9 +227,6 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
   
       //! \f$\frac{dE}{dS} += \frac{dE}{dS^{t+1}} * b_F(t+1)\f$
       dot_add(d.S.slice(t+1), b.Fb.slice(t+1), d.S.slice(t));
-      
-      //cout << "b.Fb.slice(t+1)" << t; b.Fb.slice(t+1).print_me();
-      //cout << "d.S.slice(t+1)" << t; d.S.slice(t+1).print_me();
       
       //! \f$\frac{dE}{dS} += \frac{dE}{da_I(t+1)} * W_{IS}\f$
       dot_add(d.Ia.slice(t+1), w.IS, d.S.slice(t));
@@ -254,35 +245,29 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
     dot(d.Hb.slice(t), b.f_S.slice(t), d.Ob.slice(t));
 
     //! \f$\frac{dE}{da_O} = \frac{dE}{db_O} * f'(a_O)\f$
-    //sigmoid_deriv(d.Ob.slice(t), b.Ob.slice(t), d.temp_hidden, d.temp_hidden2, d.Oa.slice(t)); //o = -o^2
     apply_sigmoid_deriv(b.Ob.slice(t), d.tmp1.slice(t)); //s'(O_a) == s(O_b) * (1 - s(O_b)) 
     dot(d.Ob.slice(t), d.tmp1.slice(t), d.Oa.slice(t));
 
 
     //! \f$\frac{dE}{dS} += \frac{dE}{df_S} * f'(s)\f$
-    //tanh2_deriv(d.f_S.slice(t), b.S.slice(t), d.temp_hidden, d.S.slice(t));
     apply_tanhx2_deriv(b.S.slice(t), d.tmp1.slice(t));
-    //copy(d.tmp1.slice(t), d.S.slice(t));
     dot_add(d.f_S.slice(t), d.tmp1.slice(t), d.S.slice(t));
 
 
     //! \f$\frac{dE}{dS} += \frac{dE}{da_O} * W_OS\f$
-    //changed to dot_add from mult_add
     dot_add(d.Oa.slice(t), w.OS, d.S.slice(t));
     
     //! CELL ACTIVATION DERIVS
     //! \f$\frac{dE}{db_Z} = \frac{dE}{dS} * b_I\f$
     dot(d.S.slice(t), b.Ib.slice(t), d.Zb.slice(t));
     //! \f$dE/da_Z = dE/db_Z * f'(a_Z)\f$
-    //tanh2_deriv(d.Zb.slice(t), b.Zb.slice(t), d.temp_hidden, d.Za.slice(t));
-    //apply_tanhx2_deriv(b.Zb.slice(t), d.Za.slice(t));
-    //apply_tanhx2_deriv(b.Zb.slice(t), d.tmp1.slice(t));
     apply_tanhx2_deriv(b.Za.slice(t), d.tmp1.slice(t));
     dot(d.Zb.slice(t), d.tmp1.slice(t), d.Za.slice(t));
     
     //! INPUT GATE DERIVS
     //! \f$\frac{dE}{db_I} = \frac{dE}{dS} * b_Z \f$
     dot(d.S.slice(t), b.Zb.slice(t), d.Ib.slice(t));
+
     //! \f$\frac{dE}{da_I} = \frac{dE}{db_I} * f'(a_I) \f$
     //sigmoid_deriv(d.Ib.slice(t), b.Ib.slice(t), d.temp_hidden, d.temp_hidden2, d.Ia.slice(t));
     
@@ -296,8 +281,6 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
       dot(d.S.slice(t), b.S.slice(t - 1), d.Fb.slice(t));
     
     // \f$\frac{dE}{da_F} = \frac{dE}{db_F} * f'(a_F)\f$
-    //sigmoid_deriv(d.Fb.slice(t), b.Fb.slice(t), d.temp_hidden, d.temp_hidden2, d.Fa.slice(t));    
-    //apply_sigmoid_deriv(b.Fb.slice(t), d.Fa.slice(t));    
     apply_sigmoid_deriv(b.Fb.slice(t), d.tmp1.slice(t));    
     dot(d.Fb.slice(t), d.tmp1.slice(t), d.Fa.slice(t));
 
@@ -329,65 +312,30 @@ void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d,
   //! \f$\frac{dE}{dW_ZH} += \frac{dE}{da_Z} * h(t-1)\f$
   //! \f$\frac{dE}{dW_FH} += \frac{dE}{da_F} * h(t-1)\f$
   //! \f$\frac{dE}{dW_IH} += \frac{dE}{da_I} * h(t-1)\f$
-  //! \f$\frac{dE}{dW_OH} += \frac{dE}{da_O} * h(t-1)\f$
-								       
+  //! \f$\frac{dE}{dW_OH} += \frac{dE}{da_O} * h(t-1)\f$						       
   if (n_time > 1) {
-    //mult(d.Ia.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.IH, 1.0 / (double) n_time);
-    //mult(d.Za.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.ZH, 1.0 / (double) n_time);
-    //mult(d.Fa.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.FH, 1.0 / (double) n_time);
-    //mult(d.Oa.subslice(1, n_time), b.Hb.subslice(0, n_time - 1).T(), grad.OH, 1.0 / (double) n_time);
-	
-    //mult(d.Ia.subslice(1, n_time-1), y.subslice(0, n_time - 2).T(), grad.IH, 1.0 / 1.0); //(double) n_time);
-    //mult(d.Za.subslice(1, n_time-1), y.subslice(0, n_time - 2).T(), grad.ZH, 1.0 / 1.0); //(double) n_time);
-    //mult(d.Fa.subslice(1, n_time-1), y.subslice(0, n_time - 2).T(), grad.FH, 1.0 / 1.0); //(double) n_time);
-    //mult(d.Oa.subslice(1, n_time-1), y.subslice(0, n_time - 2).T(), grad.OH, 1.0 / 1.0); //(double) n_time);
-
     mult(d.Ia.subslice(1, n_time-1), y.subslice(0, n_time - 2).T(), grad.IH); //(double) n_time);
     mult(d.Za.subslice(1, n_time-1), y.subslice(0, n_time - 2).T(), grad.ZH); //(double) n_time);
     mult(d.Fa.subslice(1, n_time-1), y.subslice(0, n_time - 2).T(), grad.FH); //(double) n_time);
     mult(d.Oa.subslice(1, n_time-1), y.subslice(0, n_time - 2).T(), grad.OH); //(double) n_time);
-
-
   }
 
-
-  //cout << "n_time " << n_time << endl; 
-  //cout << "d.Hb " ; d.Hb.subslice(0,n_time-1).print_me();
-  //cout << "d.Oa " ; d.Oa.subslice(0,n_time-1).print_me();
-  //cout << "gradOH "; grad.OH.print_me();
-
-
-  //do we need this line?
-  //mult(d.Fa.subslice(1, n_time).flatten(), b.S.subslice(0, n_time - 1).T(), grad.FS, 1.0 / (double) n_time);
  
-  //shifted
   //! \f$\frac{dE}{dW_FS} += \frac{dE}{da_F} * s(t-1)\f$
   //! \f$\frac{dE}{dW_IS} += \frac{dE}{da_I} * s(t-1)\f$
-
   if (n_time > 1) {
     dot_squash(d.Fa.subslice(1, n_time-1), b.S.subslice(0, n_time - 2), grad.FS);
     dot_squash(d.Ia.subslice(1, n_time-1), b.S.subslice(0, n_time - 2), grad.IS);
   }
 
-
-  //not shifted
   //! \f$\frac{dE}{dW_OS} += \frac{dE}{da_O} * s(t)\f$
   dot_squash(d.Oa, b.S, grad.OS);
-  
-  //squash(d.Ia, grad.I_bias, 1.0 / (double) n_time);
-  //squash(d.Fa, grad.F_bias, 1.0 / (double) n_time);
-  //squash(d.Za, grad.Z_bias, 1.0 / (double) n_time);
-  //squash(d.Oa, grad.O_bias, 1.0 / (double) n_time);
   
   squash(d.Ia, grad.I_bias); //, 1.0 / (double) n_time);
   squash(d.Fa, grad.F_bias); //, 1.0 / (double) n_time);
   squash(d.Za, grad.Z_bias); //, 1.0 / (double) n_time);
-  squash(d.Oa, grad.O_bias, 1.0 / (double)n_time); //, 1.0 / (double) n_time);
+  squash(d.Oa, grad.O_bias); //, 1.0 / (double)n_time); //, 1.0 / (double) n_time);
 
-  //Where are the outputs
-  //squash(d.output_deltas, grad.O_bias, 1.0 / n_time);
-  
-  
 }
 
 
