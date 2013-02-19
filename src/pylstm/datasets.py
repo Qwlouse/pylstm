@@ -46,3 +46,11 @@ def generate_memo_problem(pattern_length, alphabet_size, batch_size, length):
         outputs.append(binarize_sequence(out_seq, alphabet))
 
     return np.array(inputs).swapaxes(0, 1), np.array(outputs).swapaxes(0, 1)
+
+
+def generate_5bit_problem(total_length):
+    generate_memo_problem(5,  2, 32, total_length)
+
+
+def generate_20bit_problem(total_length, batch_size=1000):
+    generate_memo_problem(10,  5, batch_size, total_length)
