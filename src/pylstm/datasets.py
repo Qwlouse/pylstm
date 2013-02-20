@@ -8,11 +8,14 @@ import itertools
 import collections
 
 
-def binarize_sequence(seq):
-    alphabet = np.lib.arraysetops.unique(seq)
+def binarize_sequence(seq, alphabet = None):
+    if alphabet is None:
+        alphabet = np.lib.arraysetops.unique(seq)
+    else:
+        alphabet = np.array(alphabet)
     result = np.zeros((len(seq), len(alphabet)))
     for i, s in enumerate(seq):
-        index = np.where(alphabet == s)[0]
+        index = np.where(alphabet == s)[0][0]
         result[i, index] = 1
     return result
 
@@ -44,9 +47,9 @@ def generate_memo_problem(pattern_length, alphabet_size, batch_size, length):
         pattern = list(pattern)
         in_seq = pattern + filler * mid_part_size + trigger + \
             filler * pattern_length
-        inputs.append(binarize_sequence(in_seq))
+        inputs.append(binarize_sequence(in_seq, alphabet))
         out_seq = filler * (length - pattern_length) + pattern
-        outputs.append(binarize_sequence(out_seq))
+        outputs.append(binarize_sequence(out_seq, alphabet))
 
     return np.array(inputs).swapaxes(0, 1), np.array(outputs).swapaxes(0, 1)
 

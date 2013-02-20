@@ -15,7 +15,7 @@ from datasets import generate_memo_problem
 # Instantiate a NetworkBuilder
 netb = NetworkBuilder()
 # add one layer of three LSTM nodes
-netb.input(2) >> FwdLayer(3) >> netb.output
+netb.input(2) >> LstmLayer(3) >> netb.output
 # build the network (no buffers are constructed so far)
 net = netb.build()
 
@@ -42,32 +42,31 @@ out_delta.print_me()
 
 
 ############ Accessing Weights Example ##############################
-# lstm_weights = net.get_param_view_for("LstmLayer")
-# print("LSTM Weights for IX:")
-# lstm_weights.get_IX().print_me()
-#
-#
+lstm_weights = net.get_param_view_for("LstmLayer")
+print("LSTM Weights for IX:")
+lstm_weights.get_IX().print_me()
+
 # ############ Training Example ##############################
-# # create and randomly initialize a network
-# netb = NetworkBuilder()
-# netb.input(2) >> LstmLayer(2) >> netb.output
-# net = netb.build()
-# net.set_param_buffer(np.random.randn(net.get_param_size()))
-#
-# # Generate 5bit problem
-# timesteps = 30
-# X, T = generate_memo_problem(5,  2, 32, timesteps)
-#
-# t = SgdTrainer(learning_rate=.01)
-# t.train(net, X, T, epochs=50)
-#
+# create and randomly initialize a network
+netb = NetworkBuilder()
+netb.input(2) >> LstmLayer(2) >> netb.output
+net = netb.build()
+net.set_param_buffer(np.random.randn(net.get_param_size()))
+
+# Generate 5bit problem
+timesteps = 30
+X, T = generate_memo_problem(5,  2, 32, timesteps)
+
+t = SgdTrainer(learning_rate=.01)
+t.train(net, X, T, epochs=50)
+
 # ############ Complex Architecture Example ##############################
-# # create and randomly initialize a network
-# netb = NetworkBuilder()
-# l = FwdLayer(2)
-# netb.input(2) >> LstmLayer(5) >> l >> netb.output
-# netb.input() >> LstmLayer(5) >> l
-# net = netb.build()
-# net.set_param_buffer(np.random.randn(net.get_param_size()))
-#
-# t.train(net, X, T, epochs=50)
+# create and randomly initialize a network
+netb = NetworkBuilder()
+l = FwdLayer(2)
+netb.input(2) >> LstmLayer(5) >> l >> netb.output
+netb.input() >> LstmLayer(5) >> l
+net = netb.build()
+net.set_param_buffer(np.random.randn(net.get_param_size()))
+
+t.train(net, X, T, epochs=50)
