@@ -73,6 +73,26 @@ TEST_F(MatrixOperationsTest, check_if_mult_works_as_expected)
   ASSERT_TRUE(equals(m2, MatrixCPU({{13.,18.,175.},{18.,25.,235.}})));
 }
 
+TEST_F(MatrixOperationsTest, check_if_mult_works_transposed1)
+{
+	mult(m1.standard_view_2d.T(), m4.standard_view_2d.T(), m2.standard_view_2d.T());
+	// check that m1 and m3 are unchanged
+	ASSERT_TRUE(equals(m1, MatrixCPU({{2.,3.,5.},{3.,4.,55.}})));
+	ASSERT_TRUE(equals(m4, MatrixCPU({{2.,3.},{3.,4.}})));
+	ASSERT_TRUE(equals(m2, MatrixCPU({{13.,18.,175.},{18.,25.,235.}})));
+}
+
+TEST_F(MatrixOperationsTest, check_if_mult_works_transposed2)
+{
+    MatrixCPU out(3, 2, 1);
+	mult(m1.standard_view_2d.T(), m4.standard_view_2d.T(), out.standard_view_2d);
+	// check that m1 and m3 are unchanged
+	ASSERT_TRUE(equals(m1, MatrixCPU({{2.,3.,5.},{3.,4.,55.}})));
+	ASSERT_TRUE(equals(m4, MatrixCPU({{2.,3.},{3.,4.}})));
+	ASSERT_TRUE(equals(out, MatrixCPU({{13.,18.,175.},{18.,25.,235.}})));
+}
+
+
 TEST_F(MatrixOperationsTest, check_if_mult_add_works_as_expected)
 {
   mult_add(m4, m1, m2);
