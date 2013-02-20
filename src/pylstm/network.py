@@ -90,7 +90,12 @@ class Network(object):
         return self.in_out_manager.get_sink_view("Output")
 
     def backward_pass(self, delta_buffer):
-        # dimensions should already be set through forward_pass
+        t, b, f = delta_buffer.shape
+        # dims should already be set during forward_pass, but in any case...
+        self.intern_manager.set_dimensions(t, b)
+        self.intern_delta_manager.set_dimensions(t, b)
+        self.in_out_manager.set_dimensions(t, b)
+        self.delta_manager.set_dimensions(t, b)
         # inject delta_buffer
         out_view = self.delta_manager.get_sink_view("Output").as_array()
         out_view[:] = delta_buffer

@@ -55,14 +55,14 @@ class NetworkTests(unittest.TestCase):
 
     def test_lstm_backward_pass_insensitive_to_internal_deltas(self):
         self.net.clear_internal_state()
-        out1 = self.net.forward_pass(self.X).as_array().copy()
-        deltas1 = self.net.backward_pass(out1).as_array().copy()
+        #out1 = self.net.forward_pass(self.X).as_array().copy()
+        deltas1 = self.net.backward_pass(self.X).as_array().copy()
         self.net.intern_manager.initialize_buffer(BufferView(np.random.randn(
             self.net.intern_manager.calculate_size())))
         self.net.delta_manager.initialize_buffer(BufferView(np.random.randn(
             self.net.delta_manager.calculate_size())))
-        out2 = self.net.forward_pass(self.X).as_array().copy()
-        deltas2 = self.net.backward_pass(out2).as_array().copy()
+        #out2 = self.net.forward_pass(self.X).as_array().copy()
+        deltas2 = self.net.backward_pass(self.X).as_array().copy()
         self.assertTrue(np.allclose(deltas1, deltas2))
 
     def test_gradient_finite_differences(self):

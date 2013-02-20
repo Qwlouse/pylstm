@@ -67,7 +67,7 @@ class RPropTrainer(object):
             increase = (grad_sign == self.last_grad_sign)
             self.stepsize = (self.stepsize * (increase * 1.01 + (increase == False) * .99))
 
-            grad_arr = self.stepsize * grad_sign + -self.stepsize * (grad_sign == False)
+            grad_arr[:] = self.stepsize * grad_sign + -self.stepsize * (grad_sign == False)
             #print("grad arr:", grad_arr)
             #print("grad:", grad.as_array())
             #print(((grad_sign==False)).flatten())
@@ -155,6 +155,3 @@ if __name__ == "__main__":
     X = rnd.randn(2, 5, 4)
     T = rnd.randn(2, 5, 3)
     trainer.train(net, X, T, epochs=10)
-    
-    trainer2 = CgTrainer()
-    trainer2.train(net, X, T)
