@@ -4,6 +4,7 @@
 from __future__ import division, print_function, unicode_literals
 import numpy as np
 import wrapper
+import sys
 rnd = np.random.RandomState(12345)
 
 
@@ -54,26 +55,21 @@ class RPropTrainer(object):
             net.backward_pass(deltas)
             grad = net.calc_gradient()
             grad_arr = grad.as_array()
-            print(weights.as_array().sum())
-
+ 
             #calculate grad sign
             grad_sign = (grad_arr > 0.0)
+ 
             if not self.initialized:
                 self.last_grad_sign = grad_sign
-                self.stepsize = np.ones(net.get_param_size()) * .00000001
+                self.stepsize = np.ones_like(grad_sign) * .00001
                 self.initialized = True
                 continue
             increase = (grad_sign == self.last_grad_sign)
-            #print(self.stepsize)
-            self.stepsize = self.stepsize * (increase.flatten() * 1.01 + (increase.flatten() == False).flatten() * .99).flatten()
-            print("stepsize:", self.stepsize)
-            #OBexit
-            #print("self.stepsize")
-            #print(self.stepsize.flatten())
-            
-            grad_arr = self.stepsize * grad_sign.flatten() + -self.stepsize * (grad_sign == False).flatten()
-            print("grad arr:", grad_arr)
-            print("grad:", grad.as_array())
+            self.stepsize = (self.stepsize * (increase * 1.01 + (increase == False) * .99))
+
+            grad_arr = self.stepsize * grad_sign + -self.stepsize * (grad_sign == False)
+            #print("grad arr:", grad_arr)
+            #print("grad:", grad.as_array())
             #print(((grad_sign==False)).flatten())
             print("weights before:", weights.as_array().flatten())
             wrapper.add_into_b(grad, weights)

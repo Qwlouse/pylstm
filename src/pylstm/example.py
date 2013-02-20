@@ -4,7 +4,7 @@
 from __future__ import division, print_function, unicode_literals
 import numpy as np
 import sys
-from pylstm.trainer import SgdTrainer
+from pylstm.trainer import SgdTrainer, RPropTrainer
 
 sys.path.append('.')
 sys.path.append('..')
@@ -57,8 +57,11 @@ net.set_param_buffer(np.random.randn(net.get_param_size()))
 timesteps = 30
 X, T = generate_memo_problem(5,  2, 32, timesteps)
 
-t = SgdTrainer(learning_rate=.01)
-t.train(net, X, T, epochs=50)
+#t = SgdTrainer(learning_rate=.01)
+#t.train(net, X, T, epochs=50)
+
+t = RPropTrainer(learning_rate=.01)
+t.train(net, X, T, epochs=2)
 
 # ############ Complex Architecture Example ##############################
 # create and randomly initialize a network
