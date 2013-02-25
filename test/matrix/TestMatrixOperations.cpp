@@ -169,15 +169,37 @@ TEST_F(MatrixOperationsTest, check_if_mult_works_as_expected)
 	ASSERT_TRUE(equals(m2, Matrix({{13.,18.,175.},{18.,25.,235.}})));
 }
 
-TEST_F(MatrixOperationsTest, check_if_mult_works_transposed)
+
+TEST_F(MatrixOperationsTest, check_if_mult_works_transposed1)
 {
-	mult(m1.T(), m4.T(), m2.T());
+	Matrix out(2, 3, 1);
+	mult(m4.T(), m1, out);
 	// check that m1 and m3 are unchanged
 	ASSERT_TRUE(equals(m1, Matrix({{2.,3.,5.},{3.,4.,55.}})));
 	ASSERT_TRUE(equals(m4, Matrix({{2.,3.},{3.,4.}})));
-	ASSERT_TRUE(equals(m2, Matrix({{13.,18.,175.},{18.,25.,235.}})));
+	ASSERT_TRUE(equals(out, Matrix({{13.,18.,175.},{18.,25.,235.}})));
 }
 
+TEST_F(MatrixOperationsTest, check_if_mult_works_transposed2)
+{
+	Matrix out(3, 2, 1);
+	mult(m1.T(), m4, out);
+	// check that m1 and m3 are unchanged
+	ASSERT_TRUE(equals(m1, Matrix({{2.,3.,5.},{3.,4.,55.}})));
+	ASSERT_TRUE(equals(m4, Matrix({{2.,3.},{3.,4.}})));
+	ASSERT_TRUE(equals(out, Matrix({{13.,18.}, {18, 25}, {175., 235.}})));
+}
+
+
+TEST_F(MatrixOperationsTest, check_if_mult_works_transposed3)
+{
+	Matrix out(3, 2, 1);
+	mult(m1.T(), m4.T(), out);
+	// check that m1 and m3 are unchanged
+	ASSERT_TRUE(equals(m1, Matrix({{2.,3.,5.},{3.,4.,55.}})));
+	ASSERT_TRUE(equals(m4, Matrix({{2.,3.},{3.,4.}})));
+	ASSERT_TRUE(equals(out, Matrix({{13.,18.}, {18, 25}, {175., 235.}})));
+}
 
 TEST_F(MatrixOperationsTest, check_if_mult_add_works_as_expected)
 {

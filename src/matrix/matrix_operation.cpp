@@ -118,27 +118,27 @@ void dot_add(Matrix a, Matrix b, Matrix out) {
 void mult(Matrix a, Matrix b, Matrix out, d_type scale) {
   char a_state = (a.state == NORMAL) ? 'N' : 'T';
   char b_state = (b.state == NORMAL) ? 'N' : 'T';
+  ASSERT(out.state == NORMAL);
   ASSERT(a.n_slices == 1);
   ASSERT(b.n_slices == 1);
   ASSERT(out.n_slices == 1);
+  ASSERT(a.n_columns == b.n_rows);
+  ASSERT(out.n_rows == a.n_rows);
+  ASSERT(out.n_columns == b.n_columns);
 
-  ptrdiff_t lda = (a.state == NORMAL) ? a.n_rows : a.n_columns;
-  ptrdiff_t ldan = (a.state == NORMAL) ? a.n_columns : a.n_rows;
-  ptrdiff_t ldb = (b.state == NORMAL) ? b.n_columns : b.n_rows;
-  ptrdiff_t ldbn = (b.state == NORMAL) ? b.n_rows : b.n_columns;
+  ptrdiff_t M = a.n_rows;
+  ptrdiff_t N = b.n_columns;
+  ptrdiff_t K = a.n_columns;
 
-  /*
-    dgemm(&a_state, &b_state, &a.n_rows, &b.n_columns, &a.n_columns,
-    &scale,
-    a.data,
-    &a.n_rows, b.data, &b.n_rows, &double_zero, out.data, &out.n_rows);
-  */
-  ptrdiff_t a_rows = a.n_rows;
-  ptrdiff_t b_rows = b.n_rows;
-  ptrdiff_t out_rows = out.n_rows;
+  // the size of the first dimension of the matrices, as laid out in memory;
+  // meaning the memory distance between the start of each row/column,
+  // depending on the memory structure
+  ptrdiff_t a_stride = a.state == NORMAL ? a.n_rows : a.n_columns;
+  ptrdiff_t b_stride = b.state == NORMAL ? b.n_rows : b.n_columns;
+  ptrdiff_t out_stride = out.n_rows;
 
-  dgemm(&a_state, &b_state, &lda, &ldb, &ldan, &scale, a.get_data(),
-	&a_rows, b.get_data(), &b_rows, &double_zero, out.get_data(), &out_rows);
+  dgemm(&a_state, &b_state, &M, &N, &K, &scale, a.get_data(),
+	&a_stride, b.get_data(), &b_stride, &double_zero, out.get_data(), &out_stride);
 }
 
 void mult_add(Matrix a, Matrix b, Matrix out, d_type scale) {
