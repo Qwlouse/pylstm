@@ -4,6 +4,16 @@
 #include <iostream>
 using std::cout;
 
+Matrix::Matrix() :
+	offset(0),
+	data(NULL),
+	state(NORMAL),
+	n_rows(0),
+	n_columns(0),
+	n_slices(0),
+	size(0)
+{ }
+
 Matrix::Matrix(const data_ptr data, const size_t offset, const MatrixState state, const size_t n_rows, const size_t n_columns, const size_t n_slices) :
 	offset(offset),
 	data(data),

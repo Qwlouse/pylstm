@@ -29,6 +29,7 @@ public:
 	const size_t n_columns;
 	const size_t n_slices;
 	const size_t size;
+	Matrix();
 	Matrix(std::initializer_list<d_type> values);
 	Matrix(std::initializer_list<std::initializer_list<d_type>> values);
 	Matrix(std::initializer_list<std::initializer_list<std::initializer_list<d_type>>> values);
