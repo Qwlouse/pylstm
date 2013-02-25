@@ -1,6 +1,7 @@
 #pragma once
 #include <boost/shared_array.hpp>
 #include <cstddef>
+#include <vector>
 #include <initializer_list>
 
 enum MatrixState {
@@ -38,6 +39,7 @@ public:
 	inline d_type &operator[](size_t index) {return data[index];}
 	d_type& get(size_t row, size_t col, size_t slice);
 	inline d_type* get_data() {return &data[0];}
+	Matrix subslice(size_t start, size_t n_rows, size_t n_columns, size_t n_slices);
 	Matrix T();
 	void print_me();
 };

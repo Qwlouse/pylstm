@@ -95,6 +95,11 @@ d_type& Matrix::get(size_t row, size_t col, size_t slice)
 	}
 }
 
+Matrix Matrix::subslice(size_t start, size_t rows, size_t columns, size_t slices)
+{
+	return Matrix(data, offset + start, state, rows, columns, slices);
+}
+
 Matrix Matrix::T() {
 	return Matrix(data, offset, transpose(state), n_columns, n_rows, n_slices);
 }
@@ -117,4 +122,5 @@ void Matrix::print_me() {
     cout << "=====================================\n";
   }
 }
+
 
