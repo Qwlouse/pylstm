@@ -169,30 +169,10 @@ void mult_add(Matrix a, Matrix b, Matrix out, d_type scale) {
 }
 
 
-inline double sigmoid(double val) {
-  return 1.0 / (1.0 + exp(-val));
-}
 
-inline double sigmoid_deriv(double val) {
-  //return 1.0 / (1.0 + exp(-val));
-  return ((val) * (1 - (val)));
-}
 
-inline double tanhx2(double val) {
-  return 2.0 * tanh(val);
-}
-
-inline double tanh_(double val) {
-  return tanh(val);
-}
-
-inline double tanh_deriv(double val) {
-  return (1-(tanh(val)*tanh(val)));
-  //return (1-(val*val));
-}
-
-inline double tanhx2_deriv(double val) {
-  return (2 * tanh_deriv(val));
+void apply(Matrix in, Matrix out, unary_double_func f) {
+	transform(in.get_data(), in.get_data() + in.size, out.get_data(), *f);
 }
 
 ///Apply sigmoid to all units
