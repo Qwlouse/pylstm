@@ -39,8 +39,10 @@ public:
 
 	d_type &operator[](size_t index);
 	d_type& get(size_t row, size_t col, size_t slice);
+	size_t get_offset(size_t row, size_t col, size_t slice);
 	inline d_type* get_data() {return &data[0];}
-	Matrix subslice(size_t start, size_t n_rows, size_t n_columns, size_t n_slices);
+	Matrix subslice(size_t start, size_t n_rows, size_t n_columns, size_t n_slices); // todo: rename
+	Matrix slice(size_t slice_index);
 	Matrix T();
 	void print_me();
 };

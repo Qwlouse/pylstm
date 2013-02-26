@@ -98,17 +98,30 @@ d_type& Matrix::operator[](size_t index) {
 	return data[offset + index];
 }
 
-d_type& Matrix::get(size_t row, size_t col, size_t slice)
+size_t Matrix::get_offset(size_t row, size_t col, size_t slice)
 {
 	ASSERT(row < n_rows);
 	ASSERT(col < n_columns);
 	ASSERT(slice < n_slices);
 	if (state == NORMAL) {
-		return data[slice*n_rows*n_columns + col*n_rows + row];
+		return slice*n_rows*n_columns + col*n_rows + row;
 	} else {
-		return data[slice*n_rows*n_columns + row*n_columns + col];
+		return slice*n_rows*n_columns + row*n_columns + col;
 	}
 }
+
+d_type& Matrix::get(size_t row, size_t col, size_t slice)
+{
+	return data[get_offset(row, col, slice)];
+}
+
+
+
+Matrix Matrix::slice(size_t slice_index)
+{
+	return Matrix(data, get_offset(0, 0, slice_index), state, n_rows, n_columns, 1);
+}
+
 
 Matrix Matrix::subslice(size_t start, size_t rows, size_t columns, size_t slices)
 {
