@@ -11,7 +11,16 @@
 
 using std::vector;
 
-size_t FwdWeights::estimate_size(size_t n_inputs, size_t n_cells)
+RegularLayer::RegularLayer():
+	activation_function(&sigmoid)
+{ }
+
+RegularLayer::RegularLayer(unary_double_func activation_f = &sigmoid):
+	activation_function(activation_f)
+{ }
+
+
+size_t RegularLayer::Weights::estimate_size(size_t n_inputs, size_t n_cells)
 {
 	return n_inputs * n_cells + n_cells;
 }
@@ -29,7 +38,7 @@ void lay_out(Matrix& buffer, vector<Matrix*> views)
 	}
 }
 
-FwdWeights::FwdWeights(size_t n_inputs_, size_t n_cells_, Matrix& buffer) :
+RegularLayer::Weights::Weights(size_t n_inputs_, size_t n_cells_, Matrix& buffer) :
   n_inputs(n_inputs_), 
   n_cells(n_cells_), 
   HX(boost::shared_array<double>(NULL), 0, NORMAL, n_cells, n_inputs, 1),
@@ -41,19 +50,19 @@ FwdWeights::FwdWeights(size_t n_inputs_, size_t n_cells_, Matrix& buffer) :
 	lay_out(buffer, views);
 }
 
-size_t FwdWeights::buffer_size() {
+size_t RegularLayer::Weights::size() {
   return HX.size + H_bias.size;  //!< inputs X, H, to cells H + bias to H
 
 }
 
 ////////////////////// Fwd Buffer /////////////////////////////////////////////
 
-size_t FwdBuffers::estimate_size(size_t n_inputs, size_t n_cells, size_t n_batches_, size_t time_)
+size_t RegularLayer::FwdState::estimate_size(size_t n_inputs, size_t n_cells, size_t n_batches_, size_t time_)
 {
 	return n_cells * n_batches_ * time_;
 }
 
-FwdBuffers::FwdBuffers(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_t time_, Matrix& buffer) :
+RegularLayer::FwdState::FwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_t time_, Matrix& buffer) :
   n_inputs(n_inputs_), n_cells(n_cells_),
   n_batches(n_batches_), time(time_),
   Ha(boost::shared_array<double>(NULL), 0, NORMAL, n_cells, n_batches, time)
@@ -63,12 +72,12 @@ FwdBuffers::FwdBuffers(size_t n_inputs_, size_t n_cells_, size_t n_batches_, siz
 	lay_out(buffer, views);
 }
 
-size_t FwdBuffers::buffer_size() {
+size_t RegularLayer::FwdState::size() {
  //Views on all activations
   return Ha.size; //!< Hidden unit activation
 }
 
-void fwd_forward(FwdWeights &w, FwdBuffers &b, Matrix &x, Matrix &y) {
+void RegularLayer::forward(RegularLayer::Weights &w, RegularLayer::FwdState &b, Matrix &x, Matrix &y) {
 	size_t n_inputs = w.n_inputs;
 	size_t n_cells = w.n_cells;
 	size_t n_batches = b.n_batches;
