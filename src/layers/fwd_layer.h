@@ -27,7 +27,7 @@ public:
 	size_t buffer_size();
 	void allocate(Matrix buffer_view);
 };
-
+/*
 struct FwdBuffers {
 	///Variables defining sizes
 	size_t n_inputs, n_outputs, n_cells;
@@ -60,5 +60,5 @@ struct FwdDeltas {
 void fwd_forward(FwdWeights &w, FwdBuffers &b, Matrix &x, Matrix &y);
 void fwd_backward(FwdWeights &w, FwdBuffers &b, FwdDeltas &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas);
 void fwd_grad(FwdWeights &w, FwdWeights &grad, FwdBuffers &b, FwdDeltas &d, Matrix &y, Matrix input_batches);
-
+*/
 #endif

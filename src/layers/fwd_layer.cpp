@@ -7,33 +7,45 @@
 #include "fwd_layer.h"
 #include "matrix/matrix_operation.h"
 #include <vector>
+#include "Core.h"
 
 using std::vector;
+
+size_t FwdWeights::estimate_size(size_t n_inputs, size_t n_cells)
+{
+	return n_inputs * n_cells + n_cells;
+}
+
+void lay_out(Matrix& buffer, vector<Matrix*> views)
+{
+	size_t offset = 0;
+	for (size_t i = 0; i < views.size(); ++i) {
+		size_t rows = views[i]->n_rows;
+		size_t cols = views[i]->n_columns;
+		size_t slices = views[i]->n_slices;
+		*views[i] = buffer.subslice(offset, rows, cols, slices);
+		offset += views[i]->size;
+		ASSERT(offset <= buffer.size);
+	}
+}
 
 FwdWeights::FwdWeights(size_t n_inputs_, size_t n_cells_, Matrix& buffer) :
   n_inputs(n_inputs_), 
   n_cells(n_cells_), 
-  HX(buffer.subslice(0, n_cells_, n_inputs_, 1)),
-  H_bias(buffer.subslice(n_cells_ * n_inputs_, n_cells_, 1, 1))
+  HX(boost::shared_array<double>(NULL), 0, NORMAL, n_cells, n_inputs, 1),
+  H_bias(boost::shared_array<double>(NULL), 0, NORMAL, n_cells, 1, 1)
 {
-
+	vector<Matrix*> views;
+	views.push_back(&HX);
+	views.push_back(&H_bias);
+	lay_out(buffer, views);
 }
 
 size_t FwdWeights::buffer_size() {
   return HX.size + H_bias.size;  //!< inputs X, H, to cells H + bias to H
 
 }
-
-void FwdWeights::allocate(Matrix buffer_view) {
-  vector<Matrix*> views;
-
-  views.push_back(&HX);
-  views.push_back(&H_bias);
-
-  lay_out(buffer_view, views);
-}
-
-
+/*
 FwdBuffers::FwdBuffers(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_t time_) :
   n_inputs(n_inputs_), n_cells(n_cells_),
   n_batches(n_batches_), time(time_),
@@ -96,3 +108,4 @@ void fwd_grad(FwdWeights &w, FwdWeights &grad, FwdBuffers &b, FwdDeltas &d, Matr
   mult(d.Ha, input_batches.T(), grad.HX);
   squash(d.Ha, grad.H_bias);
 }
+*/

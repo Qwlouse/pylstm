@@ -21,14 +21,14 @@ typedef boost::shared_array<d_type> data_ptr;
 
 class Matrix {
 private:
-	const size_t offset;
-	const data_ptr data;
+	size_t offset;
+	data_ptr data;
 public:
-	const MatrixState state;
-	const size_t n_rows;
-	const size_t n_columns;
-	const size_t n_slices;
-	const size_t size;
+	MatrixState state;
+	size_t n_rows;
+	size_t n_columns;
+	size_t n_slices;
+	size_t size;
 	Matrix();
 	Matrix(std::initializer_list<d_type> values);
 	Matrix(std::initializer_list<std::initializer_list<d_type>> values);
@@ -37,7 +37,7 @@ public:
 	Matrix(size_t n_rows, size_t n_columns, size_t n_slices, MatrixState state=NORMAL);
 	virtual ~Matrix() { };
 
-	inline d_type &operator[](size_t index) {return data[index];}
+	d_type &operator[](size_t index);
 	d_type& get(size_t row, size_t col, size_t slice);
 	inline d_type* get_data() {return &data[0];}
 	Matrix subslice(size_t start, size_t n_rows, size_t n_columns, size_t n_slices);

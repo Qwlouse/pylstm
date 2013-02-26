@@ -93,6 +93,11 @@ Matrix::Matrix(std::initializer_list<std::initializer_list<std::initializer_list
 	}
 }
 
+d_type& Matrix::operator[](size_t index) {
+	ASSERT(index < size);
+	return data[offset + index];
+}
+
 d_type& Matrix::get(size_t row, size_t col, size_t slice)
 {
 	ASSERT(row < n_rows);
