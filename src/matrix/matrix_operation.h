@@ -37,19 +37,26 @@ void mult(Matrix a, Matrix b, Matrix out, d_type scale = 1.0);
 ///Matrix multiplication and addition
 void mult_add(Matrix a, Matrix b, Matrix out, d_type scale = 1.0);
 
+///Apply sigmoid to all elements of a
+void apply_sigmoid(Matrix a, Matrix out);
+
+void apply_sigmoid_deriv(Matrix a, Matrix out);
+
+///Apply tanh to all elements of a
+void apply_tanh(Matrix a, Matrix out);
+
+void apply_tanh_deriv(Matrix a, Matrix out);
+
+///Apply tanh * 2 to all elements of a
+void apply_tanhx2(Matrix a, Matrix out);
+
+void apply_tanhx2_deriv(Matrix a, Matrix out);
+
 
 //
 /////Copy
 //void copy(MatrixView2DCPU a, MatrixView2DCPU b);
 //void copy(MatrixView3DCPU a, MatrixView3DCPU b);\
-//
-
-//
-
-//
-
-//
-
 //
 /////Elementwise multiplication and add, with squash to size of out (out is smaller than a and b)
 //void dot_add_squash(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type const scale = 1.0);
@@ -60,24 +67,7 @@ void mult_add(Matrix a, Matrix b, Matrix out, d_type scale = 1.0);
 /////squash
 //void squash(MatrixView2DCPU a, MatrixView2DCPU out, d_type scale = 1.0);
 //
-/////Apply sigmoid to all units
-//void apply_sigmoid(MatrixView2DCPU a, MatrixView2DCPU out);
-//void apply_sigmoid(MatrixView3DCPU a, MatrixView3DCPU out);
-//void apply_sigmoid_deriv(MatrixView2DCPU a, MatrixView2DCPU out);
-//void apply_sigmoid_deriv(MatrixView3DCPU a, MatrixView3DCPU out);
-//
-/////Apply tanh to all units
-//void apply_tanh(MatrixView2DCPU a, MatrixView2DCPU out);
-//void apply_tanh(MatrixView3DCPU a, MatrixView3DCPU out);
-//void apply_tanh_deriv(MatrixView2DCPU a, MatrixView2DCPU out);
-//
-/////Apply tanh * 2 to all units
-//void apply_tanhx2(MatrixView2DCPU a, MatrixView2DCPU out);
-//void apply_tanhx2(MatrixView2DCPU a, MatrixView2DCPU out);
-//void apply_tanhx2_deriv(MatrixView2DCPU a, MatrixView2DCPU out);
-//
 
-//
 
 
 #endif
