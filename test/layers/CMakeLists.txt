@@ -2,7 +2,11 @@ SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 INCLUDE_DIRECTORIES(${GTEST_INCLUDE_PATH})
 
-# Test Exceptions
-ADD_EXECUTABLE(TestLayer TestLayer.cpp)
-TARGET_LINK_LIBRARIES(TestLayer core matrix layers ${GTEST_LIBRARIES})
-ADD_TEST(TestLayer ${CMAKE_CURRENT_BINARY_DIR}/TestLayer)
+
+#ADD_EXECUTABLE(TestLayer TestLayer.cpp)
+#TARGET_LINK_LIBRARIES(TestLayer core matrix layers ${GTEST_LIBRARIES})
+#ADD_TEST(TestLayer ${CMAKE_CURRENT_BINARY_DIR}/TestLayer)
+
+ADD_EXECUTABLE(test_fwd_layer test_fwd_layer.cpp)
+TARGET_LINK_LIBRARIES(test_fwd_layer core layers matrix ${GTEST_LIBRARIES})
+ADD_TEST(TestLayer ${CMAKE_CURRENT_BINARY_DIR}/test_fwd_layer)
