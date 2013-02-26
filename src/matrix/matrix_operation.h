@@ -20,6 +20,8 @@ bool equals(Matrix a, Matrix out);
 ///Elementwise a+b into b
 void add_into_b(Matrix a, Matrix b);
 
+void add_vector_into(Matrix arg1, Matrix arg2);
+
 ///Add scalar b to every element in a
 void add_scalar(Matrix a, d_type b);
 

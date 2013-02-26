@@ -104,6 +104,15 @@ TEST_F(MatrixOperationsTest, check_if_add_into_b_work_on_3d)
 	ASSERT_TRUE(equals(out, m));
 }
 
+TEST_F(MatrixOperationsTest, check_if_add_vector_into)
+{
+	Matrix v = {1, 2};
+	add_vector_into(v, m1);
+	Matrix expected = {{3.,4.,6.},{5.,6.,57.}};
+	ASSERT_TRUE(equals(m1, expected));
+}
+
+
 TEST_F(MatrixOperationsTest, check_if_add_scalar_works_as_expected)
 {
 	add_scalar(m1, 10.);

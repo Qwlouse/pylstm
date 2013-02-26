@@ -41,6 +41,17 @@ void add_into_b(Matrix a, Matrix b) {
     daxpy(&n, &double_one, a.get_data(), &diff_one, b.get_data(), &diff_one);
 }
 
+void add_vector_into(Matrix vec, Matrix mat) {
+  size_t j = 0;
+  for (int i = 0; i < mat.size; ++i, ++j) {
+	  if (j == vec.size) {
+		  j = 0;
+	  }
+	  mat[i] += vec[j];
+  }
+}
+
+
 void add_scalar(Matrix a, d_type b) {
 	//MatrixView2DCPU::iterator it(arg1.begin());
 	//	MatrixView2DCPU::iterator end(arg1.end());
