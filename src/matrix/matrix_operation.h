@@ -100,7 +100,12 @@ void apply_tanhx2(Matrix a, Matrix out);
 void apply_tanhx2_deriv(Matrix a, Matrix out);
 
 
-//
+
+///squash
+void squash(Matrix a, Matrix out);
+
+
+
 /////Copy
 //void copy(MatrixView2DCPU a, MatrixView2DCPU b);
 //void copy(MatrixView3DCPU a, MatrixView3DCPU b);\

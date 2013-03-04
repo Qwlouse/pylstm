@@ -55,35 +55,6 @@ public:
 	};
 
 	void forward(Weights &w, FwdState &b, Matrix &x, Matrix &y);
-	void fwd_backward(Weights &w, FwdState &b, BwdState &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas);
+	void backward(Weights &w, FwdState &b, BwdState &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas);
+	void gradient(Weights &w, Weights &grad, FwdState &b, BwdState &d, Matrix &y, Matrix& x, Matrix &out_deltas);
 };
-
-
-
-
-
-
-
-
-
-
-/*
-struct FwdDeltas {
-	///Variables defining sizes
-	size_t n_inputs, n_outputs, n_cells;
-	size_t n_batches, time;
-
-	//Views on all activations
-	Matrix Ha, Hb; //Hidden unit activation and output
-
-	//MatrixView3DCPU temp_hidden, temp_hidden2; //temp values, neccessary?
-
-	FwdDeltas(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
-	size_t buffer_size();
-	void allocate(Matrix buffer_view);
-};
-
-
-void fwd_backward(FwdWeights &w, FwdBuffers &b, FwdDeltas &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas);
-void fwd_grad(FwdWeights &w, FwdWeights &grad, FwdBuffers &b, FwdDeltas &d, Matrix &y, Matrix input_batches);
-*/

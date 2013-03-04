@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "Config.h"
+#include "Core.h"
 
 #include "layers/fwd_layer.h"
 #include "matrix/matrix_operation.h"
@@ -34,22 +35,37 @@ TEST(FwdLayerTest, FwdBuffersConstruction)
 	ASSERT_EQ(b.Ha[5], 6);
 }
 
+template<typename Layer>
+Matrix run_fwd(Matrix& X, size_t out_size, Matrix& W)
+{
+	size_t in_size = X.n_rows;
+	size_t n_batches = X.n_columns;
+	size_t n_slices = X.n_slices;
+	Matrix Y(out_size, n_batches, n_slices);
+
+	size_t fwd_state_size = Layer::FwdState::estimate_size(in_size, out_size, n_batches, n_slices);
+	Matrix b(1, 1, fwd_state_size);
+	typename Layer::FwdState fwd_state(in_size, out_size, n_batches, n_slices, b);
+
+	size_t weight_size = Layer::Weights::estimate_size(in_size, out_size);
+	if (W.size == 0) W = Matrix(1, 1, weight_size);
+	ASSERT(W.size == weight_size);
+	typename Layer::Weights weights(in_size, out_size, W);
+
+	Layer l;
+	l.forward(weights, fwd_state, X, Y);
+	return Y;
+}
+
+
 TEST(FwdLayerTest, fwd_pass)
 {
-	size_t in_size = 3;
-	size_t out_size = 4;
 	size_t n_batches = 5;
 	size_t n_slices = 6;
-	Matrix X(in_size, n_batches, n_slices);
-	Matrix Y(out_size, n_batches, n_slices);
-	Matrix b(1, 1, RegularLayer::FwdState::estimate_size(in_size, out_size, n_batches, n_slices));
-	RegularLayer::FwdState buffer(in_size, out_size, n_batches, n_slices, b);
-	Matrix w(1, 1, RegularLayer::Weights::estimate_size(in_size, out_size));
-	RegularLayer::Weights weights(in_size, out_size, w);
-
-	RegularLayer l;
-	l.forward(weights, buffer, X, Y);
-	Matrix expected(out_size, n_batches, n_slices);
+	Matrix X(3, n_batches, n_slices);
+	Matrix W;
+	Matrix Y = run_fwd<RegularLayer>(X, 4, W);
+	Matrix expected(4, n_batches, n_slices);
 	add_scalar(expected, 0.5);
 	ASSERT_TRUE(equals(Y, expected));
 }

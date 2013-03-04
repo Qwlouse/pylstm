@@ -132,6 +132,11 @@ Matrix Matrix::T() {
 	return Matrix(data, offset, transpose(state), n_columns, n_rows, n_slices);
 }
 
+void Matrix::set_all_elements_to(d_type value) {
+	for (int i = 0; i < size; ++i)
+		operator[](i) = value;
+}
+
 void Matrix::print_me() {
   cout << "Matrix 3D: " << n_rows << " x " << n_columns << " x " << n_slices << '\n';
 

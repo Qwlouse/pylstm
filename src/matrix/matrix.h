@@ -44,6 +44,8 @@ public:
 	Matrix subslice(size_t start, size_t n_rows, size_t n_columns, size_t n_slices); // todo: rename
 	Matrix slice(size_t slice_index);
 	Matrix T();
+	void set_all_elements_to(d_type value);
+
 	void print_me();
 };
 

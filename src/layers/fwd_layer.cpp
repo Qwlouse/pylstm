@@ -1,9 +1,3 @@
-/**
- * \file fwd_layer.cpp
- * \brief Implementation of the fwd_layer.
- */
-
-
 #include "fwd_layer.h"
 #include "matrix/matrix_operation.h"
 #include <vector>
@@ -129,7 +123,7 @@ void RegularLayer::forward(RegularLayer::Weights &w, RegularLayer::FwdState &b, 
 
 
 
-void RegularLayer::fwd_backward(RegularLayer::Weights &w, RegularLayer::FwdState &b, RegularLayer::BwdState &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas) {
+void RegularLayer::backward(RegularLayer::Weights &w, RegularLayer::FwdState &b, RegularLayer::BwdState &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas) {
 	size_t n_inputs = w.n_inputs;
 	size_t n_cells = w.n_cells;
 	size_t n_batches = b.n_batches;
@@ -157,10 +151,12 @@ void RegularLayer::fwd_backward(RegularLayer::Weights &w, RegularLayer::FwdState
     }
 }
 
-/*
-void fwd_grad(FwdWeights &w, FwdWeights &grad, FwdBuffers &b, FwdDeltas &d, Matrix &y, Matrix input_batches)  {
+void RegularLayer::gradient(RegularLayer::Weights &w, RegularLayer::Weights &grad, RegularLayer::FwdState &b, RegularLayer::BwdState &d, Matrix &y, Matrix& x, Matrix& out_deltas)
+{
+	size_t n_slices = x.n_slices;
+	for (int t = 0; t < n_slices; ++t) {
+		mult_add(d.Ha.slice(t), x.slice(t).T(), grad.HX);
+	}
 
-  mult(d.Ha, input_batches.T(), grad.HX);
-  squash(d.Ha, grad.H_bias);
+    squash(d.Ha, grad.H_bias);
 }
-*/
