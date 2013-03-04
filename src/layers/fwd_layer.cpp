@@ -12,11 +12,11 @@
 using std::vector;
 
 RegularLayer::RegularLayer():
-	activation_function(&sigmoid)
+	f(Sigmoid())
 { }
 
-RegularLayer::RegularLayer(unary_double_func activation_f = &sigmoid):
-	activation_function(activation_f)
+RegularLayer::RegularLayer(ActivationFunction f):
+	f(f)
 { }
 
 
@@ -77,6 +77,32 @@ size_t RegularLayer::FwdState::size() {
   return Ha.size; //!< Hidden unit activation
 }
 
+////////////////////// Bwd Buffer /////////////////////////////////////////////
+
+size_t RegularLayer::BwdState::estimate_size(size_t n_inputs, size_t n_cells, size_t n_batches_, size_t time_)
+{
+	return 2 * n_cells * n_batches_ * time_;
+}
+
+RegularLayer::BwdState::BwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_t time_, Matrix& buffer) :
+    n_inputs(n_inputs_), n_cells(n_cells_),
+    n_batches(n_batches_), time(time_),
+    Ha(boost::shared_array<double>(NULL), 0, NORMAL, n_cells, n_batches, time),
+	Hb(boost::shared_array<double>(NULL), 0, NORMAL, n_cells, n_batches, time)
+{
+	vector<Matrix*> views;
+	views.push_back(&Ha);
+	views.push_back(&Hb);
+	lay_out(buffer, views);
+}
+
+size_t RegularLayer::BwdState::size() {
+ //Views on all activations
+  return Ha.size; //!< Hidden unit activation
+}
+
+
+////////////////////// Methods /////////////////////////////////////////////
 void RegularLayer::forward(RegularLayer::Weights &w, RegularLayer::FwdState &b, Matrix &x, Matrix &y) {
 	size_t n_inputs = w.n_inputs;
 	size_t n_cells = w.n_cells;
@@ -98,51 +124,40 @@ void RegularLayer::forward(RegularLayer::Weights &w, RegularLayer::FwdState &b, 
 	}
 
 	add_vector_into(w.H_bias, b.Ha);
-	apply(b.Ha, y, &sigmoid);
+	apply(b.Ha, y, f.apply);
 }
 
+
+
+void RegularLayer::fwd_backward(RegularLayer::Weights &w, RegularLayer::FwdState &b, RegularLayer::BwdState &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas) {
+	size_t n_inputs = w.n_inputs;
+	size_t n_cells = w.n_cells;
+	size_t n_batches = b.n_batches;
+	size_t n_slices = b.time;
+	ASSERT(b.n_cells == n_cells);
+	ASSERT(b.n_inputs == n_inputs);
+
+	ASSERT(in_deltas.n_rows == n_inputs);
+	ASSERT(in_deltas.n_columns == n_batches);
+	ASSERT(in_deltas.n_slices == n_slices);
+
+	ASSERT(y.n_rows == n_cells);
+	ASSERT(y.n_columns == n_batches);
+	ASSERT(y.n_slices == n_slices);
+
+	ASSERT(out_deltas.n_rows == n_cells);
+	ASSERT(out_deltas.n_columns == n_batches);
+	ASSERT(out_deltas.n_slices == n_slices);
+
+	apply(y, d.Hb, f.deriv);
+	dot(d.Hb, out_deltas, d.Ha);
+
+    for (int t = 0; t < n_slices; ++t) {
+        mult(w.HX.T(), d.Ha.slice(t), in_deltas.slice(t));
+    }
+}
 
 /*
-void FwdBuffers::allocate(Matrix buffer_view) {
-  vector<Matrix*> views;
-
-  views.push_back(&Ha);
-
-  lay_out(buffer_view, views);
-}
-
-FwdDeltas::FwdDeltas(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_t time_) :
-  ///Variables defining sizes
-  n_inputs(n_inputs_), n_cells(n_cells_),
-  n_batches(n_batches_), time(time_),
-
-  //Views on all activations
-  Ha(n_cells, n_batches, time), Hb(n_cells, n_batches, time) //Input gate activation
-{}
-
-size_t FwdDeltas::buffer_size() {
-  return Ha.size + Hb.size; //Hidden unit activation
-}
-
-void FwdDeltas::allocate(Matrix buffer_view) {
-  vector<Matrix*> views;
-
-  views.push_back(&Ha);
-  views.push_back(&Hb);
-
-  lay_out(buffer_view, views);
-}
-
-
-
-void fwd_backward(FwdWeights &w, FwdBuffers &b, FwdDeltas &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas) {
-  apply_sigmoid_deriv(y, d.Hb);
-
-  dot(d.Hb, out_deltas, d.Ha);
-
-  mult(w.HX.T(), d.Ha, in_deltas);
-}
-
 void fwd_grad(FwdWeights &w, FwdWeights &grad, FwdBuffers &b, FwdDeltas &d, Matrix &y, Matrix input_batches)  {
 
   mult(d.Ha, input_batches.T(), grad.HX);

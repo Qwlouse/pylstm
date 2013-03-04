@@ -38,12 +38,12 @@ void mult(Matrix a, Matrix b, Matrix out, d_type scale = 1.0);
 void mult_add(Matrix a, Matrix b, Matrix out, d_type scale = 1.0);
 
 
+
 inline double sigmoid(double val) {
   return 1.0 / (1.0 + exp(-val));
 }
 
 inline double sigmoid_deriv(double val) {
-  //return 1.0 / (1.0 + exp(-val));
   return ((val) * (1 - (val)));
 }
 
@@ -65,8 +65,22 @@ inline double tanhx2_deriv(double val) {
 }
 
 
+
+
 // Function pointer to a unary double function
 typedef double (*unary_double_func)(double);
+
+
+struct ActivationFunction {
+	unary_double_func apply;
+	unary_double_func deriv;
+	ActivationFunction(unary_double_func f, unary_double_func fp): apply(f), deriv(fp) {};
+};
+
+struct Sigmoid : ActivationFunction
+{
+	Sigmoid() : ActivationFunction(&sigmoid, &sigmoid_deriv) {};
+};
 
 void apply(Matrix in, Matrix out, unary_double_func f);
 

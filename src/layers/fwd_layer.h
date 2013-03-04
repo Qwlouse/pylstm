@@ -6,9 +6,9 @@
 
 class RegularLayer {
 public:
-	unary_double_func activation_function;
+	ActivationFunction f;
 	RegularLayer();
-	explicit RegularLayer(unary_double_func activation_f);
+	explicit RegularLayer(ActivationFunction f);
 
 	///////////// Classes
 	class Weights {
@@ -41,9 +41,21 @@ public:
 		size_t size();
 	};
 
+	struct BwdState {
+		static size_t estimate_size(size_t n_inputs, size_t n_cells, size_t n_batches, size_t time_);
+		///Variables defining sizes
+		size_t n_inputs, n_cells;
+		size_t n_batches, time;
+
+		//Views on all activations
+		Matrix Ha, Hb; //Hidden unit activation and output
+
+		BwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_, Matrix& buffer);
+		size_t size();
+	};
 
 	void forward(Weights &w, FwdState &b, Matrix &x, Matrix &y);
-
+	void fwd_backward(Weights &w, FwdState &b, BwdState &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas);
 };
 
 
