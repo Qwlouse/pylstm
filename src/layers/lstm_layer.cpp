@@ -226,7 +226,8 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
       mult_add(w.OH.T(), d.Oa.slice(t+1), d.Hb.slice(t));
   
       //! \f$\frac{dE}{dS} += \frac{dE}{dS^{t+1}} * b_F(t+1)\f$
-      dot_add(d.S.slice(t+1), b.Fb.slice(t+1), d.S.slice(t));
+      //dot_add(d.S.slice(t+1), b.Fb.slice(t+1), d.S.slice(t));
+      dot(d.S.slice(t+1), b.Fb.slice(t+1), d.S.slice(t));
       
       //! \f$\frac{dE}{dS} += \frac{dE}{da_I(t+1)} * W_{IS}\f$
       dot_add(d.Ia.slice(t+1), w.IS, d.S.slice(t));
@@ -251,9 +252,13 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
 
     //! \f$\frac{dE}{dS} += \frac{dE}{df_S} * f'(s)\f$
     apply_tanhx2_deriv(b.S.slice(t), d.tmp1.slice(t));
-    dot_add(d.f_S.slice(t), d.tmp1.slice(t), d.S.slice(t));
+    //dot_add(d.f_S.slice(t), d.tmp1.slice(t), d.S.slice(t));
 
-
+    if(t<end_time)
+      {dot_add(d.f_S.slice(t), d.tmp1.slice(t), d.S.slice(t));}
+    else
+      {dot(d.f_S.slice(t), d.tmp1.slice(t), d.S.slice(t));}
+  
     //! \f$\frac{dE}{dS} += \frac{dE}{da_O} * W_OS\f$
     dot_add(d.Oa.slice(t), w.OS, d.S.slice(t));
     
