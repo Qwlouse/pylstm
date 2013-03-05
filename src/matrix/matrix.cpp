@@ -4,6 +4,16 @@
 #include <iostream>
 using std::cout;
 
+template<typename T>
+struct NullDeleter
+{
+   void operator()(T* )
+   {
+      // do nothing
+   }
+};
+
+
 Matrix::Matrix() :
 	offset(0),
 	data(NULL),
@@ -92,6 +102,18 @@ Matrix::Matrix(std::initializer_list<std::initializer_list<std::initializer_list
 		}
 	}
 }
+
+Matrix::Matrix(d_type* data_ptr, size_t n_rows, size_t n_columns, size_t n_slices) :
+		offset(0),
+		data(data_ptr, NullDeleter<d_type>()),
+		state(NORMAL),
+		n_rows(n_rows),
+		n_columns(n_columns),
+		n_slices(n_slices),
+		size(n_rows * n_columns * n_slices)
+{
+}
+
 
 d_type& Matrix::operator[](size_t index) {
 	ASSERT(index < size);

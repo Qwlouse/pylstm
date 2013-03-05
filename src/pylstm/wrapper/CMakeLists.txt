@@ -11,6 +11,6 @@ INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/src/layers)
 CYTHON_ADD_MODULE(py_matrix py_matrix.pyx)
 TARGET_LINK_LIBRARIES(py_matrix matrix)
 
-CYTHON_ADD_MODULE(py_lstm_layer py_lstm_layer.pyx)
-TARGET_LINK_LIBRARIES(py_lstm_layer layers)
+#CYTHON_ADD_MODULE(py_lstm_layer py_lstm_layer.pyx)
+#TARGET_LINK_LIBRARIES(py_lstm_layer layers)
 

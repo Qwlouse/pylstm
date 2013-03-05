@@ -35,6 +35,7 @@ public:
 	Matrix(std::initializer_list<std::initializer_list<std::initializer_list<d_type>>> values);
 	Matrix(const data_ptr data, const size_t offset, const MatrixState state, const size_t n_rows, const size_t n_columns, const size_t n_slices);
 	Matrix(size_t n_rows, size_t n_columns, size_t n_slices, MatrixState state=NORMAL);
+	Matrix(d_type* data_ptr, size_t n_rows, size_t n_columns, size_t n_slices);
 	virtual ~Matrix() { };
 
 	d_type &operator[](size_t index);
