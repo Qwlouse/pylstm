@@ -71,11 +71,7 @@ class BufferTest(unittest.TestCase):
         self.assertEqual(b[2], 10)
         
     def test_slicing_view_has_correct_values(self):
-        b = Buffer(6)
-        b[1] = 1
-        b[2] = 2
-        b[4] = 4
-        b[5] = 5
+        b = Buffer(range(6))
         v = b[1:3]
         self.assertEqual(v[0], 1)
         self.assertEqual(v[1], 2)
@@ -91,7 +87,6 @@ class BufferTest(unittest.TestCase):
         self.assertEqual(b[5:].shape(), (6, 9, 7))
         self.assertEqual(b[:].shape(), (11, 9, 7))
 
-            
     def test_construction_with_1d_nparray(self):
         a = np.array([1, 2, 3, 3, 2, 3])
         b = Buffer(a)

@@ -105,7 +105,7 @@ class BufferManager(object):
     def initialize_buffer(self, buffer_view=None):
         total_size = self.calculate_size()
         if buffer_view is None:
-            self.buffer = wrapper.BufferView(total_size)
+            self.buffer = wrapper.Buffer(total_size)
         else:
             assert len(buffer_view) >= total_size
             self.buffer = buffer_view.reshape(-1, 1, 1)

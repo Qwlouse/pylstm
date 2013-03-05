@@ -18,7 +18,12 @@ cdef class Buffer:
         elif isinstance(a, int):
             self.A = None
             self.view = cm.Matrix(features, batches, a)
-        else: # a is np array
+        else: # a is np array or iterable
+            if len(a) == 0:
+                self.view = cm.Matrix()
+                self.A = None
+                return
+            a = np.array(a)
             if len(a.shape) == 1:
                 a = a.reshape(-1, 1, 1)
             A = np.ascontiguousarray(a, dtype=np.float64)

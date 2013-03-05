@@ -154,5 +154,5 @@ class NpForwardLayer(Layer):  # TODO: bias
 ################################################################################
 
 DummyLayer = create_ConstructionLayer(Layer)
-LstmLayer = create_ConstructionLayer(wrapper.LstmLayer)
+#LstmLayer = create_ConstructionLayer(wrapper.LstmLayer)
 NpFwdLayer = create_ConstructionLayer(NpForwardLayer)
