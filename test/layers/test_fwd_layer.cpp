@@ -69,3 +69,14 @@ TEST(FwdLayerTest, fwd_pass)
 	add_scalar(expected, 0.5);
 	ASSERT_TRUE(equals(Y, expected));
 }
+
+TEST(FwdLayerTest, layer_wrapper)
+{
+	RLayer L(5, 4);
+	Matrix W(1, 1, L.get_weight_size());
+	Matrix X(L.in_size, 3, 2);
+	Matrix Y = L.auto_forward_pass(W, X);
+	Matrix expected(L.out_size, 3, 2);
+	add_scalar(expected, 0.5);
+	ASSERT_TRUE(equals(Y, expected));
+}

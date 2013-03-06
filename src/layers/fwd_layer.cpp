@@ -19,29 +19,16 @@ size_t RegularLayer::Weights::estimate_size(size_t n_inputs, size_t n_cells)
 	return n_inputs * n_cells + n_cells;
 }
 
-void lay_out(Matrix& buffer, vector<Matrix*> views)
-{
-	size_t offset = 0;
-	for (size_t i = 0; i < views.size(); ++i) {
-		size_t rows = views[i]->n_rows;
-		size_t cols = views[i]->n_columns;
-		size_t slices = views[i]->n_slices;
-		*views[i] = buffer.subslice(offset, rows, cols, slices);
-		offset += views[i]->size;
-		ASSERT(offset <= buffer.size);
-	}
-}
 
 RegularLayer::Weights::Weights(size_t n_inputs_, size_t n_cells_, Matrix& buffer) :
   n_inputs(n_inputs_), 
   n_cells(n_cells_), 
-  HX(boost::shared_array<double>(NULL), 0, NORMAL, n_cells, n_inputs, 1),
-  H_bias(boost::shared_array<double>(NULL), 0, NORMAL, n_cells, 1, 1)
+  HX(NULL, n_cells, n_inputs, 1),
+  H_bias(NULL, n_cells, 1, 1)
 {
-	vector<Matrix*> views;
-	views.push_back(&HX);
-	views.push_back(&H_bias);
-	lay_out(buffer, views);
+	add_view("HX", &HX);
+	add_view("H_bias", &H_bias);
+	lay_out(buffer);
 }
 
 size_t RegularLayer::Weights::size() {
@@ -59,11 +46,10 @@ size_t RegularLayer::FwdState::estimate_size(size_t n_inputs, size_t n_cells, si
 RegularLayer::FwdState::FwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_t time_, Matrix& buffer) :
   n_inputs(n_inputs_), n_cells(n_cells_),
   n_batches(n_batches_), time(time_),
-  Ha(boost::shared_array<double>(NULL), 0, NORMAL, n_cells, n_batches, time)
+  Ha(NULL, n_cells, n_batches, time)
 {
-	vector<Matrix*> views;
-	views.push_back(&Ha);
-	lay_out(buffer, views);
+	add_view("Ha", &Ha);
+	lay_out(buffer);
 }
 
 size_t RegularLayer::FwdState::size() {
@@ -81,13 +67,12 @@ size_t RegularLayer::BwdState::estimate_size(size_t n_inputs, size_t n_cells, si
 RegularLayer::BwdState::BwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_t time_, Matrix& buffer) :
     n_inputs(n_inputs_), n_cells(n_cells_),
     n_batches(n_batches_), time(time_),
-    Ha(boost::shared_array<double>(NULL), 0, NORMAL, n_cells, n_batches, time),
-	Hb(boost::shared_array<double>(NULL), 0, NORMAL, n_cells, n_batches, time)
+    Ha(NULL, n_cells, n_batches, time),
+	Hb(NULL, n_cells, n_batches, time)
 {
-	vector<Matrix*> views;
-	views.push_back(&Ha);
-	views.push_back(&Hb);
-	lay_out(buffer, views);
+	add_view("HX", &Ha);
+	add_view("H_bias", &Hb);
+	lay_out(buffer);
 }
 
 size_t RegularLayer::BwdState::size() {

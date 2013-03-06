@@ -13,7 +13,6 @@ struct NullDeleter
    }
 };
 
-
 Matrix::Matrix() :
 	offset(0),
 	data(NULL),

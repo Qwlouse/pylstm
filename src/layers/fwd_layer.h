@@ -3,6 +3,8 @@
 #include "matrix/matrix.h"
 #include "matrix/matrix_operation.h"
 #include <iostream>
+#include "layer.hpp"
+
 
 class RegularLayer {
 public:
@@ -11,7 +13,7 @@ public:
 	explicit RegularLayer(ActivationFunction f);
 
 	///////////// Classes
-	class Weights {
+	class Weights : public ::ViewContainer {
 	public:
 		static size_t estimate_size(size_t n_inputs, size_t n_cells);
 
@@ -26,7 +28,7 @@ public:
 		size_t size();
 	};
 
-	class FwdState {
+	class FwdState : public ::ViewContainer{
 	public:
 		static size_t estimate_size(size_t n_inputs, size_t n_cells, size_t n_batches, size_t time_);
 		///Variables defining sizes
@@ -41,7 +43,7 @@ public:
 		size_t size();
 	};
 
-	struct BwdState {
+	struct BwdState: public ::ViewContainer {
 		static size_t estimate_size(size_t n_inputs, size_t n_cells, size_t n_batches, size_t time_);
 		///Variables defining sizes
 		size_t n_inputs, n_cells;
@@ -58,3 +60,5 @@ public:
 	void backward(Weights &w, FwdState &b, BwdState &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas);
 	void gradient(Weights &w, Weights &grad, FwdState &b, BwdState &d, Matrix &y, Matrix& x, Matrix &out_deltas);
 };
+
+typedef Layer<RegularLayer> RLayer;
