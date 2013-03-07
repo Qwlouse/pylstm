@@ -98,9 +98,14 @@ class Layer : public BaseLayer {
 public:
 	L layer;
 
-	Layer(size_t in_size, size_t out_size) :
+    Layer(size_t in_size, size_t out_size) :
 		BaseLayer(in_size, out_size),
 		layer()
+	{}
+
+	Layer(size_t in_size, size_t out_size, L layer) :
+		BaseLayer(in_size, out_size),
+		layer(layer)
 	{}
 
 	size_t get_weight_size() {

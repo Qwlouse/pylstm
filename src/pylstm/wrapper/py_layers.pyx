@@ -127,8 +127,8 @@ cdef class BaseLayer:
 
 
 
-
-def create_layer(name, in_size, out_size):
+def create_layer(name, in_size, out_size, **kwargs):
     l = BaseLayer()
-    l.layer = cl.create_layer(name, in_size, out_size)
+    if name == "RegularLayer":
+        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.RegularLayer](in_size, out_size, cl.RegularLayer()))
     return l
