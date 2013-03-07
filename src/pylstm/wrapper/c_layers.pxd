@@ -1,6 +1,6 @@
 from c_matrix cimport Matrix
 from libcpp.string cimport string
-
+from libcpp.vector cimport vector
 cdef extern from "fwd_layer.h":
     cppclass RegularLayer:
         pass
@@ -8,7 +8,11 @@ cdef extern from "fwd_layer.h":
 cdef extern from "layer.hpp":
     cppclass ViewContainer:
         ViewContainer()
+        int contains(string name)
         Matrix& operator[](string name)
+        vector[string] get_view_names()
+        size_t get_size()
+        string get_typename()
         
     cppclass BaseLayer:
         size_t in_size

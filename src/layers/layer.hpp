@@ -2,12 +2,14 @@
 #include "Core.h"
 #include <map>
 #include <string>
+#include <cxxabi.h>
 
 class ViewContainer {
 public:
 	virtual ~ViewContainer() {}
 
 	Matrix notFound;
+
 
 	bool contains(const std::string& name) {
 		return views.count(name) >= 1;
@@ -20,6 +22,25 @@ public:
 		else {
 			return notFound;
 		}
+	}
+
+	std::vector<std::string> get_view_names() {
+	    std::vector<std::string> view_names;
+	    for(std::map<std::string,Matrix*>::iterator iter = views.begin(); iter != views.end(); ++iter)
+		{
+		    view_names.push_back(iter->first);
+		}
+		return view_names;
+	}
+
+	size_t get_size() {
+	    return size;
+	}
+
+	std::string get_typename() {
+	    int status;
+        char* demangled = abi::__cxa_demangle(typeid(*this).name(),0,0,&status);
+	    return std::string(demangled);
 	}
 
 protected:
@@ -39,11 +60,13 @@ protected:
 			offset += k->size;
 			ASSERT(offset <= buffer.size);
 		}
+		size = offset;
 	}
 
 
 private:
 	std::map<std::string, Matrix*> views;
+	size_t size;
 };
 
 
