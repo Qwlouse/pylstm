@@ -64,7 +64,13 @@ inline double tanhx2_deriv(double val) {
   return (2 * tanh_deriv(val));
 }
 
+inline double identity(double val) {
+    return val;
+}
 
+inline double one(double val) {
+    return 1.0;
+}
 
 
 // Function pointer to a unary double function
@@ -72,14 +78,27 @@ typedef double (*unary_double_func)(double);
 
 
 struct ActivationFunction {
-	unary_double_func apply;
+	unary_double_func f;
 	unary_double_func deriv;
-	ActivationFunction(unary_double_func f, unary_double_func fp): apply(f), deriv(fp) {};
+	ActivationFunction(unary_double_func f, unary_double_func fp): f(f), deriv(fp) {};
+
+	virtual void apply(Matrix a, Matrix out);
+	virtual void apply_deriv(Matrix a, Matrix out);
+};
+
+struct Linear : ActivationFunction
+{
+    Linear() : ActivationFunction(&identity, &one)  {};
 };
 
 struct Sigmoid : ActivationFunction
 {
 	Sigmoid() : ActivationFunction(&sigmoid, &sigmoid_deriv) {};
+};
+
+struct Tanh : ActivationFunction
+{
+    Tanh() : ActivationFunction(&tanh_, &tanh_deriv) {};
 };
 
 void apply(Matrix in, Matrix out, unary_double_func f);

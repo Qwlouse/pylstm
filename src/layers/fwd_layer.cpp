@@ -103,7 +103,7 @@ void RegularLayer::forward(RegularLayer::Weights &w, RegularLayer::FwdState &b, 
 	}
 
 	add_vector_into(w.H_bias, b.Ha);
-	apply(b.Ha, y, f.apply);
+	f.apply(b.Ha, y);
 }
 
 
@@ -127,8 +127,7 @@ void RegularLayer::backward(RegularLayer::Weights &w, RegularLayer::FwdState &b,
 	ASSERT(out_deltas.n_rows == n_cells);
 	ASSERT(out_deltas.n_columns == n_batches);
 	ASSERT(out_deltas.n_slices == n_slices);
-
-	apply(y, d.Hb, f.deriv);
+    f.apply_deriv(y, d.Hb);
 	dot(d.Hb, out_deltas, d.Ha);
 
     for (int t = 0; t < n_slices; ++t) {

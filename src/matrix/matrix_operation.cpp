@@ -169,7 +169,13 @@ void mult_add(Matrix a, Matrix b, Matrix out, d_type scale) {
 }
 
 
+void ActivationFunction::apply(Matrix in, Matrix out) {
+    transform(in.get_data(), in.get_data() + in.size, out.get_data(), *f);
+}
 
+void ActivationFunction::apply_deriv(Matrix in, Matrix out) {
+    transform(in.get_data(), in.get_data() + in.size, out.get_data(), *deriv);
+}
 
 void apply(Matrix in, Matrix out, unary_double_func f) {
 	transform(in.get_data(), in.get_data() + in.size, out.get_data(), *f);
