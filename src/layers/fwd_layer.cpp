@@ -9,7 +9,7 @@ RegularLayer::RegularLayer():
 	f(Sigmoid())
 { }
 
-RegularLayer::RegularLayer(ActivationFunction f):
+RegularLayer::RegularLayer(ActivationFunction& f):
 	f(f)
 { }
 

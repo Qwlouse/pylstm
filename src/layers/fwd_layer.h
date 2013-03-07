@@ -8,9 +8,9 @@
 
 class RegularLayer {
 public:
-	ActivationFunction f;
+	const ActivationFunction& f;
 	RegularLayer();
-	explicit RegularLayer(ActivationFunction f);
+	explicit RegularLayer(ActivationFunction& f);
 
 	///////////// Classes
 	class Weights : public ::ViewContainer {

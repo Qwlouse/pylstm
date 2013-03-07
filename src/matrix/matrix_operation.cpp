@@ -169,11 +169,11 @@ void mult_add(Matrix a, Matrix b, Matrix out, d_type scale) {
 }
 
 
-void ActivationFunction::apply(Matrix in, Matrix out) {
+void ActivationFunction::apply(Matrix in, Matrix out) const {
     transform(in.get_data(), in.get_data() + in.size, out.get_data(), *f);
 }
 
-void ActivationFunction::apply_deriv(Matrix in, Matrix out) {
+void ActivationFunction::apply_deriv(Matrix in, Matrix out) const {
     transform(in.get_data(), in.get_data() + in.size, out.get_data(), *deriv);
 }
 

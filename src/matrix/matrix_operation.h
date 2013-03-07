@@ -78,12 +78,12 @@ typedef double (*unary_double_func)(double);
 
 
 struct ActivationFunction {
-	unary_double_func f;
-	unary_double_func deriv;
+	const unary_double_func f;
+	const unary_double_func deriv;
 	ActivationFunction(unary_double_func f, unary_double_func fp): f(f), deriv(fp) {};
 
-	virtual void apply(Matrix a, Matrix out);
-	virtual void apply_deriv(Matrix a, Matrix out);
+	virtual void apply(Matrix a, Matrix out) const;
+	virtual void apply_deriv(Matrix a, Matrix out) const;
 };
 
 struct Linear : ActivationFunction

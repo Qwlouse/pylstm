@@ -129,6 +129,16 @@ cdef class BaseLayer:
 
 def create_layer(name, in_size, out_size, **kwargs):
     l = BaseLayer()
-    if name == "RegularLayer":
-        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.RegularLayer](in_size, out_size, cl.RegularLayer()))
+    cdef cm.ActivationFunction* act_fct = <cm.ActivationFunction*> new cm.Sigmoid()
+    if "act_func" in kwargs:
+        af_name = kwargs["act_func"]
+        if af_name.lower() == "sigmoid":
+            act_fct = <cm.ActivationFunction*> new cm.Sigmoid()
+        elif af_name.lower() == "tanh":
+            act_fct = <cm.ActivationFunction*> new cm.Tanh()
+        elif af_name.lower() == "linear":
+            act_fct = <cm.ActivationFunction*> new cm.Linear()
+
+    if name.lower() == "regularlayer":
+        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.RegularLayer](in_size, out_size, cl.RegularLayer(deref(act_fct))))
     return l

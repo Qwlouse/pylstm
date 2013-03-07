@@ -1,9 +1,10 @@
-from c_matrix cimport Matrix
+from c_matrix cimport Matrix, ActivationFunction
 from libcpp.string cimport string
 from libcpp.vector cimport vector
 cdef extern from "fwd_layer.h":
     cppclass RegularLayer:
         RegularLayer()
+        RegularLayer(ActivationFunction& f)
 
 cdef extern from "layer.hpp":
     cppclass ViewContainer:
@@ -23,23 +24,23 @@ cdef extern from "layer.hpp":
 
         string get_typename()
 
-        size_t get_weight_size()
+        size_t get_weight_size() except +
 
-        size_t get_fwd_state_size(size_t n_batches, size_t n_slices)
+        size_t get_fwd_state_size(size_t n_batches, size_t n_slices) except +
 
-        size_t get_bwd_state_size(size_t n_batches, size_t n_slices)
+        size_t get_bwd_state_size(size_t n_batches, size_t n_slices) except +
 
-        ViewContainer* create_weights_view(Matrix& w)
+        ViewContainer* create_weights_view(Matrix& w) except +
 
-        ViewContainer* create_fwd_state_view(Matrix&b, size_t n_batches, size_t n_slices)
+        ViewContainer* create_fwd_state_view(Matrix&b, size_t n_batches, size_t n_slices) except +
 
-        ViewContainer* create_bwd_state_view(Matrix&b, size_t n_batches, size_t n_slices)
+        ViewContainer* create_bwd_state_view(Matrix&b, size_t n_batches, size_t n_slices) except +
 
-        void forward_pass(ViewContainer& w, ViewContainer& b, Matrix& x, Matrix& y)
+        void forward_pass(ViewContainer& w, ViewContainer& b, Matrix& x, Matrix& y) except +
 
-        void backward_pass(ViewContainer &w, ViewContainer &b, ViewContainer &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas)
+        void backward_pass(ViewContainer &w, ViewContainer &b, ViewContainer &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas) except +
 
-        void gradient(ViewContainer &w, ViewContainer &grad, ViewContainer &b, ViewContainer &d, Matrix &y, Matrix& x, Matrix &out_deltas)
+        void gradient(ViewContainer &w, ViewContainer &grad, ViewContainer &b, ViewContainer &d, Matrix &y, Matrix& x, Matrix &out_deltas) except +
 
 
     cppclass Layer[L]:

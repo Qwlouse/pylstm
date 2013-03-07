@@ -26,6 +26,17 @@ cdef extern from "matrix.h":
 
 cdef extern from "matrix_operation.h":
 #    void add(Matrix a, Matrix b, Matrix out)
+    cppclass ActivationFunction:
+        pass
+
+    cppclass Sigmoid:
+        pass
+
+    cppclass Tanh:
+        pass
+
+    cppclass Linear:
+        pass
 
     void add_into_b(Matrix a, Matrix b)
 
