@@ -31,11 +31,6 @@ RegularLayer::Weights::Weights(size_t n_inputs_, size_t n_cells_, Matrix& buffer
 	lay_out(buffer);
 }
 
-size_t RegularLayer::Weights::size() {
-  return HX.size + H_bias.size;  //!< inputs X, H, to cells H + bias to H
-
-}
-
 ////////////////////// Fwd Buffer /////////////////////////////////////////////
 
 size_t RegularLayer::FwdState::estimate_size(size_t n_inputs, size_t n_cells, size_t n_batches_, size_t time_)
@@ -50,11 +45,6 @@ RegularLayer::FwdState::FwdState(size_t n_inputs_, size_t n_cells_, size_t n_bat
 {
 	add_view("Ha", &Ha);
 	lay_out(buffer);
-}
-
-size_t RegularLayer::FwdState::size() {
- //Views on all activations
-  return Ha.size; //!< Hidden unit activation
 }
 
 ////////////////////// Bwd Buffer /////////////////////////////////////////////
@@ -74,12 +64,6 @@ RegularLayer::BwdState::BwdState(size_t n_inputs_, size_t n_cells_, size_t n_bat
 	add_view("H_bias", &Hb);
 	lay_out(buffer);
 }
-
-size_t RegularLayer::BwdState::size() {
- //Views on all activations
-  return Ha.size; //!< Hidden unit activation
-}
-
 
 ////////////////////// Methods /////////////////////////////////////////////
 void RegularLayer::forward(RegularLayer::Weights &w, RegularLayer::FwdState &b, Matrix &x, Matrix &y) {

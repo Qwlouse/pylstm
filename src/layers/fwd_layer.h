@@ -24,8 +24,6 @@ public:
 		Matrix H_bias;   //!< bias to input gate, forget gate, state Z, output gate
 
 		Weights(size_t n_inputs, size_t n_cells, Matrix& buffer);
-
-		size_t size();
 	};
 
 	class FwdState : public ::ViewContainer{
@@ -39,8 +37,6 @@ public:
 		Matrix Ha; //!< Hidden unit activation and output
 
 		FwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_, Matrix& buffer);
-
-		size_t size();
 	};
 
 	struct BwdState: public ::ViewContainer {
@@ -53,7 +49,6 @@ public:
 		Matrix Ha, Hb; //Hidden unit activation and output
 
 		BwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_, Matrix& buffer);
-		size_t size();
 	};
 
 	void forward(Weights &w, FwdState &b, Matrix &x, Matrix &y);

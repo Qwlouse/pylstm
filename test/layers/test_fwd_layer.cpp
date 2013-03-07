@@ -11,7 +11,7 @@ TEST(FwdLayerTest, FwdWeightsConstruction)
 	Matrix buffer = {{{1, 2, 3, 4, 5, 6, 7, 8}}};
 
 	RegularLayer::Weights w(3, 2, buffer);
-	ASSERT_EQ(8, w.size());
+	ASSERT_EQ(8, w.get_size());
 	ASSERT_EQ(w.HX.size, 6);
 	ASSERT_EQ(w.H_bias.size, 2);
 	ASSERT_EQ(w.HX[0], 1);
@@ -27,7 +27,7 @@ TEST(FwdLayerTest, FwdBuffersConstruction)
 	Matrix buffer = {{{1, 2, 3, 4, 5, 6}}};
 
 	RegularLayer::FwdState b(5, 1, 3, 2, buffer);
-	ASSERT_EQ(6, b.size());
+	ASSERT_EQ(6, b.get_size());
 	ASSERT_EQ(b.Ha.size, 6);
 	ASSERT_EQ(b.Ha[0], 1);
 	ASSERT_EQ(b.Ha[1], 2);
