@@ -80,6 +80,7 @@ public:
 		{}
 
 	virtual ~BaseLayer() {};
+	virtual std::string get_typename() = 0;
 	virtual size_t get_weight_size() = 0;
 	virtual size_t get_fwd_state_size(size_t n_batches, size_t n_slices) = 0;
 	virtual size_t get_bwd_state_size(size_t n_batches, size_t n_slices) = 0;
@@ -149,6 +150,12 @@ public:
 				dynamic_cast<typename L::BwdState&>(d),
 				y, x, out_deltas);
 	}
+
+	std::string get_typename() {
+    	    int status;
+            char* demangled = abi::__cxa_demangle(typeid(layer).name(),0,0,&status);
+    	    return std::string(demangled);
+    	}
 
 
 	Matrix auto_forward_pass(Matrix& w, Matrix& x) {

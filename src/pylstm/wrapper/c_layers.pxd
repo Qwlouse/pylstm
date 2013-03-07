@@ -19,6 +19,8 @@ cdef extern from "layer.hpp":
         size_t out_size
         
         BaseLayer(size_t in_size, size_t out_size)
+
+        string get_typename()
     
         size_t get_weight_size()
     

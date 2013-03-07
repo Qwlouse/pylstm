@@ -56,9 +56,15 @@ cdef create_BufferContainer(cl.ViewContainer* c):
 
 
 cdef class BaseLayer:
-    cdef int in_size
-    cdef int out_size
     cdef cl.BaseLayer* layer
+
+    @property
+    def in_size(self):
+        return self.layer.in_size
+
+    @property
+    def out_size(self):
+        return self.layer.out_size
 
     def __cinit__(self):
         self.layer = NULL
@@ -66,17 +72,11 @@ cdef class BaseLayer:
     def __dealloc(self):
         del self.layer
 
-    def get_output_size(self):
-        return self.layer.out_size
-
-    def get_input_size(self):
-        return self.layer.in_size
-
     def get_input_buffer_size(self, time_length=1, batch_size=1):
-        return self.in_size * time_length * batch_size
+        return self.layer.in_size * time_length * batch_size
 
     def get_output_buffer_size(self, time_length=1, batch_size=1):
-        return self.out_size * time_length * batch_size
+        return self.layer.out_size * time_length * batch_size
 
     def get_param_size(self, time_length=1, batch_size=1):
         return self.layer.get_weight_size()
@@ -89,11 +89,11 @@ cdef class BaseLayer:
 
     def create_input_view(self, input_buffer, time_length=1, batch_size=1):
         assert len(input_buffer) == self.get_input_buffer_size(time_length, batch_size)
-        return input_buffer.reshape(time_length, batch_size, self.in_size)
+        return input_buffer.reshape(time_length, batch_size, self.layer.in_size)
 
     def create_output_view(self, output_buffer, time_length=1, batch_size=1):
         assert len(output_buffer) == self.get_output_buffer_size(time_length, batch_size)
-        return output_buffer.reshape(time_length, batch_size, self.out_size)
+        return output_buffer.reshape(time_length, batch_size, self.layer.out_size)
 
     def create_param_view(self, Buffer param_buffer, time_length=1, batch_size=1):
         cdef cl.ViewContainer* params = self.layer.create_weights_view(param_buffer.view)
@@ -106,16 +106,27 @@ cdef class BaseLayer:
     def create_internal_error_view(self, Buffer internal_error_buffer, time_length=1, batch_size=1):
         cdef cl.ViewContainer* deltas = self.layer.create_bwd_state_view(internal_error_buffer.view, batch_size, time_length)
         return create_BufferContainer(deltas)
-"""
-    def forward(self, LstmParamBuffer param, LstmInternalBuffer internal, BufferView input, BufferView output):
-        clstm.lstm_forward(deref(param.thisptr), deref(internal.thisptr), input.view, output.view)
 
-    def backward(self, LstmParamBuffer param, LstmInternalBuffer internal, LstmErrorBuffer err, BufferView output, BufferView in_deltas, BufferView out_deltas):
-        clstm.lstm_backward(deref(param.thisptr), deref(internal.thisptr), deref(err.thisptr), output.view, in_deltas.view, out_deltas.view)
+    def forward(self, BufferContainer param, BufferContainer internal, Buffer in_view, Buffer out_view):
+        self.layer.forward_pass(deref(param.this_ptr), deref(internal.this_ptr), in_view.view, out_view.view)
 
-    def gradient(self, LstmParamBuffer param, LstmParamBuffer grad, LstmInternalBuffer internal, LstmErrorBuffer err, BufferView output, BufferView input):
-        clstm.lstm_grad(deref(param.thisptr), deref(grad.thisptr), deref(internal.thisptr), deref(err.thisptr), output.view, input.view)
-"""
+    def backward(self, BufferContainer param, BufferContainer internal, BufferContainer err, Buffer out_view, Buffer in_deltas, Buffer out_deltas):
+        self.layer.backward_pass(deref(param.this_ptr), deref(internal.this_ptr), deref(err.this_ptr), out_view.view, in_deltas.view, out_deltas.view)
+
+    def gradient(self, BufferContainer param, BufferContainer grad, BufferContainer internal, BufferContainer err, Buffer out_view, Buffer in_view, Buffer out_deltas):
+        self.layer.gradient(deref(param.this_ptr), deref(grad.this_ptr), deref(internal.this_ptr), deref(err.this_ptr), out_view.view, in_view.view, out_deltas.view)
+
+    def __unicode__(self):
+        return "<" + self.layer.get_typename() + ": in_size=%d out_size=%d>"%(int(self.layer.in_size), int(self.layer.out_size))
+
+    def __repr__(self):
+        return self.__unicode__()
+
+    def __len__(self):
+        return self.layer.out_size
+
+
+
 
 def create_layer(name, in_size, out_size):
     l = BaseLayer()
