@@ -1,12 +1,12 @@
 #!/usr/bin/python
 # coding=utf-8
-cimport c_lstm_layer as clstm
+cimport c_layers as cl
 cimport c_matrix as cm
 from cython.operator cimport dereference as deref
 from py_matrix cimport Buffer
 
 cdef class BufferContainer:
-    cdef clstm.ViewContainer* this_ptr 
+    cdef cl.ViewContainer* this_ptr
     
     def __cinit__(self):
         self.this_ptr = NULL
@@ -14,7 +14,7 @@ cdef class BufferContainer:
     def __dealloc__(self):
         del self.this_ptr
 
-cdef create_BufferContainer(clstm.ViewContainer* c):
+cdef create_BufferContainer(cl.ViewContainer* c):
     bc = BufferContainer()
     bc.this_ptr = c
     return bc
@@ -23,7 +23,7 @@ cdef create_BufferContainer(clstm.ViewContainer* c):
 cdef class BaseLayer:
     cdef int in_size
     cdef int out_size
-    cdef clstm.BaseLayer* layer
+    cdef cl.BaseLayer* layer
 
     def __cinit__(self):
         self.layer = NULL
@@ -61,15 +61,15 @@ cdef class BaseLayer:
         return output_buffer.reshape(time_length, batch_size, self.out_size)
 
     def create_param_view(self, Buffer param_buffer, time_length=1, batch_size=1):
-        cdef clstm.ViewContainer* params = self.layer.create_weights_view(param_buffer.view)
+        cdef cl.ViewContainer* params = self.layer.create_weights_view(param_buffer.view)
         return create_BufferContainer(params)
         
     def create_internal_view(self, Buffer internal_buffer, time_length=1, batch_size=1):
-        cdef clstm.ViewContainer* internal = self.layer.create_fwd_state_view(internal_buffer.view, batch_size, time_length)
+        cdef cl.ViewContainer* internal = self.layer.create_fwd_state_view(internal_buffer.view, batch_size, time_length)
         return create_BufferContainer(internal)
 
     def create_internal_error_view(self, Buffer internal_error_buffer, time_length=1, batch_size=1):
-        cdef clstm.ViewContainer* deltas = self.layer.create_bwd_state_view(internal_error_buffer.view, batch_size, time_length)
+        cdef cl.ViewContainer* deltas = self.layer.create_bwd_state_view(internal_error_buffer.view, batch_size, time_length)
         return create_BufferContainer(deltas)
 """
     def forward(self, LstmParamBuffer param, LstmInternalBuffer internal, BufferView input, BufferView output):
@@ -84,5 +84,5 @@ cdef class BaseLayer:
 
 def create_layer(name, in_size, out_size):
     l = BaseLayer()
-    l.layer = clstm.create_layer(name, in_size, out_size)
+    l.layer = cl.create_layer(name, in_size, out_size)
     return l
