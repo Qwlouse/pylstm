@@ -8,27 +8,23 @@
 
 class RegularLayer {
 public:
-	const ActivationFunction& f;
+	ActivationFunction* f;
 	RegularLayer();
-	explicit RegularLayer(ActivationFunction& f);
-
+	explicit RegularLayer(ActivationFunction* f);
+	~RegularLayer();
 	///////////// Classes
 	class Weights : public ::ViewContainer {
 	public:
-		static size_t estimate_size(size_t n_inputs, size_t n_cells);
-
-
 		size_t n_inputs, n_cells;
 		///Variables defining sizes
 		Matrix HX;  //!< inputs X, H, S to input gate I
 		Matrix H_bias;   //!< bias to input gate, forget gate, state Z, output gate
 
-		Weights(size_t n_inputs, size_t n_cells, Matrix& buffer);
+		Weights(size_t n_inputs, size_t n_cells);
 	};
 
 	class FwdState : public ::ViewContainer{
 	public:
-		static size_t estimate_size(size_t n_inputs, size_t n_cells, size_t n_batches, size_t time_);
 		///Variables defining sizes
 		size_t n_inputs, n_cells;
 		size_t n_batches, time;
@@ -36,11 +32,10 @@ public:
 		//Views on all activations
 		Matrix Ha; //!< Hidden unit activation and output
 
-		FwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_, Matrix& buffer);
+		FwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
 	};
 
 	struct BwdState: public ::ViewContainer {
-		static size_t estimate_size(size_t n_inputs, size_t n_cells, size_t n_batches, size_t time_);
 		///Variables defining sizes
 		size_t n_inputs, n_cells;
 		size_t n_batches, time;
@@ -48,7 +43,7 @@ public:
 		//Views on all activations
 		Matrix Ha, Hb; //Hidden unit activation and output
 
-		BwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_, Matrix& buffer);
+		BwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
 	};
 
 	void forward(Weights &w, FwdState &b, Matrix &x, Matrix &y);

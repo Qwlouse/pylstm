@@ -4,7 +4,7 @@ from libcpp.vector cimport vector
 cdef extern from "fwd_layer.h":
     cppclass RegularLayer:
         RegularLayer()
-        RegularLayer(ActivationFunction& f)
+        RegularLayer(ActivationFunction* f)
 
 cdef extern from "layer.hpp":
     cppclass ViewContainer:

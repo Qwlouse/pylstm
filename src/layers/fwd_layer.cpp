@@ -6,21 +6,19 @@
 using std::vector;
 
 RegularLayer::RegularLayer():
-	f(Sigmoid())
+	f(new Sigmoid())
 { }
 
-RegularLayer::RegularLayer(ActivationFunction& f):
+RegularLayer::RegularLayer(ActivationFunction* f):
 	f(f)
 { }
 
-
-size_t RegularLayer::Weights::estimate_size(size_t n_inputs, size_t n_cells)
+RegularLayer::~RegularLayer()
 {
-	return n_inputs * n_cells + n_cells;
+	delete f;
 }
 
-
-RegularLayer::Weights::Weights(size_t n_inputs_, size_t n_cells_, Matrix& buffer) :
+RegularLayer::Weights::Weights(size_t n_inputs_, size_t n_cells_) :
   n_inputs(n_inputs_), 
   n_cells(n_cells_), 
   HX(NULL, n_cells, n_inputs, 1),
@@ -28,33 +26,21 @@ RegularLayer::Weights::Weights(size_t n_inputs_, size_t n_cells_, Matrix& buffer
 {
 	add_view("HX", &HX);
 	add_view("H_bias", &H_bias);
-	lay_out(buffer);
 }
 
 ////////////////////// Fwd Buffer /////////////////////////////////////////////
 
-size_t RegularLayer::FwdState::estimate_size(size_t n_inputs, size_t n_cells, size_t n_batches_, size_t time_)
-{
-	return n_cells * n_batches_ * time_;
-}
-
-RegularLayer::FwdState::FwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_t time_, Matrix& buffer) :
+RegularLayer::FwdState::FwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_t time_) :
   n_inputs(n_inputs_), n_cells(n_cells_),
   n_batches(n_batches_), time(time_),
   Ha(NULL, n_cells, n_batches, time)
 {
 	add_view("Ha", &Ha);
-	lay_out(buffer);
 }
 
 ////////////////////// Bwd Buffer /////////////////////////////////////////////
 
-size_t RegularLayer::BwdState::estimate_size(size_t n_inputs, size_t n_cells, size_t n_batches_, size_t time_)
-{
-	return 2 * n_cells * n_batches_ * time_;
-}
-
-RegularLayer::BwdState::BwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_t time_, Matrix& buffer) :
+RegularLayer::BwdState::BwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_t time_) :
     n_inputs(n_inputs_), n_cells(n_cells_),
     n_batches(n_batches_), time(time_),
     Ha(NULL, n_cells, n_batches, time),
@@ -62,7 +48,6 @@ RegularLayer::BwdState::BwdState(size_t n_inputs_, size_t n_cells_, size_t n_bat
 {
 	add_view("HX", &Ha);
 	add_view("H_bias", &Hb);
-	lay_out(buffer);
 }
 
 ////////////////////// Methods /////////////////////////////////////////////
@@ -87,7 +72,7 @@ void RegularLayer::forward(RegularLayer::Weights &w, RegularLayer::FwdState &b, 
 	}
 
 	add_vector_into(w.H_bias, b.Ha);
-	f.apply(b.Ha, y);
+	f->apply(b.Ha, y);
 }
 
 
@@ -111,7 +96,7 @@ void RegularLayer::backward(RegularLayer::Weights &w, RegularLayer::FwdState &b,
 	ASSERT(out_deltas.n_rows == n_cells);
 	ASSERT(out_deltas.n_columns == n_batches);
 	ASSERT(out_deltas.n_slices == n_slices);
-    f.apply_deriv(y, d.Hb);
+    f->apply_deriv(y, d.Hb);
 	dot(d.Hb, out_deltas, d.Ha);
 
     for (int t = 0; t < n_slices; ++t) {
