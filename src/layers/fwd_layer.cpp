@@ -6,16 +6,15 @@
 using std::vector;
 
 RegularLayer::RegularLayer():
-	f(new Sigmoid())
+	f(&Sigmoid)
 { }
 
-RegularLayer::RegularLayer(ActivationFunction* f):
+RegularLayer::RegularLayer(const ActivationFunction* f):
 	f(f)
 { }
 
 RegularLayer::~RegularLayer()
 {
-	delete f;
 }
 
 RegularLayer::Weights::Weights(size_t n_inputs_, size_t n_cells_) :

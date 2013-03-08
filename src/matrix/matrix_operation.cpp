@@ -177,6 +177,7 @@ void ActivationFunction::apply_deriv(Matrix in, Matrix out) const {
     transform(in.get_data(), in.get_data() + in.size, out.get_data(), *deriv);
 }
 
+
 void apply(Matrix in, Matrix out, unary_double_func f) {
 	transform(in.get_data(), in.get_data() + in.size, out.get_data(), *f);
 }

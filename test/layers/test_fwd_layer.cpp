@@ -6,6 +6,7 @@
 #include "layers/fwd_layer.h"
 #include "matrix/matrix_operation.h"
 #include <iostream>
+using namespace std;
 
 TEST(FwdLayerTest, FwdWeightsConstruction)
 {
@@ -62,4 +63,18 @@ TEST(FwdLayerTest, layer_wrapper)
 	Matrix expected(L.out_size, 3, 2);
 	add_scalar(expected, 0.5);
 	ASSERT_TRUE(equals(Y, expected));
+}
+
+
+TEST(FwdLayerTest, layer_wrapper2)
+{
+	Layer<RegularLayer> layer(5, 4, RegularLayer(&Sigmoid));
+
+	Matrix W(1, 1, layer.get_weight_size());
+	Matrix X(layer.in_size, 3, 2);
+	Matrix Y = layer.auto_forward_pass(W, X);
+	//Matrix expected(layer.out_size, 3, 2);
+	//add_scalar(expected, 0.5);
+	//ASSERT_TRUE(equals(Y, expected));
+	
 }

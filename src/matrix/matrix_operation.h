@@ -86,20 +86,10 @@ struct ActivationFunction {
 	virtual void apply_deriv(Matrix a, Matrix out) const;
 };
 
-struct Linear : ActivationFunction
-{
-    Linear() : ActivationFunction(&identity, &one)  {};
-};
+const ActivationFunction Sigmoid(&sigmoid, &sigmoid_deriv);
+const ActivationFunction Linear(&identity, &one);
+const ActivationFunction Tanh(&tanh_, &tanh_deriv);
 
-struct Sigmoid : ActivationFunction
-{
-	Sigmoid() : ActivationFunction(&sigmoid, &sigmoid_deriv) {};
-};
-
-struct Tanh : ActivationFunction
-{
-    Tanh() : ActivationFunction(&tanh_, &tanh_deriv) {};
-};
 
 void apply(Matrix in, Matrix out, unary_double_func f);
 

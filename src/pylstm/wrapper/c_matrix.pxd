@@ -29,14 +29,10 @@ cdef extern from "matrix_operation.h":
     cppclass ActivationFunction:
         pass
 
-    cppclass Sigmoid:
-        pass
+    ActivationFunction Sigmoid
+    ActivationFunction Tanh
+    ActivationFunction Linear
 
-    cppclass Tanh:
-        pass
-
-    cppclass Linear:
-        pass
 
     void add_into_b(Matrix a, Matrix b)
 

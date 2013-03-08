@@ -13,6 +13,3 @@ TARGET_LINK_LIBRARIES(py_matrix matrix)
 
 CYTHON_ADD_MODULE(py_layers py_layers.pyx)
 TARGET_LINK_LIBRARIES(py_layers layers)
-
-CYTHON_ADD_MODULE(py_fwd_layer py_fwd_layer.pyx)
-TARGET_LINK_LIBRARIES(py_fwd_layer layers)
