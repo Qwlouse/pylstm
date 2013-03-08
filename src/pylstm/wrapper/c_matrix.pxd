@@ -1,65 +1,59 @@
 from libcpp cimport bool
 
-cdef extern from "matrix_cpu.h":
-    cdef cppclass MatrixView2DCPU:
-        int n_rows
-        int n_columns
-        int size
+cdef extern from "matrix.h":
+    ctypedef double d_type
 
-        double& operator[](int)
-
-    cdef cppclass MatrixView3DCPU:
+    cdef cppclass Matrix:
         int n_rows
         int n_columns
         int n_slices
         int size
-        double* data
 
-        MatrixView3DCPU()
-        MatrixView3DCPU(int, int, int)
-
-        MatrixView2DCPU slice(int)
-        MatrixView3DCPU slice(int, int)
-        MatrixView2DCPU& flatten()
-
-        void set_data(double* d)
+        Matrix()
+        Matrix(Matrix&)
+        Matrix(int, int, int)
+        Matrix(d_type* data_ptr, size_t n_rows, size_t n_columns, size_t n_slices)
+        d_type& operator[](size_t)
+        Matrix T()
+        d_type& get(size_t row, size_t col, size_t slice)
+        d_type* get_data()
+        Matrix subslice(size_t start, size_t n_rows, size_t n_columns, size_t n_slices)
+        Matrix slice(size_t slice_index)
+        void set_all_elements_to(d_type value)
         void print_me()
-        double& operator[](int)
-
-    cdef cppclass MatrixCPU:
-        int n_rows
-        int n_columns
-        int n_slices
-        int size
-        MatrixView2DCPU standard_view_2d
-        MatrixView3DCPU standard_view_3d
-
-        MatrixCPU(int, int, int)
-        MatrixCPU(double*, int, int, int) #todo use d_type and size_t
-        void print_me()
-        double& operator[](int)
 
 
 
-cdef extern from "matrix_operation_cpu.h":
-#    void add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out)
+cdef extern from "matrix_operation.h":
+#    void add(Matrix a, Matrix b, Matrix out)
+    cppclass ActivationFunction:
+        pass
 
-    void add_into_b(MatrixView2DCPU a, MatrixView2DCPU b)
+    cppclass Sigmoid:
+        pass
 
-    void add_scalar(MatrixView2DCPU a, double b)
+    cppclass Tanh:
+        pass
 
-    void mult(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out)
+    cppclass Linear:
+        pass
 
-    void mult_add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out)
+    void add_into_b(Matrix a, Matrix b)
 
-    void dot(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out)
+    void add_scalar(Matrix a, double b)
 
-    void dot_add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out)
+    void mult(Matrix a, Matrix b, Matrix out)
 
-    void apply_sigmoid(MatrixView2DCPU a, MatrixView2DCPU out)
+    void mult_add(Matrix a, Matrix b, Matrix out)
 
-    void apply_tanh(MatrixView2DCPU a, MatrixView2DCPU out)
+    void dot(Matrix a, Matrix b, Matrix out)
 
-    void apply_tanhx2(MatrixView2DCPU a, MatrixView2DCPU out)
+    void dot_add(Matrix a, Matrix b, Matrix out)
 
-    bool equals(MatrixView2DCPU a, MatrixView2DCPU out)
+    void apply_sigmoid(Matrix a, Matrix out)
+
+    void apply_tanh(Matrix a, Matrix out)
+
+    void apply_tanhx2(Matrix a, Matrix out)
+
+    bool equals(Matrix a, Matrix out)

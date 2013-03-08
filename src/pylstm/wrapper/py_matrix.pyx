@@ -10,52 +10,25 @@ np.import_array()
 # http://article.gmane.org/gmane.comp.python.cython.user/5625
 
 cdef class Buffer:
-    def __cinit__(self, a):
+    def __cinit__(self, a=None, int batches=1, int features=1):
         cdef np.ndarray[np.double_t, ndim=3, mode='c'] A
-        if isinstance(a, int):
-            self.thisptr = new cm.MatrixCPU(1, 1, a)
-        else:
+        if a is None:
+            self.A = None
+            self.view = cm.Matrix()
+        elif isinstance(a, int):
+            self.A = None
+            self.view = cm.Matrix(features, batches, a)
+        else: # a is np array or iterable
+            if len(a) == 0:
+                self.view = cm.Matrix()
+                self.A = None
+                return
+            a = np.array(a)
             if len(a.shape) == 1:
                 a = a.reshape(-1, 1, 1)
             A = np.ascontiguousarray(a, dtype=np.float64)
-            self.thisptr = new cm.MatrixCPU(&A[0,0,0], A.shape[2], A.shape[1], A.shape[0])
+            self.view = cm.Matrix(&A[0,0,0], A.shape[2], A.shape[1], A.shape[0])
             self.A = A # make sure numpy array does not get GCed
-
-    def __dealloc__(self):
-        del self.thisptr
-
-    cdef cm.MatrixView3DCPU get_standard_view(self):
-        return self.thisptr.standard_view_3d
-
-    def __len__(self):
-        return self.thisptr.n_slices
-
-    def __getitem__(self, item):
-        if isinstance(item, int):
-            return self.thisptr[0][item]
-        elif isinstance(item, slice):
-            start = item.start or 0
-            stop = item.stop or len(self)
-            return BufferView(self, start, stop)
-
-    def print_me(self):
-        self.thisptr.print_me()
-
-
-cdef class BufferView:
-    cdef cm.MatrixView2DCPU flatten2D(self):
-        return self.view.flatten()
-
-    def __cinit__(self, a=None, batches=1, features=1):
-        if a is None:
-            self.view = cm.MatrixView3DCPU()
-        elif isinstance(a, int):
-            self.B = Buffer(a * batches * features)
-            self.view = cm.MatrixView3DCPU(features, batches, a)
-            self.view.set_data(&self.B.thisptr[0][0])
-        else: # a is np array
-            self.B = Buffer(a)
-            self.view = self.B.get_standard_view()
 
     def __len__(self):
         return self.view.size
@@ -67,11 +40,14 @@ cdef class BufferView:
             start = item.start or 0
             stop = item.stop or self.get_time_size()
 
-            b = BufferView()
-            b.view = self.view.slice(start, stop)
-            b.B = self.B
+            b = Buffer()
+            b.view = self.view.subslice(start, self.view.n_rows, self.view.n_columns, stop-start)
+            b.A = self.A
             return b
-
+            
+    def __setitem__(self, int item, float value):
+        self.view[item] = value
+        
     # from here: https://gist.github.com/1249305
     def as_array(self):
         cdef np.npy_intp shape[3]
@@ -80,14 +56,13 @@ cdef class BufferView:
         shape[1] = <np.npy_intp> self.get_batch_size()
         shape[2] = <np.npy_intp> self.get_feature_size()
         # Create a 3D array
-        ndarray = np.PyArray_SimpleNewFromData(3, shape, np.NPY_FLOAT64, self.view.data)
+        ndarray = np.PyArray_SimpleNewFromData(3, shape, np.NPY_FLOAT64, self.view.get_data())
         # Assign our object to the 'base' of the ndarray object
         ndarray.base = <PyObject*> self
         # Increment the reference count, as the above assignement was done in
         # C, and Python does not know that there is this additional reference
         Py_INCREF(self)
         return ndarray
-
 
     def get_feature_size(self):
         return self.view.n_rows
@@ -106,6 +81,7 @@ cdef class BufferView:
             assert batch_size >= 1
             assert feature_size >= 1
             time_size = len(self) // (batch_size * feature_size)
+            print(time_size, time_size * batch_size * feature_size, len(self))
         elif batch_size == -1:
             assert time_size >= 1
             assert feature_size >= 1
@@ -118,50 +94,51 @@ cdef class BufferView:
         #assert batch_size >= 1
         #assert feature_size >= 1
         assert time_size * batch_size * feature_size == len(self)
-        b = BufferView()
-        b.view = cm.MatrixView3DCPU(feature_size, batch_size, time_size)
-        b.view.set_data(&self.view[0])
-        b.B = self.B
+        b = Buffer()
+        b.A = self.A
+        b.view = cm.Matrix(self.view)
+        b.view.n_rows = feature_size
+        b.view.n_columns = batch_size
+        b.view.n_slices = time_size 
         return b
-
 
     def print_me(self):
         self.view.print_me()
 
 
 
-def dot(BufferView a not None, BufferView b not None, BufferView out not None):
-    cm.dot(a.flatten2D(), b.flatten2D(), out.flatten2D())
+def dot(Buffer a not None, Buffer b not None, Buffer out not None):
+    cm.dot(a.view, b.view, out.view)
 
 #def add(MatrixCPU a not None, MatrixCPU b not None, MatrixCPU out not None):
-#    cm.add(a.flatten2D(), b.flatten2D(), out.flatten2D())
+#    cm.add(a.view, b.view, out.view)
 
-def add_into_b(BufferView a not None, BufferView b not None):
-    cm.add_into_b(a.flatten2D(), b.flatten2D())
+def add_into_b(Buffer a not None, Buffer b not None):
+    cm.add_into_b(a.view, b.view)
 
-def add_scalar(BufferView a not None, double b):
-    cm.add_scalar(a.flatten2D(), b)
+def add_scalar(Buffer a not None, double b):
+    cm.add_scalar(a.view, b)
 
-def mult(BufferView a not None, BufferView b not None, BufferView out not None):
-    cm.mult(a.flatten2D(), b.flatten2D(), out.flatten2D())
+def mult(Buffer a not None, Buffer b not None, Buffer out not None):
+    cm.mult(a.view, b.view, out.view)
 
-def mult_add(BufferView a not None, BufferView b not None, BufferView out not None):
-    cm.mult_add(a.flatten2D(), b.flatten2D(), out.flatten2D())
+def mult_add(Buffer a not None, Buffer b not None, Buffer out not None):
+    cm.mult_add(a.view, b.view, out.view)
 
-def dot(BufferView a not None, BufferView b not None, BufferView out not None):
-    cm.dot(a.flatten2D(), b.flatten2D(), out.flatten2D())
+def dot(Buffer a not None, Buffer b not None, Buffer out not None):
+    cm.dot(a.view, b.view, out.view)
 
-def dot_add(BufferView a not None, BufferView b not None, BufferView out not None):
-    cm.dot_add(a.flatten2D(), b.flatten2D(), out.flatten2D())
+def dot_add(Buffer a not None, Buffer b not None, Buffer out not None):
+    cm.dot_add(a.view, b.view, out.view)
 
-def apply_sigmoid(BufferView a not None, BufferView out not None):
-    cm.add_into_b(a.flatten2D(), out.flatten2D())
+def apply_sigmoid(Buffer a not None, Buffer out not None):
+    cm.add_into_b(a.view, out.view)
 
-def apply_tanh(BufferView a not None, BufferView out not None):
-    cm.add_into_b(a.flatten2D(), out.flatten2D())
+def apply_tanh(Buffer a not None, Buffer out not None):
+    cm.add_into_b(a.view, out.view)
 
-def apply_tanhx2(BufferView a not None, BufferView out not None):
-    cm.add_into_b(a.flatten2D(), out.flatten2D())
+def apply_tanhx2(Buffer a not None, Buffer out not None):
+    cm.add_into_b(a.view, out.view)
 
-def equals(BufferView a not None, BufferView out not None):
-    cm.add_into_b(a.flatten2D(), out.flatten2D())
+def equals(Buffer a not None, Buffer out not None):
+    cm.add_into_b(a.view, out.view)

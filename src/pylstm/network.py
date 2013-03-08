@@ -59,10 +59,10 @@ class Network(object):
         """
         Set the parameter buffer that holds all the weights.
         """
-        if isinstance(buffer_view, pw.BufferView):
+        if isinstance(buffer_view, pw.Buffer):
             self.weight_manager.initialize_buffer(buffer_view)
         else:
-            self.weight_manager.initialize_buffer(pw.BufferView(buffer_view))
+            self.weight_manager.initialize_buffer(pw.Buffer(buffer_view))
 
     def get_param_buffer(self):
         return self.weight_manager.buffer
@@ -115,7 +115,7 @@ class Network(object):
 
     def calc_gradient(self):
         self.grad_manager.initialize_buffer(
-            pw.BufferView(self.get_param_size()))
+            pw.Buffer(self.get_param_size()))
         for n, l in self.layers.items()[-2:0:-1]:
             param = self.weight_manager.get_source_view(n)
             grad = self.grad_manager.get_source_view(n)
@@ -127,6 +127,7 @@ class Network(object):
 
             l.gradient(param, grad, internal, intern_delta, out, input_view)
         return self.grad_manager.buffer
-
+        
     def hessian_pass(self, v, lambda_=0., mu=0.):
         pass # what to do exactly?
+
