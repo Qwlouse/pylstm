@@ -1,6 +1,7 @@
 
 #include "lstm_layer.h"
 #include "matrix/matrix_operation.h"
+#include <iostream>
 #include <vector>
 
 LstmLayer::Weights::Weights(size_t n_inputs_, size_t n_cells_) :
@@ -73,10 +74,7 @@ LstmLayer::BwdState::BwdState(size_t n_inputs_, size_t n_cells_, size_t n_batche
 }
 
 
-
-
 void LstmLayer::forward(Weights &w, FwdState &b, Matrix &x, Matrix &y) {
-
   mult(w.IX, x.flatten_time(), b.Ia.flatten_time());
   mult(w.FX, x.flatten_time(), b.Fa.flatten_time());
   mult(w.ZX, x.flatten_time(), b.Za.flatten_time());
@@ -121,6 +119,7 @@ void LstmLayer::forward(Weights &w, FwdState &b, Matrix &x, Matrix &y) {
     
    }
 }
+
 
 void LstmLayer::backward(Weights &w, FwdState &b, BwdState &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas) {
 
@@ -211,7 +210,7 @@ void LstmLayer::backward(Weights &w, FwdState &b, BwdState &d, Matrix &y, Matrix
 }
 
 //void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d, MatrixView3DCPU &y, MatrixView3DCPU input_batches, MatrixView3DCPU &in_deltas) {
-void LstmLayer::gradient(Weights &w, Weights &grad, FwdState &b, BwdState &d, Matrix &y, Matrix input_batches)  {
+void LstmLayer::gradient(Weights &w, Weights &grad, FwdState &b, BwdState &d, Matrix &y, Matrix& x, Matrix& out_deltas)  {
 
   size_t n_time(b.time);
 
@@ -221,10 +220,10 @@ void LstmLayer::gradient(Weights &w, Weights &grad, FwdState &b, BwdState &d, Ma
   //! \f$\frac{dE}{dW_FX} += \frac{dE}{da_F} * x(t)\f$
   //! \f$\frac{dE}{dW_IX} += \frac{dE}{da_I} * x(t)\f$
   //! \f$\frac{dE}{dW_OX} += \frac{dE}{da_O} * x(t)\f$
-  mult(d.Za, input_batches.T(), grad.ZX); //  1.0 / 1.0); //(double) n_time);
-  mult(d.Fa, input_batches.T(), grad.FX); // 1.0 / 1.0); //(double) n_time);
-  mult(d.Ia, input_batches.T(), grad.IX); //1.0 / 1.0); //(double) n_time);
-  mult(d.Oa, input_batches.T(), grad.OX); // 1.0 / 1.0); //(double) n_time);
+  mult(d.Za, x.T(), grad.ZX); //  1.0 / 1.0); //(double) n_time);
+  mult(d.Fa, x.T(), grad.FX); // 1.0 / 1.0); //(double) n_time);
+  mult(d.Ia, x.T(), grad.IX); //1.0 / 1.0); //(double) n_time);
+  mult(d.Oa, x.T(), grad.OX); // 1.0 / 1.0); //(double) n_time);
   
   //! \f$\frac{dE}{dW_ZH} += \frac{dE}{da_Z} * h(t-1)\f$
   //! \f$\frac{dE}{dW_FH} += \frac{dE}{da_F} * h(t-1)\f$

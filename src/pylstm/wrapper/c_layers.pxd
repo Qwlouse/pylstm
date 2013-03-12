@@ -6,6 +6,10 @@ cdef extern from "fwd_layer.h":
         RegularLayer()
         RegularLayer(ActivationFunction* f)
 
+cdef extern from "lstm_layer.h":
+    cppclass LstmLayer:
+        LstmLayer()
+
 cdef extern from "layer.hpp":
     cppclass ViewContainer:
         ViewContainer()

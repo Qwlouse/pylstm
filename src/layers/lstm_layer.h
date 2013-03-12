@@ -61,7 +61,7 @@ public:
 
 	void forward(Weights &w, FwdState &b, Matrix &x, Matrix &y);
 	void backward(Weights &w, FwdState &b, BwdState &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas);
-	void gradient(Weights &w, Weights &grad, FwdState &b, BwdState &d, Matrix &y, Matrix input_batches);
+	void gradient(Weights &w, Weights &grad, FwdState &b, BwdState &d, Matrix &y, Matrix& x, Matrix& out_deltas);
 
 };
 

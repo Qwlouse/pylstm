@@ -159,7 +159,7 @@ Matrix Matrix::T() {
 }
 
 Matrix Matrix::flatten_time() {
-	return Matrix(data, offset, state, n_columns, n_rows * n_slices, 1);
+	return Matrix(data, offset, state, n_rows, n_columns * n_slices, 1);
 }
 
 void Matrix::set_all_elements_to(d_type value) {
