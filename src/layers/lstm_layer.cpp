@@ -220,20 +220,20 @@ void LstmLayer::gradient(Weights &w, Weights &grad, FwdState &b, BwdState &d, Ma
   //! \f$\frac{dE}{dW_FX} += \frac{dE}{da_F} * x(t)\f$
   //! \f$\frac{dE}{dW_IX} += \frac{dE}{da_I} * x(t)\f$
   //! \f$\frac{dE}{dW_OX} += \frac{dE}{da_O} * x(t)\f$
-  mult(d.Za, x.T(), grad.ZX); //  1.0 / 1.0); //(double) n_time);
-  mult(d.Fa, x.T(), grad.FX); // 1.0 / 1.0); //(double) n_time);
-  mult(d.Ia, x.T(), grad.IX); //1.0 / 1.0); //(double) n_time);
-  mult(d.Oa, x.T(), grad.OX); // 1.0 / 1.0); //(double) n_time);
+  mult(d.Za.flatten_time(), x.flatten_time().T(), grad.ZX); //  1.0 / 1.0); //(double) n_time);
+  mult(d.Fa.flatten_time(), x.flatten_time().T(), grad.FX); // 1.0 / 1.0); //(double) n_time);
+  mult(d.Ia.flatten_time(), x.flatten_time().T(), grad.IX); //1.0 / 1.0); //(double) n_time);
+  mult(d.Oa.flatten_time(), x.flatten_time().T(), grad.OX); // 1.0 / 1.0); //(double) n_time);
   
   //! \f$\frac{dE}{dW_ZH} += \frac{dE}{da_Z} * h(t-1)\f$
   //! \f$\frac{dE}{dW_FH} += \frac{dE}{da_F} * h(t-1)\f$
   //! \f$\frac{dE}{dW_IH} += \frac{dE}{da_I} * h(t-1)\f$
   //! \f$\frac{dE}{dW_OH} += \frac{dE}{da_O} * h(t-1)\f$
   if (n_time > 1) {
-    mult(d.Ia.slice(1, n_time-1), y.slice(0, n_time - 2).T(), grad.IH); //(double) n_time);
-    mult(d.Za.slice(1, n_time-1), y.slice(0, n_time - 2).T(), grad.ZH); //(double) n_time);
-    mult(d.Fa.slice(1, n_time-1), y.slice(0, n_time - 2).T(), grad.FH); //(double) n_time);
-    mult(d.Oa.slice(1, n_time-1), y.slice(0, n_time - 2).T(), grad.OH); //(double) n_time);
+    mult(d.Ia.slice(1, n_time-1).flatten_time(), y.slice(0, n_time - 2).flatten_time().T(), grad.IH); //(double) n_time);
+    mult(d.Za.slice(1, n_time-1).flatten_time(), y.slice(0, n_time - 2).flatten_time().T(), grad.ZH); //(double) n_time);
+    mult(d.Fa.slice(1, n_time-1).flatten_time(), y.slice(0, n_time - 2).flatten_time().T(), grad.FH); //(double) n_time);
+    mult(d.Oa.slice(1, n_time-1).flatten_time(), y.slice(0, n_time - 2).flatten_time().T(), grad.OH); //(double) n_time);
   }
 
 
