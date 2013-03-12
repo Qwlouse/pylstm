@@ -114,20 +114,16 @@ void apply_tanhx2_deriv(Matrix a, Matrix out);
 void squash(Matrix a, Matrix out);
 
 
+///Copy the content of a into b
+void copy(Matrix a, Matrix b);
 
-/////Copy
-//void copy(MatrixView2DCPU a, MatrixView2DCPU b);
-//void copy(MatrixView3DCPU a, MatrixView3DCPU b);\
-//
+///Elementwise multiplication, with squash to size of out (out is smaller than a and b)
+void dot_squash(Matrix a, Matrix b, Matrix out);
+
+
 /////Elementwise multiplication and add, with squash to size of out (out is smaller than a and b)
 //void dot_add_squash(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type const scale = 1.0);
-//
-/////Elementwise multiplication, with squash to size of out (out is smaller than a and b)
-//void dot_squash(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type const scale = 1.0);
-//
-/////squash
-//void squash(MatrixView2DCPU a, MatrixView2DCPU out, d_type scale = 1.0);
-//
+
 
 
 

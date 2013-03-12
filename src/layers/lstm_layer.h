@@ -1,95 +1,74 @@
-/**
- * \file lstm_layer.h
- * \brief Declares the whole exception hierarchy.
- *
- * \details
- */
+#pragma once
 
-
-#ifndef __LSTM_LAYER_H__
-#define __LSTM_LAYER_H__
-
-#include "matrix/matrix_cpu.h"
+#include "matrix/matrix.h"
+#include "layer.hpp"
 #include <iostream>
 
-struct LstmWeights {
-  size_t n_inputs, n_cells;
 
-  ///Variables defining sizes
-  MatrixView2DCPU IX, IH, IS;  //!< inputs X, H, S to input gate I 
-  MatrixView2DCPU FX, FH, FS;  //!< inputs X, H, S to forget gate F
-  MatrixView2DCPU ZX, ZH;      //!< inputs X, H, to state cell 
-  MatrixView2DCPU OX, OH, OS;  //!< inputs X, H, S to output gate O
+class LstmLayer {
+public:
+	struct Weights : public ViewContainer {
+		size_t n_inputs, n_cells;
 
-  MatrixView2DCPU I_bias, F_bias, Z_bias, O_bias;   //!< bias to input gate, forget gate, state Z, output gate
-  //MatrixCPU weights; 
+		///Variables defining sizes
+		Matrix IX, IH, IS;  //!< inputs X, H, S to input gate I
+		Matrix FX, FH, FS;  //!< inputs X, H, S to forget gate F
+		Matrix ZX, ZH;      //!< inputs X, H, to state cell
+		Matrix OX, OH, OS;  //!< inputs X, H, S to output gate O
 
-  LstmWeights(size_t n_inputs, size_t n_cells);
+		Matrix I_bias, F_bias, Z_bias, O_bias;   //!< bias to input gate, forget gate, state Z, output gate
 
-  size_t buffer_size();
-  void allocate(MatrixView2DCPU buffer_view);
-};
+		Weights(size_t n_inputs, size_t n_cells);
+	};
 
-struct LstmBuffers {
-  ///Variables defining sizes
-  size_t n_inputs, n_cells;
-  size_t n_batches, time;
+	struct FwdState : public ViewContainer {
+	  ///Variables defining sizes
+	  size_t n_inputs, n_cells;
+	  size_t n_batches, time;
 
-  //Views on all activations
-  MatrixView3DCPU Ia, Ib; //!< Input gate activation
-  MatrixView3DCPU Fa, Fb; //!< forget gate activation
-  MatrixView3DCPU Oa, Ob; //!< output gate activation
+	  //Views on all activations
+	  Matrix Ia, Ib; //!< Input gate activation
+	  Matrix Fa, Fb; //!< forget gate activation
+	  Matrix Oa, Ob; //!< output gate activation
 
-  MatrixView3DCPU Za, Zb; //!< Za =Net Activation, Zb=f(Za)
-  MatrixView3DCPU S;      //!< Sa =Cell State activations
-  MatrixView3DCPU f_S;      //!< Sa =Cell State activations
-  MatrixView3DCPU Hb;     //!< output of LSTM block
-  MatrixView3DCPU tmp1;     //!< tmp varin  LSTM block
+	  Matrix Za, Zb; //!< Za =Net Activation, Zb=f(Za)
+	  Matrix S;      //!< Sa =Cell State activations
+	  Matrix f_S;      //!< Sa =Cell State activations
+	  Matrix Hb;     //!< output of LSTM block
+	  Matrix tmp1;     //!< tmp varin  LSTM block
 
-  LstmBuffers(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
-  
-  size_t buffer_size();
-  void allocate(MatrixView2DCPU buffer_view);
-};
+	  FwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
+	};
 
-struct LstmDeltas {
-  ///Variables defining sizes
-  size_t n_inputs, n_cells;
-  size_t n_batches, time;
+	struct BwdState : public ViewContainer {
+	  ///Variables defining sizes
+	  size_t n_inputs, n_cells;
+	  size_t n_batches, time;
 
-  //Views on all activations
-  MatrixView3DCPU Ia, Ib; //Input gate activation
-  MatrixView3DCPU Fa, Fb; //forget gate activation
-  MatrixView3DCPU Oa, Ob; //output gate activation
+	  //Views on all activations
+	  Matrix Ia, Ib; //Input gate activation
+	  Matrix Fa, Fb; //forget gate activation
+	  Matrix Oa, Ob; //output gate activation
 
-  MatrixView3DCPU Za, Zb; //Net Activation
-  MatrixView3DCPU S; //Cell activations
-  MatrixView3DCPU f_S; //cell state activations
-  MatrixView3DCPU Hb;     //!< output of LSTM block
-  MatrixView3DCPU tmp1;
+	  Matrix Za, Zb; //Net Activation
+	  Matrix S; //Cell activations
+	  Matrix f_S; //cell state activations
+	  Matrix Hb;     //!< output of LSTM block
+	  Matrix tmp1;
 
-  //MatrixView3DCPU temp_hidden, temp_hidden2;
+	  BwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
+	};
 
-  LstmDeltas(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
-  void allocate(MatrixView2DCPU buffer_view);
+	void forward(Weights &w, FwdState &b, Matrix &x, Matrix &y);
+	void backward(Weights &w, FwdState &b, BwdState &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas);
+	void gradient(Weights &w, Weights &grad, FwdState &b, BwdState &d, Matrix &y, Matrix input_batches);
 
-  size_t buffer_size();
 };
 
 /*
-enum FunctionType {
-  NONE,
-  TANH,
-  TANH2,
-  SIGMOID,
-  LINEAR
-  };*/
 
-
-void lstm_forward(LstmWeights &w, LstmBuffers &b, MatrixView3DCPU &x, MatrixView3DCPU &y);
-void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCPU &y, MatrixView3DCPU &in_deltas, MatrixView3DCPU &out_deltas);
-void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d, MatrixView3DCPU &y, MatrixView3DCPU input_batches);
 void lstm_Rpass(LstmWeights &w, LstmWeights &v,  LstmBuffers &b, LstmBuffers &Rb, MatrixView3DCPU &x, MatrixView3DCPU &y, MatrixView3DCPU &Ry);
 void lstm_Rbackward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCPU &in_deltas, MatrixView3DCPU &out_deltas, LstmBuffers &Rb, double lambda, double mu);
 
-#endif
+*/
+

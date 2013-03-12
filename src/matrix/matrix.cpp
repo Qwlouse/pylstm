@@ -143,6 +143,11 @@ Matrix Matrix::slice(size_t slice_index)
 	return Matrix(data, get_offset(0, 0, slice_index), state, n_rows, n_columns, 1);
 }
 
+Matrix Matrix::slice(size_t start, size_t stop)
+{
+	return Matrix(data, get_offset(0, 0, start), state, n_rows, n_columns, stop - start + 1);
+}
+
 
 Matrix Matrix::subslice(size_t start, size_t rows, size_t columns, size_t slices)
 {
@@ -151,6 +156,10 @@ Matrix Matrix::subslice(size_t start, size_t rows, size_t columns, size_t slices
 
 Matrix Matrix::T() {
 	return Matrix(data, offset, transpose(state), n_columns, n_rows, n_slices);
+}
+
+Matrix Matrix::flatten_time() {
+	return Matrix(data, offset, state, n_columns, n_rows * n_slices, 1);
 }
 
 void Matrix::set_all_elements_to(d_type value) {

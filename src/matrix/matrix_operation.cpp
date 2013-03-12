@@ -2,6 +2,8 @@
 #include <iostream>
 #include <algorithm>
 #include <math.h>
+#include <string>
+
 
 #include "Core.h"
 
@@ -227,6 +229,23 @@ void squash(Matrix a, Matrix out) {
 }
 
 
+///Elementwise multiplication, with squash to size of out (out is smaller than a and b)
+void dot_squash(Matrix a, Matrix b, Matrix out) {
+  ASSERT(a.size == b.size);
+  ASSERT(a.size % out.size == 0);
+  ASSERT(a.state == b.state && b.state == out.state);
+
+  out.set_all_elements_to(0.0);
+  int out_index = 0;
+    for (int i=0; i < a.size; ++i, ++out_index) {
+      if (out_index == out.size)
+    	  out_index = 0;
+      out[out_index] += a[i] * b[i];
+    }
+}
+
+
+
 
 /*
 ///Elementwise add
@@ -239,11 +258,7 @@ void add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
 
 
 
-void copy(MatrixView3DCPU a, MatrixView3DCPU b) {
-  ASSERT(a.size == b.size);
-  ptrdiff_t ridiculous(a.size);
-  dcopy(&ridiculous, a.data, &diff_one, b.data, &diff_one);
-}
+
 
 
 ///Elementwise multiplication and add, with squash to size of out (out is smaller than a and b)
@@ -263,28 +278,7 @@ void dot_add_squash(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d
 }
 
 
-///Elementwise multiplication, with squash to size of out (out is smaller than a and b)
-void dot_squash(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type const scale) {
-  ASSERT(a.size == b.size);
-  ASSERT(a.size % out.size == 0);
-  ASSERT(a.state == NORMAL && b.state == NORMAL && out.state == NORMAL);
-  
-  raw_ptr_type a_i(a.data), b_i(b.data), a_end(a.data + a.size);
-  raw_ptr_type out_start(out.data), out_i(out.data), out_end(out.data + out.size);
 
-  fill(out_start, out_end, 0.0);
-
-  for (; a_i != a_end; ++a_i, ++b_i, ++out_i) {
-    if (out_i == out_end)
-      out_i = out_start;
-    *out_i += *a_i * *b_i * scale;
-  }
-  if (scale != 1.0) {
-    out_i = out_start;
-    for (; out_i != out_start; ++out_i)
-      *out_i *= scale;
-  }
-}
 
 void squash(MatrixView2DCPU a, MatrixView2DCPU out, d_type const scale) {
   raw_ptr_type a_i(a.data), a_end(a.data + a.size);

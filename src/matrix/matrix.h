@@ -44,7 +44,9 @@ public:
 	inline d_type* get_data() {return &data[offset];}
 	Matrix subslice(size_t start, size_t n_rows, size_t n_columns, size_t n_slices); // todo: rename
 	Matrix slice(size_t slice_index);
+	Matrix slice(size_t start, size_t stop);
 	Matrix T();
+	Matrix flatten_time();
 	void set_all_elements_to(d_type value);
 
 	void print_me();

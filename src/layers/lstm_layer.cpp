@@ -1,112 +1,51 @@
- /**
- * \file lstm_layer.cpp
- * \brief Implementation of the lstm_layer.
- */
-
-#include <vector>
 
 #include "lstm_layer.h"
-#include "matrix/matrix_operation_cpu.h"
+#include "matrix/matrix_operation.h"
+#include <vector>
 
-using namespace std;
-
-LstmWeights::LstmWeights(size_t n_inputs_, size_t n_cells_) :
-  n_inputs(n_inputs_), 
-  n_cells(n_cells_), 
-
-  IX(n_cells, n_inputs), IH(n_cells, n_cells), IS(1, n_cells),
-  FX(n_cells, n_inputs), FH(n_cells, n_cells), FS(1, n_cells),
-  ZX(n_cells, n_inputs), ZH(n_cells, n_cells),
-  OX(n_cells, n_inputs), OH(n_cells, n_cells), OS(1, n_cells),
-
-  I_bias(n_cells, 1), F_bias(n_cells, 1), Z_bias(n_cells, 1), O_bias(n_cells, 1)
+LstmLayer::Weights::Weights(size_t n_inputs_, size_t n_cells_) :
+  n_inputs(n_inputs_),
+  n_cells(n_cells_),
+  IX(NULL, n_cells, n_inputs, 1), IH(NULL, n_cells, n_cells, 1), IS(NULL, 1, n_cells, 1),
+  FX(NULL, n_cells, n_inputs, 1), FH(NULL, n_cells, n_cells, 1), FS(NULL, 1, n_cells, 1),
+  ZX(NULL, n_cells, n_inputs, 1), ZH(NULL, n_cells, n_cells, 1),
+  OX(NULL, n_cells, n_inputs, 1), OH(NULL, n_cells, n_cells, 1), OS(NULL, 1, n_cells, 1),
+  I_bias(NULL, n_cells, 1, 1), F_bias(NULL, n_cells, 1, 1), Z_bias(NULL, n_cells, 1, 1), O_bias(NULL, n_cells, 1, 1)
 {
+
+    add_view("IX", &IX); add_view("IH", &IH); add_view("IS", &IS);
+    add_view("FX", &FX); add_view("FH", &FH); add_view("FS", &FS);
+    add_view("ZX", &ZX); add_view("ZH", &ZH);
+    add_view("OX", &OX); add_view("OH", &OH); add_view("OS", &OS);
+    add_view("I_bias", &I_bias); add_view("F_bias", &F_bias); add_view("Z_bias", &Z_bias); add_view("O_bias", &O_bias);
 }
 
-size_t LstmWeights::buffer_size() {
-  return IX.size + IH.size + IS.size +  //!< inputs X, H, S to input gate I 
-  FX.size + FH.size + FS.size +  //!< inputs X, H, S to forget gate F
-  ZX.size + ZH.size +      //!< inputs X, H, to state cell 
-  OX.size + OH.size + OS.size +  //!< inputs X, H, S to output gate O
-
-  I_bias.size + F_bias.size + Z_bias.size + O_bias.size;   //!< bias to input gate, forget gate, state Z, output gate
-}
-
-void LstmWeights::allocate(MatrixView2DCPU buffer_view) {
-  vector<MatrixView2DCPU*> views;
-
-  views.push_back(&IX);
-  views.push_back(&IH);
-  views.push_back(&IS);
-  views.push_back(&FX);
-  views.push_back(&FH);
-  views.push_back(&FS);
-  views.push_back(&ZX);
-  views.push_back(&ZH);
-  views.push_back(&OX);
-  views.push_back(&OH);
-  views.push_back(&OS);
-  
-  views.push_back(&I_bias);
-  views.push_back(&F_bias);
-  views.push_back(&Z_bias);
-  views.push_back(&O_bias);
-  
-  lay_out(buffer_view, views);
-}
-
-LstmBuffers::LstmBuffers(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_t time_) :
+LstmLayer::FwdState::FwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_t time_) :
   n_inputs(n_inputs_), n_cells(n_cells_),
   n_batches(n_batches_), time(time_),
 
   //Views on all activations
-  Ia(n_cells, n_batches, time), Ib(n_cells, n_batches, time), //!< Input gate activation
-  Fa(n_cells, n_batches, time), Fb(n_cells, n_batches, time), //!< forget gate activation
-  Oa(n_cells, n_batches, time), Ob(n_cells, n_batches, time), //!< output gate activation
+  Ia(NULL, n_cells, n_batches, time), Ib(NULL, n_cells, n_batches, time), //!< Input gate activation
+  Fa(NULL, n_cells, n_batches, time), Fb(NULL, n_cells, n_batches, time), //!< forget gate activation
+  Oa(NULL, n_cells, n_batches, time), Ob(NULL, n_cells, n_batches, time), //!< output gate activation
 
-  Za(n_cells, n_batches, time), Zb(n_cells, n_batches, time), //!< Za =Net Activation, Zb=f(Za)
-  S(n_cells, n_batches, time),      //!< Sa =Cell State activations
-  f_S(n_cells, n_batches, time),      //!< Sa =Cell State activations
-  Hb(n_cells, n_batches, time),     //!< output of LSTM block
-  tmp1(n_cells, n_batches, time) // for calculating derivs
-  
-{}
-
-size_t LstmBuffers::buffer_size() {
- //Views on all activations
-  return Ia.size + Ib.size + //!< Input gate activation
-    Fa.size + Fb.size + //!< forget gate activation
-    Oa.size + Ob.size + //!< output gate activation
-    
-    Za.size + Zb.size + //!< Za =Net Activation, Zb=f(Za)
-    S.size +      //!< Sa =Cell State activations
-    f_S.size +      //!< Sa =Cell State activations
-    Hb.size +       //!< output of LSTM block 
-    tmp1.size; 
+  Za(NULL, n_cells, n_batches, time), Zb(NULL, n_cells, n_batches, time), //!< Za =Net Activation, Zb=f(Za)
+  S(NULL, n_cells, n_batches, time),      //!< Sa =Cell State activations
+  f_S(NULL, n_cells, n_batches, time),      //!< Sa =Cell State activations
+  Hb(NULL, n_cells, n_batches, time),     //!< output of LSTM block
+  tmp1(NULL, n_cells, n_batches, time) // for calculating derivs
+{
+    add_view("Ia", &Ia); add_view("Ib", &Ib);
+    add_view("Fa", &Fa); add_view("Fb", &Fb);
+    add_view("Oa", &Oa); add_view("Ob", &Ob);
+    add_view("Za", &Za); add_view("Zb", &Zb);
+    add_view("S", &S);
+    add_view("f_S", &f_S); add_view("f_S", &f_S);
+    add_view("Hb", &Hb); add_view("Hb", &Hb);
+    add_view("tmp1", &tmp1);
 }
 
-void LstmBuffers::allocate(MatrixView2DCPU buffer_view) {
-  vector<MatrixView3DCPU*> views;
-  
-  views.push_back(&Ia);
-  views.push_back(&Ib); //Input gate activation
-  views.push_back(&Fa);
-  views.push_back(&Fb); //forget gate activation
-  views.push_back(&Oa);
-  views.push_back(&Ob); //output gate activation
-
-  views.push_back(&Za);
-  views.push_back(&Zb); //Net Activation
-  views.push_back(&S); //Cell activations
-  views.push_back(&f_S); //cell state activations
-  views.push_back(&Hb);     //!< output of LSTM block
-  
-  views.push_back(&tmp1);
-  
-  lay_out(buffer_view, views);
-}
-
-LstmDeltas::LstmDeltas(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_t time_) :
+LstmLayer::BwdState::BwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_t time_) :
   ///Variables defining sizes
   n_inputs(n_inputs_), n_cells(n_cells_),
   n_batches(n_batches_), time(time_),
@@ -122,51 +61,26 @@ LstmDeltas::LstmDeltas(size_t n_inputs_, size_t n_cells_, size_t n_batches_, siz
   Hb(n_cells, n_batches, time),     //!< output of LSTM block
   
   tmp1(n_cells, n_batches, time) // for calculating derivs
-
-  //temp_hidden(n_cells, n_batches, time), temp_hidden2(n_cells, n_batches, time)
-{}
-
-size_t LstmDeltas::buffer_size() {
-  return Ia.size + Ib.size + //Input gate activation
-    Fa.size + Fb.size + //forget gate activation
-    Oa.size + Ob.size + //output gate activation
-    
-    Za.size + Zb.size + //Net Activation
-    S.size + //Cell activations
-    f_S.size + //cell state activations
-    Hb.size +     //!< output of LSTM block
-    tmp1.size; //temp_hidden.size + temp_hidden2.size;
+{
+    add_view("Ia", &Ia); add_view("Ib", &Ib);
+    add_view("Fa", &Fa); add_view("Fb", &Fb);
+    add_view("Oa", &Oa); add_view("Ob", &Ob);
+    add_view("Za", &Za); add_view("Zb", &Zb);
+    add_view("S", &S);
+    add_view("f_S", &f_S); add_view("f_S", &f_S);
+    add_view("Hb", &Hb); add_view("Hb", &Hb);
+    add_view("tmp1", &tmp1);
 }
 
-void LstmDeltas::allocate(MatrixView2DCPU buffer_view) {
-  vector<MatrixView3DCPU*> views;
-  
-  views.push_back(&Ia);
-  views.push_back(&Ib); //Input gate activation
-  views.push_back(&Fa);
-  views.push_back(&Fb); //forget gate activation
-  views.push_back(&Oa);
-  views.push_back(&Ob); //output gate activation
 
-  views.push_back(&Za);
-  views.push_back(&Zb); //Net Activation
-  views.push_back(&S); //Cell activations
-  views.push_back(&f_S); //cell state activations
-  views.push_back(&Hb);     //!< output of LSTM block
 
-  views.push_back(&tmp1);
-  //views.push_back(&temp_hidden);
-  //views.push_back(&temp_hidden2);
 
-  lay_out(buffer_view, views);
-}
+void LstmLayer::forward(Weights &w, FwdState &b, Matrix &x, Matrix &y) {
 
-void lstm_forward(LstmWeights &w, LstmBuffers &b, MatrixView3DCPU &x, MatrixView3DCPU &y) {
-
-  mult(w.IX, x.flatten(), b.Ia.flatten());
-  mult(w.FX, x.flatten(), b.Fa.flatten());
-  mult(w.ZX, x.flatten(), b.Za.flatten());
-  mult(w.OX, x.flatten(), b.Oa.flatten());
+  mult(w.IX, x.flatten_time(), b.Ia.flatten_time());
+  mult(w.FX, x.flatten_time(), b.Fa.flatten_time());
+  mult(w.ZX, x.flatten_time(), b.Za.flatten_time());
+  mult(w.OX, x.flatten_time(), b.Oa.flatten_time());
 
   for (size_t t(0); t < b.time; ++t) {
     
@@ -208,7 +122,7 @@ void lstm_forward(LstmWeights &w, LstmBuffers &b, MatrixView3DCPU &x, MatrixView
    }
 }
 
-void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCPU &y, MatrixView3DCPU &in_deltas, MatrixView3DCPU &out_deltas) {
+void LstmLayer::backward(Weights &w, FwdState &b, BwdState &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas) {
 
   //clear_temp();
   //size_t end_time(b.batch_time - 1);
@@ -297,7 +211,7 @@ void lstm_backward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCP
 }
 
 //void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d, MatrixView3DCPU &y, MatrixView3DCPU input_batches, MatrixView3DCPU &in_deltas) {
-void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d, MatrixView3DCPU &y, MatrixView3DCPU input_batches)  {
+void LstmLayer::gradient(Weights &w, Weights &grad, FwdState &b, BwdState &d, Matrix &y, Matrix input_batches)  {
 
   size_t n_time(b.time);
 
@@ -315,25 +229,25 @@ void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d,
   //! \f$\frac{dE}{dW_ZH} += \frac{dE}{da_Z} * h(t-1)\f$
   //! \f$\frac{dE}{dW_FH} += \frac{dE}{da_F} * h(t-1)\f$
   //! \f$\frac{dE}{dW_IH} += \frac{dE}{da_I} * h(t-1)\f$
-  //! \f$\frac{dE}{dW_OH} += \frac{dE}{da_O} * h(t-1)\f$						       
+  //! \f$\frac{dE}{dW_OH} += \frac{dE}{da_O} * h(t-1)\f$
   if (n_time > 1) {
-    mult(d.Ia.subslice(1, n_time-1), y.subslice(0, n_time - 2).T(), grad.IH); //(double) n_time);
-    mult(d.Za.subslice(1, n_time-1), y.subslice(0, n_time - 2).T(), grad.ZH); //(double) n_time);
-    mult(d.Fa.subslice(1, n_time-1), y.subslice(0, n_time - 2).T(), grad.FH); //(double) n_time);
-    mult(d.Oa.subslice(1, n_time-1), y.subslice(0, n_time - 2).T(), grad.OH); //(double) n_time);
+    mult(d.Ia.slice(1, n_time-1), y.slice(0, n_time - 2).T(), grad.IH); //(double) n_time);
+    mult(d.Za.slice(1, n_time-1), y.slice(0, n_time - 2).T(), grad.ZH); //(double) n_time);
+    mult(d.Fa.slice(1, n_time-1), y.slice(0, n_time - 2).T(), grad.FH); //(double) n_time);
+    mult(d.Oa.slice(1, n_time-1), y.slice(0, n_time - 2).T(), grad.OH); //(double) n_time);
   }
 
- 
+
   //! \f$\frac{dE}{dW_FS} += \frac{dE}{da_F} * s(t-1)\f$
   //! \f$\frac{dE}{dW_IS} += \frac{dE}{da_I} * s(t-1)\f$
   if (n_time > 1) {
-    dot_squash(d.Fa.subslice(1, n_time-1), b.S.subslice(0, n_time - 2), grad.FS);
-    dot_squash(d.Ia.subslice(1, n_time-1), b.S.subslice(0, n_time - 2), grad.IS);
+    dot_squash(d.Fa.slice(1, n_time-1), b.S.slice(0, n_time - 2), grad.FS);
+    dot_squash(d.Ia.slice(1, n_time-1), b.S.slice(0, n_time - 2), grad.IS);
   }
 
   //! \f$\frac{dE}{dW_OS} += \frac{dE}{da_O} * s(t)\f$
   dot_squash(d.Oa, b.S, grad.OS);
-  
+
   squash(d.Ia, grad.I_bias); //, 1.0 / (double) n_time);
   squash(d.Fa, grad.F_bias); //, 1.0 / (double) n_time);
   squash(d.Za, grad.Z_bias); //, 1.0 / (double) n_time);
@@ -341,7 +255,7 @@ void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d,
 
 }
 
-
+/*
 void lstm_Rpass(LstmWeights &w, LstmWeights &v,  LstmBuffers &b, LstmBuffers &Rb, MatrixView3DCPU &x, MatrixView3DCPU &y, MatrixView3DCPU &Ry) {
 
 
@@ -526,56 +440,56 @@ void f1_pass(LSTM_Weights<matrix_type> &lstm_weights, LSTM_Weights<matrix_type> 
 
 
 
-	      sigmoid_deriv(d_RFa.matrix_from_slice(t), bc::d_Fb.matrix_from_slice(t), bc::d_temp_hidden, bc::d_temp_hidden2, d_RFb.matrix_from_slice(t));
-	      sigmoid_deriv(d_RIa.matrix_from_slice(t), bc::d_Ib.matrix_from_slice(t), bc::d_temp_hidden, bc::d_temp_hidden2, d_RIb.matrix_from_slice(t));
-	      
+          sigmoid_deriv(d_RFa.matrix_from_slice(t), bc::d_Fb.matrix_from_slice(t), bc::d_temp_hidden, bc::d_temp_hidden2, d_RFb.matrix_from_slice(t));
+          sigmoid_deriv(d_RIa.matrix_from_slice(t), bc::d_Ib.matrix_from_slice(t), bc::d_temp_hidden, bc::d_temp_hidden2, d_RIb.matrix_from_slice(t));
 
-	      multiply_vector(bc::d_Cg.matrix_from_slice(t), d_RIb.matrix_from_slice(t), d_RS.matrix_from_slice(t), 1.0);
 
-	      // Weird part
-	      //d_RSIb_tmp.matrix_from_slice(t).clear();
-	      bc::d_temp_hidden.clear();
-	      //d_Cg_tmp_deriv.matrix_from_slice(t).clear();
-	      multiply_vector(d_RCa.matrix_from_slice(t), bc::d_Ib.matrix_from_slice(t), bc::d_temp_hidden, 1.0);
-	      tanh2_deriv(bc::d_temp_hidden, bc::d_Cg.matrix_from_slice(t), bc::d_temp_hidden2, d_RS.matrix_from_slice(t));
-	      //
-	      if (t) {
-	    	  multiply_vector(d_RFb.matrix_from_slice(t), bc::d_S.matrix_from_slice(t - 1), d_RS.matrix_from_slice(t), 1.0);
-	    	  multiply_vector(bc::d_Fb.matrix_from_slice(t), d_RS.matrix_from_slice(t - 1), d_RS.matrix_from_slice(t), 1.0);
-	      }
+          multiply_vector(bc::d_Cg.matrix_from_slice(t), d_RIb.matrix_from_slice(t), d_RS.matrix_from_slice(t), 1.0);
 
-	      multiply_vector(bc::d_S.matrix_from_slice(t), v.d_cO, d_ROa.matrix_from_slice(t), 1.0);
-	      multiply_vector(d_RS.matrix_from_slice(t), lstm_weights.d_cO, d_ROa.matrix_from_slice(t), 1.0);
+          // Weird part
+          //d_RSIb_tmp.matrix_from_slice(t).clear();
+          bc::d_temp_hidden.clear();
+          //d_Cg_tmp_deriv.matrix_from_slice(t).clear();
+          multiply_vector(d_RCa.matrix_from_slice(t), bc::d_Ib.matrix_from_slice(t), bc::d_temp_hidden, 1.0);
+          tanh2_deriv(bc::d_temp_hidden, bc::d_Cg.matrix_from_slice(t), bc::d_temp_hidden2, d_RS.matrix_from_slice(t));
+          //
+          if (t) {
+              multiply_vector(d_RFb.matrix_from_slice(t), bc::d_S.matrix_from_slice(t - 1), d_RS.matrix_from_slice(t), 1.0);
+              multiply_vector(bc::d_Fb.matrix_from_slice(t), d_RS.matrix_from_slice(t - 1), d_RS.matrix_from_slice(t), 1.0);
+          }
 
-	      add_vector(d_ROa.matrix_from_slice(t), v.d_O_bias);
-	      //d_RO_tmp1.matrix_from_slice(t).clear();
-	      //d_RO_tmp2.matrix_from_slice(t).clear();
-	      sigmoid_deriv(d_ROa.matrix_from_slice(t), bc::d_Ob.matrix_from_slice(t), bc::d_temp_hidden, bc::d_temp_hidden2, d_ROb.matrix_from_slice(t));
+          multiply_vector(bc::d_S.matrix_from_slice(t), v.d_cO, d_ROa.matrix_from_slice(t), 1.0);
+          multiply_vector(d_RS.matrix_from_slice(t), lstm_weights.d_cO, d_ROa.matrix_from_slice(t), 1.0);
 
-	      //d_temp.clear();
-	      //apply_tanh(bc::d_Sb.matrix_from_slice(t), d_temp);
-	      //multiply_vector(d_ROb.matrix_from_slice(t), d_temp, d_RCb.matrix_from_slice(t));
-	      multiply_vector(d_ROb.matrix_from_slice(t), bc::d_Sb.matrix_from_slice(t), d_RCb.matrix_from_slice(t));
-	      
-	      bc::d_temp_hidden.clear();
-	      multiply_vector(bc::d_Ob.matrix_from_slice(t), d_RS.matrix_from_slice(t), bc::d_temp_hidden);
+          add_vector(d_ROa.matrix_from_slice(t), v.d_O_bias);
+          //d_RO_tmp1.matrix_from_slice(t).clear();
+          //d_RO_tmp2.matrix_from_slice(t).clear();
+          sigmoid_deriv(d_ROa.matrix_from_slice(t), bc::d_Ob.matrix_from_slice(t), bc::d_temp_hidden, bc::d_temp_hidden2, d_ROb.matrix_from_slice(t));
 
-	      //d_ObRS_tmp.clear();
-	      //d_RCb_tmp1.matrix_from_slice(t).clear();
-	      tanh2_deriv(bc::d_temp_hidden, bc::d_Sb.matrix_from_slice(t), bc::d_temp_hidden2, d_RCb.matrix_from_slice(t));
-	    }
-	    
-	    //output cells
-	    multiply(v.d_OT, bc::d_Cb, d_Routput_a);
-	    multiply(lstm_weights.d_OT, d_RCb, d_Routput_a);
+          //d_temp.clear();
+          //apply_tanh(bc::d_Sb.matrix_from_slice(t), d_temp);
+          //multiply_vector(d_ROb.matrix_from_slice(t), d_temp, d_RCb.matrix_from_slice(t));
+          multiply_vector(d_ROb.matrix_from_slice(t), bc::d_Sb.matrix_from_slice(t), d_RCb.matrix_from_slice(t));
 
-	    add_vector(d_Routput_a, v.d_T_bias);
+          bc::d_temp_hidden.clear();
+          multiply_vector(bc::d_Ob.matrix_from_slice(t), d_RS.matrix_from_slice(t), bc::d_temp_hidden);
 
-	    d_output_tmp.clear(); /////////
-	    softmax_deriv(d_Routput_a, bc::d_output_a, d_output_tmp, d_Routput_activations);
-	    //if (Stats::instance().epoch == 1 && Stats::instance().first_gv == false) {
-	    //  d_RCb.print();
-	    //  exit(1);
+          //d_ObRS_tmp.clear();
+          //d_RCb_tmp1.matrix_from_slice(t).clear();
+          tanh2_deriv(bc::d_temp_hidden, bc::d_Sb.matrix_from_slice(t), bc::d_temp_hidden2, d_RCb.matrix_from_slice(t));
+        }
 
-	}
+        //output cells
+        multiply(v.d_OT, bc::d_Cb, d_Routput_a);
+        multiply(lstm_weights.d_OT, d_RCb, d_Routput_a);
+
+        add_vector(d_Routput_a, v.d_T_bias);
+
+        d_output_tmp.clear(); /////////
+        softmax_deriv(d_Routput_a, bc::d_output_a, d_output_tmp, d_Routput_activations);
+        //if (Stats::instance().epoch == 1 && Stats::instance().first_gv == false) {
+        //  d_RCb.print();
+        //  exit(1);
+
+    }
 */
