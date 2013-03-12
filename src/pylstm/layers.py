@@ -61,7 +61,7 @@ class Layer(object):
     def backward(self, param, internal, err, out_view, in_deltas, out_deltas):
         pass
 
-    def gradient(self, param, grad, internal, err, out_view, in_view):
+    def gradient(self, param, grad, internal, err, out_view, in_view, out_deltas):
         pass
 
 
@@ -78,8 +78,14 @@ def create_ConstructionLayer(LayerType):
             self.traversing = False
 
         def instantiate(self):
-            return self.LayerType(self.get_input_size(),
-                                  self.out_size, **self.layer_kwargs)
+            if isinstance(self.LayerType, basestring):
+                return wrapper.create_layer(
+                    self.LayerType,
+                    self.get_input_size(), self.out_size,
+                    **self.layer_kwargs)
+            else:
+                return self.LayerType(self.get_input_size(), self.out_size,
+                                      **self.layer_kwargs)
 
         def get_input_size(self):
             return sum(s.out_size for s in self.sources)
@@ -109,7 +115,12 @@ def create_ConstructionLayer(LayerType):
             return other
 
         def get_name(self):
-            return self.name or self.LayerType.__name__
+            if self.name:
+                return self.name
+            elif isinstance(self.LayerType, basestring):
+                return self.LayerType
+            else:
+                return self.LayerType.__name__
 
     return ConstructionLayer
 
@@ -147,13 +158,14 @@ class NpForwardLayer(Layer):  # TODO: bias
         for out_slice, in_slice, y_slice in zip(out_deltas, in_deltas, out_view):
             in_slice[:] = (sigmoid_inv(y_slice) * out_slice).dot(param.T)
 
-    def gradient(self, param, grad, internal, err, out_view, in_view):
+    def gradient(self, param, grad, internal, err, out_view, in_view, out_deltas):
         pass
 
 
 ################################################################################
 
 DummyLayer = create_ConstructionLayer(Layer)
-#LstmLayer = create_ConstructionLayer(wrapper.LstmLayer)
+LstmLayer = create_ConstructionLayer("LstmLayer")
+RegularLayer = create_ConstructionLayer("RegularLayer")
 NpFwdLayer = create_ConstructionLayer(NpForwardLayer)
 

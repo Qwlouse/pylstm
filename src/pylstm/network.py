@@ -124,8 +124,9 @@ class Network(object):
 
             out = self.in_out_manager.get_source_view(n)
             input_view = self.in_out_manager.get_sink_view(n)
+            delta_out = self.delta_manager.get_source_view(n)
 
-            l.gradient(param, grad, internal, intern_delta, out, input_view)
+            l.gradient(param, grad, internal, intern_delta, out, input_view, delta_out)
         return self.grad_manager.buffer
         
     def hessian_pass(self, v, lambda_=0., mu=0.):
