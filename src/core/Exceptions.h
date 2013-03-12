@@ -175,6 +175,12 @@ typedef boost::error_info<struct Throw_Message_, const std::string>
         Throw_Message;
 
 /**
+ * Used internally to store the stacktrace of the exception.
+ */
+typedef boost::error_info<struct Throw_Backtrace_,const std::string> 
+        Throw_Backtrace;
+
+/**
  * Used to store the expression of a failed assertion.
  */
 typedef boost::error_info<struct Throw_Expression_, const char*>
