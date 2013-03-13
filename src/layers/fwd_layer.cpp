@@ -109,3 +109,13 @@ void RegularLayer::gradient(RegularLayer::Weights &w, RegularLayer::Weights &gra
 
     squash(d.Ha, grad.H_bias);
 }
+
+void RegularLayer::Rpass(Weights &w, Weights &v,  FwdState &b, FwdState &Rb, Matrix &x, Matrix &y, Matrix &Ry)
+{
+    THROW(core::NotImplementedException("Rpass not implemented yet."));
+}
+
+void RegularLayer::Rbackward(Weights &w, FwdState &b, BwdState &d, Matrix &in_deltas, Matrix &out_deltas, FwdState &Rb, double lambda, double mu)
+{
+    THROW(core::NotImplementedException("Rbackward pass not implemented yet."));
+}
