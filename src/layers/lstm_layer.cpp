@@ -97,10 +97,8 @@ void LstmLayer::forward(Weights &w, FwdState &b, Matrix &x, Matrix &y) {
     mult(w.OX, x.flatten_time(), b.Oa.flatten_time());
 
     for (size_t t(0); t < b.time; ++t) {
-
         //IF NEXT
         if (t) {
-
             mult_add(w.FH, y.slice(t - 1), b.Fa.slice(t));
             mult_add(w.IH, y.slice(t - 1), b.Ia.slice(t));
             mult_add(w.OH, y.slice(t - 1), b.Oa.slice(t));
@@ -132,7 +130,6 @@ void LstmLayer::forward(Weights &w, FwdState &b, Matrix &x, Matrix &y) {
         //copy(b.Oa.slice(t), b.Ob.slice(t));
 
         dot(b.f_S.slice(t), b.Ob.slice(t), y.slice(t));
-
     }
 }
 

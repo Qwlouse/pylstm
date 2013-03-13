@@ -125,9 +125,9 @@ size_t Matrix::get_offset(size_t row, size_t col, size_t slice)
 	ASSERT(col < n_columns);
 	ASSERT(slice < n_slices);
 	if (state == NORMAL) {
-		return slice*n_rows*n_columns + col*n_rows + row;
+		return offset + slice*n_rows*n_columns + col*n_rows + row;
 	} else {
-		return slice*n_rows*n_columns + row*n_columns + col;
+		return offset + slice*n_rows*n_columns + row*n_columns + col;
 	}
 }
 
@@ -168,7 +168,7 @@ void Matrix::set_all_elements_to(d_type value) {
 }
 
 void Matrix::print_me() {
-  cout << "Matrix 3D: " << n_rows << " x " << n_columns << " x " << n_slices << '\n';
+  cout << "Matrix 3D: " << n_rows << " x " << n_columns << " x " << n_slices << " # " << offset << '\n';
 
   d_type* data_ptr = get_data();
   cout << "=====================================\n";
