@@ -166,6 +166,15 @@ public:
     explicit InvalidStateException(const std::string& message) throw();
 };
 
+
+/**
+ * Indicates that some object is in an invalid state.
+ */
+class NotImplementedException : public virtual LogicErrorException
+{
+public:
+    explicit NotImplementedException(const std::string& message) throw();
+};
 // ========================= Supplementary Information =========================
 
 /**
