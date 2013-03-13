@@ -41,8 +41,8 @@ LstmLayer::FwdState::FwdState(size_t n_inputs_, size_t n_cells_, size_t n_batche
     add_view("Oa", &Oa); add_view("Ob", &Ob);
     add_view("Za", &Za); add_view("Zb", &Zb);
     add_view("S", &S);
-    add_view("f_S", &f_S); add_view("f_S", &f_S);
-    add_view("Hb", &Hb); add_view("Hb", &Hb);
+    add_view("f_S", &f_S); 
+    add_view("Hb", &Hb); 
     add_view("tmp1", &tmp1);
 }
 
@@ -68,8 +68,8 @@ LstmLayer::BwdState::BwdState(size_t n_inputs_, size_t n_cells_, size_t n_batche
     add_view("Oa", &Oa); add_view("Ob", &Ob);
     add_view("Za", &Za); add_view("Zb", &Zb);
     add_view("S", &S);
-    add_view("f_S", &f_S); add_view("f_S", &f_S);
-    add_view("Hb", &Hb); add_view("Hb", &Hb);
+    add_view("f_S", &f_S); 
+    add_view("Hb", &Hb); 
     add_view("tmp1", &tmp1);
 }
 
