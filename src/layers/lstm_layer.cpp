@@ -254,14 +254,13 @@ void LstmLayer::gradient(Weights &w, Weights &grad, FwdState &b, BwdState &d, Ma
 
 }
 
-/*
-void lstm_Rpass(LstmWeights &w, LstmWeights &v,  LstmBuffers &b, LstmBuffers &Rb, MatrixView3DCPU &x, MatrixView3DCPU &y, MatrixView3DCPU &Ry) {
+void LstmLayer::Rpass(Weights &w, Weights &v,  FwdState &b, FwdState &Rb, Matrix &x, Matrix &y, Matrix &Ry) {
 
+  mult(w.IX, x.flatten_time(), Rb.Ia.flatten_time());
+  mult(w.FX, x.flatten_time(), Rb.Fa.flatten_time());
+  mult(w.ZX, x.flatten_time(), Rb.Za.flatten_time());
+  mult(w.OX, x.flatten_time(), Rb.Oa.flatten_time());
 
-  mult(w.IX, x.flatten(), Rb.Ia.flatten());
-  mult(w.FX, x.flatten(), Rb.Fa.flatten());
-  mult(w.ZX, x.flatten(), Rb.Za.flatten());
-  mult(w.OX, x.flatten(), Rb.Oa.flatten());
 
   for (size_t t(0); t < b.time; ++t) {
     
@@ -283,6 +282,14 @@ void lstm_Rpass(LstmWeights &w, LstmWeights &v,  LstmBuffers &b, LstmBuffers &Rb
       dot_add(b.S.slice(t - 1), v.FS, Rb.Fa.slice(t));
       dot_add(b.S.slice(t - 1), v.IS, Rb.Ia.slice(t));
     }
+
+      mult_add(w.FH, y.slice(t - 1), b.Fa.slice(t));
+      mult_add(w.IH, y.slice(t - 1), b.Ia.slice(t));
+      mult_add(w.OH, y.slice(t - 1), b.Oa.slice(t));
+      mult_add(w.ZH, y.slice(t - 1), b.Za.slice(t));
+  
+      dot_add(b.S.slice(t - 1), w.FS, b.Fa.slice(t));
+      dot_add(b.S.slice(t - 1), w.IS, b.Ia.slice(t));
 
     /// CHECK THIS SHIT!!
     //add_vector(d_RFa.matrix_from_slice(t), v.d_F_bias);
@@ -341,7 +348,7 @@ void lstm_Rpass(LstmWeights &w, LstmWeights &v,  LstmBuffers &b, LstmBuffers &Rb
 
 
 //instead of normal deltas buffer, pass in empty Rdeltas buffer, and instead of out_deltas, pass in the Ry value calculated by the Rfwd pass
-void lstm_Rbackward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCPU &in_deltas, MatrixView3DCPU &out_deltas, LstmBuffers &Rb, double lambda, double mu) {
+void LstmLayer::Rbackward(Weights &w, FwdState &b, BwdState &d, Matrix &in_deltas, Matrix &out_deltas, FwdState &Rb, double lambda, double mu) {
 
   int end_time = static_cast<int>(b.time - 1);
 
@@ -425,70 +432,7 @@ void lstm_Rbackward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DC
     mult(w.IX.T(), d.Ia.slice(t), in_deltas.slice(t));
     mult_add(w.ZX.T(), d.Za.slice(t), in_deltas.slice(t));
     mult_add(w.FX.T(), d.Fa.slice(t), in_deltas.slice(t));    
-  
-    
+     
   }
 }
 
-
-/*
-
-void lstm_forward(LstmWeights &w, LstmBuffers &b, MatrixView3DCPU &x, MatrixView3DCPU &y) {
-void forward_pass(LSTM_Weights<matrix_type> &lstm_weights, matrix3d_type &input_batches)
-void f1_pass(LSTM_Weights<matrix_type> &lstm_weights, LSTM_Weights<matrix_type> &v, matrix3d_type &input_batches) {
-
-
-
-          sigmoid_deriv(d_RFa.matrix_from_slice(t), bc::d_Fb.matrix_from_slice(t), bc::d_temp_hidden, bc::d_temp_hidden2, d_RFb.matrix_from_slice(t));
-          sigmoid_deriv(d_RIa.matrix_from_slice(t), bc::d_Ib.matrix_from_slice(t), bc::d_temp_hidden, bc::d_temp_hidden2, d_RIb.matrix_from_slice(t));
-
-
-          multiply_vector(bc::d_Cg.matrix_from_slice(t), d_RIb.matrix_from_slice(t), d_RS.matrix_from_slice(t), 1.0);
-
-          // Weird part
-          //d_RSIb_tmp.matrix_from_slice(t).clear();
-          bc::d_temp_hidden.clear();
-          //d_Cg_tmp_deriv.matrix_from_slice(t).clear();
-          multiply_vector(d_RCa.matrix_from_slice(t), bc::d_Ib.matrix_from_slice(t), bc::d_temp_hidden, 1.0);
-          tanh2_deriv(bc::d_temp_hidden, bc::d_Cg.matrix_from_slice(t), bc::d_temp_hidden2, d_RS.matrix_from_slice(t));
-          //
-          if (t) {
-              multiply_vector(d_RFb.matrix_from_slice(t), bc::d_S.matrix_from_slice(t - 1), d_RS.matrix_from_slice(t), 1.0);
-              multiply_vector(bc::d_Fb.matrix_from_slice(t), d_RS.matrix_from_slice(t - 1), d_RS.matrix_from_slice(t), 1.0);
-          }
-
-          multiply_vector(bc::d_S.matrix_from_slice(t), v.d_cO, d_ROa.matrix_from_slice(t), 1.0);
-          multiply_vector(d_RS.matrix_from_slice(t), lstm_weights.d_cO, d_ROa.matrix_from_slice(t), 1.0);
-
-          add_vector(d_ROa.matrix_from_slice(t), v.d_O_bias);
-          //d_RO_tmp1.matrix_from_slice(t).clear();
-          //d_RO_tmp2.matrix_from_slice(t).clear();
-          sigmoid_deriv(d_ROa.matrix_from_slice(t), bc::d_Ob.matrix_from_slice(t), bc::d_temp_hidden, bc::d_temp_hidden2, d_ROb.matrix_from_slice(t));
-
-          //d_temp.clear();
-          //apply_tanh(bc::d_Sb.matrix_from_slice(t), d_temp);
-          //multiply_vector(d_ROb.matrix_from_slice(t), d_temp, d_RCb.matrix_from_slice(t));
-          multiply_vector(d_ROb.matrix_from_slice(t), bc::d_Sb.matrix_from_slice(t), d_RCb.matrix_from_slice(t));
-
-          bc::d_temp_hidden.clear();
-          multiply_vector(bc::d_Ob.matrix_from_slice(t), d_RS.matrix_from_slice(t), bc::d_temp_hidden);
-
-          //d_ObRS_tmp.clear();
-          //d_RCb_tmp1.matrix_from_slice(t).clear();
-          tanh2_deriv(bc::d_temp_hidden, bc::d_Sb.matrix_from_slice(t), bc::d_temp_hidden2, d_RCb.matrix_from_slice(t));
-        }
-
-        //output cells
-        multiply(v.d_OT, bc::d_Cb, d_Routput_a);
-        multiply(lstm_weights.d_OT, d_RCb, d_Routput_a);
-
-        add_vector(d_Routput_a, v.d_T_bias);
-
-        d_output_tmp.clear(); /////////
-        softmax_deriv(d_Routput_a, bc::d_output_a, d_output_tmp, d_Routput_activations);
-        //if (Stats::instance().epoch == 1 && Stats::instance().first_gv == false) {
-        //  d_RCb.print();
-        //  exit(1);
-
-    }
-*/
