@@ -1,5 +1,5 @@
 #include <string>
-
+#include <iostream>
 #include <gtest/gtest.h>
 
 #include "Config.h"
@@ -220,5 +220,17 @@ TEST_F(MatrixOperationsTest, check_if_mult_add_works_as_expected)
   ASSERT_TRUE(equals(m4, Matrix({{2.,3.},{3.,4.}})));
 
   ASSERT_TRUE(equals(m2, Matrix({{15.,21.,180.},{21.,29.,290.}})));
+}
+
+TEST_F(MatrixOperationsTest, check_if_apply_sigmoid_works_as_expected)
+{
+    Matrix range = {-2, -1, 0, 1, 2};
+    Matrix expected = {0.11920292,  0.26894142,  0.5,  0.73105858,  0.88079708};
+    Matrix actual(5, 1, 1);
+    apply_sigmoid(range, actual);
+    for (int i = 0; i < 5; ++i) {
+        std::cout << expected[i] << ", " << actual[i] << std::endl;
+        ASSERT_NEAR(expected[i], actual[i], 0.0000001);
+    }
 }
 
