@@ -120,6 +120,7 @@ void copy(Matrix a, Matrix b);
 ///Elementwise multiplication, with squash to size of out (out is smaller than a and b)
 void dot_squash(Matrix a, Matrix b, Matrix out);
 
+void scale_into(Matrix a, d_type alpha);
 
 /////Elementwise multiplication and add, with squash to size of out (out is smaller than a and b)
 //void dot_add_squash(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type const scale = 1.0);

@@ -244,7 +244,11 @@ void dot_squash(Matrix a, Matrix b, Matrix out) {
     }
 }
 
-
+///scale matrix by a scalar
+void scale_into(Matrix a, d_type alpha) {
+  long int len(a.size);
+  dscal(&len, &alpha, a.get_data(), &diff_one);
+}
 
 
 /*
