@@ -116,6 +116,13 @@ cdef class BaseLayer:
     def gradient(self, BufferContainer param, BufferContainer grad, BufferContainer internal, BufferContainer err, Buffer out_view, Buffer in_view, Buffer out_deltas):
         self.layer.gradient(deref(param.this_ptr), deref(grad.this_ptr), deref(internal.this_ptr), deref(err.this_ptr), out_view.view, in_view.view, out_deltas.view)
 
+    def Rpass(self, BufferContainer param, BufferContainer v,  BufferContainer internal, BufferContainer Rinternal, Buffer in_view, Buffer out_view, Buffer Rout_view):
+        self.layer.Rpass(deref(param.this_ptr), deref(v.this_ptr),  deref(internal.this_ptr), deref(Rinternal.this_ptr), in_view.view, out_view.view, Rout_view.view)
+
+    def Rbackward(self, BufferContainer param, BufferContainer internal, BufferContainer internal_deltas, Buffer in_deltas, Buffer out_deltas, BufferContainer Rinternal, double _lambda, double mu):
+        self.layer.Rbackward(deref(param.this_ptr), deref(internal.this_ptr), deref(internal_deltas.this_ptr), in_deltas.view, out_deltas.view, deref(Rinternal.this_ptr), _lambda, mu)
+
+
     def __unicode__(self):
         return "<" + self.layer.get_typename() + ": in_size=%d out_size=%d>"%(int(self.layer.in_size), int(self.layer.out_size))
 

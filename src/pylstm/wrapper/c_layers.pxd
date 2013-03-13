@@ -46,6 +46,10 @@ cdef extern from "layer.hpp":
 
         void gradient(ViewContainer &w, ViewContainer &grad, ViewContainer &b, ViewContainer &d, Matrix &y, Matrix& x, Matrix &out_deltas) except +
 
+        void Rpass(ViewContainer &w, ViewContainer &v,  ViewContainer &b, ViewContainer &Rb, Matrix &x, Matrix &y, Matrix &Ry) except +
+
+        void Rbackward(ViewContainer &w, ViewContainer &b, ViewContainer &d, Matrix &in_deltas, Matrix &out_deltas, ViewContainer &Rb, double _lambda, double mu) except +
+
 
     cppclass Layer[L]:
         Layer(size_t in_size, size_t out_size, L)
