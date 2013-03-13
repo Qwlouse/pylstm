@@ -81,7 +81,6 @@ cdef class Buffer:
             assert batch_size >= 1
             assert feature_size >= 1
             time_size = len(self) // (batch_size * feature_size)
-            print(time_size, time_size * batch_size * feature_size, len(self))
         elif batch_size == -1:
             assert time_size >= 1
             assert feature_size >= 1

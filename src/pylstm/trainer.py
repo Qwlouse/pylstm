@@ -41,12 +41,12 @@ class SgdTrainer(object):
             grad_arr *= - self.learning_rate
             wrapper.add_into_b(grad, weights)
 
+
 class RPropTrainer(object):
     def __init__(self, learning_rate=0.1, error_fkt=MeanSquaredError):
         self.learning_rate = learning_rate
         self.error_fkt = error_fkt()
         self.initialized = False
-        
 
     def train(self, net, X, T, epochs=100, callback=print_error_per_epoch):
         weights = net.get_param_buffer()
@@ -145,10 +145,9 @@ class CgTrainer(object):
             #wrapper.add_into_b(grad, weights)
 
 
-
 if __name__ == "__main__":
     from netbuilder import NetworkBuilder
-    from layers import LstmLayer
+    from layers import LstmLayer, RegularLayer
     netb = NetworkBuilder()
     netb.input(4) >> LstmLayer(3) >> netb.output
     net = netb.build()
