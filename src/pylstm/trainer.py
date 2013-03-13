@@ -6,17 +6,11 @@ import numpy as np
 import sys
 sys.path.append('.')
 sys.path.append('..')
+
+from pylstm.error_functions import MeanSquaredError
 from pylstm import wrapper
 
 rnd = np.random.RandomState(12345)
-
-
-class MeanSquaredError(object):
-    def forward_pass(self, Y, T):
-        return 0.5 * np.sum((Y - T) ** 2)
-
-    def backward_pass(self, Y, T):
-        return Y - T
 
 
 def print_error_per_epoch(epoch, error):
@@ -24,18 +18,16 @@ def print_error_per_epoch(epoch, error):
 
 
 class SgdTrainer(object):
-    def __init__(self, learning_rate=0.1, error_fkt=MeanSquaredError):
+    def __init__(self, learning_rate=0.1):
         self.learning_rate = learning_rate
-        self.error_fkt = error_fkt()
 
     def train(self, net, X, T, epochs=100, callback=print_error_per_epoch):
         weights = net.get_param_buffer()
         for epoch in range(1, epochs + 1):
-            out = net.forward_pass(X).as_array()
-            error = self.error_fkt.forward_pass(out, T) / X.shape[1]
+            net.forward_pass(X)
+            error = net.calculate_error(T)
             callback(epoch, error)
-            deltas = self.error_fkt.backward_pass(out, T)
-            net.backward_pass(deltas)
+            net.backward_pass(T)
             grad = net.calc_gradient()
             grad_arr = grad.as_array()
             grad_arr *= - self.learning_rate

@@ -7,7 +7,7 @@ import wrapper as pw
 
 class Network(object):
     def __init__(self, layers, weight_manager, intern_manager, in_out_manager,
-                 intern_delta_manager, delta_manager):
+                 intern_delta_manager, delta_manager, error_func):
         self.layers = layers
 
         self.weight_manager = weight_manager
@@ -21,6 +21,8 @@ class Network(object):
         self.in_out_manager = in_out_manager
         self.r_in_out_manager = deepcopy(in_out_manager)
         self.delta_manager = delta_manager
+
+        self.error_func = error_func
 
     def get_param_size(self):
         """
@@ -76,7 +78,7 @@ class Network(object):
         self.in_out_manager.set_dimensions(t, b)
         self.delta_manager.set_dimensions(t, b)
         # inject the input buffer
-        self.in_out_manager.get_source_view("Input").as_array()[:] = input_buffer
+        self.in_out_manager.get_source_view("Input").as_array()[:] = input_buffer # TODO factor this out as self.in_buffer property
         # execute all the intermediate layers
         for n, l in self.layers.items()[1:-1]:
             param = self.weight_manager.get_source_view(n)
@@ -87,9 +89,15 @@ class Network(object):
 
             l.forward(param, internal, input_view, out)
         # read the output buffer
-        return self.in_out_manager.get_sink_view("Output")
+        return self.in_out_manager.get_sink_view("Output") # TODO factor this out as self.out_buffer property
 
-    def backward_pass(self, delta_buffer):
+    def calculate_error(self, target_buffer):
+        X = self.in_out_manager.get_sink_view("Output")
+        return self.error_func.evaluate(X, target_buffer)
+
+    def backward_pass(self, target_buffer):
+        X = self.in_out_manager.get_sink_view("Output")
+        delta_buffer = self.error_func.deriv(X, target_buffer)
         t, b, f = delta_buffer.shape
         # dims should already be set during forward_pass, but in any case...
         self.intern_manager.set_dimensions(t, b)
