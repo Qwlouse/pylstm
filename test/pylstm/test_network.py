@@ -5,7 +5,7 @@ from __future__ import division, print_function, unicode_literals
 import unittest
 import numpy as np
 from pylstm.netbuilder import NetworkBuilder
-from pylstm.layers import LstmLayer
+from pylstm.layers import LstmLayer, RegularLayer
 from pylstm.trainer import MeanSquaredError
 from pylstm.wrapper import Buffer
 from scipy.optimize import approx_fprime
@@ -13,8 +13,8 @@ rnd = np.random.RandomState(43210)
 
 
 def check_gradient(net):
-    n_timesteps = 15
-    n_batches = 10
+    n_timesteps = 3
+    n_batches = 3
     X = rnd.randn(n_timesteps, n_batches, net.get_input_size())
     #X = np.ones((n_timesteps, n_batches, net.get_input_size()))
     T = np.zeros((n_timesteps, n_batches, net.get_output_size()))
@@ -41,7 +41,7 @@ def check_gradient(net):
 class NetworkTests(unittest.TestCase):
     def setUp(self):
         netb = NetworkBuilder()
-        netb.input(5) >> LstmLayer(3) >> netb.output
+        netb.input(5) >> RegularLayer(3) >> netb.output
         self.net = netb.build()
         self.net.set_param_buffer(np.random.randn(self.net.get_param_size()))
         self.X = np.random.randn(2, 7, self.net.get_input_size())
