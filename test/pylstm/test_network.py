@@ -13,7 +13,7 @@ rnd = np.random.RandomState(43210)
 
 
 def check_gradient(net):
-    n_timesteps = 10
+    n_timesteps = 15
     n_batches = 10
     X = rnd.randn(n_timesteps, n_batches, net.get_input_size())
     #X = np.ones((n_timesteps, n_batches, net.get_input_size()))
@@ -24,15 +24,15 @@ def check_gradient(net):
     net.set_param_buffer(weights.copy())
 
     ######### calculate gradient ##########
-    out = net.forward_pass(X).as_array()
-    net.backward_pass(error_fkt.backward_pass(out, T)).as_array()
+    net.forward_pass(X).as_array()
+    net.backward_pass(T)
     grad_calc = net.calc_gradient().as_array().squeeze()
 
     ######### estimate gradient ##########
     def f(W):
         net.set_param_buffer(W)
-        out = net.forward_pass(X).as_array()
-        return error_fkt.forward_pass(out, T)
+        net.forward_pass(X)
+        return net.calculate_error(T)
 
     grad_approx = approx_fprime(weights.copy(), f, 1e-7)
     return np.sum((grad_approx - grad_calc) ** 2) / n_batches, grad_calc, grad_approx

@@ -15,7 +15,7 @@ class ErrorFunction(object):
 class MeanSquaredError(ErrorFunction):
     def evaluate(self, Y, T):
         Y = Y.as_array()
-        return 0.5 * np.sum((Y - T) ** 2) / Y.shape[1]
+        return 0.5 * np.sum((Y - T) ** 2)
 
     def deriv(self, Y, T):
         Y = Y.as_array()

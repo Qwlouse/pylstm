@@ -91,13 +91,13 @@ class Network(object):
         # read the output buffer
         return self.in_out_manager.get_sink_view("Output") # TODO factor this out as self.out_buffer property
 
-    def calculate_error(self, target_buffer):
+    def calculate_error(self, T):
         X = self.in_out_manager.get_sink_view("Output")
-        return self.error_func.evaluate(X, target_buffer)
+        return self.error_func.evaluate(X, T)
 
-    def backward_pass(self, target_buffer):
+    def backward_pass(self, T):
         X = self.in_out_manager.get_sink_view("Output")
-        delta_buffer = self.error_func.deriv(X, target_buffer)
+        delta_buffer = self.error_func.deriv(X, T)
         t, b, f = delta_buffer.shape
         # dims should already be set during forward_pass, but in any case...
         self.intern_manager.set_dimensions(t, b)
