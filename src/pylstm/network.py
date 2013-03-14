@@ -69,14 +69,19 @@ class Network(object):
     def get_param_buffer(self):
         return self.weight_manager.buffer
 
+    def set_buffer_manager_dimensions(self, t, b):
+        self.intern_manager.set_dimensions(t, b)
+        self.r_intern_manager.set_dimensions(t, b)
+        self.intern_delta_manager.set_dimensions(t, b)
+        self.in_out_manager.set_dimensions(t, b)
+        self.r_in_out_manager.set_dimensions(t, b)
+        self.delta_manager.set_dimensions(t, b)
+
     def forward_pass(self, input_buffer):
         # determine dimensions and set buffer managers accordingly
         t, b, f = input_buffer.shape
         assert f == self.layers.values()[0].get_output_size()
-        self.intern_manager.set_dimensions(t, b)
-        self.intern_delta_manager.set_dimensions(t, b)
-        self.in_out_manager.set_dimensions(t, b)
-        self.delta_manager.set_dimensions(t, b)
+        self.set_buffer_manager_dimensions(t, b)
         # inject the input buffer
         self.in_out_manager.get_source_view("Input").as_array()[:] = input_buffer # TODO factor this out as self.in_buffer property
         # execute all the intermediate layers
@@ -100,10 +105,7 @@ class Network(object):
         delta_buffer = self.error_func.deriv(X, T)
         t, b, f = delta_buffer.shape
         # dims should already be set during forward_pass, but in any case...
-        self.intern_manager.set_dimensions(t, b)
-        self.intern_delta_manager.set_dimensions(t, b)
-        self.in_out_manager.set_dimensions(t, b)
-        self.delta_manager.set_dimensions(t, b)
+        self.set_buffer_manager_dimensions(t, b)
         # inject delta_buffer
         out_view = self.delta_manager.get_sink_view("Output").as_array()
         out_view[:] = delta_buffer
@@ -136,7 +138,7 @@ class Network(object):
 
             l.gradient(param, grad, internal, intern_delta, out, input_view, delta_out)
         return self.grad_manager.buffer
-        
+
     def hessian_pass(self, v, lambda_=0., mu=0.):
         pass # what to do exactly?
 
