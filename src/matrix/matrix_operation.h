@@ -80,7 +80,14 @@ typedef double (*unary_double_func)(double);
 struct ActivationFunction {
 	const unary_double_func f;
 	const unary_double_func deriv;
-	ActivationFunction(unary_double_func f, unary_double_func fp): f(f), deriv(fp) {};
+	ActivationFunction(unary_double_func f = NULL, unary_double_func fp = NULL): f(f), deriv(fp) {};
+
+	virtual void apply(Matrix a, Matrix out) const;
+	virtual void apply_deriv(Matrix a, Matrix out) const;
+};
+
+struct SoftmaxLayerActivation: public ActivationFunction {
+	SoftmaxLayerActivation() {};
 
 	virtual void apply(Matrix a, Matrix out) const;
 	virtual void apply_deriv(Matrix a, Matrix out) const;
