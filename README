@@ -3,6 +3,10 @@ Installation Requirements:
 g++, cython, subversion, boost, latex2html
 log4cxx (from apache.org)
 Needs adding #include<string.h> to some files which throw errors
+src/main/cpp/inputstreamreader.cpp
+src/main/cpp/socketoutputstream.cpp
+src/examples/cpp/console.cpp
+
 and #include <stdio.h> and #include <stdlib.h> to src/examples/cpp/console.cpp
 plus ignore failed unit test :)
 

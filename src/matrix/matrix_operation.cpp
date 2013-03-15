@@ -21,6 +21,7 @@ bool equals(Matrix a, Matrix b) {
 	if (a.n_rows != b.n_rows || a.n_columns != b.n_columns || a.n_slices != b.n_slices) {
 		return false;
 	}
+        
 	for (size_t slice = 0; slice < a.n_slices; ++slice ) {
 		for (size_t column = 0; column < a.n_columns; ++column ) {
 			for (size_t row = 0; row < a.n_rows; ++row ) {
@@ -193,6 +194,27 @@ void ActivationFunction::apply(Matrix in, Matrix out) const {
 
 void ActivationFunction::apply_deriv(Matrix in, Matrix out) const {
     transform(in.get_data(), in.get_data() + in.size, out.get_data(), *deriv);
+}
+
+// Softmax Layer works slightly differently
+void SoftmaxLayerActivation::apply(Matrix in, Matrix out) const {
+  for (size_t slice = 0; slice < in.n_slices; ++slice ) {
+    for (size_t column = 0; column < in.n_columns; ++column ) {
+      d_type row_sum = 0.0;
+      for (size_t row = 0; row < in.n_rows; ++row ) {
+        out.get(row, column, slice) = exp(in.get(row, column, slice));
+        row_sum += out.get(row, column, slice);
+      }
+      for (size_t row = 0; row < in.n_rows; ++row ) {
+        out.get(row, column, slice) = out.get(row, column, slice)/row_sum;
+      }
+    }
+  }
+}
+
+// But the derivative is the same as sigmoid
+void SoftmaxLayerActivation::apply_deriv(Matrix in, Matrix out) const {
+  transform(in.get_data(), in.get_data() + in.size, out.get_data(), sigmoid_deriv);
 }
 
 
