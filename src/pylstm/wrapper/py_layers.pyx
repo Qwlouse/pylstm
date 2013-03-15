@@ -145,6 +145,8 @@ def create_layer(name, in_size, out_size, **kwargs):
             act_fct = <cm.ActivationFunction*> &cm.Tanh
         elif af_name.lower() == "linear":
             act_fct = <cm.ActivationFunction*> &cm.Linear
+        elif af_name.lower() == "softmax":
+            act_fct = <cm.ActivationFunction*> &cm.Softmax
 
     if name.lower() == "regularlayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.RegularLayer](in_size, out_size, cl.RegularLayer(act_fct)))

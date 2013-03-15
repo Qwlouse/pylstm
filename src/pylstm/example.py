@@ -49,7 +49,7 @@ from datasets import generate_memo_problem
 # ############ Training Example ##############################
 # create and randomly initialize a network
 netb = NetworkBuilder()
-netb.input(2) >> LstmLayer(2) >> netb.output
+netb.input(2) >> LstmLayer(2) >> RegularLayer(2, act_func="softmax") >> netb.output
 net = netb.build()
 net.set_param_buffer(np.random.randn(net.get_param_size()))
 

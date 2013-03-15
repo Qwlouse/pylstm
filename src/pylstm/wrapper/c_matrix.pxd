@@ -28,10 +28,13 @@ cdef extern from "matrix_operation.h":
 #    void add(Matrix a, Matrix b, Matrix out)
     cppclass ActivationFunction:
         pass
+    cppclass SoftmaxLayerActivation(ActivationFunction):
+        pass
 
     ActivationFunction Sigmoid
     ActivationFunction Tanh
     ActivationFunction Linear
+    SoftmaxLayerActivation Softmax
 
 
     void add_into_b(Matrix a, Matrix b)
