@@ -145,6 +145,11 @@ class Network(object):
         t, b, f = input_buffer.shape
         assert f == self.layers.values()[0].get_output_size()
         self.set_buffer_manager_dimensions(t, b)
+        # inject the v value
+        if isinstance(v_buffer, pw.Buffer):
+            self.v_manager.initialize_buffer(v_buffer)
+        else:
+            self.v_manager.initialize_buffer(pw.Buffer(v_buffer))
         # inject the input buffer
         self.in_out_manager.get_source_view("Input").as_array()[:] = input_buffer
         # execute all the intermediate layers
