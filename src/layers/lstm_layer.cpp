@@ -184,7 +184,7 @@ void LstmLayer::backward(Weights &w, FwdState &b, BwdState &d, Matrix &y, Matrix
 
 
         //! \f$\frac{dE}{dS} += \frac{dE}{df_S} * f'(s)\f$
-        f->apply_deriv(b.f_S.slice(t), d.tmp1.slice(t));
+        f->apply_deriv(b.f_S.slice(t), d.f_S.slice(t), d.tmp1.slice(t));
         //dot_add(d.f_S.slice(t), d.tmp1.slice(t), d.S.slice(t));
 
         if(t<end_time)

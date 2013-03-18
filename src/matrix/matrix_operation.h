@@ -82,14 +82,14 @@ struct ActivationFunction {
 	ActivationFunction(unary_double_func f = NULL, unary_double_func fp = NULL): f(f), deriv(fp) {};
 
 	virtual void apply(Matrix a, Matrix out) const;
-	virtual void apply_deriv(Matrix a, Matrix out) const;
+	virtual void apply_deriv(Matrix a, Matrix d, Matrix out) const;
 };
 
 struct SoftmaxLayerActivation: public ActivationFunction {
 	SoftmaxLayerActivation() {};
 
 	virtual void apply(Matrix a, Matrix out) const;
-	virtual void apply_deriv(Matrix a, Matrix out) const;
+	virtual void apply_deriv(Matrix a, Matrix d, Matrix out) const;
 };
 
 const ActivationFunction Sigmoid(&sigmoid, &sigmoid_deriv);

@@ -192,7 +192,7 @@ void ActivationFunction::apply(Matrix in, Matrix out) const {
     transform(in.get_data(), in.get_data() + in.size, out.get_data(), *f);
 }
 
-void ActivationFunction::apply_deriv(Matrix in, Matrix out) const {
+void ActivationFunction::apply_deriv(Matrix in, Matrix d, Matrix out) const {
     transform(in.get_data(), in.get_data() + in.size, out.get_data(), *deriv);
 }
 
@@ -219,7 +219,7 @@ void SoftmaxLayerActivation::apply(Matrix in, Matrix out) const {
 }
 
 // But the derivative is the same as sigmoid
-void SoftmaxLayerActivation::apply_deriv(Matrix in, Matrix out) const {
+void SoftmaxLayerActivation::apply_deriv(Matrix in, Matrix d, Matrix out) const {
   transform(in.get_data(), in.get_data() + in.size, out.get_data(), sigmoid_deriv);
 }
 
