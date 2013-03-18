@@ -40,28 +40,27 @@ void mult_add(Matrix a, Matrix b, Matrix out, d_type scale = 1.0);
 
 
 inline double sigmoid(double val) {
-  return 1.0 / (1.0 + exp(-val));
+    return 1.0 / (1.0 + exp(-val));
 }
 
 inline double sigmoid_deriv(double val) {
-  return ((val) * (1 - (val)));
+    return val * (1.0 - val);
 }
 
 inline double tanhx2(double val) {
-  return 2.0 * tanh(val);
+    return 2.0 * tanh(val);
 }
 
 inline double tanh_(double val) {
-  return tanh(val);
+    return tanh(val);
 }
 
 inline double tanh_deriv(double val) {
-  return (1-(tanh(val)*tanh(val)));
-  //return (1-(val*val));
+    return 1.0 - val * val;
 }
 
 inline double tanhx2_deriv(double val) {
-  return (2 * tanh_deriv(val));
+    return 2.0 - 0.5 * val * val;
 }
 
 inline double identity(double val) {
@@ -97,6 +96,8 @@ const ActivationFunction Sigmoid(&sigmoid, &sigmoid_deriv);
 const ActivationFunction Linear(&identity, &one);
 const ActivationFunction Tanh(&tanh_, &tanh_deriv);
 const SoftmaxLayerActivation Softmax;
+const ActivationFunction Tanhx2(&tanhx2, &tanhx2_deriv);
+
 
 
 void apply(Matrix in, Matrix out, unary_double_func f);

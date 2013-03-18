@@ -41,7 +41,7 @@ def check_gradient(net):
 class NetworkTests(unittest.TestCase):
     def setUp(self):
         netb = NetworkBuilder()
-        netb.input(5) >> RegularLayer(3) >> netb.output
+        netb.input(5) >> LstmLayer(3) >> netb.output
         self.net = netb.build()
         self.net.set_param_buffer(np.random.randn(self.net.get_param_size()))
         self.X = np.random.randn(2, 7, self.net.get_input_size())

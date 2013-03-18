@@ -4,6 +4,15 @@
 #include <iostream>
 #include <vector>
 
+
+LstmLayer::LstmLayer():
+	f(&Tanhx2)
+{ }
+
+LstmLayer::LstmLayer(const ActivationFunction* f):
+	f(f)
+{ }
+
 LstmLayer::Weights::Weights(size_t n_inputs_, size_t n_cells_) :
     n_inputs(n_inputs_),
     n_cells(n_cells_),
@@ -115,14 +124,12 @@ void LstmLayer::forward(Weights &w, FwdState &b, Matrix &x, Matrix &y) {
 
         apply_sigmoid(b.Fa.slice(t), b.Fb.slice(t));
         apply_sigmoid(b.Ia.slice(t), b.Ib.slice(t));
-        apply_tanhx2(b.Za.slice(t), b.Zb.slice(t));
-        //dot_add(b.Zb.slice(t), b.Ib.slice(t), b.S.slice(t));
+        apply_tanh(b.Za.slice(t), b.Zb.slice(t));
         dot(b.Zb.slice(t), b.Ib.slice(t), b.S.slice(t));
 
         if (t)
             dot_add(b.S.slice(t - 1), b.Fb.slice(t), b.S.slice(t));
-        apply_tanhx2(b.S.slice(t), b.f_S.slice(t));
-
+        f->apply(b.S.slice(t), b.f_S.slice(t));
         dot_add(b.S.slice(t), w.OS, b.Oa.slice(t));
 
         //mult_add(b.S.slice(t), w.OS, b.Oa.slice(t));
@@ -177,7 +184,7 @@ void LstmLayer::backward(Weights &w, FwdState &b, BwdState &d, Matrix &y, Matrix
 
 
         //! \f$\frac{dE}{dS} += \frac{dE}{df_S} * f'(s)\f$
-        apply_tanhx2_deriv(b.S.slice(t), d.tmp1.slice(t));
+        f->apply_deriv(b.f_S.slice(t), d.tmp1.slice(t));
         //dot_add(d.f_S.slice(t), d.tmp1.slice(t), d.S.slice(t));
 
         if(t<end_time)
@@ -192,7 +199,7 @@ void LstmLayer::backward(Weights &w, FwdState &b, BwdState &d, Matrix &y, Matrix
         //! \f$\frac{dE}{db_Z} = \frac{dE}{dS} * b_I\f$
         dot(d.S.slice(t), b.Ib.slice(t), d.Zb.slice(t));
         //! \f$dE/da_Z = dE/db_Z * f'(a_Z)\f$
-        apply_tanhx2_deriv(b.Za.slice(t), d.tmp1.slice(t));
+        apply(b.Zb.slice(t), d.tmp1.slice(t), &tanh_deriv);
         dot(d.Zb.slice(t), d.tmp1.slice(t), d.Za.slice(t));
 
         //! INPUT GATE DERIVS

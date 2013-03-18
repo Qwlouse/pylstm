@@ -1,12 +1,17 @@
 #pragma once
 
 #include "matrix/matrix.h"
+#include "matrix/matrix_operation.h"
 #include "layer.hpp"
 #include <iostream>
 
 
 class LstmLayer {
 public:
+    const ActivationFunction* f;
+	LstmLayer();
+	explicit LstmLayer(const ActivationFunction* f);
+
 	struct Weights : public ViewContainer {
 		size_t n_inputs, n_cells;
 
