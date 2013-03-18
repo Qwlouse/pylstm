@@ -4,6 +4,7 @@
 from __future__ import division, print_function, unicode_literals
 import unittest
 import numpy as np
+import itertools
 from pylstm.netbuilder import NetworkBuilder
 from pylstm.layers import LstmLayer, RegularLayer
 from pylstm.trainer import MeanSquaredError
@@ -39,32 +40,43 @@ def check_gradient(net):
 
 
 class NetworkTests(unittest.TestCase):
-    def setUp(self):
+    def build_network(self, layer_type, activation_function):
         netb = NetworkBuilder()
-        netb.input(5) >> LstmLayer(3) >> netb.output
-        self.net = netb.build()
-        self.net.set_param_buffer(np.random.randn(self.net.get_param_size()))
-        self.X = np.random.randn(2, 7, self.net.get_input_size())
+        netb.input(self.input_size) >> layer_type(self.output_size, act_func=activation_function) >> netb.output
+        net = netb.build()
+        net.set_param_buffer(np.random.randn(net.get_param_size()))
+        return net
+
+    def setUp(self):
+        self.input_size = 5
+        self.output_size = 3
+        self.layer_types = [RegularLayer, LstmLayer]
+        self.activation_functions = ["linear", "tanh", "tanhx2", "sigmoid", "softmax"]
+        self.X = np.random.randn(2, 7, self.input_size)
 
     def test_lstm_forward_pass_insensitive_to_internal_state(self):
-        out1 = self.net.forward_pass(self.X).as_array().copy()
-        self.net.intern_manager.initialize_buffer(Buffer(np.random.randn(
-            self.net.intern_manager.calculate_size())))
-        out2 = self.net.forward_pass(self.X).as_array().copy()
+        net = self.build_network(LstmLayer, "tanh")
+        out1 = net.forward_pass(self.X).as_array().copy()
+        net.intern_manager.initialize_buffer(Buffer(np.random.randn(
+            net.intern_manager.calculate_size())))
+        out2 = net.forward_pass(self.X).as_array().copy()
         self.assertTrue(np.allclose(out1, out2))
 
     def test_lstm_backward_pass_insensitive_to_internal_deltas(self):
-        self.net.clear_internal_state()
-        out1 = self.net.forward_pass(self.X).as_array().copy()
-        deltas1 = self.net.backward_pass(out1).as_array().copy()
-        self.net.intern_manager.initialize_buffer(Buffer(np.random.randn(
-            self.net.intern_manager.calculate_size())))
-        self.net.delta_manager.initialize_buffer(Buffer(np.random.randn(
-            self.net.delta_manager.calculate_size())))
-        out2 = self.net.forward_pass(self.X).as_array().copy()
-        deltas2 = self.net.backward_pass(out2).as_array().copy()
+        net = self.build_network(LstmLayer, "tanh")
+        net.clear_internal_state()
+        out1 = net.forward_pass(self.X).as_array().copy()
+        deltas1 = net.backward_pass(out1).as_array().copy()
+        net.intern_manager.initialize_buffer(Buffer(np.random.randn(
+            net.intern_manager.calculate_size())))
+        net.delta_manager.initialize_buffer(Buffer(np.random.randn(
+            net.delta_manager.calculate_size())))
+        out2 = net.forward_pass(self.X).as_array().copy()
+        deltas2 = net.backward_pass(out2).as_array().copy()
         self.assertTrue(np.allclose(deltas1, deltas2))
 
     def test_gradient_finite_differences(self):
-        e, grad_calc, grad_approx = check_gradient(self.net)
-        self.assertLess(e, 1e-4)
+        for l, a in itertools.product(self.layer_types, self.activation_functions):
+            net = self.build_network(l, a)
+            e, grad_calc, grad_approx = check_gradient(net)
+            self.assertLess(e, 1e-4, "Gradient for %s with %s does not match" % (l(3), a))

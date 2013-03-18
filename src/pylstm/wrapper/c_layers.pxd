@@ -9,6 +9,7 @@ cdef extern from "fwd_layer.h":
 cdef extern from "lstm_layer.h":
     cppclass LstmLayer:
         LstmLayer()
+        LstmLayer(ActivationFunction* f)
 
 cdef extern from "layer.hpp":
     cppclass ViewContainer:

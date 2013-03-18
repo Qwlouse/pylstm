@@ -122,6 +122,9 @@ def create_ConstructionLayer(LayerType):
             else:
                 return self.LayerType.__name__
 
+        def __repr__(self):
+            return "<ConstructionLayer: %s>" % (self.get_name())
+
     return ConstructionLayer
 
 

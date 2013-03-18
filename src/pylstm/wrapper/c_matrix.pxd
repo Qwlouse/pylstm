@@ -33,6 +33,7 @@ cdef extern from "matrix_operation.h":
 
     ActivationFunction Sigmoid
     ActivationFunction Tanh
+    ActivationFunction Tanhx2
     ActivationFunction Linear
     SoftmaxLayerActivation Softmax
 

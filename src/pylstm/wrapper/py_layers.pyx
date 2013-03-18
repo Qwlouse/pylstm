@@ -137,12 +137,20 @@ cdef class BaseLayer:
 def create_layer(name, in_size, out_size, **kwargs):
     l = BaseLayer()
     cdef cm.ActivationFunction* act_fct = <cm.ActivationFunction*> &cm.Sigmoid
+
+    unexpected_kwargs = [k for k in kwargs if k not in {'act_func'}]
+    if unexpected_kwargs:
+        import warnings
+        warnings.warn("Warning: got unexpected kwargs: %s"%unexpected_kwargs)
+
     if "act_func" in kwargs:
         af_name = kwargs["act_func"]
         if af_name.lower() == "sigmoid":
             act_fct = <cm.ActivationFunction*> &cm.Sigmoid
         elif af_name.lower() == "tanh":
             act_fct = <cm.ActivationFunction*> &cm.Tanh
+        elif af_name.lower() == "tanhx2":
+            act_fct = <cm.ActivationFunction*> &cm.Tanhx2
         elif af_name.lower() == "linear":
             act_fct = <cm.ActivationFunction*> &cm.Linear
         elif af_name.lower() == "softmax":
@@ -151,5 +159,5 @@ def create_layer(name, in_size, out_size, **kwargs):
     if name.lower() == "regularlayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.RegularLayer](in_size, out_size, cl.RegularLayer(act_fct)))
     if name.lower() == "lstmlayer":
-        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.LstmLayer](in_size, out_size, cl.LstmLayer()))
+        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.LstmLayer](in_size, out_size, cl.LstmLayer(act_fct)))
     return l
