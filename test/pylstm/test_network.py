@@ -7,7 +7,6 @@ import numpy as np
 import itertools
 from pylstm.netbuilder import NetworkBuilder
 from pylstm.layers import LstmLayer, RegularLayer
-from pylstm.trainer import MeanSquaredError
 from pylstm.wrapper import Buffer
 from scipy.optimize import approx_fprime
 rnd = np.random.RandomState(43210)
@@ -17,15 +16,13 @@ def check_gradient(net):
     n_timesteps = 3
     n_batches = 3
     X = rnd.randn(n_timesteps, n_batches, net.get_input_size())
-    #X = np.ones((n_timesteps, n_batches, net.get_input_size()))
     T = np.zeros((n_timesteps, n_batches, net.get_output_size()))
-    error_fkt = MeanSquaredError()
+    T[:, :, 0] = 1.0  # so the outputs sum to one
     weights = rnd.randn(net.get_param_size())
-    #weights = np.ones((net.get_param_size()))
     net.set_param_buffer(weights.copy())
 
     ######### calculate gradient ##########
-    net.forward_pass(X).as_array()
+    net.forward_pass(X)
     net.backward_pass(T)
     grad_calc = net.calc_gradient().as_array().squeeze()
 
@@ -79,4 +76,5 @@ class NetworkTests(unittest.TestCase):
         for l, a in itertools.product(self.layer_types, self.activation_functions):
             net = self.build_network(l, a)
             e, grad_calc, grad_approx = check_gradient(net)
-            self.assertLess(e, 1e-4, "Gradient for %s with %s does not match" % (l(3), a))
+            print("%s with %s" % (l(3), a))
+            self.assertLess(e, 1e-4)
