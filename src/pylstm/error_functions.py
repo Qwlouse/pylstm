@@ -27,12 +27,12 @@ class CrossEntropyError(object):
         Y = Y.as_array()
         Y[Y < 1e-6] = 1e-6
         cee = T * np.log(Y)
-        return - np.sum(cee)  # / Y.shape[1] / Y.shape[0]
+        return - np.sum(cee)
 
     def evaluate(self, Y, T):
         return self(Y, T)
 
     def deriv(self, Y, T):
         Y = Y.as_array()
-        return Y - T
+        return T / Y
 
