@@ -208,6 +208,7 @@ void SoftmaxLayerActivation::apply(Matrix in, Matrix out) const {
 
         d_type col_sum = 0.0;
         for (size_t row = 0; row < in.n_rows; ++row ) {
+            // trick to avoid numerical instability
             out.get(row, column, slice) = exp(in.get(row, column, slice) - col_max);
             col_sum += out.get(row, column, slice);
         }
@@ -218,9 +219,24 @@ void SoftmaxLayerActivation::apply(Matrix in, Matrix out) const {
   }
 }
 
-// But the derivative is the same as sigmoid
+/*
+ The derivative is more involved for the general case
+ For i'th unit with input x_i, output y_i, and Error E from next layer
+ dE/dx_i = y_i * (dE/dy_i - sum(dE/dy_j * y_j))
+*/
 void SoftmaxLayerActivation::apply_deriv(Matrix in, Matrix d, Matrix out) const {
-  transform(in.get_data(), in.get_data() + in.size, out.get_data(), sigmoid_deriv);
+  for (size_t slice = 0; slice < in.n_slices; ++slice ) {
+    for (size_t column = 0; column < in.n_columns; ++column ) {
+      // Calculate the attenuation term
+      d_type delta_attenuation = 0.0;
+      for (size_t row = 0; row < in.n_rows; ++row) {
+        delta_attenuation += d.get(row, column, slice) * in.get(row, column, slice);
+      }
+      for (size_t row = 0; row < in.n_rows; ++row) {
+        out.get(row, column, slice) = in.get(row, column, slice) * (d.get(row, column, slice) - delta_attenuation);
+      }
+    }
+  }
 }
 
 
