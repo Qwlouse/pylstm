@@ -200,14 +200,20 @@ void ActivationFunction::apply_deriv(Matrix in, Matrix out) const {
 void SoftmaxLayerActivation::apply(Matrix in, Matrix out) const {
   for (size_t slice = 0; slice < in.n_slices; ++slice ) {
     for (size_t column = 0; column < in.n_columns; ++column ) {
-      d_type row_sum = 0.0;
-      for (size_t row = 0; row < in.n_rows; ++row ) {
-        out.get(row, column, slice) = exp(in.get(row, column, slice));
-        row_sum += out.get(row, column, slice);
-      }
-      for (size_t row = 0; row < in.n_rows; ++row ) {
-        out.get(row, column, slice) = out.get(row, column, slice)/row_sum;
-      }
+        // determine the max
+        d_type col_max = 0;
+        for (size_t row = 0; row < in.n_rows; ++row ) {
+            col_max = std::max(col_max, in.get(row, column, slice));
+        }
+
+        d_type col_sum = 0.0;
+        for (size_t row = 0; row < in.n_rows; ++row ) {
+            out.get(row, column, slice) = exp(in.get(row, column, slice) - col_max);
+            col_sum += out.get(row, column, slice);
+        }
+        for (size_t row = 0; row < in.n_rows; ++row ) {
+            out.get(row, column, slice) = out.get(row, column, slice)/col_sum;
+        }
     }
   }
 }
