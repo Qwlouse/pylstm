@@ -132,9 +132,9 @@ size_t Matrix::get_offset(size_t row, size_t col, size_t slice)
 	ASSERT(col < n_columns);
 	ASSERT(slice < n_slices);
 	if (state == NORMAL) {
-		return offset + slice*n_rows*n_columns + col*n_rows + row;
+		return offset + slice*(n_rows + stride)*n_columns + col*(n_rows + stride) + row;
 	} else {
-		return offset + slice*n_rows*n_columns + row*n_columns + col;
+		return offset + slice*(n_rows + stride)*n_columns + row*n_columns + col;
 	}
 }
 
@@ -153,6 +153,12 @@ Matrix Matrix::slice(size_t slice_index)
 Matrix Matrix::slice(size_t start, size_t stop)
 {
 	return Matrix(data, get_offset(0, 0, start), stride, state, n_rows, n_columns, stop - start + 1);
+}
+
+Matrix Matrix::row_slice(size_t row_index)
+{
+    ASSERT(stride == 0);
+    return Matrix(data, get_offset(row_index, 0, 0), n_rows - 1, state, 1, n_columns, n_slices);
 }
 
 
