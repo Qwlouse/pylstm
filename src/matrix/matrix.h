@@ -57,6 +57,7 @@ public:
 	Matrix slice(size_t slice_index);
 	Matrix slice(size_t start, size_t stop);
 	Matrix row_slice(size_t row_index);
+	Matrix row_slice(size_t start_row, size_t stop_row);
 
 	Matrix T();
 	Matrix flatten_time();
