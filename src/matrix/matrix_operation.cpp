@@ -1,10 +1,9 @@
 #include "matrix_operation.h"
-#include <iostream>
-#include <algorithm>
-#include <math.h>
-#include <string>
-#include <iostream>
 
+#include <algorithm>
+#include <iostream>
+#include <cmath>
+#include <string>
 
 #include "Core.h"
 
@@ -235,12 +234,6 @@ void SoftmaxLayerActivation::apply(Matrix in, Matrix out) const {
  dE/dx_i = y_i * (dE/dy_i - sum(dE/dy_j * y_j))
 */
 void SoftmaxLayerActivation::apply_deriv(Matrix in, Matrix d, Matrix out) const {
-    std::cout << "Input:\n";
-    in.print_me();
-    std::cout << "delta:\n";
-    d.print_me();
-    std::cout << "output:\n";
-
   for (size_t slice = 0; slice < in.n_slices; ++slice ) {
     for (size_t column = 0; column < in.n_columns; ++column ) {
       // Calculate the attenuation term
@@ -253,7 +246,6 @@ void SoftmaxLayerActivation::apply_deriv(Matrix in, Matrix d, Matrix out) const 
       }
     }
   }
-  out.print_me();
 }
 
 
