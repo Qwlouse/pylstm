@@ -86,6 +86,32 @@ TEST_F(MatrixTest, check_get_time_slice)
     }
 }
 
+TEST_F(MatrixTest, check_indexing_time_slice_transposed)
+{
+    Matrix n = M.slice(1).T();
+    ASSERT_EQ(n.n_columns, 3);
+    ASSERT_EQ(n.n_rows, 4);
+    ASSERT_EQ(n.n_slices, 1);
+    std::vector<int> expected = {100, 101, 102, 103, 110, 111, 112, 113, 120, 121, 122, 123};
+	for (int i = 0; i < 12; ++i) {
+		ASSERT_EQ(n[i], expected[i]);
+	}
+}
+
+TEST_F(MatrixTest, check_get_time_slice_transposed)
+{
+    Matrix n = M.slice(1).T();
+    ASSERT_EQ(n.n_columns, 3);
+    ASSERT_EQ(n.n_rows, 4);
+    ASSERT_EQ(n.n_slices, 1);
+    for (int c = 0; c < 3; ++c) {
+        for (int r = 0; r < 4; ++r) {
+            ASSERT_EQ(n.get(r, c, 0), 100 + r + c*10);
+        }
+    }
+}
+
+
 TEST_F(MatrixTest, check_get_row_slice)
 {
     Matrix n = M.row_slice(1);
