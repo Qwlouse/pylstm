@@ -12,13 +12,13 @@ public:
 	RegularLayer();
 	explicit RegularLayer(const ActivationFunction* f);
 	~RegularLayer();
-	///////////// Classes
+
 	class Weights : public ::ViewContainer {
 	public:
 		size_t n_inputs, n_cells;
 		///Variables defining sizes
-		Matrix HX;  //!< inputs X, H, S to input gate I
-		Matrix H_bias;   //!< bias to input gate, forget gate, state Z, output gate
+		Matrix HX;  //!< Weight Matrix
+		Matrix H_bias;   //!< bias
 
 		Weights(size_t n_inputs, size_t n_cells);
 	};
@@ -29,8 +29,7 @@ public:
 		size_t n_inputs, n_cells;
 		size_t n_batches, time;
 
-		//Views on all activations
-		Matrix Ha; //!< Hidden unit activation and output
+		Matrix Ha; //!< activations for all neurons in layer
 
 		FwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
 	};
@@ -40,8 +39,7 @@ public:
 		size_t n_inputs, n_cells;
 		size_t n_batches, time;
 
-		//Views on all activations
-		Matrix Ha, Hb; //Hidden unit activation and output
+		Matrix Ha; //!< activations for all neurons in layer
 
 		BwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
 	};

@@ -42,11 +42,9 @@ RegularLayer::FwdState::FwdState(size_t n_inputs_, size_t n_cells_, size_t n_bat
 RegularLayer::BwdState::BwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_t time_) :
     n_inputs(n_inputs_), n_cells(n_cells_),
     n_batches(n_batches_), time(time_),
-    Ha(NULL, n_cells, n_batches, time),
-	Hb(NULL, n_cells, n_batches, time)
+    Ha(NULL, n_cells, n_batches, time)
 {
-	add_view("HX", &Ha);
-	add_view("H_bias", &Hb);
+	add_view("Ha", &Ha);
 }
 
 ////////////////////// Methods /////////////////////////////////////////////
@@ -93,7 +91,6 @@ void RegularLayer::backward(RegularLayer::Weights &w, RegularLayer::FwdState &b,
 	ASSERT(out_deltas.n_columns == n_batches);
 	ASSERT(out_deltas.n_slices == n_slices);
     f->apply_deriv(y, out_deltas, d.Ha);
-	//dot(d.Hb, out_deltas, d.Ha);
 
     for (int t = 0; t < n_slices; ++t) {
         mult(w.HX.T(), d.Ha.slice(t), in_deltas.slice(t));
