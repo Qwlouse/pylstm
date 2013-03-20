@@ -44,3 +44,14 @@ class CrossEntropyError(object):
         Y = ensure_np_array(Y)
         return - T / Y
 
+
+class Accuracy(object):
+    def __call__(self, Y, T):
+        t, b, f = Y.shape
+        Y = ensure_np_array(Y)
+        winner_Y = np.argmax(Y, 2)
+        winner_T = np.argmax(T, 2)
+        return np.sum(winner_Y == winner_T) / (t * b)
+
+    def evaluate(self, Y, T):
+        return self(Y, T)
