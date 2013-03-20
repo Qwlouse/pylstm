@@ -39,6 +39,28 @@ TEST_F(MatrixTest, check_get_standard)
 	}
 }
 
+TEST_F(MatrixTest, check_indexing_operator_transposed)
+{
+    Matrix n = M.T();
+    std::vector<int> expected = {0, 1, 2, 3, 10, 11, 12, 13, 20, 21, 22, 23,
+                   100, 101, 102, 103, 110, 111, 112, 113, 120, 121, 122, 123,};
+	for (int i = 0; i < 24; ++i) {
+		ASSERT_EQ(n[i], expected[i]);
+	}
+}
+
+TEST_F(MatrixTest, check_get_transposed)
+{
+    Matrix n = M.T();
+	for (int c = 0; c < 3; ++c) {
+	    for (int r = 0; r < 4; ++r) {
+	        for (int s = 0; s < 2; ++s) {
+		        ASSERT_EQ(n.get(r, c, s), s*100 + c*10 + r);
+		    }
+		}
+	}
+}
+
 TEST_F(MatrixTest, check_indexing_time_slice)
 {
     Matrix n = M.slice(1);
