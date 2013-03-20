@@ -145,7 +145,7 @@ size_t Matrix::get_offset(size_t row, size_t col, size_t slice)
 	if (state == NORMAL) {
 		return offset + slice*(n_rows + stride)*n_columns + col*(n_rows + stride) + row;
 	} else {
-		return offset + slice*(n_rows + stride)*n_columns + row*n_columns + col;
+		return offset + slice*(n_columns + stride)*n_rows + row*(n_columns + stride) + col;
 	}
 }
 
