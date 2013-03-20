@@ -28,6 +28,9 @@ void add_scalar(Matrix a, d_type b);
 ///Elementwise multiplication
 void dot(Matrix a, Matrix b, Matrix out);
 
+///Elementwise multiplication
+void dot_into_b(Matrix a, Matrix b);
+
 ///Elementwise multiplication and add
 void dot_add(Matrix a, Matrix b, Matrix out);
 

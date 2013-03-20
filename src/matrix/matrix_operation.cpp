@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <math.h>
 #include <string>
+#include <iostream>
 
 
 #include "Core.h"
@@ -96,6 +97,14 @@ void dot(Matrix a, Matrix b, Matrix out) {
 
 	}
 }
+
+void dot_into_b(Matrix a, Matrix b) {
+    ASSERT(a.size == b.size);
+    for (size_t i = 0; i < a.size; ++i) {
+        b[i] *= a[i];
+    }
+}
+
 
 ///Elementwise multiplication and add
 void dot_add(Matrix a, Matrix b, Matrix out) {
@@ -194,6 +203,7 @@ void ActivationFunction::apply(Matrix in, Matrix out) const {
 
 void ActivationFunction::apply_deriv(Matrix in, Matrix d, Matrix out) const {
     transform(in.get_data(), in.get_data() + in.size, out.get_data(), *deriv);
+    dot_into_b(d, out);
 }
 
 // Softmax Layer works slightly differently
@@ -225,6 +235,12 @@ void SoftmaxLayerActivation::apply(Matrix in, Matrix out) const {
  dE/dx_i = y_i * (dE/dy_i - sum(dE/dy_j * y_j))
 */
 void SoftmaxLayerActivation::apply_deriv(Matrix in, Matrix d, Matrix out) const {
+    std::cout << "Input:\n";
+    in.print_me();
+    std::cout << "delta:\n";
+    d.print_me();
+    std::cout << "output:\n";
+
   for (size_t slice = 0; slice < in.n_slices; ++slice ) {
     for (size_t column = 0; column < in.n_columns; ++column ) {
       // Calculate the attenuation term
@@ -237,6 +253,7 @@ void SoftmaxLayerActivation::apply_deriv(Matrix in, Matrix d, Matrix out) const 
       }
     }
   }
+  out.print_me();
 }
 
 

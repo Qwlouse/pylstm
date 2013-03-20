@@ -188,9 +188,9 @@ void LstmLayer::backward(Weights &w, FwdState &b, BwdState &d, Matrix &y, Matrix
         //dot_add(d.f_S.slice(t), d.tmp1.slice(t), d.S.slice(t));
 
         if(t<end_time)
-            {dot_add(d.f_S.slice(t), d.tmp1.slice(t), d.S.slice(t));}
+            {add_into_b(d.tmp1.slice(t), d.S.slice(t));}
         else
-            {dot(d.f_S.slice(t), d.tmp1.slice(t), d.S.slice(t));}
+            {copy(d.tmp1.slice(t), d.S.slice(t));}
 
         //! \f$\frac{dE}{dS} += \frac{dE}{da_O} * W_OS\f$
         dot_add(d.Oa.slice(t), w.OS, d.S.slice(t));
