@@ -123,7 +123,8 @@ Matrix::Matrix(d_type* data_ptr, size_t n_rows, size_t n_columns, size_t n_slice
 
 d_type& Matrix::operator[](size_t index) {
 	ASSERT(index < size);
-	return data[offset + index];
+	size_t i = (index / n_rows) * (n_rows + stride) + (index % n_rows);
+	return data[offset + i];
 }
 
 size_t Matrix::get_offset(size_t row, size_t col, size_t slice)

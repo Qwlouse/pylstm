@@ -76,3 +76,15 @@ TEST_F(MatrixTest, check_get_row_slice)
         }
     }
 }
+
+TEST_F(MatrixTest, check_indexing_row_slice)
+{
+    Matrix n = M.row_slice(1);
+    ASSERT_EQ(n.n_columns, 4);
+    ASSERT_EQ(n.n_rows, 1);
+    ASSERT_EQ(n.n_slices, 2);
+    std::vector<int> expected = {10, 11, 12, 13, 110, 111, 112, 113};
+    for (int i = 0; i < 8; ++i) {
+    	ASSERT_EQ(n[i], expected[i]);
+    }
+}
