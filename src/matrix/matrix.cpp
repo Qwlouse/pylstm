@@ -15,6 +15,7 @@ struct NullDeleter
 
 Matrix::Matrix() :
 	offset(0),
+	stride(0),
 	data(NULL),
 	state(NORMAL),
 	n_rows(0),
@@ -23,8 +24,9 @@ Matrix::Matrix() :
 	size(0)
 { }
 
-Matrix::Matrix(const data_ptr data, const size_t offset, const MatrixState state, const size_t n_rows, const size_t n_columns, const size_t n_slices) :
+Matrix::Matrix(const data_ptr data, const size_t offset, const int stride, const MatrixState state, const size_t n_rows, const size_t n_columns, const size_t n_slices) :
 	offset(offset),
+	stride(stride),
 	data(data),
 	state(state),
 	n_rows(n_rows),
@@ -35,6 +37,7 @@ Matrix::Matrix(const data_ptr data, const size_t offset, const MatrixState state
 
 Matrix::Matrix(size_t n_rows, size_t n_columns, size_t n_slices, MatrixState state) :
 	offset(0),
+	stride(0),
 	data(new d_type[n_rows * n_columns * n_slices]),
 	state(state),
 	n_rows(n_rows),
@@ -47,6 +50,7 @@ Matrix::Matrix(size_t n_rows, size_t n_columns, size_t n_slices, MatrixState sta
 
 Matrix::Matrix(std::initializer_list<d_type> values):
 	offset(0),
+	stride(0),
 	data(new d_type[values.size()]),
 	state(NORMAL),
 	n_rows(1),
@@ -63,6 +67,7 @@ Matrix::Matrix(std::initializer_list<d_type> values):
 
 Matrix::Matrix(std::initializer_list<std::initializer_list<double>> values) :
 		offset(0),
+		stride(0),
 		data(new d_type[values.size() * values.begin()->size()]),
 		state(NORMAL),
 		n_rows(values.size()),
@@ -81,6 +86,7 @@ Matrix::Matrix(std::initializer_list<std::initializer_list<double>> values) :
 
 Matrix::Matrix(std::initializer_list<std::initializer_list<std::initializer_list<double>>> values) :
 		offset(0),
+		stride(0),
 		data(new d_type[values.size() * values.begin()->size() * values.begin()->begin()->size()]),
 		state(NORMAL),
 		n_rows(values.begin()->size()),
@@ -104,6 +110,7 @@ Matrix::Matrix(std::initializer_list<std::initializer_list<std::initializer_list
 
 Matrix::Matrix(d_type* data_ptr, size_t n_rows, size_t n_columns, size_t n_slices) :
 		offset(0),
+		stride(0),
 		data(data_ptr, NullDeleter<d_type>()),
 		state(NORMAL),
 		n_rows(n_rows),
@@ -140,26 +147,26 @@ d_type& Matrix::get(size_t row, size_t col, size_t slice)
 
 Matrix Matrix::slice(size_t slice_index)
 {
-	return Matrix(data, get_offset(0, 0, slice_index), state, n_rows, n_columns, 1);
+	return Matrix(data, get_offset(0, 0, slice_index), stride, state, n_rows, n_columns, 1);
 }
 
 Matrix Matrix::slice(size_t start, size_t stop)
 {
-	return Matrix(data, get_offset(0, 0, start), state, n_rows, n_columns, stop - start + 1);
+	return Matrix(data, get_offset(0, 0, start), stride, state, n_rows, n_columns, stop - start + 1);
 }
 
 
 Matrix Matrix::subslice(size_t start, size_t rows, size_t columns, size_t slices)
 {
-	return Matrix(data, offset + start, state, rows, columns, slices);
+	return Matrix(data, offset + start, stride, state, rows, columns, slices);
 }
 
 Matrix Matrix::T() {
-	return Matrix(data, offset, transpose(state), n_columns, n_rows, n_slices);
+	return Matrix(data, offset, stride, transpose(state), n_columns, n_rows, n_slices);
 }
 
 Matrix Matrix::flatten_time() {
-	return Matrix(data, offset, state, n_rows, n_columns * n_slices, 1);
+	return Matrix(data, offset, stride, state, n_rows, n_columns * n_slices, 1);
 }
 
 void Matrix::set_all_elements_to(d_type value) {
