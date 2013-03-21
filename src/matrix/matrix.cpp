@@ -15,8 +15,8 @@ struct NullDeleter
 
 Matrix::Matrix() :
 	offset(0),
-	stride(0),
 	data(NULL),
+	stride(0),
 	state(NORMAL),
 	n_rows(0),
 	n_columns(0),
@@ -26,8 +26,8 @@ Matrix::Matrix() :
 
 Matrix::Matrix(const data_ptr data, const size_t offset, const int stride, const MatrixState state, const size_t n_rows, const size_t n_columns, const size_t n_slices) :
 	offset(offset),
-	stride(stride),
 	data(data),
+	stride(stride),
 	state(state),
 	n_rows(n_rows),
 	n_columns(n_columns),
@@ -37,8 +37,8 @@ Matrix::Matrix(const data_ptr data, const size_t offset, const int stride, const
 
 Matrix::Matrix(size_t n_rows, size_t n_columns, size_t n_slices, MatrixState state) :
 	offset(0),
-	stride(0),
 	data(new d_type[n_rows * n_columns * n_slices]),
+	stride(0),
 	state(state),
 	n_rows(n_rows),
 	n_columns(n_columns),
@@ -50,8 +50,8 @@ Matrix::Matrix(size_t n_rows, size_t n_columns, size_t n_slices, MatrixState sta
 
 Matrix::Matrix(std::initializer_list<d_type> values):
 	offset(0),
-	stride(0),
 	data(new d_type[values.size()]),
+	stride(0),
 	state(NORMAL),
 	n_rows(1),
 	n_columns(values.size()),
@@ -67,8 +67,8 @@ Matrix::Matrix(std::initializer_list<d_type> values):
 
 Matrix::Matrix(std::initializer_list<std::initializer_list<double>> values) :
 		offset(0),
-		stride(0),
 		data(new d_type[values.size() * values.begin()->size()]),
+		stride(0),
 		state(NORMAL),
 		n_rows(values.size()),
 		n_columns(values.begin()->size()),
@@ -86,8 +86,8 @@ Matrix::Matrix(std::initializer_list<std::initializer_list<double>> values) :
 
 Matrix::Matrix(std::initializer_list<std::initializer_list<std::initializer_list<double>>> values) :
 		offset(0),
-		stride(0),
 		data(new d_type[values.size() * values.begin()->size() * values.begin()->begin()->size()]),
+		stride(0),
 		state(NORMAL),
 		n_rows(values.begin()->size()),
 		n_columns(values.begin()->begin()->size()),
@@ -110,8 +110,8 @@ Matrix::Matrix(std::initializer_list<std::initializer_list<std::initializer_list
 
 Matrix::Matrix(d_type* data_ptr, size_t n_rows, size_t n_columns, size_t n_slices) :
 		offset(0),
-		stride(0),
 		data(data_ptr, NullDeleter<d_type>()),
+		stride(0),
 		state(NORMAL),
 		n_rows(n_rows),
 		n_columns(n_columns),
@@ -121,7 +121,7 @@ Matrix::Matrix(d_type* data_ptr, size_t n_rows, size_t n_columns, size_t n_slice
 }
 
 
-d_type& Matrix::operator[](size_t index) {
+d_type& Matrix::operator[](size_t index) const {
 	ASSERT(index < size);
 	if (state == NORMAL) {
 	    if (stride == 0) {
@@ -137,7 +137,7 @@ d_type& Matrix::operator[](size_t index) {
     return get(row, col, slice);
 }
 
-size_t Matrix::get_offset(size_t row, size_t col, size_t slice)
+size_t Matrix::get_offset(size_t row, size_t col, size_t slice) const
 {
 	ASSERT(row < n_rows);
 	ASSERT(col < n_columns);
@@ -149,7 +149,7 @@ size_t Matrix::get_offset(size_t row, size_t col, size_t slice)
 	}
 }
 
-d_type& Matrix::get(size_t row, size_t col, size_t slice)
+d_type& Matrix::get(size_t row, size_t col, size_t slice) const
 {
 	return data[get_offset(row, col, slice)];
 }
@@ -203,20 +203,67 @@ void Matrix::set_all_elements_to(d_type value) {
 void Matrix::print_me() {
   cout << "Matrix 3D: " << n_rows << " x " << n_columns << " x " << n_slices << " # " << offset << '\n';
 
-  d_type* data_ptr = get_data();
   cout << "=====================================\n";
   for (int s = 0; s < n_slices; ++s) {
     for (int r = 0; r < n_rows; ++r) {
       for (int c = 0; c < n_columns; ++c) {
-        cout << *data_ptr << " ";
-        data_ptr += n_rows;
+        cout << get(r, c, s) << " ";
       }
-      data_ptr -= n_columns*n_rows - 1;
       cout << '\n';
     }
-    data_ptr += (n_columns-1)*n_rows;
     cout << "=====================================\n";
   }
 }
+
+
+// iterator implementation
+
+Matrix::iterator::iterator(const Matrix& m) :
+    ptr(m.get_data()),
+    i(0),
+    m(m)
+{ }
+
+Matrix::iterator::iterator(const Matrix& m, size_t i) :
+    ptr(i < m.size ? &m[i] : NULL),
+    i(i),
+    m(m)
+{ }
+
+Matrix::iterator::~iterator()
+{ }
+
+
+Matrix::iterator& Matrix::iterator::operator++() {
+    ++i;
+    if (i >= m.size) {
+        ptr = NULL;
+    } else {
+        ptr = &m[i];
+    }
+    return *this;
+}
+
+d_type& Matrix::iterator::operator*() {
+    return *ptr;
+}
+
+bool Matrix::iterator::operator==(const Matrix::iterator& o) const {
+    return o.ptr == ptr;
+}
+
+bool Matrix::iterator::operator!=(const Matrix::iterator& o) const {
+    return o.ptr != ptr;
+}
+
+
+Matrix::iterator Matrix::begin() {
+    return Matrix::iterator(*this);
+}
+
+Matrix::iterator Matrix::end() {
+    return Matrix::iterator(*this, size);
+}
+
 
 

@@ -123,6 +123,18 @@ TEST_F(MatrixOperationsTest, check_if_add_into_b_work_on_time_slices2)
 	ASSERT_TRUE(equals(out, m3d));
 }
 
+TEST_F(MatrixOperationsTest, check_if_add_into_b_work_on_row_sliced_a)
+{
+    Matrix out(1, 4, 2);
+	add_into_b(m3d.row_slice(0), out);
+	ASSERT_TRUE(equals(out, {{{0, 1, 2, 3}}, {{100, 101, 102, 103}}}));
+	add_into_b(m3d.row_slice(1), out);
+	ASSERT_TRUE(equals(out, {{{10, 12, 14, 16}}, {{210, 212, 214, 216}}}));
+	add_into_b(m3d.row_slice(2), out);
+	ASSERT_TRUE(equals(out, {{{30, 33, 36, 39}}, {{330, 333, 336, 339}}}));
+
+}
+
 TEST_F(MatrixOperationsTest, check_if_add_vector_into)
 {
 	Matrix v = {1, 2};

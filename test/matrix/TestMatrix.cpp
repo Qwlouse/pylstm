@@ -70,6 +70,17 @@ TEST_F(MatrixTest, check_indexing_operator_standard)
 	}
 }
 
+TEST_F(MatrixTest, check_iterator_standard)
+{
+    std::vector<int> expected = {0, 10, 20, 1, 11, 21, 2, 12, 22, 3, 13, 23,
+                   100, 110, 120, 101, 111, 121, 102, 112, 122, 103, 113, 123};
+    auto itm = M.begin();
+    auto ite = expected.begin();
+	for (; itm != M.end(); ++itm, ++ite) {
+		ASSERT_EQ(*itm, *ite);
+	}
+}
+
 TEST_F(MatrixTest, check_get_standard)
 {
 	for (int c = 0; c < 4; ++c) {
