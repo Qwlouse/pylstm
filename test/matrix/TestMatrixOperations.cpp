@@ -24,14 +24,7 @@ protected:
     Matrix m3d;
 };
 
-
 TEST_F(MatrixOperationsTest, check_if_equals_works_as_expected)
-{
-	EXPECT_TRUE(equals(m1, m5.T()));
-	EXPECT_TRUE(equals(m1.T(), m5));
-}
-
-TEST_F(MatrixOperationsTest, check_if_equals_works_on_transpose)
 {
 	EXPECT_TRUE(equals(m1, m1));
 	EXPECT_TRUE(equals(m1, m2));
@@ -41,6 +34,33 @@ TEST_F(MatrixOperationsTest, check_if_equals_works_on_transpose)
 	EXPECT_FALSE(equals(m1, m5));
 	EXPECT_FALSE(equals(m3, m4));
 }
+
+TEST_F(MatrixOperationsTest, check_if_equals_works_on_transpose)
+{
+	EXPECT_TRUE(equals(m1, m5.T()));
+	EXPECT_TRUE(equals(m1.T(), m5));
+}
+
+TEST_F(MatrixOperationsTest, check_if_equals_works_on_time_slices)
+{
+    Matrix a = {{0, 1, 2, 3}, {10, 11, 12, 13}, {20, 21, 22, 23}};
+    Matrix b = {{100, 101, 102, 103}, {110, 111, 112, 113}, {120, 121, 122, 123}};
+
+	EXPECT_TRUE(equals(m3d.slice(0), a));
+	EXPECT_TRUE(equals(m3d.slice(1), b));
+}
+
+TEST_F(MatrixOperationsTest, check_if_equals_works_on_multi_time_slices)
+{
+    Matrix a = {{{0, 7}}, {{1, 7}}, {{2, 7}}, {{3, 7}}, {{4, 7}}, {{5, 7}}};
+    Matrix b = {{{3, 7}}, {{4, 7}}, {{5, 7}}};
+    Matrix c = {{{1, 7}}, {{2, 7}}, {{3, 7}}, {{4, 7}}};
+
+	EXPECT_TRUE(equals(a.slice(3, 5), b));
+	EXPECT_TRUE(equals(a.slice(1, 4), c));
+}
+
+
 
 TEST_F(MatrixOperationsTest, check_if_add_into_b_works_as_expected)
 {
