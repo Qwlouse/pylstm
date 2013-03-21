@@ -68,7 +68,6 @@ void add_scalar(Matrix a, d_type b) {
 	        *it += b;
 	    }
 	}
-
 }
 
 ///Elementwise multiplication
@@ -81,7 +80,7 @@ void dot(Matrix a, Matrix b, Matrix out) {
 
 	fill(out.get_data(), out.get_data() + out.size, 0.0);
 
-	if (a.size == b.size) {
+	if (a.size == b.size && a.stride == 0 && b.stride == 0) {
 		long int n = a.size;
 		dgbmv(&NO_TRANS, &n, &n, &diff_zero, &diff_zero, &double_one,
 				a.get_data(), &diff_one,
@@ -89,17 +88,13 @@ void dot(Matrix a, Matrix b, Matrix out) {
 				&double_one,
 				out.get_data(), &diff_one);
 	} else {
-		d_type* a_i(a.get_data());
-		d_type* a_end(a.get_data() + a.size);
-		d_type* out_i(out.get_data());
-		d_type* b_start(b.get_data());
-		d_type* b_i(b.get_data());
-		d_type* b_end(b.get_data() + b.size);
+	    auto a_end = a.end();
+	    auto b_end = b.end();
 
-		for (; a_i != a_end; ++a_i, ++b_i, ++out_i) {
-			if (b_i == b_end)
-				b_i = b_start;
-			*out_i += *a_i * *b_i;
+		for (auto ita=a.begin(), itb=b.begin(), ito=out.begin(); ita != a_end; ++ita, ++itb, ++ito) {
+			if (itb == b_end)
+				itb = b.begin();
+			*ito += *ita * *itb;
 		}
 
 	}
