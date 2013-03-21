@@ -104,6 +104,25 @@ TEST_F(MatrixOperationsTest, check_if_add_into_b_work_on_3d)
 	ASSERT_TRUE(equals(out, m));
 }
 
+TEST_F(MatrixOperationsTest, check_if_add_into_b_work_on_time_slices1)
+{
+	Matrix out(3, 4, 1);
+	add_into_b(m3d.slice(0), out);
+	Matrix e1 = {{{0, 1, 2, 3}, {10, 11, 12, 13}, {20, 21, 22, 23}}};
+	ASSERT_TRUE(equals(out, e1));
+	add_into_b(m3d.slice(1), out);
+	Matrix e2 = {{{100, 102, 104, 106}, {120, 122, 124, 126}, {140, 142, 144, 146}}};
+	ASSERT_TRUE(equals(out, e2));
+}
+
+TEST_F(MatrixOperationsTest, check_if_add_into_b_work_on_time_slices2)
+{
+	Matrix out(3, 4, 2);
+	add_into_b(m3d.slice(0), out.slice(0));
+	add_into_b(m3d.slice(1), out.slice(1));
+	ASSERT_TRUE(equals(out, m3d));
+}
+
 TEST_F(MatrixOperationsTest, check_if_add_vector_into)
 {
 	Matrix v = {1, 2};
