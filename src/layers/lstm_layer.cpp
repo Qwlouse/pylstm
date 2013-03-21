@@ -141,7 +141,7 @@ void LstmLayer::forward(Weights &w, FwdState &b, Matrix &x, Matrix &y) {
 }
 
 
-void LstmLayer::backward(Weights &w, FwdState &b, BwdState &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas) {
+void LstmLayer::backward(Weights& w, FwdState& b, BwdState& d, Matrix&, Matrix& in_deltas, Matrix& out_deltas) {
 
     //clear_temp();
     //size_t end_time(b.batch_time - 1);
@@ -229,8 +229,7 @@ void LstmLayer::backward(Weights &w, FwdState &b, BwdState &d, Matrix &y, Matrix
     }
 }
 
-//void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d, MatrixView3DCPU &y, MatrixView3DCPU input_batches, MatrixView3DCPU &in_deltas) {
-void LstmLayer::gradient(Weights &w, Weights &grad, FwdState &b, BwdState &d, Matrix &y, Matrix& x, Matrix& out_deltas)  {
+void LstmLayer::gradient(Weights&, Weights& grad, FwdState& b, BwdState& d, Matrix& y, Matrix& x, Matrix& )  {
 
     size_t n_time(b.time);
 

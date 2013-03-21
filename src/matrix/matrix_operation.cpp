@@ -184,12 +184,6 @@ void mult_add(Matrix a, Matrix b, Matrix out, d_type scale) {
     ptrdiff_t b_stride = b.state == NORMAL ? b.n_rows : b.n_columns;
     ptrdiff_t out_stride = out.n_rows;
 
-	//cout << a_state << " " << b_state << " " << a.n_rows << " " << b.n_rows << " " << a.n_columns << " " << b.n_columns << " " << a.data << " " << b.data << endl;
-	ptrdiff_t a_rows = a.n_rows;
-	ptrdiff_t a_columns = a.n_columns;
-	ptrdiff_t b_rows = b.n_rows;
-	ptrdiff_t b_columns = b.n_columns;
-	ptrdiff_t out_rows = out.n_rows;
 	dgemm(&a_state, &b_state, &M, &N, &K, &scale, a.get_data(),
 	      &a_stride, b.get_data(), &b_stride, &double_one, out.get_data(), &out_stride);
 }

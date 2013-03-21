@@ -97,7 +97,7 @@ void RegularLayer::backward(RegularLayer::Weights &w, RegularLayer::FwdState &b,
     }
 }
 
-void RegularLayer::gradient(RegularLayer::Weights &w, RegularLayer::Weights &grad, RegularLayer::FwdState &b, RegularLayer::BwdState &d, Matrix &y, Matrix& x, Matrix& out_deltas)
+void RegularLayer::gradient(RegularLayer::Weights&, RegularLayer::Weights& grad, RegularLayer::FwdState&, RegularLayer::BwdState& d, Matrix&, Matrix& x, Matrix&)
 {
 	size_t n_slices = x.n_slices;
 	for (int t = 0; t < n_slices; ++t) {
@@ -107,12 +107,12 @@ void RegularLayer::gradient(RegularLayer::Weights &w, RegularLayer::Weights &gra
     squash(d.Ha, grad.H_bias);
 }
 
-void RegularLayer::Rpass(Weights &w, Weights &v,  FwdState &b, FwdState &Rb, Matrix &x, Matrix &y, Matrix &Ry)
+void RegularLayer::Rpass(Weights&, Weights&,  FwdState&, FwdState&, Matrix&, Matrix&, Matrix&)
 {
     THROW(core::NotImplementedException("Rpass not implemented yet."));
 }
 
-void RegularLayer::Rbackward(Weights &w, FwdState &b, BwdState &d, Matrix &in_deltas, Matrix &out_deltas, FwdState &Rb, double lambda, double mu)
+void RegularLayer::Rbackward(Weights&, FwdState&, BwdState&, Matrix&, Matrix&, FwdState&, double, double)
 {
     THROW(core::NotImplementedException("Rbackward pass not implemented yet."));
 }

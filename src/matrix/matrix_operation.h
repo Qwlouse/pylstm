@@ -70,7 +70,7 @@ inline double identity(double val) {
     return val;
 }
 
-inline double one(double val) {
+inline double one(double) {
     return 1.0;
 }
 
