@@ -49,22 +49,26 @@ void add_into_b(Matrix a, Matrix b) {
 }
 
 void add_vector_into(Matrix vec, Matrix mat) {
-  size_t j = 0;
-  for (int i = 0; i < mat.size; ++i, ++j) {
-	  if (j == vec.size) {
-		  j = 0;
+  auto it_v_end = vec.end();
+  for (auto it = mat.begin(), it_v = vec.begin(); it != mat.end(); ++it, ++it_v) {
+	  if (it_v == it_v_end) {
+		  it_v = vec.begin();
 	  }
-	  mat[i] += vec[j];
+	  *it += *it_v;
   }
 }
 
 
 void add_scalar(Matrix a, d_type b) {
-	//MatrixView2DCPU::iterator it(arg1.begin());
-	//	MatrixView2DCPU::iterator end(arg1.end());
-	//for (;it != end; ++it) *it += arg2;
-	long int n = a.size;
-	daxpy(&n, &double_one, &b, &diff_zero, a.get_data(), &diff_one);
+	if (a.stride == 0) {
+        long int n = a.size;
+	    daxpy(&n, &double_one, &b, &diff_zero, a.get_data(), &diff_one);
+	} else {
+	    for (auto it = a.begin(); it != a.end(); ++it) {
+	        *it += b;
+	    }
+	}
+
 }
 
 ///Elementwise multiplication

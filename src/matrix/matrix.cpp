@@ -218,16 +218,16 @@ void Matrix::print_me() {
 
 // iterator implementation
 
-Matrix::iterator::iterator(const Matrix& m) :
-    ptr(m.get_data()),
+Matrix::iterator::iterator(Matrix* m_) :
+    ptr(m_->get_data()),
     i(0),
-    m(m)
+    m(m_)
 { }
 
-Matrix::iterator::iterator(const Matrix& m, size_t i) :
-    ptr(i < m.size ? &m[i] : NULL),
+Matrix::iterator::iterator(Matrix* m_, size_t i) :
+    ptr(i < m_->size ? &(*m_)[i] : NULL),
     i(i),
-    m(m)
+    m(m_)
 { }
 
 Matrix::iterator::~iterator()
@@ -236,10 +236,10 @@ Matrix::iterator::~iterator()
 
 Matrix::iterator& Matrix::iterator::operator++() {
     ++i;
-    if (i >= m.size) {
+    if (i >= m->size) {
         ptr = NULL;
     } else {
-        ptr = &m[i];
+        ptr = &((*m)[i]);
     }
     return *this;
 }
@@ -258,11 +258,11 @@ bool Matrix::iterator::operator!=(const Matrix::iterator& o) const {
 
 
 Matrix::iterator Matrix::begin() {
-    return Matrix::iterator(*this);
+    return Matrix::iterator(this);
 }
 
 Matrix::iterator Matrix::end() {
-    return Matrix::iterator(*this, size);
+    return Matrix::iterator(this, size);
 }
 
 
