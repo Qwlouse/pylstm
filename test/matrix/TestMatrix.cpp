@@ -102,6 +102,19 @@ TEST_F(MatrixTest, check_indexing_operator_transposed)
 	}
 }
 
+TEST_F(MatrixTest, check_iterator_transposed)
+{
+    std::vector<int> expected = {0, 1, 2, 3, 10, 11, 12, 13, 20, 21, 22, 23,
+                       100, 101, 102, 103, 110, 111, 112, 113, 120, 121, 122, 123,};
+    Matrix n = M.T();
+    auto itm = n.begin();
+    auto ite = expected.begin();
+	for (; itm != n.end(); ++itm, ++ite) {
+		ASSERT_EQ(*itm, *ite);
+	}
+}
+
+
 TEST_F(MatrixTest, check_get_transposed)
 {
     Matrix n = M.T();
@@ -123,6 +136,17 @@ TEST_F(MatrixTest, check_indexing_time_slice)
     std::vector<int> expected = {100, 110, 120, 101, 111, 121, 102, 112, 122, 103, 113, 123};
 	for (int i = 0; i < 12; ++i) {
 		ASSERT_EQ(n[i], expected[i]);
+	}
+}
+
+TEST_F(MatrixTest, check_iterator_time_slice)
+{
+    Matrix n = M.slice(1);
+    std::vector<int> expected = {100, 110, 120, 101, 111, 121, 102, 112, 122, 103, 113, 123};
+    auto itm = n.begin();
+    auto ite = expected.begin();
+	for (; itm != n.end(); ++itm, ++ite) {
+		ASSERT_EQ(*itm, *ite);
 	}
 }
 
@@ -148,6 +172,20 @@ TEST_F(MatrixTest, check_indexing_time_slice_transposed)
     std::vector<int> expected = {100, 101, 102, 103, 110, 111, 112, 113, 120, 121, 122, 123};
 	for (int i = 0; i < 12; ++i) {
 		ASSERT_EQ(n[i], expected[i]);
+	}
+}
+
+TEST_F(MatrixTest, check_iterator_time_slice_transposed)
+{
+    Matrix n = M.slice(1).T();
+    ASSERT_EQ(n.n_columns, 3);
+    ASSERT_EQ(n.n_rows, 4);
+    ASSERT_EQ(n.n_slices, 1);
+    std::vector<int> expected = {100, 101, 102, 103, 110, 111, 112, 113, 120, 121, 122, 123};
+    auto itm = n.begin();
+    auto ite = expected.begin();
+	for (; itm != n.end(); ++itm, ++ite) {
+		ASSERT_EQ(*itm, *ite);
 	}
 }
 
@@ -190,6 +228,20 @@ TEST_F(MatrixTest, check_indexing_row_slice)
     }
 }
 
+TEST_F(MatrixTest, check_iterator_row_slice)
+{
+    Matrix n = M.row_slice(1);
+        ASSERT_EQ(n.n_columns, 4);
+        ASSERT_EQ(n.n_rows, 1);
+        ASSERT_EQ(n.n_slices, 2);
+        std::vector<int> expected = {10, 11, 12, 13, 110, 111, 112, 113};
+    auto itm = n.begin();
+    auto ite = expected.begin();
+	for (; itm != n.end(); ++itm, ++ite) {
+		ASSERT_EQ(*itm, *ite);
+	}
+}
+
 TEST_F(MatrixTest, check_get_row_slice_transposed)
 {
     Matrix n = M.row_slice(1).T();
@@ -214,6 +266,21 @@ TEST_F(MatrixTest, check_indexing_row_slice_transposed)
     	ASSERT_EQ(n[i], expected[i]);
     }
 }
+
+TEST_F(MatrixTest, check_iterator_row_slice_transposed)
+{
+    Matrix n = M.row_slice(1).T();
+    ASSERT_EQ(n.n_columns, 1);
+    ASSERT_EQ(n.n_rows, 4);
+    ASSERT_EQ(n.n_slices, 2);
+    std::vector<int> expected = {10, 11, 12, 13, 110, 111, 112, 113};
+    auto itm = n.begin();
+    auto ite = expected.begin();
+	for (; itm != n.end(); ++itm, ++ite) {
+		ASSERT_EQ(*itm, *ite);
+	}
+}
+
 
 TEST_F(MatrixTest, check_get_multirow_slice)
 {
@@ -242,6 +309,21 @@ TEST_F(MatrixTest, check_indexing_multirow_slice)
     }
 }
 
+TEST_F(MatrixTest, check_iterator_multirow_slice)
+{
+    Matrix n = M.row_slice(1,2);
+    ASSERT_EQ(n.n_columns, 4);
+    ASSERT_EQ(n.n_rows, 2);
+    ASSERT_EQ(n.n_slices, 2);
+    std::vector<int> expected = {10, 20, 11, 21, 12, 22, 13, 23, 110, 120, 111, 121, 112, 122, 113, 123};
+    auto itm = n.begin();
+    auto ite = expected.begin();
+	for (; itm != n.end(); ++itm, ++ite) {
+		ASSERT_EQ(*itm, *ite);
+	}
+}
+
+
 TEST_F(MatrixTest, check_get_multirow_slice_transposed)
 {
     Matrix n = M.row_slice(1,2).T();
@@ -267,4 +349,18 @@ TEST_F(MatrixTest, check_indexing_multirow_slice_transposed)
     for (int i = 0; i < 8; ++i) {
     	ASSERT_EQ(n[i], expected[i]);
     }
+}
+
+TEST_F(MatrixTest, check_iterator_multirow_slice_transposed)
+{
+    Matrix n = M.row_slice(1,2).T();
+    ASSERT_EQ(n.n_columns, 2);
+    ASSERT_EQ(n.n_rows, 4);
+    ASSERT_EQ(n.n_slices, 2);
+    std::vector<int> expected = {10, 11, 12, 13, 20, 21, 22, 23, 110, 111, 112, 113, 120, 121, 122, 123};
+    auto itm = n.begin();
+    auto ite = expected.begin();
+	for (; itm != n.end(); ++itm, ++ite) {
+		ASSERT_EQ(*itm, *ite);
+	}
 }
