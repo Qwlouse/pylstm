@@ -102,8 +102,9 @@ void dot(Matrix a, Matrix b, Matrix out) {
 
 void dot_into_b(Matrix a, Matrix b) {
     ASSERT(a.size == b.size);
-    for (size_t i = 0; i < a.size; ++i) {
-        b[i] *= a[i];
+    auto enda = a.end();
+    for (auto ita = a.begin(), itb = b.begin(); ita != enda; ++ita, ++itb) {
+        *itb *= *ita;
     }
 }
 
