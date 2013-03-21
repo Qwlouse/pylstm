@@ -161,6 +161,22 @@ TEST_F(MatrixOperationsTest, check_if_add_scalar_works_as_expected)
 	ASSERT_TRUE(equals(m1, Matrix({{12.,13.,15.},{13.,14.,65.}})));
 }
 
+TEST_F(MatrixOperationsTest, check_if_add_scalar_works_as_expected_on_time_slice)
+{
+	add_scalar(m3d.slice(1), 1000.);
+	Matrix expected({{{0, 1, 2, 3}, {10, 11, 12, 13}, {20, 21, 22, 23}},
+            {{1100, 1101, 1102, 1103}, {1110, 1111, 1112, 1113}, {1120, 1121, 1122, 1123}}});
+	ASSERT_TRUE(equals(m3d, expected));
+}
+
+TEST_F(MatrixOperationsTest, check_if_add_scalar_works_as_expected_on_row_slice)
+{
+	add_scalar(m3d.row_slice(1), 1000.);
+	Matrix expected({{{0, 1, 2, 3}, {1010, 1011, 1012, 1013}, {20, 21, 22, 23}},
+            {{100, 101, 102, 103}, {1110, 1111, 1112, 1113}, {120, 121, 122, 123}}});
+	ASSERT_TRUE(equals(m3d, expected));
+}
+
 
 TEST_F(MatrixOperationsTest, check_if_dot_works_as_expected)
 {
