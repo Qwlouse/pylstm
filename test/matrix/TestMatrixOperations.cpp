@@ -24,46 +24,6 @@ protected:
     Matrix m3d;
 };
 
-TEST_F(MatrixOperationsTest, check_1D_initializer_list)
-{
-	Matrix m = {0, 2, 4, 6};
-	ASSERT_EQ(m.n_rows, 1);
-	ASSERT_EQ(m.n_columns, 4);
-	ASSERT_EQ(m.n_slices, 1);
-	for (int i = 0; i < 4; ++i) {
-		ASSERT_EQ(m.get(0, i, 0), 2*i);
-	}
-}
-
-TEST_F(MatrixOperationsTest, check_2D_initializer_list)
-{
-	Matrix m = {{0, 2, 4, 6},
-			{10, 12, 14, 16}};
-	ASSERT_EQ(m.n_rows, 2);
-	ASSERT_EQ(m.n_columns, 4);
-	ASSERT_EQ(m.n_slices, 1);
-	for (int r = 0; r < 2; ++r) {
-		for (int c = 0; c < 4; ++c) {
-			ASSERT_EQ(m.get(r, c, 0), 2*c + 10*r);
-		}
-	}
-}
-
-TEST_F(MatrixOperationsTest, check_3D_initializer_list)
-{
-	Matrix m = {{{0, 1, 2, 3}, {10, 11, 12, 13}, {20, 21, 22, 23}},
-			{{100, 101, 102, 103}, {110, 111, 112, 113}, {120, 121, 122, 123}}};
-	ASSERT_EQ(m.n_rows, 3);
-	ASSERT_EQ(m.n_columns, 4);
-	ASSERT_EQ(m.n_slices, 2);
-	for (int s = 0; s < 2; ++s) {
-		for (int r = 0; r < 3; ++r) {
-			for (int c = 0; c < 4; ++c) {
-				ASSERT_EQ(m.get(r, c, s), c + 10*r + 100*s);
-			}
-		}
-	}
-}
 
 TEST_F(MatrixOperationsTest, check_if_equals_works_as_expected)
 {
