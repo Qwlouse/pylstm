@@ -1,5 +1,4 @@
 #include <string>
-#include <iostream>
 #include <gtest/gtest.h>
 
 #include "Config.h"
@@ -58,6 +57,26 @@ TEST_F(MatrixOperationsTest, check_if_equals_works_on_multi_time_slices)
 
 	EXPECT_TRUE(equals(a.slice(3, 5), b));
 	EXPECT_TRUE(equals(a.slice(1, 4), c));
+}
+
+TEST_F(MatrixOperationsTest, check_if_equals_works_on_row_slices)
+{
+    Matrix a = {{{0, 1, 2, 3}}, {{100, 101, 102, 103}}};
+    Matrix b = {{{10, 11, 12, 13}}, {{110, 111, 112, 113}}};
+    Matrix c = {{{20, 21, 22, 23}}, {{120, 121, 122, 123}}};
+
+	EXPECT_TRUE(equals(m3d.row_slice(0), a));
+	EXPECT_TRUE(equals(m3d.row_slice(1), b));
+	EXPECT_TRUE(equals(m3d.row_slice(2), c));
+}
+
+TEST_F(MatrixOperationsTest, check_if_equals_works_on_multi_row_slices)
+{
+    Matrix a = {{{0, 1, 2, 3}, {10, 11, 12, 13}}, {{100, 101, 102, 103}, {110, 111, 112, 113}}};
+    Matrix b = {{{10, 11, 12, 13}, {20, 21, 22, 23}}, {{110, 111, 112, 113}, {120, 121, 122, 123}}};
+
+	EXPECT_TRUE(equals(m3d.row_slice(0, 1), a));
+	EXPECT_TRUE(equals(m3d.row_slice(1, 2), b));
 }
 
 
@@ -209,7 +228,6 @@ TEST_F(MatrixOperationsTest, check_if_apply_sigmoid_works_as_expected)
     Matrix actual(5, 1, 1);
     apply_sigmoid(range, actual);
     for (int i = 0; i < 5; ++i) {
-        std::cout << expected[i] << ", " << actual[i] << std::endl;
         ASSERT_NEAR(expected[i], actual[i], 0.0000001);
     }
 }
