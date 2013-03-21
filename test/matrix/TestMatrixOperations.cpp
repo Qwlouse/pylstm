@@ -132,7 +132,18 @@ TEST_F(MatrixOperationsTest, check_if_add_into_b_work_on_row_sliced_a)
 	ASSERT_TRUE(equals(out, {{{10, 12, 14, 16}}, {{210, 212, 214, 216}}}));
 	add_into_b(m3d.row_slice(2), out);
 	ASSERT_TRUE(equals(out, {{{30, 33, 36, 39}}, {{330, 333, 336, 339}}}));
+}
 
+TEST_F(MatrixOperationsTest, check_if_add_into_b_work_on_row_sliced_b)
+{
+    Matrix out(3, 4, 1);
+    Matrix o = {1, 2, 3, 4};
+	add_into_b(o, out.row_slice(0));
+    ASSERT_TRUE(equals(out, {{{1, 2, 3, 4}, {0, 0, 0, 0}, {0, 0, 0, 0}}}));
+	add_into_b(o, out.row_slice(1));
+	ASSERT_TRUE(equals(out, {{{1, 2, 3, 4}, {1, 2, 3, 4}, {0, 0, 0, 0}}}));
+	add_into_b(o, out.row_slice(2));
+	ASSERT_TRUE(equals(out, {{{1, 2, 3, 4}, {1, 2, 3, 4}, {1, 2, 3, 4}}}));
 }
 
 TEST_F(MatrixOperationsTest, check_if_add_vector_into)

@@ -36,7 +36,7 @@ bool equals(Matrix a, Matrix b) {
 
 void add_into_b(Matrix a, Matrix b) {
 	long int n = a.size;
-	if (a.state == b.state && a.stride == 0) {
+	if (a.state == b.state && a.stride == 0 && b.stride == 0) {
         daxpy(&n, &double_one, a.get_data(), &diff_one, b.get_data(), &diff_one);
     } else {
         Matrix::iterator ita = a.begin();
