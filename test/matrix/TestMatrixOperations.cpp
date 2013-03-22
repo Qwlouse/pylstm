@@ -188,6 +188,16 @@ TEST_F(MatrixOperationsTest, check_if_dot_works_as_expected)
 	ASSERT_TRUE(equals(m2, Matrix({{4.,9.,20.},{9.,16.,330.}})));
 }
 
+TEST_F(MatrixOperationsTest, check_if_dot_works_with_row_slice)
+{
+	dot(m1.row_slice(0), m3.row_slice(1), m2.row_slice(0));
+	// check that m1 and m3 are unchanged
+	ASSERT_TRUE(equals(m1, Matrix({{2.,3.,5.},{3.,4.,55.}})));
+	ASSERT_TRUE(equals(m3, Matrix({{2.,3.,4.},{3.,4.,6.}})));
+	ASSERT_TRUE(equals(m2, Matrix({{6.,12.,30.},{3.,4.,55.}})));
+}
+
+
 TEST_F(MatrixOperationsTest, check_if_dot_works_with_smaller_b)
 {
 	dot(m1, Matrix({0,2}), m2);

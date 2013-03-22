@@ -78,7 +78,7 @@ void dot(Matrix a, Matrix b, Matrix out) {
 
 	ASSERT(a.state == NORMAL && b.state == NORMAL && out.state == NORMAL);
 
-	fill(out.get_data(), out.get_data() + out.size, 0.0);
+	fill(out.begin(), out.end(), 0.0);
 
 	if (a.size == b.size && a.stride == 0 && b.stride == 0 && out.stride == 0) {
 		long int n = a.size;
@@ -190,11 +190,11 @@ void mult_add(Matrix a, Matrix b, Matrix out, d_type scale) {
 
 
 void ActivationFunction::apply(Matrix in, Matrix out) const {
-    transform(in.get_data(), in.get_data() + in.size, out.get_data(), *f);
+    transform(in.begin(), in.end(), out.begin(), *f);
 }
 
 void ActivationFunction::apply_deriv(Matrix in, Matrix d, Matrix out) const {
-    transform(in.get_data(), in.get_data() + in.size, out.get_data(), *deriv);
+    transform(in.begin(), in.end(), out.begin(), *deriv);
     dot_into_b(d, out);
 }
 
@@ -243,34 +243,34 @@ void SoftmaxLayerActivation::apply_deriv(Matrix in, Matrix d, Matrix out) const 
 
 
 void apply(Matrix in, Matrix out, unary_double_func f) {
-	transform(in.get_data(), in.get_data() + in.size, out.get_data(), *f);
+	transform(in.begin(), in.end(), out.begin(), *f);
 }
 
 ///Apply sigmoid to all units
 void apply_sigmoid(Matrix a, Matrix out) {
-  transform(a.get_data(), a.get_data() + a.size, out.get_data(), sigmoid);
+  transform(a.begin(), a.end(), out.begin(), sigmoid);
 }
 
 void apply_sigmoid_deriv(Matrix a, Matrix out) {
-  transform(a.get_data(), a.get_data() + a.size, out.get_data(), sigmoid_deriv);
+  transform(a.begin(), a.end(), out.begin(), sigmoid_deriv);
 }
 
 ///Apply tanh to all units
 void apply_tanh(Matrix a, Matrix out) {
-  transform(a.get_data(), a.get_data() + a.size, out.get_data(), tanh_);
+  transform(a.begin(), a.end(), out.begin(), tanh_);
 }
 
 void apply_tanh_deriv(Matrix a, Matrix out) {
-  transform(a.get_data(), a.get_data() + a.size, out.get_data(), tanh_deriv);
+  transform(a.begin(), a.end(), out.begin(), tanh_deriv);
 }
 
 ///Apply tanh * 2to all units
 void apply_tanhx2(Matrix a, Matrix out) {
-  transform(a.get_data(), a.get_data() + a.size, out.get_data(), tanhx2);
+  transform(a.begin(), a.end(), out.begin(), tanhx2);
 }
 
 void apply_tanhx2_deriv(Matrix a, Matrix out) {
-  transform(a.get_data(), a.get_data() + a.size, out.get_data(), tanhx2_deriv);
+  transform(a.begin(), a.end(), out.begin(), tanhx2_deriv);
 }
 
 ///Copy the data of one matrix into another
