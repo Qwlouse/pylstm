@@ -3,6 +3,7 @@
 
 from __future__ import division, print_function, unicode_literals
 import numpy as np
+from scipy.optimize import fmin_ncg
 import sys
 sys.path.append('.')
 sys.path.append('..')
@@ -73,9 +74,8 @@ class RPropTrainer(object):
             
 
 class CgTrainer(object):
-    def __init__(self, learning_rate=0.1, error_fkt=MeanSquaredError):
+    def __init__(self, learning_rate=0.1):
         self.learning_rate = learning_rate
-        self.error_fkt = error_fkt()
 
     def train(self, net, X, T, epochs=100, callback=print_error_per_epoch):
         weights = net.get_param_buffer()
@@ -87,47 +87,61 @@ class CgTrainer(object):
             out = net.forward_pass(X).as_array()
             
             #calculate error
-            error = self.error_fkt.forward_pass(out, T) / X.shape[1]
+            error = net.calculate_error(T) / X.shape[1]
             callback(epoch, error)
-            
-            #run backwards pass / calc gradient
-            deltas = self.error_fkt.backward_pass(out, T)
-            net.backward_pass(deltas)
+
+            net.backward_pass(T)
             grad = net.calc_gradient()
 
             #initialize v, but maybe we should use the small random numbers like in old version
             v = np.zeros(net.get_param_size())
 
             #run cg
-            #dws = cg(v, grad, lambda, mu)
-            
-            #but can we do this backwards
-            for dwvec in dws:
-                tmp_weights = weights.copy() + dwvec
-                net.set_param_buffer(tmp_weight.copy())
-                tmp_out = net.forward_pass(X).as_array()
-                tmp_error = self.error_fkt.forward_pass(out,T) / X.shape[1]
-                
-                if last_error > tmp_error:
-                    if n < dws.length() - 1:
-                        dw = dws[n + 1]
-                        break;
-    
-                track_last_error = track_new_error;
+            def f(W):
+                net.set_param_buffer(W)
+                net.forward_pass(X)
+                return net.calculate_error(T)
 
-            #Calculate rho based on dw
-            tmp_weights = weights.copy() + dw
-            net.set_param_buffer(tmp_weight.copy())
-            tmp_out = net.forward_pass(X).as_array()
-            new_error = self.error_fkt.forward_pass(out,T) / X.shape[1]
+            def fprime(W):
+                net.set_param_buffer(W)
+                net.forward_pass(X)
+                net.backward_pass(T)
+                return net.calc_gradient().as_array()
 
-            #f_val = cg.f_val?! 
-            
-            rho = (new_error - last_error)/f_val
-            if rho > .75:
-                lambda_ *= 2/3
-            elif rho < .25: 
-                lambda_ *= 3/2
+            def fhess_p(W, v):
+                net.set_param_buffer(W)
+                return net.hessian_pass(X, v, lambda_=0., mu=0.).as_array()
+
+            xopt, allvecs = fmin_ncg(f, weights.as_array().copy(), fprime, fhess_p=fhess_p, maxiter=50, retall=True, disp=True)
+            # #dws = cg(v, grad, lambda, mu)
+            #
+            # #but can we do this backwards
+            # for dwvec in dws:
+            #     tmp_weights = weights.copy() + dwvec
+            #     net.set_param_buffer(tmp_weight.copy())
+            #     tmp_out = net.forward_pass(X).as_array()
+            #     tmp_error = self.error_fkt.forward_pass(out,T) / X.shape[1]
+            #
+            #     if last_error > tmp_error:
+            #         if n < dws.length() - 1:
+            #             dw = dws[n + 1]
+            #             break;
+            #
+            #     track_last_error = track_new_error;
+            #
+            # #Calculate rho based on dw
+            # tmp_weights = weights.copy() + dw
+            # net.set_param_buffer(tmp_weight.copy())
+            # tmp_out = net.forward_pass(X).as_array()
+            # new_error = self.error_fkt.forward_pass(out,T) / X.shape[1]
+            #
+            # #f_val = cg.f_val?!
+            #
+            # rho = (new_error - last_error)/f_val
+            # if rho > .75:
+            #     lambda_ *= 2/3
+            # elif rho < .25:
+            #     lambda_ *= 3/2
             
             
             #run backtrack 2 on dw
@@ -145,7 +159,7 @@ if __name__ == "__main__":
     net = netb.build()
     weight = rnd.randn(net.get_param_size())
     net.set_param_buffer(weight.copy())
-    trainer = SgdTrainer(learning_rate=0.01)
+    trainer = CgTrainer(learning_rate=0.01)
     X = rnd.randn(2, 5, 4)
     T = rnd.randn(2, 5, 3)
     trainer.train(net, X, T, epochs=10)

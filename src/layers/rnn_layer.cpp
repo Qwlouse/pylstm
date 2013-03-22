@@ -53,7 +53,7 @@ size_t RnnDeltas::buffer_size() {
     temp_hidden.size + temp_hidden2.size; //temp vars
 }
 
-void rnn_forward(RnnWeights &w, RnnBuffers &b, MatrixView3DCPU &x, MatrixView3DCPU &y) {
+void rnn_forward(RnnWeights &w, RnnBuffers &b, Matrix &x, MatrixView3DCPU &y) {
   mult(w.HX, x.flatten(), b.Ha.flatten());
 
   for (size_t t(0); t < b.time; ++t) {

@@ -197,5 +197,6 @@ class Network(object):
         self.forward_pass(input_buffer)
         self.r_forward_pass(input_buffer, v_buffer)
         self.r_backward_pass(T, lambda_, mu)
+        return self.calc_gradient()
 
 
