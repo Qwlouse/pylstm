@@ -282,11 +282,11 @@ void copy(Matrix a, Matrix b) {
 
 void squash(Matrix a, Matrix out) {
   out.set_all_elements_to(0.0);
-  int out_index = 0;
-  for (int i=0; i < a.size; ++i, ++out_index) {
-    if (out_index == out.size)
-      out_index = 0;
-    out[out_index] += a[i];
+  auto ito_end = out.end();
+  for (auto ita = a.begin(), ito = out.begin(); ita != a.end(); ++ita, ++ito) {
+    if (ito == ito_end)
+      ito = out.begin();
+    *ito += *ita;
   }
 }
 

@@ -196,8 +196,8 @@ Matrix Matrix::flatten_time() {
 }
 
 void Matrix::set_all_elements_to(d_type value) {
-	for (int i = 0; i < size; ++i)
-		operator[](i) = value;
+	for (d_type& v : *this)
+		v = value;
 }
 
 void Matrix::print_me() {
