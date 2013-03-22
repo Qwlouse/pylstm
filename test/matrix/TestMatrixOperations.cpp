@@ -9,12 +9,12 @@
 class MatrixOperationsTest : public ::testing::Test {
 protected:
   MatrixOperationsTest() :
-    m1({{2.,3.,5.},{3.,4.,55.}}),
-    m2({{2.,3.,5.},{3.,4.,55.}}), // same as m1
-    m3({{2.,3.,4.},{3.,4.,6.}}),
-    m4({{2.,3.},{3.,4.}}),
-    m5({{2.,3.},{3.,4.},{5.,55.}}), // m1 transposed
-    m6({{2.,3., 4., 5.},{6., 7., 8., 9.}}), // m1 transposed
+    m1({{2, 3, 5},{3, 4, 55}}),
+    m2({{2, 3, 5},{3, 4, 55}}), // same as m1
+    m3({{2, 3, 4},{3, 4, 6}}),
+    m4({{2, 3},{3, 4}}),
+    m5({{2, 3},{3, 4},{5, 55}}), // m1 transposed
+    m6({{2, 3,  4,  5},{6,  7,  8,  9}}), // m1 transposed
     m3d({{{0, 1, 2, 3}, {10, 11, 12, 13}, {20, 21, 22, 23}},
         {{100, 101, 102, 103}, {110, 111, 112, 113}, {120, 121, 122, 123}}})
 {  }
@@ -84,13 +84,13 @@ TEST_F(MatrixOperationsTest, check_if_equals_works_on_multi_row_slices)
 TEST_F(MatrixOperationsTest, check_if_add_into_b_works_as_expected)
 {
 	add_into_b(m1, m3);
-	ASSERT_TRUE(equals(m3, Matrix({{4.,6.,9.},{6.,8.,61.}})));
+	ASSERT_TRUE(equals(m3, Matrix({{4, 6, 9},{6, 8, 61}})));
 }
 
 TEST_F(MatrixOperationsTest, check_if_add_into_b_on_itself)
 {
 	add_into_b(m1, m1);
-	ASSERT_TRUE(equals(m1, Matrix({{4.,6.,10.},{6.,8.,110.}})));
+	ASSERT_TRUE(equals(m1, Matrix({{4, 6, 10},{6, 8, 110}})));
 }
 
 TEST_F(MatrixOperationsTest, check_if_add_into_b_work_on_3d)
@@ -150,7 +150,7 @@ TEST_F(MatrixOperationsTest, check_if_add_vector_into)
 {
 	Matrix v = {1, 2};
 	add_vector_into(v, m1);
-	Matrix expected = {{3.,4.,6.},{5.,6.,57.}};
+	Matrix expected = {{3, 4, 6},{5, 6, 57}};
 	ASSERT_TRUE(equals(m1, expected));
 }
 
@@ -158,7 +158,7 @@ TEST_F(MatrixOperationsTest, check_if_add_vector_into)
 TEST_F(MatrixOperationsTest, check_if_add_scalar_works_as_expected)
 {
 	add_scalar(m1, 10.);
-	ASSERT_TRUE(equals(m1, Matrix({{12.,13.,15.},{13.,14.,65.}})));
+	ASSERT_TRUE(equals(m1, Matrix({{12, 13, 15},{13, 14, 65}})));
 }
 
 TEST_F(MatrixOperationsTest, check_if_add_scalar_works_as_expected_on_time_slice)
@@ -182,19 +182,20 @@ TEST_F(MatrixOperationsTest, check_if_dot_works_as_expected)
 {
 	dot(m1, m3, m2);
 	// check that m1 and m3 are unchanged
-	ASSERT_TRUE(equals(m1, Matrix({{2.,3.,5.},{3.,4.,55.}})));
-	ASSERT_TRUE(equals(m3, Matrix({{2.,3.,4.},{3.,4.,6.}})));
+	ASSERT_TRUE(equals(m1, Matrix({{2, 3, 5},{3, 4, 55}})));
+	ASSERT_TRUE(equals(m3, Matrix({{2, 3, 4},{3, 4, 6}})));
 
-	ASSERT_TRUE(equals(m2, Matrix({{4.,9.,20.},{9.,16.,330.}})));
+	ASSERT_TRUE(equals(m2, Matrix({{4, 9, 20},{9, 16, 330}})));
 }
 
 TEST_F(MatrixOperationsTest, check_if_dot_works_with_row_slice)
 {
 	dot(m1.row_slice(0), m3.row_slice(1), m2.row_slice(0));
 	// check that m1 and m3 are unchanged
-	ASSERT_TRUE(equals(m1, Matrix({{2.,3.,5.},{3.,4.,55.}})));
-	ASSERT_TRUE(equals(m3, Matrix({{2.,3.,4.},{3.,4.,6.}})));
-	ASSERT_TRUE(equals(m2, Matrix({{6.,12.,30.},{3.,4.,55.}})));
+	ASSERT_TRUE(equals(m1, Matrix({{2, 3, 5},{3, 4, 55}})));
+	ASSERT_TRUE(equals(m3, Matrix({{2, 3, 4},{3, 4, 6}})));
+
+	ASSERT_TRUE(equals(m2, Matrix({{6, 12, 30},{3, 4, 55}})));
 }
 
 
@@ -202,8 +203,8 @@ TEST_F(MatrixOperationsTest, check_if_dot_works_with_smaller_b)
 {
 	dot(m1, Matrix({0,2}), m2);
 	// check that m1 is unchanged
-	ASSERT_TRUE(equals(m1, Matrix({{2.,3.,5.},{3.,4.,55.}})));
-	ASSERT_TRUE(equals(m2, Matrix({{0.,0. ,0.},{6.,8.,110.}})));
+	ASSERT_TRUE(equals(m1, Matrix({{2, 3, 5},{3, 4, 55}})));
+	ASSERT_TRUE(equals(m2, Matrix({{0, 0. ,0},{6, 8, 110}})));
 }
 
 /* TODO: these dont work!! be careful! Make them work...
@@ -211,18 +212,18 @@ TEST_F(MatrixOperationsTest, check_if_dot_works_with_a_b_a)
 {
   dot(m1, m3, m1);
   // check that m1 and m3 are unchanged
-  ASSERT_TRUE(equals(m3, Matrix({{2.,3.,4.},{3.,4.,6.}})));
+  ASSERT_TRUE(equals(m3, Matrix({{2, 3, 4},{3, 4, 6}})));
 
-  ASSERT_TRUE(equals(m1, Matrix({{4.,9.,20.},{9.,16.,330.}})));
+  ASSERT_TRUE(equals(m1, Matrix({{4, 9, 20},{9, 16, 330}})));
 }
 
 TEST_F(MatrixOperationsTest, check_if_dot_works_with_a_b_b)
 {
   dot(m1, m3, m3);
   // check that m1 and m3 are unchanged
-  ASSERT_TRUE(equals(m1, Matrix({{2.,3.,5.},{3.,4.,55.}})));
+  ASSERT_TRUE(equals(m1, Matrix({{2, 3, 5},{3, 4, 55}})));
 
-  ASSERT_TRUE(equals(m3, Matrix({{4.,9.,20.},{9.,16.,330.}})));
+  ASSERT_TRUE(equals(m3, Matrix({{4, 9, 20},{9, 16, 330}})));
 }
  */
 
@@ -230,10 +231,10 @@ TEST_F(MatrixOperationsTest, check_if_dot_add_works_as_expected)
 {
 	dot_add(m1, m3, m2);
 	// check that m1 and m3 are unchanged
-	ASSERT_TRUE(equals(m1, Matrix({{2.,3.,5.},{3.,4.,55.}})));
-	ASSERT_TRUE(equals(m3, Matrix({{2.,3.,4.},{3.,4.,6.}})));
+	ASSERT_TRUE(equals(m1, Matrix({{2, 3, 5},{3, 4, 55}})));
+	ASSERT_TRUE(equals(m3, Matrix({{2, 3, 4},{3, 4, 6}})));
 
-	ASSERT_TRUE(equals(m2, Matrix({{6.,12.,25.},{12.,20.,385.}})));
+	ASSERT_TRUE(equals(m2, Matrix({{6, 12, 25},{12, 20, 385}})));
 }
 
 
@@ -241,19 +242,20 @@ TEST_F(MatrixOperationsTest, check_if_dot_add_works_with_row_slice)
 {
 	dot_add(m1.row_slice(0), m3.row_slice(1), m2.row_slice(0));
 	// check that m1 and m3 are unchanged
-	ASSERT_TRUE(equals(m1, Matrix({{2.,3.,5.},{3.,4.,55.}})));
-	ASSERT_TRUE(equals(m3, Matrix({{2.,3.,4.},{3.,4.,6.}})));
-	ASSERT_TRUE(equals(m2, Matrix({{8.,15.,35.},{3.,4.,55.}})));
+	ASSERT_TRUE(equals(m1, Matrix({{2, 3, 5},{3, 4, 55}})));
+	ASSERT_TRUE(equals(m3, Matrix({{2, 3, 4},{3, 4, 6}})));
+
+	ASSERT_TRUE(equals(m2, Matrix({{8, 15, 35},{3, 4, 55}})));
 }
 
 TEST_F(MatrixOperationsTest, check_if_mult_works_as_expected)
 {
 	mult(m4, m1, m2);
-	// check that m1 and m3 are unchanged
-	ASSERT_TRUE(equals(m1, Matrix({{2.,3.,5.},{3.,4.,55.}})));
-	ASSERT_TRUE(equals(m4, Matrix({{2.,3.},{3.,4.}})));
+	// check that m1 and m4 are unchanged
+	ASSERT_TRUE(equals(m1, Matrix({{2, 3, 5},{3, 4, 55}})));
+	ASSERT_TRUE(equals(m4, Matrix({{2, 3},{3, 4}})));
 
-	ASSERT_TRUE(equals(m2, Matrix({{13.,18.,175.},{18.,25.,235.}})));
+	ASSERT_TRUE(equals(m2, Matrix({{13, 18, 175},{18, 25, 235}})));
 }
 
 TEST_F(MatrixOperationsTest, check_if_mult_works_as_expected_with_row_slice_and_transpose)
@@ -264,7 +266,7 @@ TEST_F(MatrixOperationsTest, check_if_mult_works_as_expected_with_row_slice_and_
     ASSERT_TRUE(equals(m3d, Matrix({{{0, 1, 2, 3}, {10, 11, 12, 13}, {20, 21, 22, 23}},
         {{100, 101, 102, 103}, {110, 111, 112, 113}, {120, 121, 122, 123}}})));
 
-    ASSERT_TRUE(equals(out, Matrix({{614.,674.,734.},{4674.,5134.,5594.},{8734.,9594.,10454.}})));
+    ASSERT_TRUE(equals(out, Matrix({{614, 674, 734},{4674, 5134, 5594},{8734, 9594, 10454}})));
 }
 
 
@@ -272,20 +274,20 @@ TEST_F(MatrixOperationsTest, check_if_mult_works_transposed1)
 {
 	Matrix out(2, 3, 1);
 	mult(m4.T(), m1, out);
-	// check that m1 and m3 are unchanged
-	ASSERT_TRUE(equals(m1, Matrix({{2.,3.,5.},{3.,4.,55.}})));
-	ASSERT_TRUE(equals(m4, Matrix({{2.,3.},{3.,4.}})));
-	ASSERT_TRUE(equals(out, Matrix({{13.,18.,175.},{18.,25.,235.}})));
+	// check that m1 and m4 are unchanged
+	ASSERT_TRUE(equals(m1, Matrix({{2, 3, 5},{3, 4, 55}})));
+	ASSERT_TRUE(equals(m4, Matrix({{2, 3},{3, 4}})));
+	ASSERT_TRUE(equals(out, Matrix({{13, 18, 175},{18, 25, 235}})));
 }
 
 TEST_F(MatrixOperationsTest, check_if_mult_works_transposed2)
 {
 	Matrix out(3, 2, 1);
 	mult(m1.T(), m4, out);
-	// check that m1 and m3 are unchanged
-	ASSERT_TRUE(equals(m1, Matrix({{2.,3.,5.},{3.,4.,55.}})));
-	ASSERT_TRUE(equals(m4, Matrix({{2.,3.},{3.,4.}})));
-	ASSERT_TRUE(equals(out, Matrix({{13.,18.}, {18, 25}, {175., 235.}})));
+	// check that m1 and m4 are unchanged
+	ASSERT_TRUE(equals(m1, Matrix({{2, 3, 5},{3, 4, 55}})));
+	ASSERT_TRUE(equals(m4, Matrix({{2, 3},{3, 4}})));
+	ASSERT_TRUE(equals(out, Matrix({{13, 18}, {18, 25}, {175, 235}})));
 }
 
 
@@ -293,31 +295,42 @@ TEST_F(MatrixOperationsTest, check_if_mult_works_transposed3)
 {
 	Matrix out(3, 2, 1);
 	mult(m1.T(), m4.T(), out);
-	// check that m1 and m3 are unchanged
-	ASSERT_TRUE(equals(m1, Matrix({{2.,3.,5.},{3.,4.,55.}})));
-	ASSERT_TRUE(equals(m4, Matrix({{2.,3.},{3.,4.}})));
-	ASSERT_TRUE(equals(out, Matrix({{13.,18.}, {18, 25}, {175., 235.}})));
+	// check that m1 and m4 are unchanged
+	ASSERT_TRUE(equals(m1, Matrix({{2, 3, 5},{3, 4, 55}})));
+	ASSERT_TRUE(equals(m4, Matrix({{2, 3},{3, 4}})));
+	ASSERT_TRUE(equals(out, Matrix({{13, 18}, {18, 25}, {175,  235}})));
 }
 
-TEST_F(MatrixOperationsTest, check_if_mult_works_with_time_slice)
+
+TEST_F(MatrixOperationsTest, check_if_mult_works_on_row_slices1)
 {
-	Matrix out(3, 2, 1);
-	mult(m1.T(), m4.T(), out);
-	// check that m1 and m3 are unchanged
-	ASSERT_TRUE(equals(m1, Matrix({{2.,3.,5.},{3.,4.,55.}})));
-	ASSERT_TRUE(equals(m4, Matrix({{2.,3.},{3.,4.}})));
-	ASSERT_TRUE(equals(out, Matrix({{13.,18.}, {18, 25}, {175., 235.}})));
+	Matrix out(3, 3, 1);
+	Matrix A = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
+	Matrix B = {-1, 0, 1};
+	mult(B.T(), A.row_slice(1), out);
+
+	ASSERT_TRUE(equals(out, Matrix({{-4, -5, -6}, {0, 0, 0}, {4, 5, 6}})));
 }
 
+
+TEST_F(MatrixOperationsTest, check_if_mult_works_on_row_slices2)
+{
+	Matrix out(3, 3, 1);
+	mult(m1.row_slice(1).T(), m2.row_slice(0), out);
+	// check that m1 and m2 are unchanged
+	ASSERT_TRUE(equals(m1, Matrix({{2, 3, 5},{3, 4, 55}})));
+	ASSERT_TRUE(equals(m2, Matrix({{2, 3, 5},{3, 4, 55}})));
+	ASSERT_TRUE(equals(out, Matrix({{6, 9, 15}, {8, 12, 20}, {110, 165, 275}})));
+}
 
 TEST_F(MatrixOperationsTest, check_if_mult_add_works_as_expected)
 {
   mult_add(m4, m1, m2);
-  // check that m1 and m3 are unchanged
-  ASSERT_TRUE(equals(m1, Matrix({{2.,3.,5.},{3.,4.,55.}})));
-  ASSERT_TRUE(equals(m4, Matrix({{2.,3.},{3.,4.}})));
+  // check that m1 and m4 are unchanged
+  ASSERT_TRUE(equals(m1, Matrix({{2, 3, 5},{3, 4, 55}})));
+  ASSERT_TRUE(equals(m4, Matrix({{2, 3},{3, 4}})));
 
-  ASSERT_TRUE(equals(m2, Matrix({{15.,21.,180.},{21.,29.,290.}})));
+  ASSERT_TRUE(equals(m2, Matrix({{15, 21, 180},{21, 29, 290}})));
 }
 
 TEST_F(MatrixOperationsTest, check_if_apply_sigmoid_works_as_expected)

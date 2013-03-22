@@ -154,9 +154,9 @@ void mult(Matrix a, Matrix b, Matrix out, d_type scale) {
   // the size of the first dimension of the matrices, as laid out in memory;
   // meaning the memory distance between the start of each row/column,
   // depending on the memory structure
-  ptrdiff_t a_stride = a.state == NORMAL ? a.n_rows : a.n_columns;
-  ptrdiff_t b_stride = b.state == NORMAL ? b.n_rows : b.n_columns;
-  ptrdiff_t out_stride = out.n_rows;
+  ptrdiff_t a_stride = a.state == NORMAL ? a.n_rows+a.stride : a.n_columns+a.stride;
+  ptrdiff_t b_stride = b.state == NORMAL ? b.n_rows+b.stride : b.n_columns+b.stride;
+  ptrdiff_t out_stride = out.n_rows+out.stride;
 
   dgemm(&a_state, &b_state, &M, &N, &K, &scale, a.get_data(),
 	&a_stride, b.get_data(), &b_stride, &double_zero, out.get_data(), &out_stride);
