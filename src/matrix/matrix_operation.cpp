@@ -242,74 +242,75 @@ void apply(Matrix in, Matrix out, unary_double_func f) {
 
 ///Apply sigmoid to all units
 void apply_sigmoid(Matrix a, Matrix out) {
-  transform(a.begin(), a.end(), out.begin(), sigmoid);
+    transform(a.begin(), a.end(), out.begin(), sigmoid);
 }
 
 void apply_sigmoid_deriv(Matrix a, Matrix out) {
-  transform(a.begin(), a.end(), out.begin(), sigmoid_deriv);
+    transform(a.begin(), a.end(), out.begin(), sigmoid_deriv);
 }
 
 ///Apply tanh to all units
 void apply_tanh(Matrix a, Matrix out) {
-  transform(a.begin(), a.end(), out.begin(), tanh_);
+    transform(a.begin(), a.end(), out.begin(), tanh_);
 }
 
 void apply_tanh_deriv(Matrix a, Matrix out) {
-  transform(a.begin(), a.end(), out.begin(), tanh_deriv);
+    transform(a.begin(), a.end(), out.begin(), tanh_deriv);
 }
 
 ///Apply tanh * 2to all units
 void apply_tanhx2(Matrix a, Matrix out) {
-  transform(a.begin(), a.end(), out.begin(), tanhx2);
+    transform(a.begin(), a.end(), out.begin(), tanhx2);
 }
 
 void apply_tanhx2_deriv(Matrix a, Matrix out) {
-  transform(a.begin(), a.end(), out.begin(), tanhx2_deriv);
+    transform(a.begin(), a.end(), out.begin(), tanhx2_deriv);
 }
 
 ///Copy the data of one matrix into another
 void copy(Matrix a, Matrix b) {
-  ASSERT(a.size == b.size);
-  if (a.stride == 0 && b.stride == 0) {
-    ptrdiff_t ridiculous(a.size);
-    dcopy(&ridiculous, a.get_data(), &diff_one, b.get_data(), &diff_one);
-  } else {
-    for (auto ita = a.begin(), itb = b.begin(); ita != a.end(); ++ita, ++itb) {
-        *itb = *ita;
+    ASSERT(a.size == b.size);
+    if (a.stride == 0 && b.stride == 0) {
+        ptrdiff_t ridiculous(a.size);
+        dcopy(&ridiculous, a.get_data(), &diff_one, b.get_data(), &diff_one);
+    } else {
+        for (auto ita = a.begin(), itb = b.begin(); ita != a.end(); ++ita, ++itb) {
+            *itb = *ita;
+        }
     }
-  }
 }
 
 void squash(Matrix a, Matrix out) {
-  out.set_all_elements_to(0.0);
-  auto ito_end = out.end();
-  for (auto ita = a.begin(), ito = out.begin(); ita != a.end(); ++ita, ++ito) {
-    if (ito == ito_end)
-      ito = out.begin();
-    *ito += *ita;
-  }
+    out.set_all_elements_to(0.0);
+    auto ito_end = out.end();
+    for (auto ita = a.begin(), ito = out.begin(); ita != a.end(); ++ita, ++ito) {
+        if (ito == ito_end)
+            ito = out.begin();
+        *ito += *ita;
+    }
 }
 
 
 ///Elementwise multiplication, with squash to size of out (out is smaller than a and b)
 void dot_squash(Matrix a, Matrix b, Matrix out) {
-  ASSERT(a.size == b.size);
-  ASSERT(a.size % out.size == 0);
-  ASSERT(a.state == b.state && b.state == out.state);
+    ASSERT(a.size == b.size);
+    ASSERT(a.size % out.size == 0);
+    ASSERT(a.state == b.state && b.state == out.state);
 
-  out.set_all_elements_to(0.0);
-  int out_index = 0;
-    for (int i=0; i < a.size; ++i, ++out_index) {
-      if (out_index == out.size)
-    	  out_index = 0;
-      out[out_index] += a[i] * b[i];
+    out.set_all_elements_to(0.0);
+    auto ito_end = out.end();
+    for (auto ita = a.begin(), itb = b.begin(), ito = out.begin(); ita != a.end(); ++ita, ++itb, ++ito) {
+        if (ito == ito_end) {
+            ito = out.begin();
+        }
+        *ito += *ita * *itb;
     }
 }
 
 ///scale matrix by a scalar
 void scale_into(Matrix a, d_type alpha) {
-  long int len(a.size);
-  dscal(&len, &alpha, a.get_data(), &diff_one);
+    long int len(a.size);
+    dscal(&len, &alpha, a.get_data(), &diff_one);
 }
 
 
