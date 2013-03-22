@@ -21,16 +21,12 @@ bool equals(Matrix a, Matrix b) {
 	if (a.n_rows != b.n_rows || a.n_columns != b.n_columns || a.n_slices != b.n_slices) {
 		return false;
 	}
-        
-	for (size_t slice = 0; slice < a.n_slices; ++slice ) {
-		for (size_t column = 0; column < a.n_columns; ++column ) {
-			for (size_t row = 0; row < a.n_rows; ++row ) {
-				if (a.get(row, column, slice) != b.get(row, column, slice)) {
-					return false;
-				}
-			}
-		}
-	}
+
+    for (auto ita = a.begin(), itb = b.begin(); ita != a.end(); ++ita, ++itb) {
+        if (*ita != *itb) {
+            return false;
+        }
+    }
     return true;
 }
 
