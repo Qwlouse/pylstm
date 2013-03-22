@@ -111,9 +111,7 @@ void dot_add(Matrix a, Matrix b, Matrix out) {
 	ASSERT(a.size >= b.size);
 	ASSERT(a.size % b.size == 0);
 
-	ASSERT(a.state == NORMAL && b.state == NORMAL && out.state == NORMAL);
-
-	if (a.size == b.size && a.stride == 0 && b.stride == 0 && out.stride == 0) {
+	if (a.state == NORMAL && b.state == NORMAL && out.state == NORMAL && a.size == b.size && a.stride == 0 && b.stride == 0 && out.stride == 0) {
 		long int n = a.size;
 		dgbmv(&NO_TRANS, &n, &n, &diff_zero, &diff_zero, &double_one,
 				a.get_data(), &diff_one,
@@ -272,8 +270,14 @@ void apply_tanhx2_deriv(Matrix a, Matrix out) {
 ///Copy the data of one matrix into another
 void copy(Matrix a, Matrix b) {
   ASSERT(a.size == b.size);
-  ptrdiff_t ridiculous(a.size);
-  dcopy(&ridiculous, a.get_data(), &diff_one, b.get_data(), &diff_one);
+  if (a.stride == 0 && b.stride == 0) {
+    ptrdiff_t ridiculous(a.size);
+    dcopy(&ridiculous, a.get_data(), &diff_one, b.get_data(), &diff_one);
+  } else {
+    for (auto ita = a.begin(), itb = b.begin(); ita != a.end(); ++ita, ++itb) {
+        *itb = *ita;
+    }
+  }
 }
 
 void squash(Matrix a, Matrix out) {
