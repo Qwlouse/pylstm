@@ -184,7 +184,8 @@ Matrix Matrix::row_slice(size_t start_row, size_t stop_row)
 
 Matrix Matrix::subslice(size_t start, size_t rows, size_t columns, size_t slices)
 {
-	return Matrix(data, offset + start, stride, state, rows, columns, slices);
+    ASSERT(stride == 0);
+	return Matrix(data, offset + start, 0, state, rows, columns, slices);
 }
 
 Matrix Matrix::T() {
@@ -192,7 +193,8 @@ Matrix Matrix::T() {
 }
 
 Matrix Matrix::flatten_time() {
-	return Matrix(data, offset, stride, state, n_rows, n_columns * n_slices, 1);
+    ASSERT(stride == 0);
+	return Matrix(data, offset, 0, state, n_rows, n_columns * n_slices, 1);
 }
 
 void Matrix::set_all_elements_to(d_type value) {
