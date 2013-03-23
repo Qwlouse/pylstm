@@ -73,6 +73,7 @@ void RegularLayer::forward(RegularLayer::Weights &w, RegularLayer::FwdState &b, 
 }
 
 void RegularLayer::backward(RegularLayer::Weights &w, RegularLayer::FwdState &b, RegularLayer::BwdState &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas) {
+	// Calculate derivative of error wrt total cell input (d.Ha) and deltas for the previous layer
 	size_t n_inputs = w.n_inputs;
 	size_t n_cells = w.n_cells;
 	size_t n_batches = b.n_batches;
