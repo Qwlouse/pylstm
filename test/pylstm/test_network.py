@@ -110,5 +110,14 @@ class NetworkTests(unittest.TestCase):
             net = self.build_network(l, a)
             e, grad_calc, grad_approx = check_gradient(net)
             check_errors.append(e)
+            if e > 1e-4:
+                # construct a weight view and break down the differences
+                layer = net.layers.values()[1]  # the only layer
+                b = Buffer(grad_approx - grad_calc)
+                diff = layer.create_param_view(b)
+                for n, b in diff.items():
+                    print("====== %s ======" % n)
+                    print(b.as_array())
+
             print("Checking Gradient of %s with %s = %0.4f" % (l(3), a, e))
         self.assertTrue(np.all(np.array(check_errors) < 1e-4))
