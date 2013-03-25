@@ -158,6 +158,8 @@ def create_layer(name, in_size, out_size, **kwargs):
 
     if name.lower() == "regularlayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.RegularLayer](in_size, out_size, cl.RegularLayer(act_fct)))
-    if name.lower() == "lstmlayer":
+    elif name.lower() == "rnnlayer":
+        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.RnnLayer](in_size, out_size, cl.RnnLayer(act_fct)))
+    elif name.lower() == "lstmlayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.LstmLayer](in_size, out_size, cl.LstmLayer(act_fct)))
     return l

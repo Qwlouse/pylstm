@@ -6,7 +6,7 @@ import unittest
 import numpy as np
 import itertools
 from pylstm.netbuilder import NetworkBuilder
-from pylstm.layers import LstmLayer, RegularLayer
+from pylstm.layers import LstmLayer, RnnLayer, RegularLayer
 from pylstm.wrapper import Buffer
 from scipy.optimize import approx_fprime
 rnd = np.random.RandomState(43210)
@@ -47,7 +47,7 @@ class NetworkTests(unittest.TestCase):
     def setUp(self):
         self.input_size = 5
         self.output_size = 3
-        self.layer_types = [RegularLayer, LstmLayer]
+        self.layer_types = [RegularLayer, RnnLayer, LstmLayer]
         self.activation_functions = ["linear", "tanh", "tanhx2", "sigmoid", "softmax"]
         self.X = np.random.randn(2, 7, self.input_size)
 

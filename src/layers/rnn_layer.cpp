@@ -1,7 +1,7 @@
 #include "matrix/matrix_operation.h"
 #include <vector>
 #include "Core.h"
-#include "new_layer.h"
+#include "rnn_layer.h"
 
 using std::vector;
 
