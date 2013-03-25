@@ -34,7 +34,7 @@ RnnLayer::Weights::Weights(size_t n_inputs_, size_t n_cells_) :
 RnnLayer::FwdState::FwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_t time_) :
   n_inputs(n_inputs_), n_cells(n_cells_),
   n_batches(n_batches_), time(time_),
-  Ha(NULL, n_cells, n_batches, time),
+  Ha(NULL, n_cells, n_batches, time)
 {
 	add_view("Ha", &Ha);
 }
@@ -110,8 +110,8 @@ void RnnLayer::gradient(RnnLayer::Weights&, RnnLayer::Weights& grad, RnnLayer::F
     size_t n_slices = x.n_slices;
 	for (int t = 0; t < n_slices; ++t) {
         mult_add(d.Ha.slice(t), x.slice(t).T(), grad.HX);
-		mult_add(d.Ha.slice(t), b.Hb.slice(t).T(), grad.HR);
-	}
+        mult_add(d.Ha.slice(t), x.slice(t).T(), grad.HR);
+    }
     
     squash(d.Ha, grad.H_bias);
     
