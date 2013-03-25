@@ -39,6 +39,7 @@ public:
         size_t n_batches, time;
 
         Matrix Ha; //!< activations for all neurons in layer
+        Matrix Hb;
 
         BwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
     };
