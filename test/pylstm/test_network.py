@@ -95,15 +95,20 @@ class NetworkTests(unittest.TestCase):
         self.assertTrue(np.allclose(deltas1, deltas2))
 
     def test_deltas_finite_differences(self):
+        check_errors = []
         for l, a in itertools.product(self.layer_types, self.activation_functions):
             net = self.build_network(l, a)
             e, grad_calc, grad_approx = check_deltas(net)
-            print("Checking Deltas of %s with %s" % (l(3), a))
-            self.assertLess(e, 1e-4)
+            check_errors.append(e)
+            print("Checking Deltas of %s with %s = %0.4f" % (l(3), a, e))
+
+        self.assertTrue(np.all(np.array(check_errors) < 1e-4))
 
     def test_gradient_finite_differences(self):
+        check_errors = []
         for l, a in itertools.product(self.layer_types, self.activation_functions):
             net = self.build_network(l, a)
             e, grad_calc, grad_approx = check_gradient(net)
-            print("Checking Gradient of %s with %s" % (l(3), a))
-            self.assertLess(e, 1e-4)
+            check_errors.append(e)
+            print("Checking Gradient of %s with %s = %0.4f" % (l(3), a, e))
+        self.assertTrue(np.all(np.array(check_errors) < 1e-4))
