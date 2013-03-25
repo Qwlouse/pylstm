@@ -29,7 +29,6 @@ public:
         size_t n_batches, time;
 
         Matrix Ha; //!< total input activations for all neurons in layer
-        Matrix Hb; //!< total output activations for all neurons in layer
 
         FwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
     };

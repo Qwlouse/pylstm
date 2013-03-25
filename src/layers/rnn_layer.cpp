@@ -35,10 +35,8 @@ RnnLayer::FwdState::FwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches
   n_inputs(n_inputs_), n_cells(n_cells_),
   n_batches(n_batches_), time(time_),
   Ha(NULL, n_cells, n_batches, time),
-  Hb(NULL, n_cells, n_batches, time)
 {
 	add_view("Ha", &Ha);
-	add_view("Hb", &Hb);
 }
 
 ////////////////////// Bwd Buffer /////////////////////////////////////////////
