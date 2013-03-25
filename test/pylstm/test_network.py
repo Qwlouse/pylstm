@@ -36,6 +36,28 @@ def check_gradient(net):
     return np.sum((grad_approx - grad_calc) ** 2) / n_batches, grad_calc, grad_approx
 
 
+def check_deltas(net):
+    n_timesteps = 3
+    n_batches = 3
+    X = rnd.randn(n_timesteps, n_batches, net.get_input_size())
+    T = np.zeros((n_timesteps, n_batches, net.get_output_size()))
+    T[:, :, 0] = 1.0  # so the outputs sum to one
+    weights = rnd.randn(net.get_param_size())
+    net.set_param_buffer(weights.copy())
+
+    ######### calculate gradient ##########
+    net.forward_pass(X)
+    delta_calc = net.backward_pass(T).as_array().flatten()
+
+    ######### estimate gradient ##########
+    def f(X):
+        net.forward_pass(X.reshape(n_timesteps, n_batches, -1))
+        return net.calculate_error(T)
+
+    delta_approx = approx_fprime(X.copy().flatten(), f, 1e-7)
+    return np.sum((delta_approx - delta_calc) ** 2) / n_batches, delta_calc, delta_approx
+
+
 class NetworkTests(unittest.TestCase):
     def build_network(self, layer_type, activation_function):
         netb = NetworkBuilder()
@@ -72,9 +94,16 @@ class NetworkTests(unittest.TestCase):
         deltas2 = net.backward_pass(out2).as_array().copy()
         self.assertTrue(np.allclose(deltas1, deltas2))
 
+    def test_deltas_finite_differences(self):
+        for l, a in itertools.product(self.layer_types, self.activation_functions):
+            net = self.build_network(l, a)
+            e, grad_calc, grad_approx = check_deltas(net)
+            print("Checking Deltas of %s with %s" % (l(3), a))
+            self.assertLess(e, 1e-4)
+
     def test_gradient_finite_differences(self):
         for l, a in itertools.product(self.layer_types, self.activation_functions):
             net = self.build_network(l, a)
             e, grad_calc, grad_approx = check_gradient(net)
-            print("%s with %s" % (l(3), a))
+            print("Checking Gradient of %s with %s" % (l(3), a))
             self.assertLess(e, 1e-4)
