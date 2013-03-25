@@ -46,9 +46,11 @@ RnnLayer::FwdState::FwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches
 RnnLayer::BwdState::BwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_t time_) :
     n_inputs(n_inputs_), n_cells(n_cells_),
     n_batches(n_batches_), time(time_),
-    Ha(NULL, n_cells, n_batches, time)
+    Ha(NULL, n_cells, n_batches, time),
+    Hb(NULL, n_cells, n_batches, time)
 {
 	add_view("Ha", &Ha);
+	add_view("Hb", &Hb);
 }
 
 ////////////////////// Methods /////////////////////////////////////////////
@@ -97,11 +99,13 @@ void RnnLayer::backward(RnnLayer::Weights &w, RnnLayer::FwdState &b, RnnLayer::B
     ASSERT(out_deltas.n_columns == n_batches);
     ASSERT(out_deltas.n_slices == n_slices);
 
-    f->apply_deriv(y, out_deltas, d.Ha);
+    f->apply_deriv(y.slice(n_slices-1), out_deltas.slice(n_slices-1), d.Ha.slice(n_slices-1));
     mult(w.HX.T(), d.Ha.slice(n_slices-1), in_deltas.slice(n_slices-1));
 
     for (int t = n_slices-2; t >= 0; --t) {
-        mult_add(w.HR.T(), d.Ha.slice(t+1), d.Ha.slice(t));
+        copy(out_deltas.slice(t), d.Hb.slice(t));
+        mult_add(w.HR.T(), d.Ha.slice(t+1), d.Hb.slice(t));
+        f->apply_deriv(y.slice(t), d.Hb.slice(t), d.Ha.slice(t));
         mult(w.HX.T(), d.Ha.slice(t), in_deltas.slice(t));
     }
     
