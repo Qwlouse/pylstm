@@ -71,12 +71,11 @@ void RnnLayer::forward(RnnLayer::Weights &w, RnnLayer::FwdState &b, Matrix &x, M
     mult(w.HX, x.flatten_time(), b.Ha.flatten_time());
     for (int t = 0; t < n_slices; ++t) {
       if (t) {
-        mult_add(w.HR, b.Ha.slice(t-1), b.Ha.slice(t));
+        mult_add(w.HR, y.slice(t-1), b.Ha.slice(t));
       }
       add_vector_into(w.H_bias, b.Ha.slice(t));
+      f->apply(b.Ha.slice(t), y.slice(t));
     }
-    f->apply(b.Ha, y);
-    copy(y, b.Hb);
 }
 void RnnLayer::backward(RnnLayer::Weights &w, RnnLayer::FwdState &b, RnnLayer::BwdState &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas) {
     
@@ -102,7 +101,7 @@ void RnnLayer::backward(RnnLayer::Weights &w, RnnLayer::FwdState &b, RnnLayer::B
     mult(w.HX.T(), d.Ha.slice(n_slices-1), in_deltas.slice(n_slices-1));
 
     for (int t = n_slices-2; t >= 0; --t) {
-        mult_add(w.HR.T(), out_deltas.slice(t+1), d.Ha.slice(t));
+        mult_add(w.HR.T(), d.Ha.slice(t+1), d.Ha.slice(t));
         mult(w.HX.T(), d.Ha.slice(t), in_deltas.slice(t));
     }
     
