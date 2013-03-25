@@ -107,13 +107,13 @@ void RnnLayer::backward(RnnLayer::Weights &w, RnnLayer::FwdState &b, RnnLayer::B
 
 void RnnLayer::gradient(RnnLayer::Weights&, RnnLayer::Weights& grad, RnnLayer::FwdState& b, RnnLayer::BwdState& d, Matrix&, Matrix& x, Matrix&) {
     
-    size_t n_slices = x.n_slices;
+    // size_t n_slices = x.n_slices;
 	for (int t = 0; t < n_slices; ++t) {
-        mult_add(d.Ha.slice(t), x.slice(t).T(), grad.HX);
-        mult_add(d.Ha.slice(t), x.slice(t).T(), grad.HR);
-    }
-    
-    squash(d.Ha, grad.H_bias);
+    //     mult_add(d.Ha.slice(t), x.slice(t).T(), grad.HX);
+    //     mult_add(d.Ha.slice(t), x.slice(t).T(), grad.HR);
+    // }
+    // 
+    // squash(d.Ha, grad.H_bias);
     
 }
 
