@@ -109,14 +109,13 @@ void RnnLayer::backward(RnnLayer::Weights &w, RnnLayer::FwdState &b, RnnLayer::B
     
 }
 
-void RnnLayer::gradient(RnnLayer::Weights&, RnnLayer::Weights& grad, RnnLayer::FwdState& b, RnnLayer::BwdState& d, Matrix&, Matrix& x, Matrix& y) {
+void RnnLayer::gradient(RnnLayer::Weights&, RnnLayer::Weights& grad, RnnLayer::FwdState& b, RnnLayer::BwdState& d, Matrix&y, Matrix& x, Matrix& out_deltas) {
     
     size_t n_slices = x.n_slices;
-    mult(d.Ha.slice(0), x.slice(0).T(), grad.HX);
+    mult_add(d.Ha.slice(0), x.slice(0).T(), grad.HX);
     for (int t = 1; t < n_slices; ++t) {
         mult_add(d.Ha.slice(t), x.slice(t).T(), grad.HX);
-        f->apply(b.Ha.slice(t-1).T(), b.Ha.slice(t-1).T());
-        mult_add(d.Ha.slice(t), b.Ha.slice(t-1).T(), grad.HR);
+        mult_add(d.Ha.slice(t), y.slice(t-1).T(), grad.HR);
     }
     
     squash(d.Ha, grad.H_bias);
