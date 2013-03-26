@@ -100,6 +100,11 @@ class NetworkTests(unittest.TestCase):
             net = self.build_network(l, a)
             e, grad_calc, grad_approx = check_deltas(net)
             check_errors.append(e)
+            if e > 1e-4:
+                diff = (grad_approx - grad_calc).reshape(3, 3, -1)
+                for t in range(diff.shape[0]):
+                    print("======== t=%d =========" % t)
+                    print(diff[t])
             print("Checking Deltas of %s with %s = %0.4f" % (l(3), a, e))
 
         self.assertTrue(np.all(np.array(check_errors) < 1e-4))

@@ -224,6 +224,7 @@ void LstmLayer::backward(Weights& w, FwdState& b, BwdState& d, Matrix&, Matrix& 
 
         //dE/dx
         mult(w.IX.T(), d.Ia.slice(t), in_deltas.slice(t));
+        mult_add(w.OX.T(), d.Oa.slice(t), in_deltas.slice(t));
         mult_add(w.ZX.T(), d.Za.slice(t), in_deltas.slice(t));
         mult_add(w.FX.T(), d.Fa.slice(t), in_deltas.slice(t));
     }
