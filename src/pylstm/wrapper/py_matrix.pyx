@@ -104,6 +104,9 @@ cdef class Buffer:
     def print_me(self):
         self.view.print_me()
 
+    def __repr__(self):
+        t, b, f = self.shape()
+        return "<Buffer (%d, %d, %d) at %#x>"%(t, b, f, id(self))
 
 
 def dot(Buffer a not None, Buffer b not None, Buffer out not None):

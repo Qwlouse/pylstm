@@ -5,7 +5,7 @@ from collections import OrderedDict
 from buffer_manager import BufferManager
 from layers import DummyLayer, InvalidArchitectureError
 from network import Network
-import wrapper
+from pylstm.error_functions import MeanSquaredError
 import numpy as np
 
 
@@ -13,6 +13,7 @@ class NetworkBuilder(object):
     def __init__(self):
         self.input_layer = None
         self.output = DummyLayer(0, "Output")
+        self.error_func = MeanSquaredError()
 
     def input(self, size=None):
         if size:
@@ -60,9 +61,6 @@ class NetworkBuilder(object):
         source_name_list = [s.name for s in source_list]
         sink_name_list = [s.name for s in sink_list]
         return source_name_list, sink_name_list, connection_table
-
-    def create_buffer(self, size):
-        return wrapper.BufferView(1, 1, size)
 
     def get_named_layers(self):
         # instantiate all the layers with names
@@ -118,5 +116,5 @@ class NetworkBuilder(object):
             delta_manager.add(sources, sinks, con_table)
 
         net = Network(layers, weight_manager, intern_manager, in_out_manager,
-                      intern_delta_manager, delta_manager)
+                      intern_delta_manager, delta_manager, self.error_func)
         return net

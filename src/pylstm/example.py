@@ -4,12 +4,12 @@
 from __future__ import division, print_function, unicode_literals
 import numpy as np
 import sys
-from pylstm.trainer import SgdTrainer, RPropTrainer
-
 sys.path.append('.')
 sys.path.append('..')
+from pylstm.trainer import SgdTrainer, RPropTrainer
+
 from pylstm.netbuilder import NetworkBuilder
-from pylstm.layers import LstmLayer, NpFwdLayer, FwdLayer
+from pylstm.layers import LstmLayer, RegularLayer
 from datasets import generate_memo_problem
 
 # # Instantiate a NetworkBuilder
@@ -49,7 +49,7 @@ from datasets import generate_memo_problem
 # ############ Training Example ##############################
 # create and randomly initialize a network
 netb = NetworkBuilder()
-netb.input(2) >> LstmLayer(2) >> netb.output
+netb.input(2) >> LstmLayer(2) >> RegularLayer(2, act_func="softmax") >> netb.output
 net = netb.build()
 net.set_param_buffer(np.random.randn(net.get_param_size()))
 
@@ -57,11 +57,11 @@ net.set_param_buffer(np.random.randn(net.get_param_size()))
 timesteps = 30
 X, T = generate_memo_problem(5,  2, 32, timesteps)
 
-#t = SgdTrainer(learning_rate=.01)
-#t.train(net, X, T, epochs=50)
+t = SgdTrainer(learning_rate=.01)
+t.train(net, X, T, epochs=50)
 
-t = RPropTrainer(learning_rate=.01)
-t.train(net, X, T, epochs=2)
+# t = RPropTrainer(learning_rate=.01)
+# t.train(net, X, T, epochs=2)
 
 # ############ Complex Architecture Example ##############################
 # create and randomly initialize a network

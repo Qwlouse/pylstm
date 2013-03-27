@@ -4,6 +4,15 @@
 #include <iostream>
 #include <vector>
 
+
+LstmLayer::LstmLayer():
+	f(&Tanhx2)
+{ }
+
+LstmLayer::LstmLayer(const ActivationFunction* f):
+	f(f)
+{ }
+
 LstmLayer::Weights::Weights(size_t n_inputs_, size_t n_cells_) :
     n_inputs(n_inputs_),
     n_cells(n_cells_),
@@ -115,14 +124,12 @@ void LstmLayer::forward(Weights &w, FwdState &b, Matrix &x, Matrix &y) {
 
         apply_sigmoid(b.Fa.slice(t), b.Fb.slice(t));
         apply_sigmoid(b.Ia.slice(t), b.Ib.slice(t));
-        apply_tanhx2(b.Za.slice(t), b.Zb.slice(t));
-        //dot_add(b.Zb.slice(t), b.Ib.slice(t), b.S.slice(t));
+        apply_tanh(b.Za.slice(t), b.Zb.slice(t));
         dot(b.Zb.slice(t), b.Ib.slice(t), b.S.slice(t));
 
         if (t)
             dot_add(b.S.slice(t - 1), b.Fb.slice(t), b.S.slice(t));
-        apply_tanhx2(b.S.slice(t), b.f_S.slice(t));
-
+        f->apply(b.S.slice(t), b.f_S.slice(t));
         dot_add(b.S.slice(t), w.OS, b.Oa.slice(t));
 
         //mult_add(b.S.slice(t), w.OS, b.Oa.slice(t));
@@ -134,7 +141,7 @@ void LstmLayer::forward(Weights &w, FwdState &b, Matrix &x, Matrix &y) {
 }
 
 
-void LstmLayer::backward(Weights &w, FwdState &b, BwdState &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas) {
+void LstmLayer::backward(Weights& w, FwdState& b, BwdState& d, Matrix&, Matrix& in_deltas, Matrix& out_deltas) {
 
     //clear_temp();
     //size_t end_time(b.batch_time - 1);
@@ -177,13 +184,13 @@ void LstmLayer::backward(Weights &w, FwdState &b, BwdState &d, Matrix &y, Matrix
 
 
         //! \f$\frac{dE}{dS} += \frac{dE}{df_S} * f'(s)\f$
-        apply_tanhx2_deriv(b.S.slice(t), d.tmp1.slice(t));
+        f->apply_deriv(b.f_S.slice(t), d.f_S.slice(t), d.tmp1.slice(t));
         //dot_add(d.f_S.slice(t), d.tmp1.slice(t), d.S.slice(t));
 
         if(t<end_time)
-            {dot_add(d.f_S.slice(t), d.tmp1.slice(t), d.S.slice(t));}
+            {add_into_b(d.tmp1.slice(t), d.S.slice(t));}
         else
-            {dot(d.f_S.slice(t), d.tmp1.slice(t), d.S.slice(t));}
+            {copy(d.tmp1.slice(t), d.S.slice(t));}
 
         //! \f$\frac{dE}{dS} += \frac{dE}{da_O} * W_OS\f$
         dot_add(d.Oa.slice(t), w.OS, d.S.slice(t));
@@ -192,7 +199,7 @@ void LstmLayer::backward(Weights &w, FwdState &b, BwdState &d, Matrix &y, Matrix
         //! \f$\frac{dE}{db_Z} = \frac{dE}{dS} * b_I\f$
         dot(d.S.slice(t), b.Ib.slice(t), d.Zb.slice(t));
         //! \f$dE/da_Z = dE/db_Z * f'(a_Z)\f$
-        apply_tanhx2_deriv(b.Za.slice(t), d.tmp1.slice(t));
+        apply(b.Zb.slice(t), d.tmp1.slice(t), &tanh_deriv);
         dot(d.Zb.slice(t), d.tmp1.slice(t), d.Za.slice(t));
 
         //! INPUT GATE DERIVS
@@ -217,13 +224,13 @@ void LstmLayer::backward(Weights &w, FwdState &b, BwdState &d, Matrix &y, Matrix
 
         //dE/dx
         mult(w.IX.T(), d.Ia.slice(t), in_deltas.slice(t));
+        mult_add(w.OX.T(), d.Oa.slice(t), in_deltas.slice(t));
         mult_add(w.ZX.T(), d.Za.slice(t), in_deltas.slice(t));
         mult_add(w.FX.T(), d.Fa.slice(t), in_deltas.slice(t));
     }
 }
 
-//void lstm_grad(LstmWeights &w, LstmWeights &grad, LstmBuffers &b, LstmDeltas &d, MatrixView3DCPU &y, MatrixView3DCPU input_batches, MatrixView3DCPU &in_deltas) {
-void LstmLayer::gradient(Weights &w, Weights &grad, FwdState &b, BwdState &d, Matrix &y, Matrix& x, Matrix& out_deltas)  {
+void LstmLayer::gradient(Weights&, Weights& grad, FwdState& b, BwdState& d, Matrix& y, Matrix& x, Matrix& )  {
 
     size_t n_time(b.time);
 

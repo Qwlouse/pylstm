@@ -121,6 +121,14 @@ InvalidStateException::InvalidStateException(const std::string& message)
     *this << Throw_Message(message);
 }
 
+// =================================== InvalidStateException ==================
+NotImplementedException::NotImplementedException(const std::string& message)
+                                                                      throw() :
+    LogicErrorException()
+{
+    *this << Throw_Message(message);
+}
+
 // =================================== Convienience Functions =================
 std::ostream & operator<<(std::ostream& out, const Exception& e)
 {

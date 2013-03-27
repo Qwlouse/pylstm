@@ -1,93 +1,134 @@
-/**
- * \file rnn_layer.cpp
- * \brief Implementation of the rnn_layer.
- */
-
-
+#include "matrix/matrix_operation.h"
+#include <vector>
+#include "Core.h"
 #include "rnn_layer.h"
-#include "matrix/matrix_operation_cpu.h"
 
-RnnWeights::RnnWeights(size_t n_inputs_, size_t n_cells_) :
-  n_inputs(n_inputs_), 
-  n_cells(n_cells_), 
+using std::vector;
 
-  HX(n_cells, n_inputs), HH(n_cells, n_cells); 
- 
-H_bias(n_cells, 1); 
+RnnLayer::RnnLayer():
+	f(&Sigmoid)
+{ }
+
+RnnLayer::RnnLayer(const ActivationFunction* f):
+	f(f)
+{ }
+
+RnnLayer::~RnnLayer()
 {
 }
 
-size_t RnnWeights::buffer_size() {
-  return HX.size + HH.size + H_bias.size;  //!< inputs X, H, to cells H + bias to H
-
+RnnLayer::Weights::Weights(size_t n_inputs_, size_t n_cells_) :
+  n_inputs(n_inputs_), 
+  n_cells(n_cells_), 
+  HX(NULL, n_cells, n_inputs, 1),
+  HR(NULL, n_cells, n_cells, 1),
+  H_bias(NULL, n_cells, 1, 1)
+{
+    add_view("HX", &HX);
+    add_view("HR", &HR);
+    add_view("H_bias", &H_bias);
 }
 
-RnnBuffers::RnnBuffers(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_t time_) :
+////////////////////// Fwd Buffer /////////////////////////////////////////////
+
+RnnLayer::FwdState::FwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_t time_) :
   n_inputs(n_inputs_), n_cells(n_cells_),
   n_batches(n_batches_), time(time_),
+  Ha(NULL, n_cells, n_batches, time)
+{
+	add_view("Ha", &Ha);
+}
 
-  //Views on all activations
-  Ha(n_cells, n_batches, time), Hb(n_cells, n_batches, time) //!< Input gate activation
+////////////////////// Bwd Buffer /////////////////////////////////////////////
 
-{}
+RnnLayer::BwdState::BwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_t time_) :
+    n_inputs(n_inputs_), n_cells(n_cells_),
+    n_batches(n_batches_), time(time_),
+    Ha(NULL, n_cells, n_batches, time),
+    Hb(NULL, n_cells, n_batches, time)
+{
+	add_view("Ha", &Ha);
+	add_view("Hb", &Hb);
+}
 
-size_t RnnBuffers::buffer_size() {
- //Views on all activations
-  return Ha.size + Hb.size; //!< Hidden unit activation
+////////////////////// Methods /////////////////////////////////////////////
+void RnnLayer::forward(RnnLayer::Weights &w, RnnLayer::FwdState &b, Matrix &x, Matrix &y) {
+    size_t n_inputs = w.n_inputs;
+    size_t n_cells = w.n_cells;
+    size_t n_batches = b.n_batches;
+    size_t n_slices = b.time;
+    ASSERT(b.n_cells == n_cells);
+    ASSERT(b.n_inputs == n_inputs);
+
+    ASSERT(x.n_rows == n_inputs);
+    ASSERT(x.n_columns == n_batches);
+    ASSERT(x.n_slices == n_slices);
+
+    ASSERT(y.n_rows == n_cells);
+    ASSERT(y.n_columns == n_batches);
+    ASSERT(y.n_slices == n_slices);
+
+    mult(w.HX, x.flatten_time(), b.Ha.flatten_time());
+    for (int t = 0; t < n_slices; ++t) {
+      if (t) {
+        mult_add(w.HR, y.slice(t-1), b.Ha.slice(t));
+      }
+      add_vector_into(w.H_bias, b.Ha.slice(t));
+      f->apply(b.Ha.slice(t), y.slice(t));
+    }
+}
+void RnnLayer::backward(RnnLayer::Weights &w, RnnLayer::FwdState &b, RnnLayer::BwdState &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas) {
+    
+    size_t n_inputs = w.n_inputs;
+    size_t n_cells = w.n_cells;
+    size_t n_batches = b.n_batches;
+    size_t n_slices = b.time;
+    ASSERT(b.n_cells == n_cells);
+    ASSERT(b.n_inputs == n_inputs);
+    ASSERT(in_deltas.n_rows == n_inputs);
+    ASSERT(in_deltas.n_columns == n_batches);
+    ASSERT(in_deltas.n_slices == n_slices);
+
+    ASSERT(y.n_rows == n_cells);
+    ASSERT(y.n_columns == n_batches);
+    ASSERT(y.n_slices == n_slices);
+
+    ASSERT(out_deltas.n_rows == n_cells);
+    ASSERT(out_deltas.n_columns == n_batches);
+    ASSERT(out_deltas.n_slices == n_slices);
+
+    f->apply_deriv(y.slice(n_slices-1), out_deltas.slice(n_slices-1), d.Ha.slice(n_slices-1));
+    mult(w.HX.T(), d.Ha.slice(n_slices-1), in_deltas.slice(n_slices-1));
+
+    for (int t = n_slices-2; t >= 0; --t) {
+        copy(out_deltas.slice(t), d.Hb.slice(t));
+        mult_add(w.HR.T(), d.Ha.slice(t+1), d.Hb.slice(t));
+        f->apply_deriv(y.slice(t), d.Hb.slice(t), d.Ha.slice(t));
+        mult(w.HX.T(), d.Ha.slice(t), in_deltas.slice(t));
+    }
     
 }
 
-RnnDeltas::RnnDeltas(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_t time_) :
-  ///Variables defining sizes
-  n_inputs(n_inputs_), n_cells(n_cells_),
-  n_batches(n_batches_), time(time_),
-
-  //Views on all activations
-  Ha(n_cells, n_batches, time), Hb(n_cells, n_batches, time) //Input gate activation
- 
-  temp_hidden(n_cells, n_batches, time), temp_hidden2(n_cells, n_batches, time)
-{}
-
-size_t RnnDeltas::buffer_size() {
-  return Ha.size + Hb.size + //Hidden unit activation
-    temp_hidden.size + temp_hidden2.size; //temp vars
-}
-
-void rnn_forward(RnnWeights &w, RnnBuffers &b, MatrixView3DCPU &x, MatrixView3DCPU &y) {
-  mult(w.HX, x.flatten(), b.Ha.flatten());
-
-  for (size_t t(0); t < b.time; ++t) {
-    //IF NEXT                                                                                                                                                                                                      
-    if (t) {
-      mult(w.HH, y.slice(t - 1), b.Ha.slice(t));  
+void RnnLayer::gradient(RnnLayer::Weights&, RnnLayer::Weights& grad, RnnLayer::FwdState& b, RnnLayer::BwdState& d, Matrix&y, Matrix& x, Matrix& out_deltas) {
+    
+    size_t n_slices = x.n_slices;
+    mult_add(d.Ha.slice(0), x.slice(0).T(), grad.HX);
+    for (int t = 1; t < n_slices; ++t) {
+        mult_add(d.Ha.slice(t), x.slice(t).T(), grad.HX);
+        mult_add(d.Ha.slice(t), y.slice(t-1).T(), grad.HR);
     }
-
-    add_into_b(w.H_bias, b.Ha.slice(t));
-
-    apply_sigmoid(b.Ha.slice(t), b.Hb.slice(t));
-      
-  }  
+    
+    squash(d.Ha, grad.H_bias);
+    
 }
 
-void rnn_backward(RnnWeights &w, RnnBuffers &b, RnnDeltas &d, MatrixView3DCPU &y, MatrixView3DCPU &in_deltas, MatrixView3DCPU &out_deltas) {
-
-  //clear_temp();
-  //size_t end_time(b.batch_time - 1);
-  size_t end_time(b.time - 1);
-
-  //calculate t+1 values except for end_time+1 
-  for(int t(end_time); t >= 0; --t){
-    if (t<end_time) {
-      
-      mult(w.HH.T(), d.Hb.slice(t+1), d.Hb.slice(t));
-    }
-
-    // \f$\frac{dE}{da_H} = \frac{dE}{db_H} * f'(a_H)\f$
-    //sigmoid_deriv(d.Hb.slice(t), b.Hb.slice(t), d.temp_hidden, d.temp_hidden2, d.Ha.slice(t));    
-   
-  }
+void RnnLayer::Rpass(Weights&, Weights&,  FwdState&, FwdState&, Matrix&, Matrix&, Matrix&)
+{
+    THROW(core::NotImplementedException("Rpass not implemented yet."));
 }
 
-
-
+void RnnLayer::Rbackward(Weights&, FwdState&, BwdState&, Matrix&, Matrix&, FwdState&, double, double)
+{
+    THROW(core::NotImplementedException("Rbackward pass not implemented yet."));
+}
 

@@ -42,11 +42,9 @@ RegularLayer::FwdState::FwdState(size_t n_inputs_, size_t n_cells_, size_t n_bat
 RegularLayer::BwdState::BwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_t time_) :
     n_inputs(n_inputs_), n_cells(n_cells_),
     n_batches(n_batches_), time(time_),
-    Ha(NULL, n_cells, n_batches, time),
-	Hb(NULL, n_cells, n_batches, time)
+    Ha(NULL, n_cells, n_batches, time)
 {
-	add_view("HX", &Ha);
-	add_view("H_bias", &Hb);
+	add_view("Ha", &Ha);
 }
 
 ////////////////////// Methods /////////////////////////////////////////////
@@ -75,6 +73,7 @@ void RegularLayer::forward(RegularLayer::Weights &w, RegularLayer::FwdState &b, 
 }
 
 void RegularLayer::backward(RegularLayer::Weights &w, RegularLayer::FwdState &b, RegularLayer::BwdState &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas) {
+	// Calculate derivative of error wrt total cell input (d.Ha) and deltas for the previous layer
 	size_t n_inputs = w.n_inputs;
 	size_t n_cells = w.n_cells;
 	size_t n_batches = b.n_batches;
@@ -92,15 +91,14 @@ void RegularLayer::backward(RegularLayer::Weights &w, RegularLayer::FwdState &b,
 	ASSERT(out_deltas.n_rows == n_cells);
 	ASSERT(out_deltas.n_columns == n_batches);
 	ASSERT(out_deltas.n_slices == n_slices);
-    f->apply_deriv(y, d.Hb);
-	dot(d.Hb, out_deltas, d.Ha);
+    f->apply_deriv(y, out_deltas, d.Ha);
 
     for (int t = 0; t < n_slices; ++t) {
         mult(w.HX.T(), d.Ha.slice(t), in_deltas.slice(t));
     }
 }
 
-void RegularLayer::gradient(RegularLayer::Weights &w, RegularLayer::Weights &grad, RegularLayer::FwdState &b, RegularLayer::BwdState &d, Matrix &y, Matrix& x, Matrix& out_deltas)
+void RegularLayer::gradient(RegularLayer::Weights&, RegularLayer::Weights& grad, RegularLayer::FwdState&, RegularLayer::BwdState& d, Matrix&, Matrix& x, Matrix&)
 {
 	size_t n_slices = x.n_slices;
 	for (int t = 0; t < n_slices; ++t) {
@@ -108,4 +106,14 @@ void RegularLayer::gradient(RegularLayer::Weights &w, RegularLayer::Weights &gra
 	}
 
     squash(d.Ha, grad.H_bias);
+}
+
+void RegularLayer::Rpass(Weights&, Weights&,  FwdState&, FwdState&, Matrix&, Matrix&, Matrix&)
+{
+    THROW(core::NotImplementedException("Rpass not implemented yet."));
+}
+
+void RegularLayer::Rbackward(Weights&, FwdState&, BwdState&, Matrix&, Matrix&, FwdState&, double, double)
+{
+    THROW(core::NotImplementedException("Rbackward pass not implemented yet."));
 }

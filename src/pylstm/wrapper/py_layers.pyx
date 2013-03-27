@@ -116,6 +116,13 @@ cdef class BaseLayer:
     def gradient(self, BufferContainer param, BufferContainer grad, BufferContainer internal, BufferContainer err, Buffer out_view, Buffer in_view, Buffer out_deltas):
         self.layer.gradient(deref(param.this_ptr), deref(grad.this_ptr), deref(internal.this_ptr), deref(err.this_ptr), out_view.view, in_view.view, out_deltas.view)
 
+    def Rpass(self, BufferContainer param, BufferContainer v,  BufferContainer internal, BufferContainer Rinternal, Buffer in_view, Buffer out_view, Buffer Rout_view):
+        self.layer.Rpass(deref(param.this_ptr), deref(v.this_ptr),  deref(internal.this_ptr), deref(Rinternal.this_ptr), in_view.view, out_view.view, Rout_view.view)
+
+    def Rbackward(self, BufferContainer param, BufferContainer internal, BufferContainer internal_deltas, Buffer in_deltas, Buffer out_deltas, BufferContainer Rinternal, double _lambda, double mu):
+        self.layer.Rbackward(deref(param.this_ptr), deref(internal.this_ptr), deref(internal_deltas.this_ptr), in_deltas.view, out_deltas.view, deref(Rinternal.this_ptr), _lambda, mu)
+
+
     def __unicode__(self):
         return "<" + self.layer.get_typename() + ": in_size=%d out_size=%d>"%(int(self.layer.in_size), int(self.layer.out_size))
 
@@ -130,17 +137,29 @@ cdef class BaseLayer:
 def create_layer(name, in_size, out_size, **kwargs):
     l = BaseLayer()
     cdef cm.ActivationFunction* act_fct = <cm.ActivationFunction*> &cm.Sigmoid
+
+    unexpected_kwargs = [k for k in kwargs if k not in {'act_func'}]
+    if unexpected_kwargs:
+        import warnings
+        warnings.warn("Warning: got unexpected kwargs: %s"%unexpected_kwargs)
+
     if "act_func" in kwargs:
         af_name = kwargs["act_func"]
         if af_name.lower() == "sigmoid":
             act_fct = <cm.ActivationFunction*> &cm.Sigmoid
         elif af_name.lower() == "tanh":
             act_fct = <cm.ActivationFunction*> &cm.Tanh
+        elif af_name.lower() == "tanhx2":
+            act_fct = <cm.ActivationFunction*> &cm.Tanhx2
         elif af_name.lower() == "linear":
             act_fct = <cm.ActivationFunction*> &cm.Linear
+        elif af_name.lower() == "softmax":
+            act_fct = <cm.ActivationFunction*> &cm.Softmax
 
     if name.lower() == "regularlayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.RegularLayer](in_size, out_size, cl.RegularLayer(act_fct)))
-    if name.lower() == "lstmlayer":
-        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.LstmLayer](in_size, out_size, cl.LstmLayer()))
+    elif name.lower() == "rnnlayer":
+        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.RnnLayer](in_size, out_size, cl.RnnLayer(act_fct)))
+    elif name.lower() == "lstmlayer":
+        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.LstmLayer](in_size, out_size, cl.LstmLayer(act_fct)))
     return l

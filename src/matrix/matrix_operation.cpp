@@ -1,9 +1,9 @@
 #include "matrix_operation.h"
-#include <iostream>
-#include <algorithm>
-#include <math.h>
-#include <string>
 
+#include <algorithm>
+#include <iostream>
+#include <cmath>
+#include <string>
 
 #include "Core.h"
 
@@ -21,45 +21,49 @@ bool equals(Matrix a, Matrix b) {
 	if (a.n_rows != b.n_rows || a.n_columns != b.n_columns || a.n_slices != b.n_slices) {
 		return false;
 	}
-	for (size_t slice = 0; slice < a.n_slices; ++slice ) {
-		for (size_t column = 0; column < a.n_columns; ++column ) {
-			for (size_t row = 0; row < a.n_rows; ++row ) {
-				if (a.get(row, column, slice) != b.get(row, column, slice)) {
-					return false;
-				}
-			}
-		}
-	}
+
+    for (auto ita = a.begin(), itb = b.begin(); ita != a.end(); ++ita, ++itb) {
+        if (*ita != *itb) {
+            return false;
+        }
+    }
     return true;
 }
 
 void add_into_b(Matrix a, Matrix b) {
-    //size_type len(a.size);
-    // daxpy(n, a, x, incx, y, incy)
-    // for i = 0 to n : y[i*incy] += a * x[i*incx]
-	//
-	ASSERT(a.state == b.state);
 	long int n = a.size;
-    daxpy(&n, &double_one, a.get_data(), &diff_one, b.get_data(), &diff_one);
+	if (a.state == b.state && a.stride == 0 && b.stride == 0) {
+        daxpy(&n, &double_one, a.get_data(), &diff_one, b.get_data(), &diff_one);
+    } else {
+        Matrix::iterator ita = a.begin();
+        Matrix::iterator ita_end = a.end();
+        Matrix::iterator itb = b.begin();
+        for (; ita != ita_end; ++ita, ++itb) {
+            *itb += *ita;
+        }
+    }
 }
 
 void add_vector_into(Matrix vec, Matrix mat) {
-  size_t j = 0;
-  for (int i = 0; i < mat.size; ++i, ++j) {
-	  if (j == vec.size) {
-		  j = 0;
+  auto it_v_end = vec.end();
+  for (auto it = mat.begin(), it_v = vec.begin(); it != mat.end(); ++it, ++it_v) {
+	  if (it_v == it_v_end) {
+		  it_v = vec.begin();
 	  }
-	  mat[i] += vec[j];
+	  *it += *it_v;
   }
 }
 
 
 void add_scalar(Matrix a, d_type b) {
-	//MatrixView2DCPU::iterator it(arg1.begin());
-	//	MatrixView2DCPU::iterator end(arg1.end());
-	//for (;it != end; ++it) *it += arg2;
-	long int n = a.size;
-	daxpy(&n, &double_one, &b, &diff_zero, a.get_data(), &diff_one);
+	if (a.stride == 0) {
+        long int n = a.size;
+	    daxpy(&n, &double_one, &b, &diff_zero, a.get_data(), &diff_one);
+	} else {
+	    for (auto it = a.begin(); it != a.end(); ++it) {
+	        *it += b;
+	    }
+	}
 }
 
 ///Elementwise multiplication
@@ -70,9 +74,9 @@ void dot(Matrix a, Matrix b, Matrix out) {
 
 	ASSERT(a.state == NORMAL && b.state == NORMAL && out.state == NORMAL);
 
-	fill(out.get_data(), out.get_data() + out.size, 0.0);
+	fill(out.begin(), out.end(), 0.0);
 
-	if (a.size == b.size) {
+	if (a.size == b.size && a.stride == 0 && b.stride == 0 && out.stride == 0) {
 		long int n = a.size;
 		dgbmv(&NO_TRANS, &n, &n, &diff_zero, &diff_zero, &double_one,
 				a.get_data(), &diff_one,
@@ -80,21 +84,26 @@ void dot(Matrix a, Matrix b, Matrix out) {
 				&double_one,
 				out.get_data(), &diff_one);
 	} else {
-		d_type* a_i(a.get_data());
-		d_type* a_end(a.get_data() + a.size);
-		d_type* out_i(out.get_data());
-		d_type* b_start(b.get_data());
-		d_type* b_i(b.get_data());
-		d_type* b_end(b.get_data() + b.size);
+	    auto a_end = a.end();
+	    auto b_end = b.end();
 
-		for (; a_i != a_end; ++a_i, ++b_i, ++out_i) {
-			if (b_i == b_end)
-				b_i = b_start;
-			*out_i += *a_i * *b_i;
+		for (auto ita=a.begin(), itb=b.begin(), ito=out.begin(); ita != a_end; ++ita, ++itb, ++ito) {
+			if (itb == b_end)
+				itb = b.begin();
+			*ito += *ita * *itb;
 		}
 
 	}
 }
+
+void dot_into_b(Matrix a, Matrix b) {
+    ASSERT(a.size == b.size);
+    auto enda = a.end();
+    for (auto ita = a.begin(), itb = b.begin(); ita != enda; ++ita, ++itb) {
+        *itb *= *ita;
+    }
+}
+
 
 ///Elementwise multiplication and add
 void dot_add(Matrix a, Matrix b, Matrix out) {
@@ -102,9 +111,7 @@ void dot_add(Matrix a, Matrix b, Matrix out) {
 	ASSERT(a.size >= b.size);
 	ASSERT(a.size % b.size == 0);
 
-	ASSERT(a.state == NORMAL && b.state == NORMAL && out.state == NORMAL);
-
-	if (a.size == b.size) {
+	if (a.state == NORMAL && b.state == NORMAL && out.state == NORMAL && a.size == b.size && a.stride == 0 && b.stride == 0 && out.stride == 0) {
 		long int n = a.size;
 		dgbmv(&NO_TRANS, &n, &n, &diff_zero, &diff_zero, &double_one,
 				a.get_data(), &diff_one,
@@ -112,142 +119,204 @@ void dot_add(Matrix a, Matrix b, Matrix out) {
 				&double_one,
 				out.get_data(), &diff_one);
 	} else {
-		d_type* a_i(a.get_data());
-		d_type* a_end(a.get_data() + a.size);
-		d_type* out_i(out.get_data());
-		d_type* b_start(b.get_data());
-		d_type* b_i(b.get_data());
-		d_type* b_end(b.get_data() + b.size);
+		auto a_end = a.end();
+        auto b_end = b.end();
 
-		for (; a_i != a_end; ++a_i, ++b_i, ++out_i) {
-			if (b_i == b_end)
-				b_i = b_start;
-			*out_i += *a_i * *b_i;
-		}
-
+        for (auto ita=a.begin(), itb=b.begin(), ito=out.begin(); ita != a_end; ++ita, ++itb, ++ito) {
+            if (itb == b_end)
+                itb = b.begin();
+            *ito += *ita * *itb;
+        }
 	}
 }
 
 void mult(Matrix a, Matrix b, Matrix out, d_type scale) {
-  char a_state = (a.state == NORMAL) ? 'N' : 'T';
-  char b_state = (b.state == NORMAL) ? 'N' : 'T';
-  ASSERT(out.state == NORMAL);
-  ASSERT(a.n_slices == 1);
-  ASSERT(b.n_slices == 1);
-  ASSERT(out.n_slices == 1);
-  ASSERT(a.n_columns == b.n_rows);
-  ASSERT(out.n_rows == a.n_rows);
-  ASSERT(out.n_columns == b.n_columns);
+    char a_state = (a.state == NORMAL) ? 'N' : 'T';
+    char b_state = (b.state == NORMAL) ? 'N' : 'T';
+    ASSERT(out.state == NORMAL);
+    ASSERT(a.n_slices == 1);
+    ASSERT(b.n_slices == 1);
+    ASSERT(out.n_slices == 1);
+    ASSERT(a.n_columns == b.n_rows);
+    ASSERT(out.n_rows == a.n_rows);
+    ASSERT(out.n_columns == b.n_columns);
 
-  ptrdiff_t M = a.n_rows;
-  ptrdiff_t N = b.n_columns;
-  ptrdiff_t K = a.n_columns;
+    ptrdiff_t M = a.n_rows;
+    ptrdiff_t N = b.n_columns;
+    ptrdiff_t K = a.n_columns;
 
-  // the size of the first dimension of the matrices, as laid out in memory;
-  // meaning the memory distance between the start of each row/column,
-  // depending on the memory structure
-  ptrdiff_t a_stride = a.state == NORMAL ? a.n_rows : a.n_columns;
-  ptrdiff_t b_stride = b.state == NORMAL ? b.n_rows : b.n_columns;
-  ptrdiff_t out_stride = out.n_rows;
+    // the size of the first dimension of the matrices, as laid out in memory;
+    // meaning the memory distance between the start of each row/column,
+    // depending on the memory structure
+    ptrdiff_t a_stride = a.state == NORMAL ? a.n_rows+a.stride : a.n_columns+a.stride;
+    ptrdiff_t b_stride = b.state == NORMAL ? b.n_rows+b.stride : b.n_columns+b.stride;
+    ptrdiff_t out_stride = out.n_rows+out.stride;
 
-  dgemm(&a_state, &b_state, &M, &N, &K, &scale, a.get_data(),
-	&a_stride, b.get_data(), &b_stride, &double_zero, out.get_data(), &out_stride);
+    dgemm(&a_state, &b_state, &M, &N, &K, &scale, a.get_data(),
+	    &a_stride, b.get_data(), &b_stride, &double_zero, out.get_data(), &out_stride);
 }
 
 void mult_add(Matrix a, Matrix b, Matrix out, d_type scale) {
 	char a_state = (a.state == NORMAL) ? 'N' : 'T';
-	char b_state = (b.state == NORMAL) ? 'N' : 'T';
+    char b_state = (b.state == NORMAL) ? 'N' : 'T';
+    ASSERT(out.state == NORMAL);
+    ASSERT(a.n_slices == 1);
+    ASSERT(b.n_slices == 1);
+    ASSERT(out.n_slices == 1);
+    ASSERT(a.n_columns == b.n_rows);
+    ASSERT(out.n_rows == a.n_rows);
+    ASSERT(out.n_columns == b.n_columns);
 
-	//cout << a_state << " " << b_state << " " << a.n_rows << " " << b.n_rows << " " << a.n_columns << " " << b.n_columns << " " << a.data << " " << b.data << endl;
-	ptrdiff_t a_rows = a.n_rows;
-	ptrdiff_t a_columns = a.n_columns;
-	ptrdiff_t b_rows = b.n_rows;
-	ptrdiff_t b_columns = b.n_columns;
-	ptrdiff_t out_rows = out.n_rows;
-	dgemm(&a_state, &b_state, &a_rows, &b_columns, &a_columns,
-			&scale,
-			a.get_data(),
-			&a_rows, b.get_data(), &b_rows, &double_one, out.get_data(), &out_rows);
+    ptrdiff_t M = a.n_rows;
+    ptrdiff_t N = b.n_columns;
+    ptrdiff_t K = a.n_columns;
+
+    // the size of the first dimension of the matrices, as laid out in memory;
+    // meaning the memory distance between the start of each row/column,
+    // depending on the memory structure
+    ptrdiff_t a_stride = a.state == NORMAL ? a.n_rows+a.stride : a.n_columns+a.stride;
+    ptrdiff_t b_stride = b.state == NORMAL ? b.n_rows+b.stride : b.n_columns+b.stride;
+    ptrdiff_t out_stride = out.n_rows+out.stride;
+
+	dgemm(&a_state, &b_state, &M, &N, &K, &scale, a.get_data(),
+	      &a_stride, b.get_data(), &b_stride, &double_one, out.get_data(), &out_stride);
 }
 
 
 void ActivationFunction::apply(Matrix in, Matrix out) const {
-    transform(in.get_data(), in.get_data() + in.size, out.get_data(), *f);
+    transform(in.begin(), in.end(), out.begin(), *f);
 }
 
-void ActivationFunction::apply_deriv(Matrix in, Matrix out) const {
-    transform(in.get_data(), in.get_data() + in.size, out.get_data(), *deriv);
+void ActivationFunction::apply_deriv(Matrix in, Matrix d, Matrix out) const {
+    transform(in.begin(), in.end(), out.begin(), *deriv);
+    dot_into_b(d, out);
+}
+
+// Softmax Layer works slightly differently
+void SoftmaxLayerActivation::apply(Matrix in, Matrix out) const {
+    for (size_t slice = 0; slice < in.n_slices; ++slice ) {
+        for (size_t column = 0; column < in.n_columns; ++column ) {
+            // determine the max
+            d_type col_max = 0;
+            for (size_t row = 0; row < in.n_rows; ++row ) {
+                col_max = std::max(col_max, in.get(row, column, slice));
+            }
+
+            d_type col_sum = 0.0;
+            for (size_t row = 0; row < in.n_rows; ++row ) {
+                // trick to avoid numerical instability
+                out.get(row, column, slice) = exp(in.get(row, column, slice) - col_max);
+                col_sum += out.get(row, column, slice);
+            }
+            for (size_t row = 0; row < in.n_rows; ++row ) {
+                out.get(row, column, slice) = out.get(row, column, slice)/col_sum;
+            }
+        }
+    }
+}
+
+/*
+ The derivative is more involved for the general case
+ For i'th unit with input x_i, output y_i, and Error E from next layer
+ dE/dx_i = y_i * (dE/dy_i - sum(dE/dy_j * y_j))
+*/
+void SoftmaxLayerActivation::apply_deriv(Matrix in, Matrix d, Matrix out) const {
+    for (size_t slice = 0; slice < in.n_slices; ++slice ) {
+        for (size_t column = 0; column < in.n_columns; ++column ) {
+            // Calculate the attenuation term
+            d_type delta_attenuation = 0.0;
+            for (size_t row = 0; row < in.n_rows; ++row) {
+                delta_attenuation += d.get(row, column, slice) * in.get(row, column, slice);
+            }
+            for (size_t row = 0; row < in.n_rows; ++row) {
+                out.get(row, column, slice) = in.get(row, column, slice) * (d.get(row, column, slice) - delta_attenuation);
+            }
+        }
+    }
 }
 
 
 void apply(Matrix in, Matrix out, unary_double_func f) {
-	transform(in.get_data(), in.get_data() + in.size, out.get_data(), *f);
+	transform(in.begin(), in.end(), out.begin(), *f);
 }
 
 ///Apply sigmoid to all units
 void apply_sigmoid(Matrix a, Matrix out) {
-  transform(a.get_data(), a.get_data() + a.size, out.get_data(), sigmoid);
+    transform(a.begin(), a.end(), out.begin(), sigmoid);
 }
 
 void apply_sigmoid_deriv(Matrix a, Matrix out) {
-  transform(a.get_data(), a.get_data() + a.size, out.get_data(), sigmoid_deriv);
+    transform(a.begin(), a.end(), out.begin(), sigmoid_deriv);
 }
 
 ///Apply tanh to all units
 void apply_tanh(Matrix a, Matrix out) {
-  transform(a.get_data(), a.get_data() + a.size, out.get_data(), tanh_);
+    transform(a.begin(), a.end(), out.begin(), tanh_);
 }
 
 void apply_tanh_deriv(Matrix a, Matrix out) {
-  transform(a.get_data(), a.get_data() + a.size, out.get_data(), tanh_deriv);
+    transform(a.begin(), a.end(), out.begin(), tanh_deriv);
 }
 
 ///Apply tanh * 2to all units
 void apply_tanhx2(Matrix a, Matrix out) {
-  transform(a.get_data(), a.get_data() + a.size, out.get_data(), tanhx2);
+    transform(a.begin(), a.end(), out.begin(), tanhx2);
 }
 
 void apply_tanhx2_deriv(Matrix a, Matrix out) {
-  transform(a.get_data(), a.get_data() + a.size, out.get_data(), tanhx2_deriv);
+    transform(a.begin(), a.end(), out.begin(), tanhx2_deriv);
 }
 
 ///Copy the data of one matrix into another
 void copy(Matrix a, Matrix b) {
-  ASSERT(a.size == b.size);
-  ptrdiff_t ridiculous(a.size);
-  dcopy(&ridiculous, a.get_data(), &diff_one, b.get_data(), &diff_one);
+    ASSERT(a.size == b.size);
+    if (a.stride == 0 && b.stride == 0) {
+        ptrdiff_t ridiculous(a.size);
+        dcopy(&ridiculous, a.get_data(), &diff_one, b.get_data(), &diff_one);
+    } else {
+        for (auto ita = a.begin(), itb = b.begin(); ita != a.end(); ++ita, ++itb) {
+            *itb = *ita;
+        }
+    }
 }
 
 void squash(Matrix a, Matrix out) {
-  out.set_all_elements_to(0.0);
-  int out_index = 0;
-  for (int i=0; i < a.size; ++i, ++out_index) {
-    if (out_index == out.size)
-      out_index = 0;
-    out[out_index] += a[i];
-  }
+    out.set_all_elements_to(0.0);
+    auto ito_end = out.end();
+    for (auto ita = a.begin(), ito = out.begin(); ita != a.end(); ++ita, ++ito) {
+        if (ito == ito_end)
+            ito = out.begin();
+        *ito += *ita;
+    }
 }
 
 
 ///Elementwise multiplication, with squash to size of out (out is smaller than a and b)
 void dot_squash(Matrix a, Matrix b, Matrix out) {
-  ASSERT(a.size == b.size);
-  ASSERT(a.size % out.size == 0);
-  ASSERT(a.state == b.state && b.state == out.state);
+    ASSERT(a.size == b.size);
+    ASSERT(a.size % out.size == 0);
+    ASSERT(a.state == b.state && b.state == out.state);
 
-  out.set_all_elements_to(0.0);
-  int out_index = 0;
-    for (int i=0; i < a.size; ++i, ++out_index) {
-      if (out_index == out.size)
-    	  out_index = 0;
-      out[out_index] += a[i] * b[i];
+    out.set_all_elements_to(0.0);
+    auto ito_end = out.end();
+    for (auto ita = a.begin(), itb = b.begin(), ito = out.begin(); ita != a.end(); ++ita, ++itb, ++ito) {
+        if (ito == ito_end) {
+            ito = out.begin();
+        }
+        *ito += *ita * *itb;
     }
 }
 
 ///scale matrix by a scalar
 void scale_into(Matrix a, d_type alpha) {
-  long int len(a.size);
-  dscal(&len, &alpha, a.get_data(), &diff_one);
+    if (a.stride == 0) {
+        long int len(a.size);
+        dscal(&len, &alpha, a.get_data(), &diff_one);
+    } else {
+        for (d_type& v : a) {
+            v *= alpha;
+        }
+    }
 }
 
 
