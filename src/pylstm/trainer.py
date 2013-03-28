@@ -106,13 +106,13 @@ class CgTrainer(object):
                 net.set_param_buffer(W)
                 net.forward_pass(X)
                 net.backward_pass(T)
-                return net.calc_gradient().as_array()
+                return net.calc_gradient().as_array().flatten()
 
             def fhess_p(W, v):
                 net.set_param_buffer(W)
-                return net.hessian_pass(X, v, lambda_=0., mu=0.).as_array()
+                return net.hessian_pass(X, v, lambda_=0., mu=0.).as_array().flatten()
 
-            xopt, allvecs = fmin_ncg(f, weights.as_array().copy(), fprime, fhess_p=fhess_p, maxiter=50, retall=True, disp=True)
+            xopt, allvecs = fmin_ncg(f, weights.as_array().copy(), fprime, fhess_p=fhess_p, maxiter=5, retall=True, disp=True)
             # #dws = cg(v, grad, lambda, mu)
             #
             # #but can we do this backwards
