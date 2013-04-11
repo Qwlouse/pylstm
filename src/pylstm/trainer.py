@@ -11,7 +11,7 @@ sys.path.append('..')
 from pylstm.error_functions import MeanSquaredError
 from pylstm import wrapper
 
-rnd = np.random.RandomState(12345)
+rnd = np.random.RandomState()
 
 
 def print_error_per_epoch(epoch, error):
@@ -112,7 +112,7 @@ class CgTrainer(object):
                 net.set_param_buffer(W)
                 return net.hessian_pass(X, v, lambda_=0., mu=0.).as_array().flatten()
 
-            xopt, allvecs = fmin_ncg(f, weights.as_array().copy(), fprime, fhess_p=fhess_p, maxiter=5, retall=True, disp=True)
+            xopt, allvecs = fmin_ncg(f, np.zeros_like(weights.as_array()), fprime, fhess_p=fhess_p, maxiter=50, retall=True, disp=True)
             # #dws = cg(v, grad, lambda, mu)
             #
             # #but can we do this backwards

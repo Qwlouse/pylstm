@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
+from scipy.optimize import approx_fprime
 import numpy as np
 from pylstm.wrapper import Buffer
 
@@ -55,3 +56,100 @@ class Accuracy(object):
 
     def evaluate(self, Y, T):
         return self(Y, T)
+
+
+class CTC(object):
+    def __call__(self, Y, T):
+        # Y are network outputs with one output for each label plus the blank
+        # blank label is index 0
+        # T is the label sequence It does not have to have the same length
+        # sanity checks:
+        N, batch_size, label_count = Y.shape
+        S, b, tmp = T.shape
+        assert batch_size == b == 1  # for now only one batch please
+        assert tmp == 1
+        required_time = S
+        previous_label = -1
+        T = T[:, 0, 0]
+        for s in range(S):
+            if T[s] == previous_label:
+                required_time += 1
+            previous_label = T[s]
+        assert required_time <= S
+        labels = np.unique(T)
+        assert len(labels) + 1 == label_count
+        Z = 2 * S + 1
+        # calculate forward variables alpha
+        ## set up the dynamic programming matrix
+        alpha = np.zeros((N, Z))
+        alpha[0, 0] = Y[0, 0, 0]
+        alpha[0, 1] = Y[0, 0, T[0]]
+        for t in range(1, N):
+            start = max(-1, 2 * (S - N + t) + 1)
+            for s in range(start + 1, Z, 2):  # loop the even ones (blanks)
+                alpha[t, s] += alpha[t - 1, s]
+                if s > 0:
+                    alpha[t, s] += alpha[t - 1, s - 1]
+                alpha[t, s] *= Y[t, 0, 0]
+            previous_label = -1
+            for s in range(max(1, start), Z, 2):  # loop the odd ones (labels)
+                alpha[t, s] += alpha[t - 1, s]
+                alpha[t, s] += alpha[t - 1, s - 1]
+                label = T[s // 2]
+                if label != previous_label and s > 1:
+                    alpha[t, s] += alpha[t - 1, s - 2]
+                alpha[t, s] *= Y[t, 0, label]
+                previous_label = label
+
+        beta = np.zeros((N, Z))
+        beta[N - 1, 2 * S - 1] = 1
+        beta[N - 1, 2 * S] = 1
+        for t in range(N - 1, 0, -1):
+            stop = min(Z, 2 * t)
+            for s in range(0, stop, 2):  # loop the even ones (blanks)
+                beta[t - 1, s] += beta[t, s] * Y[t, 0, 0]
+                if s < Z - 1:
+                    label = T[(s + 1) // 2]
+                    beta[t - 1, s] += beta[t, s + 1] * Y[t, 0, label]
+            previous_label = -1
+            for s in range(1, stop, 2):  # loop the odd ones (labels)
+                label = T[s // 2]
+                beta[t - 1, s] += beta[t, s] * Y[t, 0, label]
+                beta[t - 1, s] += beta[t, s + 1] * Y[t, 0, 0]
+                if label != previous_label and s < Z - 2:
+                    label = T[(s + 2) // 2]
+                    beta[t - 1, s] += beta[t, s + 2] * Y[t, 0, label]
+                previous_label = label
+
+        ppix = alpha * beta
+        pzx = ppix.sum(1)
+        deltas = np.zeros((N, label_count))
+
+        deltas[:, 0] = ppix[:, ::2].sum(1)
+        for s in range(1, Z, 2):
+            deltas[:, T[s // 2]] += ppix[:, s]
+        for l in range(label_count):
+            deltas[:, l] /= - Y[:, 0, l] * pzx
+
+        return alpha, beta, deltas
+
+if __name__ == "__main__":
+    Y = np.array([[.1, .7, .2], [.8, .1, .1], [.3, .3, .4], [.7, .1, .2]]).reshape(4, 1, 3)
+    T = np.array([1, 2]).reshape(-1, 1, 1)
+    c = CTC()
+    a, b, d = c(Y, T)
+    a_expected = np.array([[.1, .08, 0, 0], [.7, .08, .048, 0], [0, .56, .192, 0], [0, .07, .284, .1048], [0, 0, .021, .2135]])
+    b_expected = np.array([[.096, .06, 0, 0], [.441, .48, .2, 0], [0, .42, .2, 0], [0, .57, .9, 1], [0, 0, .7, 1]])
+    print("alphas\n", a.T)
+    print("betas\n", b.T)
+    print("p(z|x) =", (a * b).T.sum(0) ) # should all be equal
+    print("loss =", -np.log((a * b).T.sum(0).mean()))
+    print("deltas\n", d.T)
+
+    # finite differences testing
+    def f(X):
+        a, b, d = c(X.reshape(4, 1, 3), T)
+        return -np.log((a * b).T.sum(0).mean())
+
+    delta_approx = approx_fprime(Y.copy().flatten(), f, 1e-5)
+    print("delta_approx\n", delta_approx.reshape(4, 3).T)
