@@ -81,55 +81,55 @@ class CTC(object):
         Z = 2 * S + 1
         # calculate forward variables alpha
         ## set up the dynamic programming matrix
-        alpha = np.zeros((N, Z))
-        alpha[0, 0] = Y[0, 0, 0]
-        alpha[0, 1] = Y[0, 0, T[0]]
+        alpha = np.zeros((N, b, Z))
+        alpha[0, :, 0] = Y[0, :, 0]
+        alpha[0, :, 1] = Y[0, :, T[0]]
         for t in range(1, N):
             start = max(-1, 2 * (S - N + t) + 1)
             for s in range(start + 1, Z, 2):  # loop the even ones (blanks)
-                alpha[t, s] += alpha[t - 1, s]
+                alpha[t, :, s] += alpha[t - 1, :, s]
                 if s > 0:
-                    alpha[t, s] += alpha[t - 1, s - 1]
-                alpha[t, s] *= Y[t, 0, 0]
+                    alpha[t, :, s] += alpha[t - 1, :, s - 1]
+                alpha[t, :, s] *= Y[t, :, 0]
             previous_label = -1
             for s in range(max(1, start), Z, 2):  # loop the odd ones (labels)
-                alpha[t, s] += alpha[t - 1, s]
-                alpha[t, s] += alpha[t - 1, s - 1]
+                alpha[t, :, s] += alpha[t - 1, :, s]
+                alpha[t, :, s] += alpha[t - 1, :, s - 1]
                 label = T[s // 2]
                 if label != previous_label and s > 1:
-                    alpha[t, s] += alpha[t - 1, s - 2]
-                alpha[t, s] *= Y[t, 0, label]
+                    alpha[t, :, s] += alpha[t - 1, :, s - 2]
+                alpha[t, :, s] *= Y[t, :, label]
                 previous_label = label
 
-        beta = np.zeros((N, Z))
-        beta[N - 1, 2 * S - 1] = 1
-        beta[N - 1, 2 * S] = 1
+        beta = np.zeros((N, b, Z))
+        beta[N - 1, :, 2 * S - 1] = 1
+        beta[N - 1, :, 2 * S] = 1
         for t in range(N - 1, 0, -1):
             stop = min(Z, 2 * t)
             for s in range(0, stop, 2):  # loop the even ones (blanks)
-                beta[t - 1, s] += beta[t, s] * Y[t, 0, 0]
+                beta[t - 1, :, s] += beta[t, :, s] * Y[t, :, 0]
                 if s < Z - 1:
                     label = T[(s + 1) // 2]
-                    beta[t - 1, s] += beta[t, s + 1] * Y[t, 0, label]
+                    beta[t - 1, :, s] += beta[t, :, s + 1] * Y[t, :, label]
             previous_label = -1
             for s in range(1, stop, 2):  # loop the odd ones (labels)
                 label = T[s // 2]
-                beta[t - 1, s] += beta[t, s] * Y[t, 0, label]
-                beta[t - 1, s] += beta[t, s + 1] * Y[t, 0, 0]
+                beta[t - 1, :, s] += beta[t, :, s] * Y[t, :, label]
+                beta[t - 1, :, s] += beta[t, :, s + 1] * Y[t, :, 0]
                 if label != previous_label and s < Z - 2:
                     label = T[(s + 2) // 2]
-                    beta[t - 1, s] += beta[t, s + 2] * Y[t, 0, label]
+                    beta[t - 1, :, s] += beta[t, :, s + 2] * Y[t, :, label]
                 previous_label = label
 
         ppix = alpha * beta
-        pzx = ppix.sum(1)
-        deltas = np.zeros((N, label_count))
+        pzx = ppix.sum(2)
+        deltas = np.zeros((N, b, label_count))
 
-        deltas[:, 0] = ppix[:, ::2].sum(1)
+        deltas[:, :, 0] = ppix[:, :, ::2].sum(2)
         for s in range(1, Z, 2):
-            deltas[:, T[s // 2]] += ppix[:, s]
+            deltas[:, :, T[s // 2]] += ppix[:, :, s]
         for l in range(label_count):
-            deltas[:, l] /= - Y[:, 0, l] * pzx
+            deltas[:, :, l] /= - Y[:, :, l] * pzx
 
         return alpha, beta, deltas
 
