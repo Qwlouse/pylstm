@@ -69,7 +69,7 @@ class CTC(object):
         assert batch_size == b
         assert tmp == 1
         required_time = S
-        previous_labels = -np.ones((b,))
+        previous_labels = -np.ones((batch_size,))
         T = T[:, :, 0]
         for s in range(S):
             required_time += T[s, :] == previous_labels
@@ -80,7 +80,7 @@ class CTC(object):
         Z = 2 * S + 1
         # calculate forward variables alpha
         ## set up the dynamic programming matrix
-        alpha = np.zeros((N, b, Z))
+        alpha = np.zeros((N, batch_size, Z))
         alpha[0, :, 0] = Y[0, :, 0]
         alpha[0, :, 1] = Y[0, range(b), T[0, :]]
         for t in range(1, N):
@@ -100,7 +100,7 @@ class CTC(object):
                 alpha[t, :, s] *= Y[t, :, labels][:, 0]
                 previous_labels = labels
 
-        beta = np.zeros((N, b, Z))
+        beta = np.zeros((N, batch_size, Z))
         beta[N - 1, :, 2 * S - 1] = 1
         beta[N - 1, :, 2 * S] = 1
         for t in range(N - 1, 0, -1):
@@ -110,7 +110,7 @@ class CTC(object):
                 if s < Z - 1:
                     labels = T[(s + 1) // 2, :]
                     beta[t - 1, :, s] += beta[t, :, s + 1] * Y[t, :, labels][:, 0]
-            previous_labels = -np.ones((b,))
+            previous_labels = -np.ones((batch_size,))
             for s in range(1, stop, 2):  # loop the odd ones (labels)
                 labels = T[s // 2, :]
                 beta[t - 1, :, s] += beta[t, :, s] * Y[t, :, labels][:, 0]
@@ -122,7 +122,7 @@ class CTC(object):
 
         ppix = alpha * beta
         pzx = ppix.sum(2)
-        deltas = np.zeros((N, b, label_count))
+        deltas = np.zeros((N, batch_size, label_count))
 
         deltas[:, :, 0] = ppix[:, :, ::2].sum(2)
         for s in range(1, Z, 2):
