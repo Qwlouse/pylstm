@@ -66,7 +66,7 @@ class CTC(object):
         # sanity checks:
         N, batch_size, label_count = Y.shape
         S, b, tmp = T.shape
-        assert batch_size == b == 1  # for now only one batch please
+        assert batch_size == b
         assert tmp == 1
         required_time = S
         previous_labels = -np.ones((b,))
@@ -74,7 +74,7 @@ class CTC(object):
         for s in range(S):
             required_time += T[s, :] == previous_labels
             previous_labels = T[s, :]
-        assert required_time <= S
+        assert np.all(required_time <= N)
         labels = np.unique(T)
         assert len(labels) + 1 == label_count
         Z = 2 * S + 1
@@ -82,7 +82,7 @@ class CTC(object):
         ## set up the dynamic programming matrix
         alpha = np.zeros((N, b, Z))
         alpha[0, :, 0] = Y[0, :, 0]
-        alpha[0, :, 1] = Y[0, :, T[0, :]]
+        alpha[0, :, 1] = Y[0, range(b), T[0, :]]
         for t in range(1, N):
             start = max(-1, 2 * (S - N + t) + 1)
             for s in range(start + 1, Z, 2):  # loop the even ones (blanks)

@@ -35,3 +35,22 @@ class CTCTest(unittest.TestCase):
 
         delta_approx = approx_fprime(self.Y.copy().flatten(), f, 1e-5)
         print("delta_approx\n", delta_approx.reshape(4, 3).T)
+        self.assertLess(np.sum(delta_approx ** 2), 1e-4)
+
+    def test_finite_diff_multibatch(self):
+        batches = 5
+        input_time_size = 6
+        labels = 2
+        label_seq_length = 2
+        Y = np.abs(np.random.randn(input_time_size, batches, labels + 1))
+        Y /= Y.sum(2).reshape(input_time_size, batches, 1)  # normalize to get prob distr
+        T = np.random.randint(1, labels + 1, (label_seq_length, batches, 1))
+
+        # finite differences testing
+        def f(X):
+            a, b, d = self.ctc(X.reshape(input_time_size, batches, labels + 1), T)
+            return -np.log((a * b).T.sum(0).mean())
+
+        delta_approx = approx_fprime(Y.copy().flatten(), f, 1e-5)
+        print("delta_approx\n", delta_approx.reshape(input_time_size, batches, labels + 1).T)
+        self.assertLess(np.sum(delta_approx ** 2), 1e-4)
