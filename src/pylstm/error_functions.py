@@ -69,12 +69,11 @@ class CTC(object):
         assert batch_size == b == 1  # for now only one batch please
         assert tmp == 1
         required_time = S
-        previous_label = -1
-        T = T[:, 0, 0]
+        previous_labels = -np.ones((b,))
+        T = T[:, :, 0]
         for s in range(S):
-            if T[s] == previous_label:
-                required_time += 1
-            previous_label = T[s]
+            required_time += T[s, :] == previous_labels
+            previous_labels = T[s, :]
         assert required_time <= S
         labels = np.unique(T)
         assert len(labels) + 1 == label_count
@@ -83,7 +82,7 @@ class CTC(object):
         ## set up the dynamic programming matrix
         alpha = np.zeros((N, b, Z))
         alpha[0, :, 0] = Y[0, :, 0]
-        alpha[0, :, 1] = Y[0, :, T[0]]
+        alpha[0, :, 1] = Y[0, :, T[0, :]]
         for t in range(1, N):
             start = max(-1, 2 * (S - N + t) + 1)
             for s in range(start + 1, Z, 2):  # loop the even ones (blanks)
@@ -91,15 +90,15 @@ class CTC(object):
                 if s > 0:
                     alpha[t, :, s] += alpha[t - 1, :, s - 1]
                 alpha[t, :, s] *= Y[t, :, 0]
-            previous_label = -1
+            previous_labels = -np.ones((b,))
             for s in range(max(1, start), Z, 2):  # loop the odd ones (labels)
                 alpha[t, :, s] += alpha[t - 1, :, s]
                 alpha[t, :, s] += alpha[t - 1, :, s - 1]
-                label = T[s // 2]
-                if label != previous_label and s > 1:
-                    alpha[t, :, s] += alpha[t - 1, :, s - 2]
-                alpha[t, :, s] *= Y[t, :, label]
-                previous_label = label
+                labels = T[s // 2, :]
+                if s > 1:
+                    alpha[t, :, s] += alpha[t - 1, :, s - 2] * (labels != previous_labels)
+                alpha[t, :, s] *= Y[t, :, labels][:, 0]
+                previous_labels = labels
 
         beta = np.zeros((N, b, Z))
         beta[N - 1, :, 2 * S - 1] = 1
@@ -109,17 +108,17 @@ class CTC(object):
             for s in range(0, stop, 2):  # loop the even ones (blanks)
                 beta[t - 1, :, s] += beta[t, :, s] * Y[t, :, 0]
                 if s < Z - 1:
-                    label = T[(s + 1) // 2]
-                    beta[t - 1, :, s] += beta[t, :, s + 1] * Y[t, :, label]
-            previous_label = -1
+                    labels = T[(s + 1) // 2, :]
+                    beta[t - 1, :, s] += beta[t, :, s + 1] * Y[t, :, labels][:, 0]
+            previous_labels = -np.ones((b,))
             for s in range(1, stop, 2):  # loop the odd ones (labels)
-                label = T[s // 2]
-                beta[t - 1, :, s] += beta[t, :, s] * Y[t, :, label]
+                labels = T[s // 2, :]
+                beta[t - 1, :, s] += beta[t, :, s] * Y[t, :, labels][:, 0]
                 beta[t - 1, :, s] += beta[t, :, s + 1] * Y[t, :, 0]
-                if label != previous_label and s < Z - 2:
-                    label = T[(s + 2) // 2]
-                    beta[t - 1, :, s] += beta[t, :, s + 2] * Y[t, :, label]
-                previous_label = label
+                if s < Z - 2:
+                    labels = T[(s + 2) // 2, :]
+                    beta[t - 1, :, s] += beta[t, :, s + 2] * Y[t, :, labels][:, 0] * (labels != previous_labels)
+                previous_labels = labels
 
         ppix = alpha * beta
         pzx = ppix.sum(2)
@@ -127,7 +126,7 @@ class CTC(object):
 
         deltas[:, :, 0] = ppix[:, :, ::2].sum(2)
         for s in range(1, Z, 2):
-            deltas[:, :, T[s // 2]] += ppix[:, :, s]
+            deltas[:, :, T[s // 2, :]] += ppix[:, :, s:s + 1]
         for l in range(label_count):
             deltas[:, :, l] /= - Y[:, :, l] * pzx
 
