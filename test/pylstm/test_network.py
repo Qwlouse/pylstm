@@ -36,6 +36,33 @@ def check_gradient(net):
     return np.sum((grad_approx - grad_calc) ** 2) / n_batches, grad_calc, grad_approx
 
 
+def check_rpass(net, weights, v, r=1e-7):
+    n_timesteps = 2
+    n_batches = 1
+    X = rnd.randn(n_timesteps, n_batches, net.get_input_size())
+    T = np.zeros((n_timesteps, n_batches, net.get_output_size()))
+    T[:, :, 0] = 1.0  # so the outputs sum to one
+    net.set_param_buffer(weights)
+    out1 = net.forward_pass(X).as_array()
+    net.set_param_buffer(weights+r*v)
+    out2 = net.forward_pass(X).as_array()
+    estimated = (out2-out1)/r
+    net.set_param_buffer(weights)
+    calculated = net.r_forward_pass(X, v).as_array()
+    return np.sum((estimated - calculated)**2), calculated, estimated
+
+def check_rpass_full(net):
+    weights = rnd.randn(net.get_param_size())
+    errs = np.zeros_like(weights)
+    for i in range(len(weights)):
+        v = np.zeros_like(weights)
+        v[i] = 1.0
+        errs[i], calc, est = check_rpass(net, weights, v)
+    return np.sum(errs**2), errs
+
+
+
+
 def check_deltas(net):
     n_timesteps = 3
     n_batches = 3
@@ -67,7 +94,7 @@ class NetworkTests(unittest.TestCase):
         return net
 
     def setUp(self):
-        self.input_size = 5
+        self.input_size = 2
         self.output_size = 3
         self.layer_types = [RegularLayer, RnnLayer, LstmLayer]
         self.activation_functions = ["linear", "tanh", "tanhx2", "sigmoid", "softmax"]
@@ -125,4 +152,22 @@ class NetworkTests(unittest.TestCase):
                     print(b.as_array())
 
             print("Checking Gradient of %s with %s = %0.4f" % (l(3), a, e))
+        self.assertTrue(np.all(np.array(check_errors) < 1e-4))
+
+    def test_rforward_finite_differences(self):
+        check_errors = []
+        for l, a in itertools.product([LstmLayer], self.activation_functions):
+            net = self.build_network(l, a)
+            e, allerrors = check_rpass_full(net)
+            check_errors.append(e)
+            if e > 1e-4:
+                # construct a weight view and break down the differences
+                layer = net.layers.values()[1]  # the only layer
+                b = Buffer(allerrors)
+                diff = layer.create_param_view(b)
+                for n, b in diff.items():
+                    print("====== %s ======" % n)
+                    print(b.as_array())
+
+            print("Checking RForward pass of %s with %s = %0.4f" % (l(3), a, e))
         self.assertTrue(np.all(np.array(check_errors) < 1e-4))
