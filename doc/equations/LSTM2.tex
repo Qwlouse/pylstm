@@ -102,7 +102,7 @@ Rb_{I}^t &=& f'(a_{I}^t)Ra_{I}^t \\
 Ra_{F}^t &=& V_{F, X}x^t + W_{F, H}Rh^{t-1} + V_{F, H}h^{t-1} + W_{F, S}Rs^{t-1} + V_{F, S}s^{t-1} \\
 Rb_{F}^t &=& f'(a_{F}^t) Ra_{F}^t \\
 \\
-Ra_{Z}^t &=& W_{Z,X}x_i^t + W_{Z,H} Rh^{t-1} + V_{Z,H} h^{t-1} \\
+Ra_{Z}^t &=& V_{Z,X}x_i^t + W_{Z,H} Rh^{t-1} + V_{Z,H} h^{t-1} \\
 Rb_{Z} &=& f'(a_{Z}^t) Ra_{Z}^t 
 \end{eqnarray*}
 
@@ -114,8 +114,8 @@ Rs^t &=& Rb_{F}^ts^{t-1} + b_{F}^tRs^{t-1} + Rb_{I}^t b_Z^t + b_{I}^t Rb_Z^t \\
 
 \subsubsection{output gate (O)}
 \begin{eqnarray*}
-Ra_{O}^t &=& W_{O,X}x^t + W_{O,H}Rh^{t-1} + V_{O,H}h^{t-1} + W_{O,S}Rs^t + V_{O,S}s^t \\
-b_{O}^t &=& f'(a_{O})Ra_{O} \\
+Ra_{O}^t &=& V_{O,X}x^t + W_{O,H}Rh^{t-1} + V_{O,H}h^{t-1} + W_{O,S}Rs^t + V_{O,S}s^t \\
+Rb_{O}^t &=& f'(a_{O})Ra_{O} \\
 \end{eqnarray*}
 
 \subsubsection{hidden cells}
