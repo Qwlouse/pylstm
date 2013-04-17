@@ -90,14 +90,15 @@ class CTC(object):
                 if s > 0:
                     alpha[t, :, s] += alpha[t - 1, :, s - 1]
                 alpha[t, :, s] *= Y[t, :, 0]
-            previous_labels = -np.ones((b,))
+            previous_labels = -np.ones((batch_size,))
             for s in range(max(1, start), Z, 2):  # loop the odd ones (labels)
                 alpha[t, :, s] += alpha[t - 1, :, s]
                 alpha[t, :, s] += alpha[t - 1, :, s - 1]
                 labels = T[s // 2, :]
                 if s > 1:
                     alpha[t, :, s] += alpha[t - 1, :, s - 2] * (labels != previous_labels)
-                alpha[t, :, s] *= Y[t, :, labels][:, 0]
+                for b in range(batch_size):
+                    alpha[t, b, s] *= Y[t, b, labels[b]]
                 previous_labels = labels
 
         beta = np.zeros((N, batch_size, Z))
@@ -109,15 +110,20 @@ class CTC(object):
                 beta[t - 1, :, s] += beta[t, :, s] * Y[t, :, 0]
                 if s < Z - 1:
                     labels = T[(s + 1) // 2, :]
-                    beta[t - 1, :, s] += beta[t, :, s + 1] * Y[t, :, labels][:, 0]
+                    for b in range(batch_size):
+                        beta[t - 1, b, s] += beta[t, b, s + 1] * Y[t, b, labels[b]]
             previous_labels = -np.ones((batch_size,))
             for s in range(1, stop, 2):  # loop the odd ones (labels)
                 labels = T[s // 2, :]
-                beta[t - 1, :, s] += beta[t, :, s] * Y[t, :, labels][:, 0]
+                for b in range(batch_size):
+                    beta[t - 1, b, s] += beta[t, b, s] * Y[t, b, labels[b]]
                 beta[t - 1, :, s] += beta[t, :, s + 1] * Y[t, :, 0]
                 if s < Z - 2:
                     labels = T[(s + 2) // 2, :]
-                    beta[t - 1, :, s] += beta[t, :, s + 2] * Y[t, :, labels][:, 0] * (labels != previous_labels)
+                    #beta[t - 1, :, s] += beta[t, :, s + 2] * Y[t, :, labels][:, 0] * (labels != previous_labels)
+                    for b in range(batch_size):
+                        if labels[b] != previous_labels[b]:
+                            beta[t - 1, b, s] += beta[t, b, s + 2] * Y[t, b, labels[b]]
                 previous_labels = labels
 
         ppix = alpha * beta
@@ -126,7 +132,8 @@ class CTC(object):
 
         deltas[:, :, 0] = ppix[:, :, ::2].sum(2)
         for s in range(1, Z, 2):
-            deltas[:, :, T[s // 2, :]] += ppix[:, :, s:s + 1]
+            for b in range(batch_size):
+                deltas[:,  b, T[s // 2, b]] += ppix[:, b, s]
         for l in range(label_count):
             deltas[:, :, l] /= - Y[:, :, l] * pzx
 
@@ -142,7 +149,7 @@ if __name__ == "__main__":
     print("alphas\n", a.T)
     print("betas\n", b.T)
     print("p(z|x) =", (a * b).T.sum(0) ) # should all be equal
-    print("loss =", -np.log((a * b).T.sum(0).mean()))
+    print("loss =", -(np.log((a * b).sum(2))).sum(1).mean())
     print("deltas\n", d.T)
 
     # finite differences testing
