@@ -22,6 +22,16 @@ class CTCTest(unittest.TestCase):
         self.assertTrue(np.allclose(a, a_expected))
         self.assertTrue(np.allclose(b, b_expected))
 
+    def test_forward_values_duplicate_label(self):
+        T = np.array([1, 1]).reshape(-1, 1, 1)
+        a, b, d = self.ctc(self.Y, T)
+        a_expected = np.array([[.1, .08, 0, 0], [.7, .08, .048, 0], [0, .56, .192, 0], [0, 0, .168, .036], [0, 0, 0, .1176]]).reshape(5, 1, 4).T
+        b_expected = np.array([[.003, 0, 0, 0], [.219, .03, 0, 0], [0, .27, .1, 0], [0, .45, .8, 1], [0, 0, .7, 1]]).reshape(5, 1, 4).T
+        print("calculated\n:", b.T)
+        print("expected\n:", b_expected.T)
+        self.assertTrue(np.allclose(a, a_expected))
+        self.assertTrue(np.allclose(b, b_expected))
+
     def test_forward_values_multibatch1(self):
         Y = np.hstack((self.Y, self.Y))
         T = np.hstack((self.T, self.T))
@@ -72,15 +82,15 @@ class CTCTest(unittest.TestCase):
         self.assertLess(np.sum((delta_approx.reshape(4, 1, 3) - d) ** 2), 1e-4)
 
     def test_finite_diff_multibatch(self):
-        batches = 2
-        input_time_size = 5
+        batches = 7
+        input_time_size = 9
         labels = 2
-        label_seq_length = 2
+        label_seq_length = 4
         Y = np.abs(np.random.randn(input_time_size, batches, labels + 1))
         Y /= Y.sum(2).reshape(input_time_size, batches, 1)  # normalize to get prob distr
-        T = np.vstack([np.arange(1, labels + 1)] * batches).T  # no repeated numbers for now
-        T = T.reshape(labels, batches, 1)
-        # T = np.random.randint(1, labels + 1, (label_seq_length, batches, 1))
+        # T = np.vstack([np.arange(1, labels + 1)] * batches).T  # no repeated numbers for now
+        # T = T.reshape(labels, batches, 1)
+        T = np.random.randint(1, labels + 1, (label_seq_length, batches, 1))
 
         # finite differences testing
         # TODO: This is wrong somehow:
