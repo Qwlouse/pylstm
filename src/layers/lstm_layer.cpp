@@ -276,10 +276,10 @@ void LstmLayer::gradient(Weights&, Weights& grad, FwdState& b, BwdState& d, Matr
 
 void LstmLayer::Rpass(Weights &w, Weights &v,  FwdState &b, FwdState &Rb, Matrix &x, Matrix &y, Matrix &Ry) {
 
-  mult(w.IX, x.flatten_time(), Rb.Ia.flatten_time());
-  mult(w.FX, x.flatten_time(), Rb.Fa.flatten_time());
-  mult(w.ZX, x.flatten_time(), Rb.Za.flatten_time());
-  mult(w.OX, x.flatten_time(), Rb.Oa.flatten_time());
+  mult(v.IX, x.flatten_time(), Rb.Ia.flatten_time());
+  mult(v.FX, x.flatten_time(), Rb.Fa.flatten_time());
+  mult(v.ZX, x.flatten_time(), Rb.Za.flatten_time());
+  mult(v.OX, x.flatten_time(), Rb.Oa.flatten_time());
 
   for (size_t t(0); t < b.time; ++t) {
     
@@ -298,44 +298,28 @@ void LstmLayer::Rpass(Weights &w, Weights &v,  FwdState &b, FwdState &Rb, Matrix
 
       dot_add(Rb.S.slice(t - 1), w.FS, Rb.Fa.slice(t));
       dot_add(Rb.S.slice(t - 1), w.IS, Rb.Ia.slice(t));
-      dot_add(b.S.slice(t - 1), v.FS, Rb.Fa.slice(t));
-      dot_add(b.S.slice(t - 1), v.IS, Rb.Ia.slice(t));
+      dot_add(b.S.slice(t - 1), v.FS,  Rb.Fa.slice(t));
+      dot_add(b.S.slice(t - 1), v.IS,  Rb.Ia.slice(t));
+
     }
-    
-    /*    
-    mult_add(w.FH, y.slice(t - 1), b.Fa.slice(t));
-    mult_add(w.IH, y.slice(t - 1), b.Ia.slice(t));
-    mult_add(w.OH, y.slice(t - 1), b.Oa.slice(t));
-    mult_add(w.ZH, y.slice(t - 1), b.Za.slice(t));
-           	
-    dot_add(b.S.slice(t - 1), w.FS, b.Fa.slice(t));
-    dot_add(b.S.slice(t - 1), w.IS, b.Ia.slice(t));
-    
-    /// CHECK THIS SHIT!!
-    //add_vector(d_RFa.matrix_from_slice(t), v.d_F_bias);
-    //add_vector(d_RIa.matrix_from_slice(t), v.d_I_bias);
-    //add_vector(d_RCa.matrix_from_slice(t), v.d_C_bias);
-    add_vector_into(w.F_bias, b.Fa.slice(t));
-    add_vector_into(w.I_bias, b.Ia.slice(t));
-    add_vector_into(w.Z_bias, b.Za.slice(t));
-    add_vector_into(w.O_bias, b.Oa.slice(t));
-    */
+
+    add_vector_into(v.F_bias, Rb.Fa.slice(t));
+    add_vector_into(v.I_bias, Rb.Ia.slice(t));
+    add_vector_into(v.Z_bias, Rb.Za.slice(t));
+
+
+    apply_sigmoid_deriv(b.Ib.slice(t), Rb.tmp1.slice(t));
+    dot(Rb.tmp1.slice(t), Rb.Ia.slice(t), Rb.Ib.slice(t));
+
+    apply_sigmoid_deriv(b.Fb.slice(t), Rb.tmp1.slice(t));
+    dot(Rb.tmp1.slice(t), Rb.Fa.slice(t), Rb.Fb.slice(t));
 
     //double check form of simoid deriv, should it get b.Ia or b.Ib?
-    apply_sigmoid_deriv(b.Ia.slice(t), Rb.tmp1.slice(t));
+    //apply_tanhx2_deriv(b.Zb.slice(t), Rb.tmp1.slice(t));
+    //dot(Rb.tmp1.slice(t), Rb.Za.slice(t), Rb.Zb.slice(t));
 
-    //shout this next line be dot_add?
-    dot_add(Rb.tmp1.slice(t), Rb.Ia.slice(t), Rb.Ib.slice(t));
-
-    //double check form of simoid deriv, should it get b.Ia or b.Ib?
-    apply_sigmoid_deriv(b.Fa.slice(t), Rb.tmp1.slice(t));
-    //shout this next line be dot_add?
-    dot_add(Rb.tmp1.slice(t), Rb.Fa.slice(t), Rb.Fb.slice(t));
-
-    //double check form of simoid deriv, should it get b.Ia or b.Ib?
-    apply_tanhx2_deriv(b.Za.slice(t), Rb.tmp1.slice(t));
-    //shout this next line be dot_add?
-    dot_add(Rb.tmp1.slice(t), Rb.Za.slice(t), Rb.Zb.slice(t));
+    apply(b.Zb.slice(t), Rb.tmp1.slice(t), &tanh_deriv);
+    dot(Rb.tmp1.slice(t), Rb.Za.slice(t), Rb.Zb.slice(t));
 
     dot(Rb.Ib.slice(t), b.Zb.slice(t), Rb.S.slice(t));
     dot_add(b.Ib.slice(t), Rb.Zb.slice(t), Rb.S.slice(t));
@@ -344,26 +328,29 @@ void LstmLayer::Rpass(Weights &w, Weights &v,  FwdState &b, FwdState &Rb, Matrix
       dot_add(Rb.S.slice(t - 1), b.Fb.slice(t), Rb.S.slice(t));
       dot_add(b.S.slice(t - 1), Rb.Fb.slice(t), Rb.S.slice(t));
     }
-      
-    apply_tanhx2_deriv(Rb.S.slice(t), Rb.f_S.slice(t));
+  
 
     dot_add(Rb.S.slice(t), w.OS, Rb.Oa.slice(t));
     dot_add(b.S.slice(t), v.OS, Rb.Oa.slice(t));
+    add_vector_into(v.O_bias, Rb.Oa.slice(t));
+
+    apply_sigmoid_deriv(b.Ob.slice(t), Rb.tmp1.slice(t));
+    dot(Rb.tmp1.slice(t), Rb.Oa.slice(t), Rb.Ob.slice(t));
+
+
+    f->apply_deriv(b.f_S.slice(t), b.Ob.slice(t), Rb.tmp1.slice(t));    
+    dot(Rb.tmp1.slice(t), Rb.S.slice(t), Ry.slice(t));
+    dot_add(Rb.Ob.slice(t), b.f_S.slice(t), Ry.slice(t));
+
     
 
-    //mult_add(b.S.slice(t), w.OS, b.Oa.slice(t));
-    apply_sigmoid(b.Oa.slice(t), b.Ob.slice(t));
-    //copy(b.Oa.slice(t), b.Ob.slice(t));
-
-    //double check form of simoid deriv, should it get b.Ia or b.Ib?
-    apply_sigmoid_deriv(b.Oa.slice(t), Rb.tmp1.slice(t));
-    //shout this next line be dot_add?
-    dot_add(Rb.tmp1.slice(t), Rb.Oa.slice(t), Rb.Ob.slice(t));
-    
+    /*
     dot(b.f_S.slice(t), Rb.Ob.slice(t), Ry.slice(t));
+    // change to f_S?
     apply_tanhx2_deriv(b.S.slice(t), Rb.tmp1.slice(t));
     dot_add(Rb.Ob.slice(t), Rb.tmp1.slice(t), Ry.slice(t));
-   }
+    */
+  }
 }
 
 
@@ -371,7 +358,7 @@ void LstmLayer::Rpass(Weights &w, Weights &v,  FwdState &b, FwdState &Rb, Matrix
 void LstmLayer::Rbackward(Weights &w, FwdState &b, BwdState &d, Matrix &in_deltas, Matrix &out_deltas, FwdState &Rb, double lambda, double mu) {
 
   int end_time = static_cast<int>(b.time - 1);
-
+  mu = 0;
   copy(out_deltas, d.Hb);
   
   //calculate t+1 values except for end_time+1 
