@@ -155,7 +155,7 @@ class NetworkTests(unittest.TestCase):
 
     def test_rforward_finite_differences(self):
         check_errors = []
-        for l, a in itertools.product([RegularLayer, LstmLayer], self.activation_functions):
+        for l, a in itertools.product(self.layer_types, self.activation_functions):
             net = self.build_network(l, a)
             e, allerrors = check_rpass_full(net)
             check_errors.append(e)
