@@ -108,9 +108,41 @@ void RegularLayer::gradient(RegularLayer::Weights&, RegularLayer::Weights& grad,
     squash(d.Ha, grad.H_bias);
 }
 
-void RegularLayer::Rpass(Weights&, Weights&,  FwdState&, FwdState&, Matrix&, Matrix&, Matrix&)
+void RegularLayer::Rpass(Weights &w, Weights &v,  FwdState &b, FwdState &Rb, Matrix &x, Matrix &y, Matrix &Ry)
 {
-    THROW(core::NotImplementedException("Rpass not implemented yet."));
+    size_t n_inputs = w.n_inputs;
+	size_t n_cells = w.n_cells;
+	ASSERT(v.n_inputs == n_inputs);
+	ASSERT(v.n_cells == n_cells);
+
+	size_t n_batches = b.n_batches;
+	size_t n_slices = b.time;
+	ASSERT(b.n_cells == n_cells);
+	ASSERT(b.n_inputs == n_inputs);
+
+	ASSERT(Rb.time == n_slices);
+	ASSERT(Rb.n_batches == n_batches);
+	ASSERT(Rb.n_inputs == n_inputs);
+	ASSERT(Rb.n_cells == n_cells);
+
+	ASSERT(x.n_rows == n_inputs);
+	ASSERT(x.n_columns == n_batches);
+	ASSERT(x.n_slices == n_slices);
+
+	ASSERT(y.n_rows == n_cells);
+	ASSERT(y.n_columns == n_batches);
+	ASSERT(y.n_slices == n_slices);
+
+    // Rb.Ha = W Rx + V x
+    // for now assume Rx = 0
+    for (int t = 0; t < n_slices; ++t) {
+        mult(v.HX, x.slice(t), Rb.Ha.slice(t));
+    }
+
+    add_vector_into(v.H_bias, Rb.Ha);
+
+	// Ry = f'(b.Ha)*Rb.Ha
+    f->apply_deriv(y, Rb.Ha, Ry);
 }
 
 void RegularLayer::Rbackward(Weights&, FwdState&, BwdState&, Matrix&, Matrix&, FwdState&, double, double)
