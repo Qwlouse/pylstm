@@ -281,6 +281,12 @@ void LstmLayer::Rpass(Weights &w, Weights &v,  FwdState &b, FwdState &Rb, Matrix
   mult(v.ZX, x.flatten_time(), Rb.Za.flatten_time());
   mult(v.OX, x.flatten_time(), Rb.Oa.flatten_time());
 
+  mult_add(w.IX, Rx.flatten_time(), Rb.Ia.flatten_time());
+  mult_add(w.FX, Rx.flatten_time(), Rb.Fa.flatten_time());
+  mult_add(w.ZX, Rx.flatten_time(), Rb.Za.flatten_time());
+  mult_add(w.OX, Rx.flatten_time(), Rb.Oa.flatten_time());
+
+
   for (size_t t(0); t < b.time; ++t) {
     
     //IF NEXT                                                                                 
