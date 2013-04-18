@@ -9,7 +9,7 @@ from pylstm.netbuilder import NetworkBuilder
 from pylstm.layers import LstmLayer, RnnLayer, RegularLayer
 from pylstm.wrapper import Buffer
 from scipy.optimize import approx_fprime
-rnd = np.random.RandomState(43210)
+rnd = np.random.RandomState(26345)
 
 
 def check_gradient(net):
@@ -43,13 +43,14 @@ def check_rpass(net, weights, v, r=1e-7):
     T = np.zeros((n_timesteps, n_batches, net.get_output_size()))
     T[:, :, 0] = 1.0  # so the outputs sum to one
     net.set_param_buffer(weights)
-    out1 = net.forward_pass(X).as_array()
-    net.set_param_buffer(weights+r*v)
+    out1 = net.forward_pass(X).as_array().copy()
+    net.set_param_buffer(weights + r * v)
     out2 = net.forward_pass(X).as_array()
-    estimated = (out2-out1)/r
+    estimated = (out2 - out1) / r
     net.set_param_buffer(weights)
     calculated = net.r_forward_pass(X, v).as_array()
     return np.sum((estimated - calculated)**2), calculated, estimated
+
 
 def check_rpass_full(net):
     weights = rnd.randn(net.get_param_size())
@@ -59,8 +60,6 @@ def check_rpass_full(net):
         v[i] = 1.0
         errs[i], calc, est = check_rpass(net, weights, v)
     return np.sum(errs**2), errs
-
-
 
 
 def check_deltas(net):
@@ -90,7 +89,7 @@ class NetworkTests(unittest.TestCase):
         netb = NetworkBuilder()
         netb.input(self.input_size) >> layer_type(self.output_size, act_func=activation_function) >> netb.output
         net = netb.build()
-        net.set_param_buffer(np.random.randn(net.get_param_size()))
+        net.set_param_buffer(rnd.randn(net.get_param_size()))
         return net
 
     def setUp(self):
@@ -98,12 +97,12 @@ class NetworkTests(unittest.TestCase):
         self.output_size = 3
         self.layer_types = [RegularLayer, RnnLayer, LstmLayer]
         self.activation_functions = ["linear", "tanh", "tanhx2", "sigmoid", "softmax"]
-        self.X = np.random.randn(2, 7, self.input_size)
+        self.X = rnd.randn(2, 7, self.input_size)
 
     def test_lstm_forward_pass_insensitive_to_internal_state(self):
         net = self.build_network(LstmLayer, "tanh")
         out1 = net.forward_pass(self.X).as_array().copy()
-        net.intern_manager.initialize_buffer(Buffer(np.random.randn(
+        net.intern_manager.initialize_buffer(Buffer(rnd.randn(
             net.intern_manager.calculate_size())))
         out2 = net.forward_pass(self.X).as_array().copy()
         self.assertTrue(np.allclose(out1, out2))
@@ -113,9 +112,9 @@ class NetworkTests(unittest.TestCase):
         net.clear_internal_state()
         out1 = net.forward_pass(self.X).as_array().copy()
         deltas1 = net.backward_pass(out1).as_array().copy()
-        net.intern_manager.initialize_buffer(Buffer(np.random.randn(
+        net.intern_manager.initialize_buffer(Buffer(rnd.randn(
             net.intern_manager.calculate_size())))
-        net.delta_manager.initialize_buffer(Buffer(np.random.randn(
+        net.delta_manager.initialize_buffer(Buffer(rnd.randn(
             net.delta_manager.calculate_size())))
         out2 = net.forward_pass(self.X).as_array().copy()
         deltas2 = net.backward_pass(out2).as_array().copy()
@@ -156,7 +155,7 @@ class NetworkTests(unittest.TestCase):
 
     def test_rforward_finite_differences(self):
         check_errors = []
-        for l, a in itertools.product([LstmLayer], self.activation_functions):
+        for l, a in itertools.product(self.layer_types, self.activation_functions):
             net = self.build_network(l, a)
             e, allerrors = check_rpass_full(net)
             check_errors.append(e)

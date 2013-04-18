@@ -84,7 +84,7 @@ class Network(object):
         assert f == self.layers.values()[0].get_output_size()
         self.set_buffer_manager_dimensions(t, b)
         # inject the input buffer
-        self.in_out_manager.get_source_view("Input").as_array()[:] = input_buffer # TODO factor this out as self.in_buffer property
+        self.in_out_manager.get_source_view("Input").as_array()[:] = input_buffer  # TODO factor this out as self.in_buffer property
         # execute all the intermediate layers
         for n, l in self.layers.items()[1:-1]:
             param = self.weight_manager.get_source_view(n)
@@ -95,7 +95,7 @@ class Network(object):
 
             l.forward(param, internal, input_view, out)
         # read the output buffer
-        return self.in_out_manager.get_sink_view("Output") # TODO factor this out as self.out_buffer property
+        return self.in_out_manager.get_sink_view("Output")  # TODO factor this out as self.out_buffer property
 
     def calculate_error(self, T):
         X = self.in_out_manager.get_sink_view("Output")
@@ -198,5 +198,3 @@ class Network(object):
         self.r_forward_pass(input_buffer, v_buffer)
         self.r_backward_pass(T, lambda_, mu)
         return self.calc_gradient()
-
-
