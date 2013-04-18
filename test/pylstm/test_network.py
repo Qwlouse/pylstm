@@ -9,7 +9,7 @@ from pylstm.netbuilder import NetworkBuilder
 from pylstm.layers import LstmLayer, RnnLayer, RegularLayer
 from pylstm.wrapper import Buffer
 from scipy.optimize import approx_fprime
-rnd = np.random.RandomState(26345)
+rnd = np.random.RandomState(2634587)
 
 
 def check_gradient(net):
@@ -85,9 +85,14 @@ def check_deltas(net):
 
 
 class NetworkTests(unittest.TestCase):
-    def build_network(self, layer_type, activation_function):
+    def build_network(self, layer_type, activation_function, layers=1):
         netb = NetworkBuilder()
-        netb.input(self.input_size) >> layer_type(self.output_size, act_func=activation_function) >> netb.output
+
+        prev_layer = netb.input(self.input_size)
+        for l in range(layers):
+            prev_layer = prev_layer >> layer_type(self.output_size, act_func=activation_function)
+        prev_layer >> netb.output
+
         net = netb.build()
         net.set_param_buffer(rnd.randn(net.get_param_size()))
         return net
@@ -162,11 +167,29 @@ class NetworkTests(unittest.TestCase):
             if e > 1e-4:
                 # construct a weight view and break down the differences
                 layer = net.layers.values()[1]  # the only layer
-                b = Buffer(allerrors)
+                b = Buffer(allerrors.copy())
                 diff = layer.create_param_view(b)
                 for n, b in diff.items():
                     print("====== %s ======" % n)
                     print(b.as_array())
 
-            print("Checking RForward pass of %s with %s = %0.4f" % (l(3), a, e))
+            print("Checking RForward pass of %s with %s = %0.4g" % (l(3), a, e))
+        self.assertTrue(np.all(np.array(check_errors) < 1e-4))
+
+    def test_rforward_finite_differences_multilayer(self):
+        check_errors = []
+        for l, a in itertools.product(self.layer_types, self.activation_functions):
+            net = self.build_network(l, a, layers=2)
+            e, allerrors = check_rpass_full(net)
+            check_errors.append(e)
+            if e > 1e-4:
+                # construct a weight view and break down the differences
+                layer = net.layers.values()[1]  # the only layer
+                b = Buffer(allerrors.copy())
+                diff = layer.create_param_view(b)
+                for n, b in diff.items():
+                    print("====== %s ======" % n)
+                    print(b.as_array())
+
+            print("Checking RForward pass of %s with %s = %0.4g" % (l(3), a, e))
         self.assertTrue(np.all(np.array(check_errors) < 1e-4))

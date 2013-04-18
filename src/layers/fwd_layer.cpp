@@ -108,7 +108,7 @@ void RegularLayer::gradient(RegularLayer::Weights&, RegularLayer::Weights& grad,
     squash(d.Ha, grad.H_bias);
 }
 
-void RegularLayer::Rpass(Weights &w, Weights &v,  FwdState &b, FwdState &Rb, Matrix &x, Matrix &y, Matrix &Ry)
+void RegularLayer::Rpass(Weights &w, Weights &v,  FwdState &b, FwdState &Rb, Matrix &x, Matrix &y, Matrix& Rx, Matrix &Ry)
 {
     size_t n_inputs = w.n_inputs;
 	size_t n_cells = w.n_cells;
@@ -134,10 +134,8 @@ void RegularLayer::Rpass(Weights &w, Weights &v,  FwdState &b, FwdState &Rb, Mat
 	ASSERT(y.n_slices == n_slices);
 
     // Rb.Ha = W Rx + V x
-    // for now assume Rx = 0
-    for (int t = 0; t < n_slices; ++t) {
-        mult(v.HX, x.slice(t), Rb.Ha.slice(t));
-    }
+    mult(v.HX, x.flatten_time(), Rb.Ha.flatten_time());
+    mult_add(w.HX, Rx.flatten_time(), Rb.Ha.flatten_time());
 
     add_vector_into(v.H_bias, Rb.Ha);
 

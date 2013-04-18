@@ -152,6 +152,8 @@ class Network(object):
             self.v_manager.initialize_buffer(pw.Buffer(v_buffer))
         # inject the input buffer
         self.in_out_manager.get_source_view("Input").as_array()[:] = input_buffer
+        # set r input to 0
+        self.r_in_out_manager.get_source_view("Input").as_array()[:] = 0.0
         # execute all the intermediate layers
         for n, l in self.layers.items()[1:-1]:
             param = self.weight_manager.get_source_view(n)
@@ -160,10 +162,11 @@ class Network(object):
             r_internal = self.r_intern_manager.get_source_view(n)
 
             out = self.in_out_manager.get_source_view(n)
+            r_in = self.r_in_out_manager.get_sink_view(n)
             r_out = self.r_in_out_manager.get_source_view(n)
             input_view = self.in_out_manager.get_sink_view(n)
 
-            l.Rpass(param, v, internal, r_internal, input_view, out, r_out)
+            l.Rpass(param, v, internal, r_internal, input_view, out, r_in, r_out)
             # read the output buffer
         return self.r_in_out_manager.get_sink_view("Output")
 

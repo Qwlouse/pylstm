@@ -122,7 +122,7 @@ void RnnLayer::gradient(RnnLayer::Weights&, RnnLayer::Weights& grad, RnnLayer::F
     
 }
 
-void RnnLayer::Rpass(Weights& w, Weights& v,  FwdState& b, FwdState& Rb, Matrix& x, Matrix& y, Matrix& Ry)
+void RnnLayer::Rpass(Weights& w, Weights& v,  FwdState& b, FwdState& Rb, Matrix& x, Matrix& y, Matrix& Rx, Matrix& Ry)
 {
     size_t n_inputs = w.n_inputs;
     size_t n_cells = w.n_cells;
@@ -149,6 +149,7 @@ void RnnLayer::Rpass(Weights& w, Weights& v,  FwdState& b, FwdState& Rb, Matrix&
 
 
     mult(v.HX, x.flatten_time(), Rb.Ha.flatten_time());
+    mult_add(w.HX, Rx.flatten_time(), Rb.Ha.flatten_time());
 
     for (int t = 0; t < n_slices; ++t) {
       if (t) {

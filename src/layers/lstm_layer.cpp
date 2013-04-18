@@ -274,7 +274,7 @@ void LstmLayer::gradient(Weights&, Weights& grad, FwdState& b, BwdState& d, Matr
 
 }
 
-void LstmLayer::Rpass(Weights &w, Weights &v,  FwdState &b, FwdState &Rb, Matrix &x, Matrix &y, Matrix &Ry) {
+void LstmLayer::Rpass(Weights &w, Weights &v,  FwdState &b, FwdState &Rb, Matrix &x, Matrix &y, Matrix& Rx, Matrix &Ry) {
 
   mult(v.IX, x.flatten_time(), Rb.Ia.flatten_time());
   mult(v.FX, x.flatten_time(), Rb.Fa.flatten_time());

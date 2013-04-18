@@ -92,7 +92,7 @@ public:
     virtual void forward_pass(ViewContainer& w, ViewContainer& b, Matrix& x, Matrix& y) = 0;
     virtual void backward_pass(ViewContainer& w, ViewContainer& b, ViewContainer& d, Matrix& y, Matrix& in_deltas, Matrix& out_deltas) = 0;
     virtual void gradient(ViewContainer& w, ViewContainer& grad, ViewContainer& b, ViewContainer& d, Matrix& y, Matrix& x, Matrix& out_deltas) = 0;
-    virtual void Rpass(ViewContainer &w, ViewContainer &v,  ViewContainer &b, ViewContainer &Rb, Matrix &x, Matrix &y, Matrix &Ry) = 0;
+    virtual void Rpass(ViewContainer &w, ViewContainer &v,  ViewContainer &b, ViewContainer &Rb, Matrix &x, Matrix &y, Matrix& Rx, Matrix &Ry) = 0;
     virtual void Rbackward(ViewContainer &w, ViewContainer &b, ViewContainer &d, Matrix &in_deltas, Matrix &out_deltas, ViewContainer &Rb, double lambda, double mu) = 0;
 };
 
@@ -196,13 +196,13 @@ public:
                 y, x, out_deltas);
     }
 
-    void Rpass(ViewContainer &w, ViewContainer &v,  ViewContainer &b, ViewContainer &Rb, Matrix &x, Matrix &y, Matrix &Ry) {
+    void Rpass(ViewContainer &w, ViewContainer &v,  ViewContainer &b, ViewContainer &Rb, Matrix &x, Matrix &y, Matrix& Rx, Matrix &Ry) {
         layer.Rpass(
                 dynamic_cast<typename L::Weights&>(w),
                 dynamic_cast<typename L::Weights&>(v),
                 dynamic_cast<typename L::FwdState&>(b),
                 dynamic_cast<typename L::FwdState&>(Rb),
-                x, y, Ry);
+                x, y, Rx, Ry);
     }
 
     void Rbackward(ViewContainer &w, ViewContainer &b, ViewContainer &d, Matrix &in_deltas, Matrix &out_deltas, ViewContainer &Rb, double lambda, double mu) {
