@@ -51,6 +51,7 @@ def check_rpass(net, weights, v, r=1e-7):
     calculated = net.r_forward_pass(X, v).as_array()
     return np.sum((estimated - calculated)**2), calculated, estimated
 
+
 def check_rpass_full(net):
     weights = rnd.randn(net.get_param_size())
     errs = np.zeros_like(weights)
@@ -59,8 +60,6 @@ def check_rpass_full(net):
         v[i] = 1.0
         errs[i], calc, est = check_rpass(net, weights, v)
     return np.sum(errs**2), errs
-
-
 
 
 def check_deltas(net):
@@ -156,7 +155,7 @@ class NetworkTests(unittest.TestCase):
 
     def test_rforward_finite_differences(self):
         check_errors = []
-        for l, a in itertools.product([RegularLayer], self.activation_functions):
+        for l, a in itertools.product([RegularLayer, LstmLayer], self.activation_functions):
             net = self.build_network(l, a)
             e, allerrors = check_rpass_full(net)
             check_errors.append(e)
