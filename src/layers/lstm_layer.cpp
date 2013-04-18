@@ -340,8 +340,8 @@ void LstmLayer::Rpass(Weights &w, Weights &v,  FwdState &b, FwdState &Rb, Matrix
     dot(Rb.tmp1.slice(t), Rb.Oa.slice(t), Rb.Ob.slice(t));
 
 
-    f->apply_deriv(b.f_S.slice(t), b.Ob.slice(t), Rb.tmp1.slice(t));    
-    dot(Rb.tmp1.slice(t), Rb.S.slice(t), Ry.slice(t));
+    f->apply_deriv(b.f_S.slice(t), Rb.S.slice(t), Rb.tmp1.slice(t));
+    dot(Rb.tmp1.slice(t), b.Ob.slice(t), Ry.slice(t));
     dot_add(Rb.Ob.slice(t), b.f_S.slice(t), Ry.slice(t));
   }
 }
