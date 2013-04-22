@@ -171,8 +171,7 @@ class Network(object):
         return self.r_in_out_manager.get_sink_view("Output")
 
     def r_backward_pass(self, T, lambda_, mu):
-        X = self.in_out_manager.get_sink_view("Output")
-        delta_buffer = self.error_func.deriv(X, T)
+        delta_buffer = self.r_in_out_manager.get_sink_view("Output").as_array()
         t, b, f = delta_buffer.shape
         # dims should already be set during forward_pass, but in any case...
         self.set_buffer_manager_dimensions(t, b)
@@ -183,13 +182,12 @@ class Network(object):
         for n, l in self.layers.items()[-2:0:-1]:
             param = self.weight_manager.get_source_view(n)
             internal = self.intern_manager.get_source_view(n)
-            r_internal = self.r_intern_manager.get_source_view(n)
             intern_delta = self.intern_delta_manager.get_source_view(n)
 
             delta_in = self.delta_manager.get_sink_view(n)
             delta_out = self.delta_manager.get_source_view(n)
-            r_out = self.r_in_out_manager.get_source_view(n)
-            l.backward(param, r_internal, intern_delta, r_out, delta_in, delta_out)
+            out = self.in_out_manager.get_source_view(n)
+            l.backward(param, internal, intern_delta, out, delta_in, delta_out)
             # l.Rbackward(param, internal, intern_delta, delta_in, delta_out, r_internal, lambda_, mu)
             # read the final delta buffer
         return self.delta_manager.get_source_view("Input")
