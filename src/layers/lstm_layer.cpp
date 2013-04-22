@@ -301,11 +301,11 @@ void LstmLayer::Rpass(Weights &w, Weights &v,  FwdState &b, FwdState &Rb, Matrix
       mult_add(v.ZH, y.slice(t - 1), Rb.Za.slice(t));
       mult_add(v.OH, y.slice(t - 1), Rb.Oa.slice(t));
 
-      dot_add(w.IS, Rb.S.slice(t - 1), Rb.Ia.slice(t));
-      dot_add(w.FS, Rb.S.slice(t - 1), Rb.Fa.slice(t));
+      dot_add(Rb.S.slice(t - 1), w.IS, Rb.Ia.slice(t));
+      dot_add(Rb.S.slice(t - 1), w.FS, Rb.Fa.slice(t));
 
-      dot_add(v.IS, b.S.slice(t - 1), Rb.Ia.slice(t));
-      dot_add(v.FS, b.S.slice(t - 1), Rb.Fa.slice(t));
+      dot_add(b.S.slice(t - 1), v.IS, Rb.Ia.slice(t));
+      dot_add(b.S.slice(t - 1), v.FS, Rb.Fa.slice(t));
 
     }
 
