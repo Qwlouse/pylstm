@@ -78,12 +78,13 @@ class CgTrainer(object):
         self.learning_rate = learning_rate
 
     def train(self, net, X, T, epochs=100, callback=print_error_per_epoch):
-        weights = net.get_param_buffer()
+        weights = net.get_param_buffer().as_array().copy()
         for epoch in range(1, epochs + 1):
             
             #select an input batch, and target batch
             
             #run forward pass, output saved in out
+            net.set_param_buffer(weights)
             out = net.forward_pass(X).as_array()
             
             #calculate error
@@ -106,13 +107,13 @@ class CgTrainer(object):
                 net.set_param_buffer(W)
                 net.forward_pass(X)
                 net.backward_pass(T)
-                return net.calc_gradient().as_array().flatten()
+                return net.calc_gradient().as_array().copy().flatten()
 
             def fhess_p(W, v):
                 net.set_param_buffer(W)
-                return net.hessian_pass(X, v, lambda_=0., mu=0.).as_array().flatten()
+                return net.hessian_pass(X, v, lambda_=0., mu=0.).as_array().copy().flatten()
 
-            xopt, allvecs = fmin_ncg(f, np.zeros_like(weights.as_array()), fprime, fhess_p=fhess_p, maxiter=50, retall=True, disp=True)
+            xopt, allvecs = fmin_ncg(f, np.zeros_like(weights), fprime, fhess_p=fhess_p, maxiter=50, retall=True, disp=True)
             # #dws = cg(v, grad, lambda, mu)
             #
             # #but can we do this backwards
@@ -155,7 +156,7 @@ if __name__ == "__main__":
     from netbuilder import NetworkBuilder
     from layers import LstmLayer, RegularLayer
     netb = NetworkBuilder()
-    netb.input(4) >> LstmLayer(3) >> netb.output
+    netb.input(4) >> RegularLayer(3) >> netb.output
     net = netb.build()
     weight = rnd.randn(net.get_param_size())
     net.set_param_buffer(weight.copy())

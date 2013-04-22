@@ -188,8 +188,9 @@ class Network(object):
 
             delta_in = self.delta_manager.get_sink_view(n)
             delta_out = self.delta_manager.get_source_view(n)
-
-            l.Rbackward(param, internal, intern_delta, delta_in, delta_out, r_internal, lambda_, mu)
+            r_out = self.r_in_out_manager.get_source_view(n)
+            l.backward(param, r_internal, intern_delta, r_out, delta_in, delta_out)
+            # l.Rbackward(param, internal, intern_delta, delta_in, delta_out, r_internal, lambda_, mu)
             # read the final delta buffer
         return self.delta_manager.get_source_view("Input")
 
