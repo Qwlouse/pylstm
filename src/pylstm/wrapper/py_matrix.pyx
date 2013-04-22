@@ -50,24 +50,36 @@ cdef class Buffer:
 
     def feature_slice(self, start, stop=None):
         b = Buffer()
-        assert 0 <= start < self.get_feature_size()
-        if stop is None:
-            b.view = self.view.row_slice(start)
-        else:
-            assert start <= stop < self.get_feature_size()
-            b.view = self.view.row_slice(start, stop)
         b.A = self.A
+        assert 0 <= start
+        if self.get_feature_size() == 0:
+            assert start == 0
+            assert stop is None or stop == 0
+            b.view = self.view
+        else :
+            assert start < self.get_feature_size()
+            if stop is None:
+                b.view = self.view.row_slice(start)
+            else:
+                assert start <= stop <= self.get_feature_size()
+                b.view = self.view.row_slice(start, stop-1)
         return b
 
     def time_slice(self, start, stop=None):
         b = Buffer()
-        assert 0 <= start < self.get_time_size()
-        if stop is None:
-            b.view = self.view.slice(start)
-        else:
-            assert start <= stop < self.get_time_size()
-            b.view = self.view.slice(start, stop)
         b.A = self.A
+        assert 0 <= start
+        if self.get_time_size() == 0:
+            assert start == 0
+            assert stop is None or stop == 0
+            b.view = self.view
+        else :
+            assert start < self.get_time_size()
+            if stop is None:
+                b.view = self.view.slice(start)
+            else:
+                assert start <= stop <= self.get_time_size()
+                b.view = self.view.slice(start, stop-1)
         return b
         
     # from here: https://gist.github.com/1249305

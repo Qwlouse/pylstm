@@ -40,17 +40,18 @@ class BufferHub(object):
 
     def set_buffer(self, buffer_view):
         self.buffer = buffer_view
-        self.buffer = buffer_view.reshape(-1, 1, 1)
+        self.buffer = buffer_view.reshape(self.slice_count, self.batch_count, -1)
         self.views = None
 
     def _lay_out_source_buffers(self):
         start = 0
         for n, (sg, vf) in self.sources.items():
-            size = sg(self.slice_count, self.batch_count)
-            self.views[n] = vf(self.buffer[start: start + size],
+            assert sg(self.slice_count, self.batch_count) % (self.slice_count * self.batch_count) == 0, "buffer: %s with %d %d needs %d"%(self.buffer.shape(), self.slice_count, self.batch_count,  sg(self.slice_count, self.batch_count))
+            size = sg(self.slice_count, self.batch_count) / self.slice_count / self.batch_count
+            self.views[n] = vf(self.buffer.feature_slice(start, start + size),
                                self.slice_count, self.batch_count)
             start += size
-        return start
+        return start * self.slice_count * self.batch_count
 
     def create_views(self):
         self.views = {}

@@ -57,16 +57,16 @@ class BufferManagerTest(unittest.TestCase):
 
     def test_get_buffer_has_right_size(self):
         bm = BufferManager()
-        sg1 = lambda t, b : 2 * t + b
-        sg2 = lambda t, b : t + 3*b
+        sg1 = lambda t, b : 2 * t * b
+        sg2 = lambda t, b : 3 * t * b
         view_factory = lambda x, t, b : x
         bm.add({'foo1': (sg1, view_factory), 'foo2': (sg2, view_factory)}, {})
 
-        self.assertEqual(len(bm.get_source_view('foo1')), 3)
-        self.assertEqual(len(bm.get_source_view('foo2')), 4)
+        self.assertEqual(len(bm.get_source_view('foo1')), 2)
+        self.assertEqual(len(bm.get_source_view('foo2')), 3)
         bm.set_dimensions(2, 3)
-        self.assertEqual(len(bm.get_source_view('foo1')), 7)
-        self.assertEqual(len(bm.get_source_view('foo2')), 11)
+        self.assertEqual(len(bm.get_source_view('foo1')), 12)
+        self.assertEqual(len(bm.get_source_view('foo2')), 18)
 
 if __name__ == "__main__":
     unittest.main()
