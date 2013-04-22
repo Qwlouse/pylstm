@@ -6,6 +6,10 @@ cdef extern from "fwd_layer.h":
         RegularLayer()
         RegularLayer(ActivationFunction* f)
 
+cdef extern from "rev_layer.h":
+    cppclass ReverseLayer:
+        ReverseLayer()
+
 cdef extern from "rnn_layer.h":
     cppclass RnnLayer:
         RnnLayer()

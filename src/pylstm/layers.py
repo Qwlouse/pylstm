@@ -171,5 +171,7 @@ DummyLayer = create_ConstructionLayer(Layer)
 LstmLayer = create_ConstructionLayer("LstmLayer")
 RnnLayer = create_ConstructionLayer("RnnLayer")
 RegularLayer = create_ConstructionLayer("RegularLayer")
+ReverseLayer = create_ConstructionLayer("ReverseLayer")
+
 NpFwdLayer = create_ConstructionLayer(NpForwardLayer)
 
