@@ -47,6 +47,28 @@ cdef class Buffer:
             
     def __setitem__(self, int item, float value):
         self.view[item] = value
+
+    def feature_slice(self, start, stop=None):
+        b = Buffer()
+        assert 0 <= start < self.get_feature_size()
+        if stop is None:
+            b.view = self.view.row_slice(start)
+        else:
+            assert start <= stop < self.get_feature_size()
+            b.view = self.view.row_slice(start, stop)
+        b.A = self.A
+        return b
+
+    def time_slice(self, start, stop=None):
+        b = Buffer()
+        assert 0 <= start < self.get_time_size()
+        if stop is None:
+            b.view = self.view.slice(start)
+        else:
+            assert start <= stop < self.get_time_size()
+            b.view = self.view.slice(start, stop)
+        b.A = self.A
+        return b
         
     # from here: https://gist.github.com/1249305
     def as_array(self):

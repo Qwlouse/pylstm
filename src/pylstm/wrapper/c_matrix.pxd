@@ -19,6 +19,9 @@ cdef extern from "matrix.h":
         d_type* get_data()
         Matrix subslice(size_t start, size_t n_rows, size_t n_columns, size_t n_slices)
         Matrix slice(size_t slice_index)
+        Matrix slice(size_t start, size_t stop)
+        Matrix row_slice(size_t row_index)
+        Matrix row_slice(size_t start_row, size_t stop_row)
         void set_all_elements_to(d_type value)
         void print_me()
 
