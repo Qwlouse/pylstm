@@ -162,6 +162,8 @@ def create_layer(name, in_size, out_size, **kwargs):
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.RnnLayer](in_size, out_size, cl.RnnLayer(act_fct)))
     elif name.lower() == "lstmlayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.LstmLayer](in_size, out_size, cl.LstmLayer(act_fct)))
-    elif name.lower() == "reverseLayer":
+    elif name.lower() == "reverselayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.ReverseLayer](in_size, out_size, cl.ReverseLayer()))
+    else :
+        raise AttributeError("No layer with name " + name)
     return l

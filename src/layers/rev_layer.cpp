@@ -35,7 +35,7 @@ void reverse(Matrix &x, Matrix &y)
 	ASSERT(y.n_slices == n_slices);
 
 	for (int t = 0; t < n_slices; ++t) {
-	    copy(x.slice(t), y.slice(n_slices-t));
+	    copy(x.slice(t), y.slice(n_slices-t-1));
 	}
 }
 
