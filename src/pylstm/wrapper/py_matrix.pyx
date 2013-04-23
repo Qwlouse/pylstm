@@ -62,7 +62,10 @@ cdef class Buffer:
                 b.view = self.view.row_slice(start)
             else:
                 assert start <= stop <= self.get_feature_size()
-                b.view = self.view.row_slice(start, stop-1)
+                if start == stop:
+                    b.view = self.view.subslice(0, 0, 0, 0)
+                else:
+                    b.view = self.view.row_slice(start, stop-1)
         return b
 
     def time_slice(self, start, stop=None):
