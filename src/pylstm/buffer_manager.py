@@ -143,3 +143,7 @@ class BufferManager(object):
     def get_sink_view(self, name):
         self.ensure_initialization()
         return self.buffers_by_sinks[name].get_buffer(name)
+
+    def clear_buffer(self):
+        self.ensure_initialization()
+        self.buffer.set_all_elements_to(0.0)

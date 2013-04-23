@@ -98,13 +98,13 @@ void RnnLayer::backward(RnnLayer::Weights &w, RnnLayer::FwdState &b, RnnLayer::B
     ASSERT(out_deltas.n_slices == n_slices);
 
     f->apply_deriv(y.slice(n_slices-1), out_deltas.slice(n_slices-1), d.Ha.slice(n_slices-1));
-    mult(w.HX.T(), d.Ha.slice(n_slices-1), in_deltas.slice(n_slices-1));
+    mult_add(w.HX.T(), d.Ha.slice(n_slices-1), in_deltas.slice(n_slices-1));
 
     for (int t = n_slices-2; t >= 0; --t) {
         copy(out_deltas.slice(t), d.Hb.slice(t));
         mult_add(w.HR.T(), d.Ha.slice(t+1), d.Hb.slice(t));
         f->apply_deriv(y.slice(t), d.Hb.slice(t), d.Ha.slice(t));
-        mult(w.HX.T(), d.Ha.slice(t), in_deltas.slice(t));
+        mult_add(w.HX.T(), d.Ha.slice(t), in_deltas.slice(t));
     }
     
 }

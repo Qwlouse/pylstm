@@ -142,6 +142,9 @@ cdef class Buffer:
         t, b, f = self.shape()
         return "<Buffer (%d, %d, %d) at %#x>"%(t, b, f, id(self))
 
+    def set_all_elements_to(self, value):
+        self.view.set_all_elements_to(value)
+
 
 def dot(Buffer a not None, Buffer b not None, Buffer out not None):
     cm.dot(a.view, b.view, out.view)

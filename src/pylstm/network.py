@@ -107,6 +107,8 @@ class Network(object):
         t, b, f = delta_buffer.shape
         # dims should already be set during forward_pass, but in any case...
         self.set_buffer_manager_dimensions(t, b)
+        # clear all delta buffers
+        self.delta_manager.clear_buffer()
         # inject delta_buffer
         out_view = self.delta_manager.get_sink_view("Output").as_array()
         out_view[:] = delta_buffer

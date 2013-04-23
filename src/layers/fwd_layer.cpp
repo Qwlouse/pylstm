@@ -94,7 +94,7 @@ void RegularLayer::backward(RegularLayer::Weights &w, RegularLayer::FwdState &b,
     f->apply_deriv(y, out_deltas, d.Ha);
 
     for (int t = 0; t < n_slices; ++t) {
-        mult(w.HX.T(), d.Ha.slice(t), in_deltas.slice(t));
+        mult_add(w.HX.T(), d.Ha.slice(t), in_deltas.slice(t));
     }
 }
 
