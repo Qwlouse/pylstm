@@ -125,12 +125,16 @@ void apply_tanhx2_deriv(Matrix a, Matrix out);
 ///squash
 void squash(Matrix a, Matrix out);
 
+void squash(Matrix a, Matrix out, d_type scale);
+
 
 ///Copy the content of a into b
 void copy(Matrix a, Matrix b);
 
 ///Elementwise multiplication, with squash to size of out (out is smaller than a and b)
 void dot_squash(Matrix a, Matrix b, Matrix out);
+
+void dot_squash(Matrix a, Matrix b, Matrix out, d_type scale);
 
 void scale_into(Matrix a, d_type alpha);
 

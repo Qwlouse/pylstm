@@ -3,7 +3,8 @@
 
 from __future__ import division, print_function, unicode_literals
 import numpy as np
-from scipy.optimize import fmin_ncg
+#from scipy.optimize import fmin_ncg
+from conjgrad import fmin_ncg
 import sys
 sys.path.append('.')
 sys.path.append('..')
@@ -78,6 +79,19 @@ class CgTrainer(object):
 
     def train(self, net, X, T, epochs=100, callback=print_error_per_epoch):
         weights = net.get_param_buffer().copy()
+
+        #run forward pass, output saved in out
+        net.set_param_buffer(weights)
+        out = net.forward_pass(X)
+
+        #calculate error
+        error = net.calculate_error(T) / X.shape[1]
+        callback(0, error)
+
+        net.backward_pass(T)
+        grad = 1*net.calc_gradient()
+
+
         for epoch in range(1, epochs + 1):
             
             #select an input batch, and target batch
@@ -90,8 +104,8 @@ class CgTrainer(object):
             error = net.calculate_error(T) / X.shape[1]
             callback(epoch, error)
 
-            net.backward_pass(T)
-            grad = net.calc_gradient()
+            #net.backward_pass(T)
+            #grad = net.calc_gradient()
 
             #initialize v, but maybe we should use the small random numbers like in old version
             v = np.zeros(net.get_param_size())
@@ -108,11 +122,17 @@ class CgTrainer(object):
                 net.backward_pass(T)
                 return net.calc_gradient().copy().flatten()
 
-            def fhess_p(W, v):
-                net.set_param_buffer(W)
+            def fhess_p(v):
+                #net.set_param_buffer(weights.as_array.copy())
                 return net.hessian_pass(X, v, lambda_=0., mu=0.).copy().flatten()
 
-            xopt, allvecs = fmin_ncg(f, np.zeros_like(weights), fprime, fhess_p=fhess_p, maxiter=50, retall=True, disp=True)
+            xopt, allvecs = fmin_ncg(f, np.zeros_like(weights), grad, fhess_p=fhess_p, maxiter=50, retall=True, disp=True)
+
+            weights = np.squeeze(weights) + xopt
+
+            #xopt, allvecs = fmin_ncg(f, np.zeros_like(weights), fprime, fhess_p=fhess_p, maxiter=50, retall=True, disp=True)
+
+
             # #dws = cg(v, grad, lambda, mu)
             #
             # #but can we do this backwards
@@ -153,11 +173,11 @@ if __name__ == "__main__":
     from netbuilder import NetworkBuilder
     from layers import LstmLayer, RegularLayer
     netb = NetworkBuilder()
-    netb.input(4) >> RegularLayer(3) >> netb.output
+    netb.input(4) >> LstmLayer(3) >> netb.output
     net = netb.build()
     weight = rnd.randn(net.get_param_size())
     net.set_param_buffer(weight.copy())
     trainer = CgTrainer(learning_rate=0.01)
-    X = rnd.randn(2, 5, 4)
-    T = rnd.randn(2, 5, 3)
+    X = rnd.randn(1, 5, 4)
+    T = rnd.randn(1, 5, 3)
     trainer.train(net, X, T, epochs=10)

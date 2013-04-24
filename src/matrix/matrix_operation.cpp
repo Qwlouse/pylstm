@@ -290,6 +290,16 @@ void squash(Matrix a, Matrix out) {
     }
 }
 
+void squash(Matrix a, Matrix out, d_type scale) {
+    out.set_all_elements_to(0.0);
+    auto ito_end = out.end();
+    for (auto ita = a.begin(), ito = out.begin(); ita != a.end(); ++ita, ++ito) {
+        if (ito == ito_end)
+            ito = out.begin();
+        *ito += (*ita) * scale;
+    }
+}
+
 
 ///Elementwise multiplication, with squash to size of out (out is smaller than a and b)
 void dot_squash(Matrix a, Matrix b, Matrix out) {
@@ -306,6 +316,23 @@ void dot_squash(Matrix a, Matrix b, Matrix out) {
         *ito += *ita * *itb;
     }
 }
+
+///Elementwise multiplication, with squash to size of out (out is smaller than a and b)
+void dot_squash(Matrix a, Matrix b, Matrix out, d_type scale) {
+    ASSERT(a.size == b.size);
+    ASSERT(a.size % out.size == 0);
+    ASSERT(a.state == b.state && b.state == out.state);
+
+    out.set_all_elements_to(0.0);
+    auto ito_end = out.end();
+    for (auto ita = a.begin(), itb = b.begin(), ito = out.begin(); ita != a.end(); ++ita, ++itb, ++ito) {
+        if (ito == ito_end) {
+            ito = out.begin();
+        }
+        *ito += (*ita) * (*itb) * scale;
+    }
+}
+
 
 ///scale matrix by a scalar
 void scale_into(Matrix a, d_type alpha) {

@@ -1153,7 +1153,7 @@ def _minimize_cg(fun, x0, args=(), jac=None, callback=None,
         result['allvecs'] = allvecs
     return result
 
-def fmin_ncg(f, x0, fprime, fhess_p=None, fhess=None, args=(), avextol=1e-5,
+def fmin_ncg(f, x0, gradient, fhess_p=None, fhess=None, args=(), avextol=1e-5,
              epsilon=_epsilon, maxiter=None, full_output=0, disp=1, retall=0,
              callback=None):
     """
@@ -1248,7 +1248,7 @@ def fmin_ncg(f, x0, fprime, fhess_p=None, fhess=None, args=(), avextol=1e-5,
             'disp': disp,
             'return_all': retall}
 
-    res = _minimize_newtoncg(f, x0, args, fprime, fhess, fhess_p,
+    res = _minimize_newtoncg(f, x0, args, gradient, fhess, fhess_p,
                              callback=callback, **opts)
 
     if full_output:
@@ -1263,7 +1263,7 @@ def fmin_ncg(f, x0, fprime, fhess_p=None, fhess=None, args=(), avextol=1e-5,
         else:
             return res['x']
 
-def _minimize_newtoncg(fun, x0, args=(), jac=None, hess=None, hessp=None,
+def _minimize_newtoncg(fun, x0, args=(), gradient=0, hess=None, hessp=None,
                        callback=None, xtol=1e-5, eps=_epsilon, maxiter=None,
                        disp=False, return_all=False,
                        **unknown_options):
@@ -1288,10 +1288,10 @@ def _minimize_newtoncg(fun, x0, args=(), jac=None, hess=None, hessp=None,
     Also note that the `jac` parameter (Jacobian) is required.
     """
     _check_unknown_options(unknown_options)
-    if jac is None:
-        raise ValueError('Jacobian is required for Newton-CG method')
+    #if jac is None:
+    #    raise ValueError('Jacobian is required for Newton-CG method')
     f = fun
-    fprime = jac
+    #fprime = jac
     fhess_p = hessp
     fhess = hess
     avextol = xtol
@@ -1300,10 +1300,10 @@ def _minimize_newtoncg(fun, x0, args=(), jac=None, hess=None, hessp=None,
 
     x0 = asarray(x0).flatten()
     fcalls, f = wrap_function(f, args)
-    gcalls, fprime = wrap_function(fprime, args)
+    #gcalls, fprime = wrap_function(fprime, args)
     hcalls = 0
     if maxiter is None:
-        maxiter = len(x0)*200
+        maxiter = 300
 
     xtol = len(x0)*avextol
     update = [2*xtol]
@@ -1313,59 +1313,50 @@ def _minimize_newtoncg(fun, x0, args=(), jac=None, hess=None, hessp=None,
     k = 0
     old_fval = f(x0)
 
+    b = squeeze(gradient)
+    maggrad = numpy.add.reduce(numpy.abs(b))
+    eta = numpy.min([0.5, numpy.sqrt(maggrad)])
+    termcond = eta * maggrad
+    xsupi = zeros(len(x0), dtype=x0.dtype)
+    ri = asarray(fhess_p(x0)).squeeze() - b
+    psupi = -ri
+
+    val = 0.5*(numpy.dot((-b+ri), xsupi))
 
     while (numpy.add.reduce(numpy.abs(update)) > xtol) and (k < maxiter):
         # Compute a search direction pk by applying the CG method to
         #  del2 f(xk) p = - grad f(xk) starting from 0.
-        b = -fprime(xk)
-        maggrad = numpy.add.reduce(numpy.abs(b))
-        eta = numpy.min([0.5, numpy.sqrt(maggrad)])
-        termcond = eta * maggrad
-        xsupi = zeros(len(x0), dtype=x0.dtype)
-        ri = -b
-        psupi = -ri
-        i = 0
+
+        Ap = fhess_p(psupi)
+        hcalls = hcalls + 1
+
+        # check curvature
+        Ap = asarray(Ap).squeeze() # get rid of matrices...
+        curv = numpy.dot(psupi, Ap)
+
+        if 0 <= curv <= 3*numpy.finfo(numpy.float64).eps:
+            break
+        elif curv < 0:
+            break
+
+
         dri0 = numpy.dot(ri, ri)
+        alphai = dri0 / curv
+        xsupi = xsupi + alphai * psupi
+        ri = ri + alphai * Ap
+        dri1 = numpy.dot(ri, ri)
+        betai = dri1 / dri0
+        psupi = -ri + betai * psupi
 
-        if fhess is not None:             # you want to compute hessian once.
-            A = fhess(*(xk,) + args)
-            hcalls = hcalls + 1
+        dri0 = dri1          # update numpy.dot(ri,ri) for next time.
 
-        while numpy.add.reduce(numpy.abs(ri)) > termcond:
-            if fhess is None:
-                if fhess_p is None:
-                    Ap = approx_fhess_p(xk, psupi, fprime, epsilon)
-                else:
-                    Ap = fhess_p(xk, psupi, *args)
-                    hcalls = hcalls + 1
-            else:
-                Ap = numpy.dot(A, psupi)
-                # check curvature
-            Ap = asarray(Ap).squeeze() # get rid of matrices...
-            curv = numpy.dot(psupi, Ap)
-            if 0 <= curv <= 3*numpy.finfo(numpy.float64).eps:
-                break
-            elif curv < 0:
-                if (i > 0):
-                    break
-                else:
-                    xsupi = xsupi + dri0 / curv * psupi
-                    break
-            alphai = dri0 / curv
-            xsupi = xsupi + alphai * psupi
-            ri = ri + alphai * Ap
-            dri1 = numpy.dot(ri, ri)
-            betai = dri1 / dri0
-            psupi = -ri + betai * psupi
-            i = i + 1
-            dri0 = dri1          # update numpy.dot(ri,ri) for next time.
 
         pk = xsupi  # search direction is solution to system.
-        gfk = -b    # gradient at xk
-        alphak, fc, gc, old_fval = line_search_BFGS(f, xk, pk, gfk, old_fval)
 
-        update = alphak * pk
-        xk = xk + update        # upcast if necessary
+        val = 0.5*(numpy.dot((-b+ri), xsupi))
+
+        update = pk #alphai * pk
+        xk = pk #xk + update        # upcast if necessary
         if callback is not None:
             callback(xk)
         if retall:
@@ -1381,7 +1372,7 @@ def _minimize_newtoncg(fun, x0, args=(), jac=None, hess=None, hessp=None,
             print("         Current function value: %f" % fval)
             print("         Iterations: %d" % k)
             print("         Function evaluations: %d" % fcalls[0])
-            print("         Gradient evaluations: %d" % gcalls[0])
+            print("         Gradient evaluations: %d" % 0)
             print("         Hessian evaluations: %d" % hcalls)
     else:
         warnflag = 0
@@ -1391,10 +1382,10 @@ def _minimize_newtoncg(fun, x0, args=(), jac=None, hess=None, hessp=None,
             print("         Current function value: %f" % fval)
             print("         Iterations: %d" % k)
             print("         Function evaluations: %d" % fcalls[0])
-            print("         Gradient evaluations: %d" % gcalls[0])
+            print("         Gradient evaluations: %d" % 0)
             print("         Hessian evaluations: %d" % hcalls)
 
-    result = Result(fun=fval, jac=gfk, nfev=fcalls[0], njev=gcalls[0],
+    result = Result(fun=fval, jac=0, nfev=fcalls[0], njev=0,
                     nhev=hcalls, status=warnflag, success=(warnflag == 0),
                     message=msg, x=xk)
     if retall:
