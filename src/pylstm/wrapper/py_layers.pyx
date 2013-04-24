@@ -78,7 +78,7 @@ cdef class BaseLayer:
     def get_output_buffer_size(self, time_length=1, batch_size=1):
         return self.layer.out_size * time_length * batch_size
 
-    def get_param_size(self, time_length=1, batch_size=1):
+    def get_param_buffer_size(self, time_length=1, batch_size=1):
         return self.layer.get_weight_size()
 
     def get_internal_state_size(self, time_length=1, batch_size=1):

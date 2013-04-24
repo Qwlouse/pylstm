@@ -7,13 +7,13 @@ import numpy as np
 
 
 class Network(object):
-    def __init__(self, layers, weight_manager, intern_manager, in_out_manager,
+    def __init__(self, layers, param_manager, intern_manager, in_out_manager,
                  intern_delta_manager, delta_manager, error_func):
         self.layers = layers
 
-        self.weight_manager = weight_manager
-        self.grad_manager = deepcopy(weight_manager)
-        self.v_manager = deepcopy(weight_manager)
+        self.param_manager = param_manager
+        self.grad_manager = deepcopy(param_manager)
+        self.v_manager = deepcopy(param_manager)
 
         self.intern_manager = intern_manager
         self.r_intern_manager = deepcopy(intern_manager)
@@ -29,7 +29,7 @@ class Network(object):
         """
         Returns the total size of all parameters.
         """
-        return self.weight_manager.calculate_size()
+        return self.param_manager.calculate_size()
 
     def get_input_size(self):
         return self.layers["Input"].get_output_size()
@@ -38,7 +38,7 @@ class Network(object):
         return self.layers["Output"].get_input_size()
 
     def get_param_view_for(self, name):
-        return self.weight_manager.get_source_view(name).as_array()
+        return self.param_manager.get_source_view(name).as_array()
 
     def get_intern_view_for(self, name):
         return self.intern_manager.get_source_view(name).as_array()
@@ -63,12 +63,12 @@ class Network(object):
         Set the parameter buffer that holds all the weights.
         """
         if isinstance(buffer_view, pw.Matrix):
-            self.weight_manager.initialize_buffer(buffer_view)
+            self.param_manager.initialize_buffer(buffer_view)
         else:
-            self.weight_manager.initialize_buffer(pw.Matrix(buffer_view))
+            self.param_manager.initialize_buffer(pw.Matrix(buffer_view))
 
     def get_param_buffer(self):
-        return self.weight_manager.buffer.as_array()
+        return self.param_manager.buffer.as_array()
 
     def set_buffer_manager_dimensions(self, t, b):
         self.intern_manager.set_dimensions(t, b)
@@ -87,7 +87,7 @@ class Network(object):
         self.in_out_manager.get_source_view("Input").as_array()[:] = input_buffer  # TODO factor this out as self.in_buffer property
         # execute all the intermediate layers
         for n, l in self.layers.items()[1:-1]:
-            param = self.weight_manager.get_source_view(n)
+            param = self.param_manager.get_source_view(n)
             internal = self.intern_manager.get_source_view(n)
 
             out = self.in_out_manager.get_source_view(n)
@@ -114,7 +114,7 @@ class Network(object):
         out_view[:] = delta_buffer
         # execute all the intermediate layers backwards
         for n, l in self.layers.items()[-2:0:-1]:
-            param = self.weight_manager.get_source_view(n)
+            param = self.param_manager.get_source_view(n)
             internal = self.intern_manager.get_source_view(n)
             intern_delta = self.intern_delta_manager.get_source_view(n)
 
@@ -130,7 +130,7 @@ class Network(object):
         self.grad_manager.initialize_buffer(
             pw.Matrix(self.get_param_size()))
         for n, l in self.layers.items()[-2:0:-1]:
-            param = self.weight_manager.get_source_view(n)
+            param = self.param_manager.get_source_view(n)
             grad = self.grad_manager.get_source_view(n)
             internal = self.intern_manager.get_source_view(n)
             intern_delta = self.intern_delta_manager.get_source_view(n)
@@ -158,7 +158,7 @@ class Network(object):
         self.r_in_out_manager.get_source_view("Input").as_array()[:] = 0.0
         # execute all the intermediate layers
         for n, l in self.layers.items()[1:-1]:
-            param = self.weight_manager.get_source_view(n)
+            param = self.param_manager.get_source_view(n)
             v = self.v_manager.get_source_view(n)
             internal = self.intern_manager.get_source_view(n)
             r_internal = self.r_intern_manager.get_source_view(n)
@@ -182,7 +182,7 @@ class Network(object):
         out_view[:] = delta_buffer
         # execute all the intermediate layers backwards
         for n, l in self.layers.items()[-2:0:-1]:
-            param = self.weight_manager.get_source_view(n)
+            param = self.param_manager.get_source_view(n)
             internal = self.intern_manager.get_source_view(n)
             intern_delta = self.intern_delta_manager.get_source_view(n)
 

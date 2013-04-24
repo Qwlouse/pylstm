@@ -86,12 +86,12 @@ class NetworkBuilder(object):
     def build(self):
         layers, cLayers = self.get_named_layers()
 
-        weight_manager = BufferManager()
+        param_manager = BufferManager()
         intern_manager = BufferManager()
         intern_delta_manager = BufferManager()
         for name, l in layers.items()[1:-1]:
-            sources = {name: (l.get_param_size, l.create_param_view)}
-            weight_manager.add(sources, {})
+            sources = {name: (l.get_param_buffer_size, l.create_param_view)}
+            param_manager.add(sources, {})
 
             sources = {name: (l.get_internal_state_size,
                               l.create_internal_view)}
@@ -115,6 +115,6 @@ class NetworkBuilder(object):
             in_out_manager.add(sources, sinks, con_table)
             delta_manager.add(sources, sinks, con_table)
 
-        net = Network(layers, weight_manager, intern_manager, in_out_manager,
+        net = Network(layers, param_manager, intern_manager, in_out_manager,
                       intern_delta_manager, delta_manager, self.error_func)
         return net

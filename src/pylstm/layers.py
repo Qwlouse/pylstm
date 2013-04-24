@@ -27,7 +27,7 @@ class Layer(object):
     def get_output_buffer_size(self, time_length=1, batch_size=1):
         return self.out_size * time_length * batch_size
 
-    def get_param_size(self, time_length=1, batch_size=1):
+    def get_param_buffer_size(self, time_length=1, batch_size=1):
         return 0
 
     def get_internal_state_size(self, time_length, batch_size):
@@ -137,7 +137,7 @@ def sigmoid_inv(y):
 
 
 class NpForwardLayer(Layer):  # TODO: bias
-    def get_param_size(self, time_length=1, batch_size=1):
+    def get_param_buffer_size(self, time_length=1, batch_size=1):
         return self.in_size * self.out_size
 
     def create_input_view(self, input_buffer, time_length, batch_size):

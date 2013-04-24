@@ -96,7 +96,7 @@ cdef class Matrix:
         ndarray = np.PyArray_SimpleNewFromData(3, shape, np.NPY_FLOAT64, self.view.get_data())
         # Assign our object to the 'base' of the ndarray object
         ndarray.base = <PyObject*> self
-        # Increment the reference count, as the above assignement was done in
+        # Increment the reference count, as the above assignment was done in
         # C, and Python does not know that there is this additional reference
         Py_INCREF(self)
         return ndarray

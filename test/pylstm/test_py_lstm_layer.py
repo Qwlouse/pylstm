@@ -16,7 +16,7 @@ class LstmLayerTest(unittest.TestCase):
         sizes = [(1, 1), (1, 9), (9, 1), (9, 9), (3, 7)]
         for n, m in sizes:
             l = pw.create_layer("LstmLayer", n, m)
-            param_size = l.get_param_size()
+            param_size = l.get_param_buffer_size()
             self.assertGreaterEqual(param_size, n * m)
 
     def test_internal_size(self):
@@ -28,7 +28,7 @@ class LstmLayerTest(unittest.TestCase):
 
     def test_create_param_view(self):
         l = pw.create_layer("LstmLayer", 3, 7)
-        wm = pw.Matrix(l.get_param_size())
+        wm = pw.Matrix(l.get_param_buffer_size())
         W = l.create_param_view(wm)
         self.assertIsNotNone(W)
 
@@ -103,7 +103,7 @@ class LstmLayerTest(unittest.TestCase):
         l = pw.create_layer("LstmLayer", n, m)
         X = pw.Matrix(t, b, n)
         Y = pw.Matrix(t, b, m)
-        wm = pw.Matrix(1, 1, l.get_param_size())
+        wm = pw.Matrix(1, 1, l.get_param_buffer_size())
         W = l.create_param_view(wm)
         im = pw.Matrix(t, b, l.get_internal_state_size(t, b))
         I = l.create_internal_view(im)
