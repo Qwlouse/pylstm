@@ -19,7 +19,7 @@ cdef class BufferContainer:
             b = Buffer()
             b.view = self.this_ptr[0][item]
             b.A = None
-            return b
+            return b.as_array()
         else:
             raise AttributeError("'%s' is not a valid view."%item)
 

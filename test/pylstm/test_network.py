@@ -24,7 +24,7 @@ def check_gradient(net):
     ######### calculate gradient ##########
     net.forward_pass(X)
     net.backward_pass(T)
-    grad_calc = net.calc_gradient().as_array().squeeze()
+    grad_calc = net.calc_gradient().squeeze()
 
     ######### estimate gradient ##########
     def f(W):
@@ -43,12 +43,12 @@ def check_rpass(net, weights, v, r=1e-7):
     T = np.zeros((n_timesteps, n_batches, net.get_output_size()))
     T[:, :, 0] = 1.0  # so the outputs sum to one
     net.set_param_buffer(weights)
-    out1 = net.forward_pass(X).as_array().copy()
+    out1 = net.forward_pass(X).copy()
     net.set_param_buffer(weights + r * v)
-    out2 = net.forward_pass(X).as_array()
+    out2 = net.forward_pass(X)
     estimated = (out2 - out1) / r
     net.set_param_buffer(weights)
-    calculated = net.r_forward_pass(X, v).as_array()
+    calculated = net.r_forward_pass(X, v)
     return np.sum((estimated - calculated)**2), calculated, estimated
 
 
@@ -73,7 +73,7 @@ def check_deltas(net):
 
     ######### calculate gradient ##########
     net.forward_pass(X)
-    delta_calc = net.backward_pass(T).as_array().flatten()
+    delta_calc = net.backward_pass(T).flatten()
 
     ######### estimate gradient ##########
     def f(X):
@@ -106,23 +106,23 @@ class NetworkTests(unittest.TestCase):
 
     def test_lstm_forward_pass_insensitive_to_internal_state(self):
         net = self.build_network(LstmLayer, "tanh")
-        out1 = net.forward_pass(self.X).as_array().copy()
+        out1 = net.forward_pass(self.X).copy()
         net.intern_manager.initialize_buffer(Buffer(rnd.randn(
             net.intern_manager.calculate_size())))
-        out2 = net.forward_pass(self.X).as_array().copy()
+        out2 = net.forward_pass(self.X).copy()
         self.assertTrue(np.allclose(out1, out2))
 
     def test_lstm_backward_pass_insensitive_to_internal_deltas(self):
         net = self.build_network(LstmLayer, "tanh")
         net.clear_internal_state()
-        out1 = net.forward_pass(self.X).as_array().copy()
-        deltas1 = net.backward_pass(out1).as_array().copy()
+        out1 = net.forward_pass(self.X).copy()
+        deltas1 = net.backward_pass(out1).copy()
         net.intern_manager.initialize_buffer(Buffer(rnd.randn(
             net.intern_manager.calculate_size())))
         net.delta_manager.initialize_buffer(Buffer(rnd.randn(
             net.delta_manager.calculate_size())))
-        out2 = net.forward_pass(self.X).as_array().copy()
-        deltas2 = net.backward_pass(out2).as_array().copy()
+        out2 = net.forward_pass(self.X).copy()
+        deltas2 = net.backward_pass(out2).copy()
         self.assertTrue(np.allclose(deltas1, deltas2))
 
     def test_deltas_finite_differences(self):
@@ -153,7 +153,7 @@ class NetworkTests(unittest.TestCase):
                 diff = layer.create_param_view(b)
                 for n, b in diff.items():
                     print("====== %s ======" % n)
-                    print(b.as_array())
+                    print(b)
 
             print("Checking Gradient of %s with %s = %0.4f" % (l(3), a, e))
         self.assertTrue(np.all(np.array(check_errors) < 1e-4))
@@ -171,7 +171,7 @@ class NetworkTests(unittest.TestCase):
                 diff = layer.create_param_view(b)
                 for n, b in diff.items():
                     print("====== %s ======" % n)
-                    print(b.as_array())
+                    print(b)
 
             print("Checking RForward pass of %s with %s = %0.4g" % (l(3), a, e))
         self.assertTrue(np.all(np.array(check_errors) < 1e-4))
@@ -189,7 +189,7 @@ class NetworkTests(unittest.TestCase):
                 diff = layer.create_param_view(b)
                 for n, b in diff.items():
                     print("====== %s ======" % n)
-                    print(b.as_array())
+                    print(b)
 
             print("Checking RForward pass of %s with %s = %0.4g" % (l(3), a, e))
         self.assertTrue(np.all(np.array(check_errors) < 1e-4))

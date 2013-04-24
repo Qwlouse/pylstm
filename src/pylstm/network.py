@@ -38,13 +38,13 @@ class Network(object):
         return self.layers["Output"].get_input_size()
 
     def get_param_view_for(self, name):
-        return self.weight_manager.get_source_view(name)
+        return self.weight_manager.get_source_view(name).as_array()
 
     def get_intern_view_for(self, name):
-        return self.intern_manager.get_source_view(name)
+        return self.intern_manager.get_source_view(name).as_array()
 
     def get_output_view_for(self, name):
-        return self.in_out_manager.get_source_view(name)
+        return self.in_out_manager.get_source_view(name).as_array()
 
     def clear_internal_state(self):
         if self.intern_manager.buffer:
@@ -95,7 +95,7 @@ class Network(object):
 
             l.forward(param, internal, input_view, out)
         # read the output buffer
-        return self.in_out_manager.get_sink_view("Output")  # TODO factor this out as self.out_buffer property
+        return self.in_out_manager.get_sink_view("Output").as_array()  # TODO factor this out as self.out_buffer property
 
     def calculate_error(self, T):
         X = self.in_out_manager.get_sink_view("Output")
@@ -124,7 +124,7 @@ class Network(object):
 
             l.backward(param, internal, intern_delta, out, delta_in, delta_out)
         # read the final delta buffer
-        return self.delta_manager.get_source_view("Input")
+        return self.delta_manager.get_source_view("Input").as_array()
 
     def calc_gradient(self):
         self.grad_manager.initialize_buffer(
@@ -140,7 +140,7 @@ class Network(object):
             delta_out = self.delta_manager.get_source_view(n)
 
             l.gradient(param, grad, internal, intern_delta, out, input_view, delta_out)
-        return self.grad_manager.buffer
+        return self.grad_manager.buffer.as_array()
 
     def r_forward_pass(self, input_buffer, v_buffer):
         # determine dimensions and set buffer managers accordingly
@@ -170,7 +170,7 @@ class Network(object):
 
             l.Rpass(param, v, internal, r_internal, input_view, out, r_in, r_out)
             # read the output buffer
-        return self.r_in_out_manager.get_sink_view("Output")
+        return self.r_in_out_manager.get_sink_view("Output").as_array()
 
     def r_backward_pass(self, T, lambda_, mu):
         delta_buffer = self.r_in_out_manager.get_sink_view("Output").as_array()
@@ -192,7 +192,7 @@ class Network(object):
             l.backward(param, internal, intern_delta, out, delta_in, delta_out)
             # l.Rbackward(param, internal, intern_delta, delta_in, delta_out, r_internal, lambda_, mu)
             # read the final delta buffer
-        return self.delta_manager.get_source_view("Input")
+        return self.delta_manager.get_source_view("Input").as_array()
 
     def hessian_pass(self, input_buffer, v_buffer, lambda_=0., mu=0.):
         t = input_buffer.shape[0]
@@ -201,4 +201,4 @@ class Network(object):
         self.forward_pass(input_buffer)
         self.r_forward_pass(input_buffer, v_buffer)
         self.r_backward_pass(T, lambda_, mu)
-        return self.calc_gradient()
+        return self.calc_gradient().as_array()

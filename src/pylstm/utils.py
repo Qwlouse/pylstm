@@ -13,29 +13,13 @@ import numpy as np
 
 rnd = np.random.RandomState(12345)
 
-# def check_deltas(net, X = None):
-#     def f(x):
-#         net.clear_internal_state()
-#         out = net.forward_pass(x.reshape(1,1,-1)).as_array()
-#
-#         return .5*np.sum(out**2)
-#
-#     if X is None:
-#         X = rnd.randn(net.get_input_size())
-#
-#     delta_approx = approx_fprime(X, f, 1e-7)
-#     out = net.forward_pass(X.reshape(1,1,-1)).as_array()
-#     delta_calc = net.backward_pass(out).as_array()
-#     return np.sum((delta_approx - delta_calc)**2), delta_calc, delta_approx
-
-
 def check_gradient(net, X=None):
     X = rnd.randn(net.get_input_size() * 2)
 
     def f(w):
         net.clear_internal_state()
         net.set_param_buffer(w)
-        out = net.forward_pass(X.reshape(2, 1, -1)).as_array()
+        out = net.forward_pass(X.reshape(2, 1, -1))
 
         return .5 * np.sum(out ** 2)
 
@@ -45,9 +29,9 @@ def check_gradient(net, X=None):
 
     net.clear_internal_state()
     net.set_param_buffer(weights)
-    out = net.forward_pass(X.reshape(2, 1, -1)).as_array()
-    delta_calc = net.backward_pass(out).as_array()
-    grad_calc = net.calc_gradient().as_array()
+    out = net.forward_pass(X.reshape(2, 1, -1))
+    delta_calc = net.backward_pass(out)
+    grad_calc = net.calc_gradient()
 
     return np.sum((grad_approx - grad_calc) ** 2), grad_calc, grad_approx
 

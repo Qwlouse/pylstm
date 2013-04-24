@@ -30,9 +30,8 @@ class SgdTrainer(object):
             callback(epoch, error)
             net.backward_pass(T)
             grad = net.calc_gradient()
-            grad_arr = grad.as_array()
-            grad_arr *= - self.learning_rate
-            wrapper.add_into_b(grad, weights)
+            grad *= - self.learning_rate
+            weights += grad
 
 
 class RPropTrainer(object):
@@ -44,16 +43,16 @@ class RPropTrainer(object):
     def train(self, net, X, T, epochs=100, callback=print_error_per_epoch):
         weights = net.get_param_buffer()
         for epoch in range(1, epochs + 1):
-            out = net.forward_pass(X).as_array()
+            out = net.forward_pass(X)
             error = self.error_fkt.forward_pass(out, T) / X.shape[1]
             callback(epoch, error)
             deltas = self.error_fkt.backward_pass(out, T)
             net.backward_pass(deltas)
             grad = net.calc_gradient()
-            grad_arr = grad.as_array()
+
  
             #calculate grad sign
-            grad_sign = (grad_arr > 0.0)
+            grad_sign = (grad > 0.0)
  
             if not self.initialized:
                 self.last_grad_sign = grad_sign
@@ -63,13 +62,13 @@ class RPropTrainer(object):
             increase = (grad_sign == self.last_grad_sign)
             self.stepsize = (self.stepsize * (increase * 1.01 + (increase == False) * .99))
 
-            grad_arr[:] = self.stepsize * grad_sign + -self.stepsize * (grad_sign == False)
+            grad[:] = self.stepsize * grad_sign + -self.stepsize * (grad_sign == False)
             #print("grad arr:", grad_arr)
-            #print("grad:", grad.as_array())
+            #print("grad:", grad)
             #print(((grad_sign==False)).flatten())
-            print("weights before:", weights.as_array().flatten())
-            wrapper.add_into_b(grad, weights)
-            print("weights after:", weights.as_array().flatten())
+            print("weights before:", weights.flatten())
+            weights += grad
+            print("weights after:", weights.flatten())
             self.last_grad_sign = grad_sign.copy()
             
 
@@ -78,14 +77,14 @@ class CgTrainer(object):
         self.learning_rate = learning_rate
 
     def train(self, net, X, T, epochs=100, callback=print_error_per_epoch):
-        weights = net.get_param_buffer().as_array().copy()
+        weights = net.get_param_buffer().copy()
         for epoch in range(1, epochs + 1):
             
             #select an input batch, and target batch
             
             #run forward pass, output saved in out
             net.set_param_buffer(weights)
-            out = net.forward_pass(X).as_array()
+            out = net.forward_pass(X)
             
             #calculate error
             error = net.calculate_error(T) / X.shape[1]
@@ -107,11 +106,11 @@ class CgTrainer(object):
                 net.set_param_buffer(W)
                 net.forward_pass(X)
                 net.backward_pass(T)
-                return net.calc_gradient().as_array().copy().flatten()
+                return net.calc_gradient().copy().flatten()
 
             def fhess_p(W, v):
                 net.set_param_buffer(W)
-                return net.hessian_pass(X, v, lambda_=0., mu=0.).as_array().copy().flatten()
+                return net.hessian_pass(X, v, lambda_=0., mu=0.).copy().flatten()
 
             xopt, allvecs = fmin_ncg(f, np.zeros_like(weights), fprime, fhess_p=fhess_p, maxiter=50, retall=True, disp=True)
             # #dws = cg(v, grad, lambda, mu)
@@ -120,7 +119,7 @@ class CgTrainer(object):
             # for dwvec in dws:
             #     tmp_weights = weights.copy() + dwvec
             #     net.set_param_buffer(tmp_weight.copy())
-            #     tmp_out = net.forward_pass(X).as_array()
+            #     tmp_out = net.forward_pass(X)
             #     tmp_error = self.error_fkt.forward_pass(out,T) / X.shape[1]
             #
             #     if last_error > tmp_error:
@@ -133,7 +132,7 @@ class CgTrainer(object):
             # #Calculate rho based on dw
             # tmp_weights = weights.copy() + dw
             # net.set_param_buffer(tmp_weight.copy())
-            # tmp_out = net.forward_pass(X).as_array()
+            # tmp_out = net.forward_pass(X)
             # new_error = self.error_fkt.forward_pass(out,T) / X.shape[1]
             #
             # #f_val = cg.f_val?!
@@ -146,10 +145,8 @@ class CgTrainer(object):
             
             
             #run backtrack 2 on dw
-
-            #grad_arr = grad.as_array()
-            #grad_arr *= - self.learning_rate
-            #wrapper.add_into_b(grad, weights)
+            #grad *= - self.learning_rate
+            #weights += grad
 
 
 if __name__ == "__main__":

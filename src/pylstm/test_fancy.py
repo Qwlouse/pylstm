@@ -20,5 +20,5 @@ print(net)
 
 net.set_param_buffer(np.ones(net.get_param_size()))
 X = np.zeros((3, 2, 4))
-print(net.forward_pass(X).as_array())
-print(net.backward_pass(np.ones((3, 2, 6))).as_array())
+print(net.forward_pass(X))
+print(net.backward_pass(np.ones((3, 2, 6))))

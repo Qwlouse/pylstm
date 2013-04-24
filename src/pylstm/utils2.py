@@ -22,18 +22,18 @@ def check_gradient(net):
     weights = np.ones(net.get_param_size())
     #weights = rnd.randn(net.get_param_size())
     net.set_param_buffer(weights)
-    IX = net.get_param_view_for('LstmLayer').IX.as_array().flatten()
+    IX = net.get_param_view_for('LstmLayer').IX.flatten()
     IX[:] = np.random.randn(len(IX))
 
 
-    out = net.forward_pass(X).as_array()
+    out = net.forward_pass(X)
     
-    delta_calc = net.backward_pass(out).as_array()
-    grad_calc = net.calc_gradient().as_array()
+    delta_calc = net.backward_pass(out)
+    grad_calc = net.calc_gradient()
 
     def f(w):
         net.set_param_buffer(w)
-        out = net.forward_pass(X).as_array()
+        out = net.forward_pass(X)
         return .5 * np.sum(out ** 2)#/n_batches
 
     grad_approx = approx_fprime(weights, f, 1e-7)
