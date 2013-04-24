@@ -104,15 +104,15 @@ class CgTrainer(object):
             error = net.calculate_error(T) / X.shape[1]
             callback(epoch, error)
 
-            #net.backward_pass(T)
-            #grad = net.calc_gradient()
+            net.backward_pass(T)
+            grad = net.calc_gradient()
 
             #initialize v, but maybe we should use the small random numbers like in old version
             v = np.zeros(net.get_param_size())
 
             #run cg
             def f(W):
-                net.param_buffer = W
+                # net.param_buffer = W
                 net.forward_pass(X)
                 return net.calculate_error(T)
 
@@ -126,9 +126,35 @@ class CgTrainer(object):
                 #net.param_buffer = weights.as_array.copy()
                 return net.hessian_pass(X, v, lambda_=0., mu=0.).copy().flatten()
 
-            xopt, allvecs = fmin_ncg(f, np.zeros_like(weights), grad, fhess_p=fhess_p, maxiter=50, retall=True, disp=True)
+            xopt, allvecs = fmin_ncg(f, v, grad, fhess_p=fhess_p, maxiter=150, retall=True, disp=True)
 
-            weights = np.squeeze(weights) + xopt
+
+            ## backtrack #1
+            idx = len(allvecs)-1
+            lowError = float('Inf')
+            for testW in reversed(allvecs):
+                net.param_buffer = weights.copy() + testW
+                out = net.forward_pass(X)
+                tmpError = net.calculate_error(T) / X.shape[1]
+                if tmpError < lowError:
+                    lowError = tmpError
+                    lowIdx = idx
+                idx -= 1
+
+            bestDW = allvecs[lowIdx]
+
+            ## backtrack #2
+            finalDW = bestDW
+            for j in range(1,10):
+                net.param_buffer = weights.copy() + .9**j * bestDW
+                out = net.forward_pass(X)
+                tmpError = net.calculate_error(T) / X.shape[1]
+                if tmpError < lowError:
+                    finalDW = .9**j * bestDW
+
+
+
+            weights = np.squeeze(weights.copy()) + finalDW
 
             #xopt, allvecs = fmin_ncg(f, np.zeros_like(weights), fprime, fhess_p=fhess_p, maxiter=50, retall=True, disp=True)
 
