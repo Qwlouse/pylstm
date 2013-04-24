@@ -13,7 +13,7 @@ LstmLayer::LstmLayer(const ActivationFunction* f):
 	f(f)
 { }
 
-LstmLayer::Weights::Weights(size_t n_inputs_, size_t n_cells_) :
+LstmLayer::Parameters::Parameters(size_t n_inputs_, size_t n_cells_) :
     n_inputs(n_inputs_),
     n_cells(n_cells_),
     IX(NULL, n_cells, n_inputs, 1), IH(NULL, n_cells, n_cells, 1), IS(NULL, 1, n_cells, 1),
@@ -83,7 +83,7 @@ LstmLayer::BwdState::BwdState(size_t n_inputs_, size_t n_cells_, size_t n_batche
 }
 
 
-void LstmLayer::forward(Weights &w, FwdState &b, Matrix &x, Matrix &y) {
+void LstmLayer::forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y) {
 	size_t n_inputs = w.n_inputs;
 	size_t n_cells = w.n_cells;
 	size_t n_batches = b.n_batches;
@@ -141,7 +141,7 @@ void LstmLayer::forward(Weights &w, FwdState &b, Matrix &x, Matrix &y) {
 }
 
 
-void LstmLayer::backward(Weights& w, FwdState& b, BwdState& d, Matrix&, Matrix& in_deltas, Matrix& out_deltas) {
+void LstmLayer::backward(Parameters& w, FwdState& b, BwdState& d, Matrix&, Matrix& in_deltas, Matrix& out_deltas) {
 
     //clear_temp();
     //size_t end_time(b.batch_time - 1);
@@ -230,7 +230,7 @@ void LstmLayer::backward(Weights& w, FwdState& b, BwdState& d, Matrix&, Matrix& 
     }
 }
 
-void LstmLayer::gradient(Weights&, Weights& grad, FwdState& b, BwdState& d, Matrix& y, Matrix& x, Matrix& )  {
+void LstmLayer::gradient(Parameters&, Parameters& grad, FwdState& b, BwdState& d, Matrix& y, Matrix& x, Matrix& )  {
 
     size_t n_time(b.time);
 
@@ -274,7 +274,7 @@ void LstmLayer::gradient(Weights&, Weights& grad, FwdState& b, BwdState& d, Matr
 
 }
 
-void LstmLayer::Rpass(Weights &w, Weights &v,  FwdState &b, FwdState &Rb, Matrix &x, Matrix &y, Matrix& Rx, Matrix &Ry) {
+void LstmLayer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb, Matrix &x, Matrix &y, Matrix& Rx, Matrix &Ry) {
 
   mult(v.IX, x.flatten_time(), Rb.Ia.flatten_time());
   mult(v.FX, x.flatten_time(), Rb.Fa.flatten_time());
@@ -348,7 +348,7 @@ void LstmLayer::Rpass(Weights &w, Weights &v,  FwdState &b, FwdState &Rb, Matrix
 
 
 //instead of normal deltas buffer, pass in empty Rdeltas buffer, and instead of out_deltas, pass in the Ry value calculated by the Rfwd pass
-void LstmLayer::Rbackward(Weights &w, FwdState &b, BwdState &d, Matrix &in_deltas, Matrix &out_deltas, FwdState &Rb, double lambda, double mu) {
+void LstmLayer::Rbackward(Parameters &w, FwdState &b, BwdState &d, Matrix &in_deltas, Matrix &out_deltas, FwdState &Rb, double lambda, double mu) {
 
   int end_time = static_cast<int>(b.time - 1);
   mu = 0;

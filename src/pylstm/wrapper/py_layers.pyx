@@ -96,7 +96,7 @@ cdef class BaseLayer:
         return output_buffer.reshape(time_length, batch_size, self.layer.out_size)
 
     def create_param_view(self, Buffer param_buffer, time_length=1, batch_size=1):
-        cdef cl.ViewContainer* params = self.layer.create_weights_view(param_buffer.view)
+        cdef cl.ViewContainer* params = self.layer.create_parameter_view(param_buffer.view)
         return create_BufferContainer(params)
         
     def create_internal_view(self, Buffer internal_buffer, time_length=1, batch_size=1):

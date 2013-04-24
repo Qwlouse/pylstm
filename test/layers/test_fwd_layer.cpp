@@ -8,11 +8,11 @@
 #include <iostream>
 using namespace std;
 
-TEST(FwdLayerTest, FwdWeightsConstruction)
+TEST(FwdLayerTest, FwdParameterConstruction)
 {
 	Matrix buffer = {{{1, 2, 3, 4, 5, 6, 7, 8}}};
 
-	RegularLayer::Weights w(3, 2);
+	RegularLayer::Parameters w(3, 2);
 	w.lay_out(buffer);
 	ASSERT_EQ(8, w.get_size());
 	ASSERT_EQ(w.HX.size, 6);

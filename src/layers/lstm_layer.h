@@ -12,7 +12,7 @@ public:
 	LstmLayer();
 	explicit LstmLayer(const ActivationFunction* f);
 
-	struct Weights : public ViewContainer {
+	struct Parameters : public ViewContainer {
 		size_t n_inputs, n_cells;
 
 		///Variables defining sizes
@@ -23,7 +23,7 @@ public:
 
 		Matrix I_bias, F_bias, Z_bias, O_bias;   //!< bias to input gate, forget gate, state Z, output gate
 
-		Weights(size_t n_inputs, size_t n_cells);
+		Parameters(size_t n_inputs, size_t n_cells);
 	};
 
 	struct FwdState : public ViewContainer {
@@ -64,17 +64,9 @@ public:
 	  BwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
 	};
 
-	void forward(Weights &w, FwdState &b, Matrix &x, Matrix &y);
-	void backward(Weights &w, FwdState &b, BwdState &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas);
-	void gradient(Weights &w, Weights &grad, FwdState &b, BwdState &d, Matrix &y, Matrix& x, Matrix& out_deltas);
-	void Rpass(Weights &w, Weights &v,  FwdState &b, FwdState &Rb, Matrix &x, Matrix &y, Matrix& Rx, Matrix &Ry);
-	void Rbackward(Weights &w, FwdState &b, BwdState &d, Matrix &in_deltas, Matrix &out_deltas, FwdState &Rb, double lambda, double mu);
+	void forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y);
+	void backward(Parameters &w, FwdState &b, BwdState &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas);
+	void gradient(Parameters &w, Parameters &grad, FwdState &b, BwdState &d, Matrix &y, Matrix& x, Matrix& out_deltas);
+	void Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb, Matrix &x, Matrix &y, Matrix& Rx, Matrix &Ry);
+	void Rbackward(Parameters &w, FwdState &b, BwdState &d, Matrix &in_deltas, Matrix &out_deltas, FwdState &Rb, double lambda, double mu);
 };
-
-/*
-
-void lstm_Rpass(LstmWeights &w, LstmWeights &v,  LstmBuffers &b, LstmBuffers &Rb, MatrixView3DCPU &x, MatrixView3DCPU &y, MatrixView3DCPU &Ry);
-void lstm_Rbackward(LstmWeights &w, LstmBuffers &b, LstmDeltas &d, MatrixView3DCPU &in_deltas, MatrixView3DCPU &out_deltas, LstmBuffers &Rb, double lambda, double mu);
-
-*/
-

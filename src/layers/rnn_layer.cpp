@@ -17,7 +17,7 @@ RnnLayer::~RnnLayer()
 {
 }
 
-RnnLayer::Weights::Weights(size_t n_inputs_, size_t n_cells_) :
+RnnLayer::Parameters::Parameters(size_t n_inputs_, size_t n_cells_) :
   n_inputs(n_inputs_), 
   n_cells(n_cells_), 
   HX(NULL, n_cells, n_inputs, 1),
@@ -52,7 +52,7 @@ RnnLayer::BwdState::BwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches
 }
 
 ////////////////////// Methods /////////////////////////////////////////////
-void RnnLayer::forward(RnnLayer::Weights &w, RnnLayer::FwdState &b, Matrix &x, Matrix &y) {
+void RnnLayer::forward(RnnLayer::Parameters &w, RnnLayer::FwdState &b, Matrix &x, Matrix &y) {
     size_t n_inputs = w.n_inputs;
     size_t n_cells = w.n_cells;
     size_t n_batches = b.n_batches;
@@ -77,7 +77,7 @@ void RnnLayer::forward(RnnLayer::Weights &w, RnnLayer::FwdState &b, Matrix &x, M
       f->apply(b.Ha.slice(t), y.slice(t));
     }
 }
-void RnnLayer::backward(RnnLayer::Weights &w, RnnLayer::FwdState &b, RnnLayer::BwdState &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas) {
+void RnnLayer::backward(RnnLayer::Parameters &w, RnnLayer::FwdState &b, RnnLayer::BwdState &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas) {
     
     size_t n_inputs = w.n_inputs;
     size_t n_cells = w.n_cells;
@@ -109,7 +109,7 @@ void RnnLayer::backward(RnnLayer::Weights &w, RnnLayer::FwdState &b, RnnLayer::B
     
 }
 
-void RnnLayer::gradient(RnnLayer::Weights&, RnnLayer::Weights& grad, RnnLayer::FwdState& b, RnnLayer::BwdState& d, Matrix&y, Matrix& x, Matrix& out_deltas) {
+void RnnLayer::gradient(RnnLayer::Parameters&, RnnLayer::Parameters& grad, RnnLayer::FwdState& b, RnnLayer::BwdState& d, Matrix&y, Matrix& x, Matrix& out_deltas) {
     
     size_t n_slices = x.n_slices;
     mult_add(d.Ha.slice(0), x.slice(0).T(), grad.HX);
@@ -122,7 +122,7 @@ void RnnLayer::gradient(RnnLayer::Weights&, RnnLayer::Weights& grad, RnnLayer::F
     
 }
 
-void RnnLayer::Rpass(Weights& w, Weights& v,  FwdState& b, FwdState& Rb, Matrix& x, Matrix& y, Matrix& Rx, Matrix& Ry)
+void RnnLayer::Rpass(Parameters& w, Parameters& v,  FwdState& b, FwdState& Rb, Matrix& x, Matrix& y, Matrix& Rx, Matrix& Ry)
 {
     size_t n_inputs = w.n_inputs;
     size_t n_cells = w.n_cells;
@@ -162,7 +162,7 @@ void RnnLayer::Rpass(Weights& w, Weights& v,  FwdState& b, FwdState& Rb, Matrix&
 
 }
 
-void RnnLayer::Rbackward(Weights&, FwdState&, BwdState&, Matrix&, Matrix&, FwdState&, double, double)
+void RnnLayer::Rbackward(Parameters&, FwdState&, BwdState&, Matrix&, Matrix&, FwdState&, double, double)
 {
     THROW(core::NotImplementedException("Rbackward pass not implemented yet."));
 }

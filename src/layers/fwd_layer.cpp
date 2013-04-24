@@ -17,7 +17,7 @@ RegularLayer::~RegularLayer()
 {
 }
 
-RegularLayer::Weights::Weights(size_t n_inputs_, size_t n_cells_) :
+RegularLayer::Parameters::Parameters(size_t n_inputs_, size_t n_cells_) :
   n_inputs(n_inputs_), 
   n_cells(n_cells_), 
   HX(NULL, n_cells, n_inputs, 1),
@@ -48,7 +48,7 @@ RegularLayer::BwdState::BwdState(size_t n_inputs_, size_t n_cells_, size_t n_bat
 }
 
 ////////////////////// Methods /////////////////////////////////////////////
-void RegularLayer::forward(RegularLayer::Weights &w, RegularLayer::FwdState &b, Matrix &x, Matrix &y) {
+void RegularLayer::forward(RegularLayer::Parameters &w, RegularLayer::FwdState &b, Matrix &x, Matrix &y) {
 	size_t n_inputs = w.n_inputs;
 	size_t n_cells = w.n_cells;
 	size_t n_batches = b.n_batches;
@@ -72,7 +72,7 @@ void RegularLayer::forward(RegularLayer::Weights &w, RegularLayer::FwdState &b, 
 	f->apply(b.Ha, y);
 }
 
-void RegularLayer::backward(RegularLayer::Weights &w, RegularLayer::FwdState &b, RegularLayer::BwdState &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas) {
+void RegularLayer::backward(RegularLayer::Parameters &w, RegularLayer::FwdState &b, RegularLayer::BwdState &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas) {
 	// Calculate derivative of error wrt total cell input (d.Ha) and deltas for the previous layer
 	size_t n_inputs = w.n_inputs;
 	size_t n_cells = w.n_cells;
@@ -98,7 +98,7 @@ void RegularLayer::backward(RegularLayer::Weights &w, RegularLayer::FwdState &b,
     }
 }
 
-void RegularLayer::gradient(RegularLayer::Weights&, RegularLayer::Weights& grad, RegularLayer::FwdState&, RegularLayer::BwdState& d, Matrix&, Matrix& x, Matrix&)
+void RegularLayer::gradient(RegularLayer::Parameters&, RegularLayer::Parameters& grad, RegularLayer::FwdState&, RegularLayer::BwdState& d, Matrix&, Matrix& x, Matrix&)
 {
 	size_t n_slices = x.n_slices;
 	for (int t = 0; t < n_slices; ++t) {
@@ -108,7 +108,7 @@ void RegularLayer::gradient(RegularLayer::Weights&, RegularLayer::Weights& grad,
     squash(d.Ha, grad.H_bias);
 }
 
-void RegularLayer::Rpass(Weights &w, Weights &v,  FwdState &b, FwdState &Rb, Matrix &x, Matrix &y, Matrix& Rx, Matrix &Ry)
+void RegularLayer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb, Matrix &x, Matrix &y, Matrix& Rx, Matrix &Ry)
 {
     size_t n_inputs = w.n_inputs;
 	size_t n_cells = w.n_cells;
@@ -143,7 +143,7 @@ void RegularLayer::Rpass(Weights &w, Weights &v,  FwdState &b, FwdState &Rb, Mat
     f->apply_deriv(y, Rb.Ha, Ry);
 }
 
-void RegularLayer::Rbackward(Weights&, FwdState&, BwdState&, Matrix&, Matrix&, FwdState&, double, double)
+void RegularLayer::Rbackward(Parameters&, FwdState&, BwdState&, Matrix&, Matrix&, FwdState&, double, double)
 {
     THROW(core::NotImplementedException("Rbackward pass not implemented yet."));
 }

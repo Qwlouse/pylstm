@@ -11,7 +11,7 @@ ReverseLayer::ReverseLayer()
 ReverseLayer::~ReverseLayer()
 { }
 
-ReverseLayer::Weights::Weights(size_t, size_t)
+ReverseLayer::Parameters::Parameters(size_t, size_t)
 { }
 
 ////////////////////// Fwd Buffer /////////////////////////////////////////////
@@ -53,25 +53,25 @@ void reverse_add(Matrix &x, Matrix &y)
 }
 
 
-void ReverseLayer::forward(ReverseLayer::Weights&, ReverseLayer::FwdState&, Matrix &x, Matrix &y) {
+void ReverseLayer::forward(ReverseLayer::Parameters&, ReverseLayer::FwdState&, Matrix &x, Matrix &y) {
 	reverse(x, y);
 }
 
-void ReverseLayer::backward(ReverseLayer::Weights&, ReverseLayer::FwdState&, ReverseLayer::BwdState&, Matrix&, Matrix& in_deltas, Matrix& out_deltas) {
+void ReverseLayer::backward(ReverseLayer::Parameters&, ReverseLayer::FwdState&, ReverseLayer::BwdState&, Matrix&, Matrix& in_deltas, Matrix& out_deltas) {
 	reverse_add(out_deltas, in_deltas);
 }
 
-void ReverseLayer::gradient(ReverseLayer::Weights&, ReverseLayer::Weights&, ReverseLayer::FwdState&, ReverseLayer::BwdState&, Matrix&, Matrix&, Matrix&)
+void ReverseLayer::gradient(ReverseLayer::Parameters&, ReverseLayer::Parameters&, ReverseLayer::FwdState&, ReverseLayer::BwdState&, Matrix&, Matrix&, Matrix&)
 {
     // no parameters ... no gradient
 }
 
-void ReverseLayer::Rpass(Weights&, Weights&,  FwdState&, FwdState&, Matrix&, Matrix&, Matrix& Rx, Matrix& Ry)
+void ReverseLayer::Rpass(Parameters&, Parameters&,  FwdState&, FwdState&, Matrix&, Matrix&, Matrix& Rx, Matrix& Ry)
 {
     reverse(Rx, Ry);
 }
 
-void ReverseLayer::Rbackward(Weights&, FwdState&, BwdState&, Matrix& in_deltas, Matrix& out_deltas, FwdState&, double, double)
+void ReverseLayer::Rbackward(Parameters&, FwdState&, BwdState&, Matrix& in_deltas, Matrix& out_deltas, FwdState&, double, double)
 {
     reverse(out_deltas, in_deltas);
 }

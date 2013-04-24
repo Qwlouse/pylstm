@@ -86,7 +86,7 @@ public:
     virtual size_t get_weight_size() = 0;
     virtual size_t get_fwd_state_size(size_t n_batches, size_t n_slices) = 0;
     virtual size_t get_bwd_state_size(size_t n_batches, size_t n_slices) = 0;
-    virtual ViewContainer* create_weights_view(Matrix& w) = 0;
+    virtual ViewContainer* create_parameter_view(Matrix& w) = 0;
     virtual ViewContainer* create_fwd_state_view(Matrix& b, size_t n_batches, size_t n_slices) = 0;
     virtual ViewContainer* create_bwd_state_view(Matrix& b, size_t n_batches, size_t n_slices) = 0;
     virtual void forward_pass(ViewContainer& w, ViewContainer& b, Matrix& x, Matrix& y) = 0;
@@ -114,7 +114,7 @@ public:
 
     size_t get_weight_size() {
 
-        return typename L::Weights(in_size, out_size).get_size();
+        return typename L::Parameters(in_size, out_size).get_size();
     }
 
     size_t get_fwd_state_size(size_t n_batches, size_t n_slices) {
@@ -125,14 +125,14 @@ public:
         return typename L::BwdState(in_size, out_size, n_batches, n_slices).get_size();
     }
 
-    ViewContainer* create_weights_view(Matrix& w) {
-        typename L::Weights* W = new typename L::Weights(in_size, out_size);
+    ViewContainer* create_parameter_view(Matrix& w) {
+        typename L::Parameters* W = new typename L::Parameters(in_size, out_size);
         W->lay_out(w);
         return W;
     }
 
-    ViewContainer* create_empty_weights_view() {
-        typename L::Weights* W = new typename L::Weights(in_size, out_size);
+    ViewContainer* create_empty_parameter_view() {
+        typename L::Parameters* W = new typename L::Parameters(in_size, out_size);
         Matrix w(1, 1, W->get_size());
         W->lay_out(w);
         return W;
@@ -174,14 +174,14 @@ public:
 
     void forward_pass(ViewContainer& w, ViewContainer& b, Matrix& x, Matrix& y) {
         layer.forward(
-                dynamic_cast<typename L::Weights&>(w),
+                dynamic_cast<typename L::Parameters&>(w),
                 dynamic_cast<typename L::FwdState&>(b),
                 x, y);
     }
 
     void backward_pass(ViewContainer& w, ViewContainer& b, ViewContainer& d, Matrix& y, Matrix& in_deltas, Matrix& out_deltas) {
         layer.backward(
-                dynamic_cast<typename L::Weights&>(w),
+                dynamic_cast<typename L::Parameters&>(w),
                 dynamic_cast<typename L::FwdState&>(b),
                 dynamic_cast<typename L::BwdState&>(d),
                 y, in_deltas, out_deltas);
@@ -189,8 +189,8 @@ public:
 
     void gradient(ViewContainer& w, ViewContainer& grad, ViewContainer& b, ViewContainer& d, Matrix& y, Matrix& x, Matrix& out_deltas) {
         layer.gradient(
-                dynamic_cast<typename L::Weights&>(w),
-                dynamic_cast<typename L::Weights&>(grad),
+                dynamic_cast<typename L::Parameters&>(w),
+                dynamic_cast<typename L::Parameters&>(grad),
                 dynamic_cast<typename L::FwdState&>(b),
                 dynamic_cast<typename L::BwdState&>(d),
                 y, x, out_deltas);
@@ -198,8 +198,8 @@ public:
 
     void Rpass(ViewContainer &w, ViewContainer &v,  ViewContainer &b, ViewContainer &Rb, Matrix &x, Matrix &y, Matrix& Rx, Matrix &Ry) {
         layer.Rpass(
-                dynamic_cast<typename L::Weights&>(w),
-                dynamic_cast<typename L::Weights&>(v),
+                dynamic_cast<typename L::Parameters&>(w),
+                dynamic_cast<typename L::Parameters&>(v),
                 dynamic_cast<typename L::FwdState&>(b),
                 dynamic_cast<typename L::FwdState&>(Rb),
                 x, y, Rx, Ry);
@@ -207,7 +207,7 @@ public:
 
     void Rbackward(ViewContainer &w, ViewContainer &b, ViewContainer &d, Matrix &in_deltas, Matrix &out_deltas, ViewContainer &Rb, double lambda, double mu) {
         layer.Rbackward(
-                dynamic_cast<typename L::Weights&>(w),
+                dynamic_cast<typename L::Parameters&>(w),
                 dynamic_cast<typename L::FwdState&>(b),
                 dynamic_cast<typename L::BwdState&>(d),
                 in_deltas, out_deltas,
@@ -231,13 +231,13 @@ public:
 
         size_t weight_size = get_weight_size();
         ASSERT(w.size == weight_size);
-        ViewContainer* weights = create_weights_view(w);
+        ViewContainer* parameters = create_parameter_view(w);
 
         Matrix y = create_empty_out_view(n_batches, n_slices);
 
-        forward_pass(*weights, *fwd_state, x, y);
+        forward_pass(*parameters, *fwd_state, x, y);
         delete fwd_state;
-        delete weights;
+        delete parameters;
         return y;
     }
 };

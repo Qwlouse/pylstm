@@ -44,7 +44,7 @@ cdef extern from "layer.hpp":
 
         size_t get_bwd_state_size(size_t n_batches, size_t n_slices) except +
 
-        ViewContainer* create_weights_view(Matrix& w) except +
+        ViewContainer* create_parameter_view(Matrix& w) except +
 
         ViewContainer* create_fwd_state_view(Matrix&b, size_t n_batches, size_t n_slices) except +
 
