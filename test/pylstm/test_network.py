@@ -107,8 +107,8 @@ class NetworkTests(unittest.TestCase):
     def test_lstm_forward_pass_insensitive_to_internal_state(self):
         net = self.build_network(LstmLayer, "tanh")
         out1 = net.forward_pass(self.X).copy()
-        net.intern_manager.initialize_buffer(Matrix(rnd.randn(
-            net.intern_manager.calculate_size())))
+        net.fwd_state_manager.initialize_buffer(Matrix(rnd.randn(
+            net.fwd_state_manager.calculate_size())))
         out2 = net.forward_pass(self.X).copy()
         self.assertTrue(np.allclose(out1, out2))
 
@@ -117,8 +117,8 @@ class NetworkTests(unittest.TestCase):
         net.clear_internal_state()
         out1 = net.forward_pass(self.X).copy()
         deltas1 = net.backward_pass(out1).copy()
-        net.intern_manager.initialize_buffer(Matrix(rnd.randn(
-            net.intern_manager.calculate_size())))
+        net.fwd_state_manager.initialize_buffer(Matrix(rnd.randn(
+            net.fwd_state_manager.calculate_size())))
         net.delta_manager.initialize_buffer(Matrix(rnd.randn(
             net.delta_manager.calculate_size())))
         out2 = net.forward_pass(self.X).copy()

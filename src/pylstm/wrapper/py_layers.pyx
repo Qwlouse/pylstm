@@ -78,13 +78,13 @@ cdef class BaseLayer:
     def get_output_buffer_size(self, time_length=1, batch_size=1):
         return self.layer.out_size * time_length * batch_size
 
-    def get_param_buffer_size(self, time_length=1, batch_size=1):
+    def get_parameter_size(self, time_length=1, batch_size=1):
         return self.layer.get_weight_size()
 
-    def get_internal_state_size(self, time_length=1, batch_size=1):
+    def get_fwd_state_size(self, time_length=1, batch_size=1):
         return self.layer.get_fwd_state_size(batch_size, time_length)
 
-    def get_internal_error_state_size(self, time_length=1, batch_size=1):
+    def get_bwd_state_size(self, time_length=1, batch_size=1):
         return self.layer.get_bwd_state_size(batch_size, time_length)
 
     def create_input_view(self, input_buffer, time_length=1, batch_size=1):
@@ -99,28 +99,28 @@ cdef class BaseLayer:
         cdef cl.ViewContainer* params = self.layer.create_parameter_view(param_buffer.view)
         return create_ViewContainer(params)
         
-    def create_internal_view(self, Matrix internal_buffer, time_length=1, batch_size=1):
-        cdef cl.ViewContainer* internal = self.layer.create_fwd_state_view(internal_buffer.view, batch_size, time_length)
-        return create_ViewContainer(internal)
+    def create_fwd_state(self, Matrix fwd_state_buffer, time_length=1, batch_size=1):
+        cdef cl.ViewContainer* fwd_state = self.layer.create_fwd_state_view(fwd_state_buffer.view, batch_size, time_length)
+        return create_ViewContainer(fwd_state)
 
-    def create_internal_error_view(self, Matrix internal_error_buffer, time_length=1, batch_size=1):
-        cdef cl.ViewContainer* deltas = self.layer.create_bwd_state_view(internal_error_buffer.view, batch_size, time_length)
-        return create_ViewContainer(deltas)
+    def create_bwd_state(self, Matrix bwd_state_buffer, time_length=1, batch_size=1):
+        cdef cl.ViewContainer* bwd_state = self.layer.create_bwd_state_view(bwd_state_buffer.view, batch_size, time_length)
+        return create_ViewContainer(bwd_state)
 
-    def forward(self, ViewContainer param, ViewContainer internal, Matrix in_view, Matrix out_view):
-        self.layer.forward_pass(deref(param.this_ptr), deref(internal.this_ptr), in_view.view, out_view.view)
+    def forward(self, ViewContainer param, ViewContainer fwd_state, Matrix in_view, Matrix out_view):
+        self.layer.forward_pass(deref(param.this_ptr), deref(fwd_state.this_ptr), in_view.view, out_view.view)
 
-    def backward(self, ViewContainer param, ViewContainer internal, ViewContainer err, Matrix out_view, Matrix in_deltas, Matrix out_deltas):
-        self.layer.backward_pass(deref(param.this_ptr), deref(internal.this_ptr), deref(err.this_ptr), out_view.view, in_deltas.view, out_deltas.view)
+    def backward(self, ViewContainer param, ViewContainer fwd_state, ViewContainer err, Matrix out_view, Matrix in_deltas, Matrix out_deltas):
+        self.layer.backward_pass(deref(param.this_ptr), deref(fwd_state.this_ptr), deref(err.this_ptr), out_view.view, in_deltas.view, out_deltas.view)
 
-    def gradient(self, ViewContainer param, ViewContainer grad, ViewContainer internal, ViewContainer err, Matrix out_view, Matrix in_view, Matrix out_deltas):
-        self.layer.gradient(deref(param.this_ptr), deref(grad.this_ptr), deref(internal.this_ptr), deref(err.this_ptr), out_view.view, in_view.view, out_deltas.view)
+    def gradient(self, ViewContainer param, ViewContainer grad, ViewContainer fwd_state, ViewContainer err, Matrix out_view, Matrix in_view, Matrix out_deltas):
+        self.layer.gradient(deref(param.this_ptr), deref(grad.this_ptr), deref(fwd_state.this_ptr), deref(err.this_ptr), out_view.view, in_view.view, out_deltas.view)
 
-    def Rpass(self, ViewContainer param, ViewContainer v,  ViewContainer internal, ViewContainer Rinternal, Matrix in_view, Matrix out_view, Matrix Rin_view, Matrix Rout_view):
-        self.layer.Rpass(deref(param.this_ptr), deref(v.this_ptr),  deref(internal.this_ptr), deref(Rinternal.this_ptr), in_view.view, out_view.view,Rin_view.view, Rout_view.view)
+    def Rpass(self, ViewContainer param, ViewContainer v,  ViewContainer fwd_state, ViewContainer r_fwd_state, Matrix in_view, Matrix out_view, Matrix Rin_view, Matrix Rout_view):
+        self.layer.Rpass(deref(param.this_ptr), deref(v.this_ptr),  deref(fwd_state.this_ptr), deref(r_fwd_state.this_ptr), in_view.view, out_view.view,Rin_view.view, Rout_view.view)
 
-    def Rbackward(self, ViewContainer param, ViewContainer internal, ViewContainer internal_deltas, Matrix in_deltas, Matrix out_deltas, ViewContainer Rinternal, double _lambda, double mu):
-        self.layer.Rbackward(deref(param.this_ptr), deref(internal.this_ptr), deref(internal_deltas.this_ptr), in_deltas.view, out_deltas.view, deref(Rinternal.this_ptr), _lambda, mu)
+    def Rbackward(self, ViewContainer param, ViewContainer fwd_state, ViewContainer bwd_state, Matrix in_deltas, Matrix out_deltas, ViewContainer r_fwd_state, double _lambda, double mu):
+        self.layer.Rbackward(deref(param.this_ptr), deref(fwd_state.this_ptr), deref(bwd_state.this_ptr), in_deltas.view, out_deltas.view, deref(r_fwd_state.this_ptr), _lambda, mu)
 
 
     def __unicode__(self):

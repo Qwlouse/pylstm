@@ -7,17 +7,17 @@ import numpy as np
 
 
 class Network(object):
-    def __init__(self, layers, param_manager, intern_manager, in_out_manager,
-                 intern_delta_manager, delta_manager, error_func):
+    def __init__(self, layers, param_manager, fwd_state_manager, in_out_manager,
+                 bwd_state_manager, delta_manager, error_func):
         self.layers = layers
 
         self.param_manager = param_manager
         self.grad_manager = deepcopy(param_manager)
         self.v_manager = deepcopy(param_manager)
 
-        self.intern_manager = intern_manager
-        self.r_intern_manager = deepcopy(intern_manager)
-        self.intern_delta_manager = intern_delta_manager
+        self.fwd_state_manager = fwd_state_manager
+        self.r_fwd_state_manager = deepcopy(fwd_state_manager)
+        self.bwd_state_manager = bwd_state_manager
 
         self.in_out_manager = in_out_manager
         self.r_in_out_manager = deepcopy(in_out_manager)
@@ -40,17 +40,17 @@ class Network(object):
     def get_param_view_for(self, name):
         return self.param_manager.get_source_view(name).as_array()
 
-    def get_intern_view_for(self, name):
-        return self.intern_manager.get_source_view(name).as_array()
+    def get_fwd_state_for(self, name):
+        return self.fwd_state_manager.get_source_view(name).as_array()
 
     def get_output_view_for(self, name):
         return self.in_out_manager.get_source_view(name).as_array()
 
     def clear_internal_state(self):
-        if self.intern_manager.buffer:
-            self.intern_manager.buffer.as_array()[:] = 0.
-        if self.intern_delta_manager.buffer:
-            self.intern_delta_manager.buffer.as_array()[:] = 0.
+        if self.fwd_state_manager.buffer:
+            self.fwd_state_manager.buffer.as_array()[:] = 0.
+        if self.bwd_state_manager.buffer:
+            self.bwd_state_manager.buffer.as_array()[:] = 0.
 
     def __getitem__(self, item):
         """
@@ -71,9 +71,9 @@ class Network(object):
         return self.param_manager.buffer.as_array()
 
     def set_buffer_manager_dimensions(self, t, b):
-        self.intern_manager.set_dimensions(t, b)
-        self.r_intern_manager.set_dimensions(t, b)
-        self.intern_delta_manager.set_dimensions(t, b)
+        self.fwd_state_manager.set_dimensions(t, b)
+        self.r_fwd_state_manager.set_dimensions(t, b)
+        self.bwd_state_manager.set_dimensions(t, b)
         self.in_out_manager.set_dimensions(t, b)
         self.r_in_out_manager.set_dimensions(t, b)
         self.delta_manager.set_dimensions(t, b)
@@ -88,12 +88,12 @@ class Network(object):
         # execute all the intermediate layers
         for n, l in self.layers.items()[1:-1]:
             param = self.param_manager.get_source_view(n)
-            internal = self.intern_manager.get_source_view(n)
+            fwd_state = self.fwd_state_manager.get_source_view(n)
 
             out = self.in_out_manager.get_source_view(n)
             input_view = self.in_out_manager.get_sink_view(n)
 
-            l.forward(param, internal, input_view, out)
+            l.forward(param, fwd_state, input_view, out)
         # read the output buffer
         return self.in_out_manager.get_sink_view("Output").as_array()  # TODO factor this out as self.out_buffer property
 
@@ -115,14 +115,14 @@ class Network(object):
         # execute all the intermediate layers backwards
         for n, l in self.layers.items()[-2:0:-1]:
             param = self.param_manager.get_source_view(n)
-            internal = self.intern_manager.get_source_view(n)
-            intern_delta = self.intern_delta_manager.get_source_view(n)
+            fwd_state = self.fwd_state_manager.get_source_view(n)
+            bwd_state = self.bwd_state_manager.get_source_view(n)
 
             out = self.in_out_manager.get_source_view(n)
             delta_in = self.delta_manager.get_sink_view(n)
             delta_out = self.delta_manager.get_source_view(n)
 
-            l.backward(param, internal, intern_delta, out, delta_in, delta_out)
+            l.backward(param, fwd_state, bwd_state, out, delta_in, delta_out)
         # read the final delta buffer
         return self.delta_manager.get_source_view("Input").as_array()
 
@@ -132,14 +132,14 @@ class Network(object):
         for n, l in self.layers.items()[-2:0:-1]:
             param = self.param_manager.get_source_view(n)
             grad = self.grad_manager.get_source_view(n)
-            internal = self.intern_manager.get_source_view(n)
-            intern_delta = self.intern_delta_manager.get_source_view(n)
+            fwd_state = self.fwd_state_manager.get_source_view(n)
+            bwd_state = self.bwd_state_manager.get_source_view(n)
 
             out = self.in_out_manager.get_source_view(n)
             input_view = self.in_out_manager.get_sink_view(n)
             delta_out = self.delta_manager.get_source_view(n)
 
-            l.gradient(param, grad, internal, intern_delta, out, input_view, delta_out)
+            l.gradient(param, grad, fwd_state, bwd_state, out, input_view, delta_out)
         return self.grad_manager.buffer.as_array()
 
     def r_forward_pass(self, input_buffer, v_buffer):
@@ -160,15 +160,15 @@ class Network(object):
         for n, l in self.layers.items()[1:-1]:
             param = self.param_manager.get_source_view(n)
             v = self.v_manager.get_source_view(n)
-            internal = self.intern_manager.get_source_view(n)
-            r_internal = self.r_intern_manager.get_source_view(n)
+            fwd_state = self.fwd_state_manager.get_source_view(n)
+            r_fwd_state = self.r_fwd_state_manager.get_source_view(n)
 
             out = self.in_out_manager.get_source_view(n)
             r_in = self.r_in_out_manager.get_sink_view(n)
             r_out = self.r_in_out_manager.get_source_view(n)
             input_view = self.in_out_manager.get_sink_view(n)
 
-            l.Rpass(param, v, internal, r_internal, input_view, out, r_in, r_out)
+            l.Rpass(param, v, fwd_state, r_fwd_state, input_view, out, r_in, r_out)
             # read the output buffer
         return self.r_in_out_manager.get_sink_view("Output").as_array()
 
@@ -183,14 +183,14 @@ class Network(object):
         # execute all the intermediate layers backwards
         for n, l in self.layers.items()[-2:0:-1]:
             param = self.param_manager.get_source_view(n)
-            internal = self.intern_manager.get_source_view(n)
-            intern_delta = self.intern_delta_manager.get_source_view(n)
+            fwd_state = self.fwd_state_manager.get_source_view(n)
+            bwd_state = self.bwd_state_manager.get_source_view(n)
 
             delta_in = self.delta_manager.get_sink_view(n)
             delta_out = self.delta_manager.get_source_view(n)
             out = self.in_out_manager.get_source_view(n)
-            l.backward(param, internal, intern_delta, out, delta_in, delta_out)
-            # l.Rbackward(param, internal, intern_delta, delta_in, delta_out, r_internal, lambda_, mu)
+            l.backward(param, fwd_state, bwd_state, out, delta_in, delta_out)
+            # l.Rbackward(param, fwd_state, bwd_state, delta_in, delta_out, r_fwd_state, lambda_, mu)
             # read the final delta buffer
         return self.delta_manager.get_source_view("Input").as_array()
 

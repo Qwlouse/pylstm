@@ -27,13 +27,13 @@ class Layer(object):
     def get_output_buffer_size(self, time_length=1, batch_size=1):
         return self.out_size * time_length * batch_size
 
-    def get_param_buffer_size(self, time_length=1, batch_size=1):
+    def get_parameter_size(self, time_length=1, batch_size=1):
         return 0
 
-    def get_internal_state_size(self, time_length, batch_size):
+    def get_fwd_state_size(self, time_length, batch_size):
         return 0
 
-    def get_internal_error_state_size(self, time_length, batch_size1):
+    def get_bwd_state_size(self, time_length, batch_size1):
         return 0
 
     def create_input_view(self, input_buffer, time_length, batch_size):
@@ -49,19 +49,19 @@ class Layer(object):
     def create_param_view(self, param_buffer, time_length=1, batch_size=1):
         return None
 
-    def create_internal_view(self, internal_buffer, time_length, batch_size):
+    def create_fwd_state(self, fwd_state_buffer, time_length, batch_size):
         return None
 
-    def create_internal_error_view(self, error_buffer, time_length, batch_size):
+    def create_bwd_state(self, bwd_state_buffer, time_length, batch_size):
         return None
 
-    def forward(self, param, internal, in_view, out_view):
+    def forward(self, param, fwd_state, in_view, out_view):
         pass
 
-    def backward(self, param, internal, err, out_view, in_deltas, out_deltas):
+    def backward(self, param, fwd_state, bwd_state, out_view, in_deltas, out_deltas):
         pass
 
-    def gradient(self, param, grad, internal, err, out_view, in_view, out_deltas):
+    def gradient(self, param, grad, fwd_state, bwd_state, out_view, in_view, out_deltas):
         pass
 
 
@@ -137,7 +137,7 @@ def sigmoid_inv(y):
 
 
 class NpForwardLayer(Layer):  # TODO: bias
-    def get_param_buffer_size(self, time_length=1, batch_size=1):
+    def get_parameter_size(self, time_length=1, batch_size=1):
         return self.in_size * self.out_size
 
     def create_input_view(self, input_buffer, time_length, batch_size):
@@ -153,15 +153,15 @@ class NpForwardLayer(Layer):  # TODO: bias
     def create_param_view(self, param_buffer, time_length=1, batch_size=1):
         return param_buffer.as_array().reshape(self.in_size, self.out_size)
 
-    def forward(self, param, internal, in_view, out_view):
+    def forward(self, param, fwd_state, in_view, out_view):
         for in_slice, out_slice in zip(in_view, out_view):
             out_slice[:] = sigmoid(in_slice.dot(param))
 
-    def backward(self, param, internal, err, out_view, in_deltas, out_deltas):
+    def backward(self, param, fwd_state, bwd_state, out_view, in_deltas, out_deltas):
         for out_slice, in_slice, y_slice in zip(out_deltas, in_deltas, out_view):
             in_slice[:] = (sigmoid_inv(y_slice) * out_slice).dot(param.T)
 
-    def gradient(self, param, grad, internal, err, out_view, in_view, out_deltas):
+    def gradient(self, param, grad, fwd_state, bwd_state, out_view, in_view, out_deltas):
         pass
 
 

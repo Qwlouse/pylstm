@@ -16,26 +16,26 @@ class LstmLayerTest(unittest.TestCase):
         sizes = [(1, 1), (1, 9), (9, 1), (9, 9), (3, 7)]
         for n, m in sizes:
             l = pw.create_layer("RegularLayer", n, m)
-            param_size = l.get_param_buffer_size()
+            param_size = l.get_parameter_size()
             self.assertGreaterEqual(param_size, n * m)
 
-    def test_internal_size(self):
+    def test_fwd_state_size(self):
         sizes = [(1, 1), (1, 9), (9, 1), (9, 9), (3, 7)]
         for n, m in sizes:
             l = pw.create_layer("RegularLayer", n, m)
-            internal_size = l.get_internal_state_size()
-            self.assertGreaterEqual(internal_size, m)
+            fwd_state_size = l.get_fwd_state_size()
+            self.assertGreaterEqual(fwd_state_size, m)
 
     def test_create_param_view(self):
         l = pw.create_layer("RegularLayer", 3, 7)
-        wm = pw.Matrix(l.get_param_buffer_size())
+        wm = pw.Matrix(l.get_parameter_size())
         W = l.create_param_view(wm)
         self.assertIsNotNone(W)
 
-    def test_create_internal_view(self):
+    def test_create_fwd_state(self):
         l = pw.create_layer("RegularLayer", 3, 7)
-        im = pw.Matrix(l.get_internal_state_size())
-        I = l.create_internal_view(im)
+        im = pw.Matrix(l.get_fwd_state_size())
+        I = l.create_fwd_state(im)
         self.assertIsNotNone(I)
 
     def test_create_input_view_with_single_sample(self):
@@ -103,9 +103,9 @@ class LstmLayerTest(unittest.TestCase):
         l = pw.create_layer("RegularLayer", n, m)
         X = pw.Matrix(t, b, n)
         Y = pw.Matrix(t, b, m)
-        wm = pw.Matrix(1, 1, l.get_param_buffer_size())
+        wm = pw.Matrix(1, 1, l.get_parameter_size())
         W = l.create_param_view(wm)
-        im = pw.Matrix(t, b, l.get_internal_state_size(t, b))
-        I = l.create_internal_view(im)
+        im = pw.Matrix(t, b, l.get_fwd_state_size(t, b))
+        I = l.create_fwd_state(im)
         l.forward(W, I, X, Y)
 
