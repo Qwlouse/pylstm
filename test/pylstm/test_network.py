@@ -7,7 +7,7 @@ import numpy as np
 import itertools
 from pylstm.netbuilder import NetworkBuilder
 from pylstm.layers import LstmLayer, RnnLayer, RegularLayer
-from pylstm.wrapper import Buffer
+from pylstm.wrapper import Matrix
 from scipy.optimize import approx_fprime
 rnd = np.random.RandomState(2634587)
 
@@ -107,7 +107,7 @@ class NetworkTests(unittest.TestCase):
     def test_lstm_forward_pass_insensitive_to_internal_state(self):
         net = self.build_network(LstmLayer, "tanh")
         out1 = net.forward_pass(self.X).copy()
-        net.intern_manager.initialize_buffer(Buffer(rnd.randn(
+        net.intern_manager.initialize_buffer(Matrix(rnd.randn(
             net.intern_manager.calculate_size())))
         out2 = net.forward_pass(self.X).copy()
         self.assertTrue(np.allclose(out1, out2))
@@ -117,9 +117,9 @@ class NetworkTests(unittest.TestCase):
         net.clear_internal_state()
         out1 = net.forward_pass(self.X).copy()
         deltas1 = net.backward_pass(out1).copy()
-        net.intern_manager.initialize_buffer(Buffer(rnd.randn(
+        net.intern_manager.initialize_buffer(Matrix(rnd.randn(
             net.intern_manager.calculate_size())))
-        net.delta_manager.initialize_buffer(Buffer(rnd.randn(
+        net.delta_manager.initialize_buffer(Matrix(rnd.randn(
             net.delta_manager.calculate_size())))
         out2 = net.forward_pass(self.X).copy()
         deltas2 = net.backward_pass(out2).copy()
@@ -149,7 +149,7 @@ class NetworkTests(unittest.TestCase):
             if e > 1e-4:
                 # construct a weight view and break down the differences
                 layer = net.layers.values()[1]  # the only layer
-                b = Buffer(grad_approx - grad_calc)
+                b = Matrix(grad_approx - grad_calc)
                 diff = layer.create_param_view(b)
                 for n, b in diff.items():
                     print("====== %s ======" % n)
@@ -167,7 +167,7 @@ class NetworkTests(unittest.TestCase):
             if e > 1e-4:
                 # construct a weight view and break down the differences
                 layer = net.layers.values()[1]  # the only layer
-                b = Buffer(allerrors.copy())
+                b = Matrix(allerrors.copy())
                 diff = layer.create_param_view(b)
                 for n, b in diff.items():
                     print("====== %s ======" % n)
@@ -185,7 +185,7 @@ class NetworkTests(unittest.TestCase):
             if e > 1e-4:
                 # construct a weight view and break down the differences
                 layer = net.layers.values()[1]  # the only layer
-                b = Buffer(allerrors.copy())
+                b = Matrix(allerrors.copy())
                 diff = layer.create_param_view(b)
                 for n, b in diff.items():
                     print("====== %s ======" % n)

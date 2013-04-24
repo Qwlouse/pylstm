@@ -28,19 +28,19 @@ class LstmLayerTest(unittest.TestCase):
 
     def test_create_param_view(self):
         l = pw.create_layer("RegularLayer", 3, 7)
-        wm = pw.Buffer(l.get_param_size())
+        wm = pw.Matrix(l.get_param_size())
         W = l.create_param_view(wm)
         self.assertIsNotNone(W)
 
     def test_create_internal_view(self):
         l = pw.create_layer("RegularLayer", 3, 7)
-        im = pw.Buffer(l.get_internal_state_size())
+        im = pw.Matrix(l.get_internal_state_size())
         I = l.create_internal_view(im)
         self.assertIsNotNone(I)
 
     def test_create_input_view_with_single_sample(self):
         l = pw.create_layer("RegularLayer", 3, 7)
-        im = pw.Buffer(l.in_size)
+        im = pw.Matrix(l.in_size)
         I = l.create_input_view(im)
         self.assertIsNotNone(I)
         self.assertEqual(len(I), 3)
@@ -50,7 +50,7 @@ class LstmLayerTest(unittest.TestCase):
         l = pw.create_layer("RegularLayer", 3, 7)
         t = 9
         b = 5
-        im = pw.Buffer(t, b, l.in_size)
+        im = pw.Matrix(t, b, l.in_size)
         I = l.create_input_view(im, t, b)
         self.assertIsNotNone(I)
         self.assertEqual(len(I), 3 * t * b)
@@ -60,7 +60,7 @@ class LstmLayerTest(unittest.TestCase):
         l = pw.create_layer("RegularLayer", 3, 7)
         t = 9
         b = 5
-        im = pw.Buffer( l.get_input_buffer_size(t, b))
+        im = pw.Matrix( l.get_input_buffer_size(t, b))
         I = l.create_input_view(im, t, b)
         self.assertIsNotNone(I)
         self.assertEqual(len(I), 3 * t * b)
@@ -68,7 +68,7 @@ class LstmLayerTest(unittest.TestCase):
 
     def test_create_output_view_with_single_sample(self):
         l = pw.create_layer("RegularLayer", 3, 7)
-        im = pw.Buffer(l.out_size)
+        im = pw.Matrix(l.out_size)
         I = l.create_output_view(im)
         self.assertIsNotNone(I)
         self.assertEqual(len(I), 7)
@@ -78,7 +78,7 @@ class LstmLayerTest(unittest.TestCase):
         l = pw.create_layer("RegularLayer", 3, 7)
         t = 9
         b = 5
-        im = pw.Buffer(t, b, l.out_size)
+        im = pw.Matrix(t, b, l.out_size)
         I = l.create_output_view(im, t, b)
         self.assertIsNotNone(I)
         self.assertEqual(len(I), 7 * t * b)
@@ -88,7 +88,7 @@ class LstmLayerTest(unittest.TestCase):
         l = pw.create_layer("RegularLayer", 3, 7)
         t = 9
         b = 5
-        im = pw.Buffer( l.get_output_buffer_size(t, b))
+        im = pw.Matrix( l.get_output_buffer_size(t, b))
         I = l.create_output_view(im, t, b)
         self.assertIsNotNone(I)
         self.assertEqual(len(I), 7 * t * b)
@@ -101,11 +101,11 @@ class LstmLayerTest(unittest.TestCase):
         m = 3  # output size
 
         l = pw.create_layer("RegularLayer", n, m)
-        X = pw.Buffer(t, b, n)
-        Y = pw.Buffer(t, b, m)
-        wm = pw.Buffer(1, 1, l.get_param_size())
+        X = pw.Matrix(t, b, n)
+        Y = pw.Matrix(t, b, m)
+        wm = pw.Matrix(1, 1, l.get_param_size())
         W = l.create_param_view(wm)
-        im = pw.Buffer(t, b, l.get_internal_state_size(t, b))
+        im = pw.Matrix(t, b, l.get_internal_state_size(t, b))
         I = l.create_internal_view(im)
         l.forward(W, I, X, Y)
 

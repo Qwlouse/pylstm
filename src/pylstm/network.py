@@ -62,10 +62,10 @@ class Network(object):
         """
         Set the parameter buffer that holds all the weights.
         """
-        if isinstance(buffer_view, pw.Buffer):
+        if isinstance(buffer_view, pw.Matrix):
             self.weight_manager.initialize_buffer(buffer_view)
         else:
-            self.weight_manager.initialize_buffer(pw.Buffer(buffer_view))
+            self.weight_manager.initialize_buffer(pw.Matrix(buffer_view))
 
     def get_param_buffer(self):
         return self.weight_manager.buffer.as_array()
@@ -128,7 +128,7 @@ class Network(object):
 
     def calc_gradient(self):
         self.grad_manager.initialize_buffer(
-            pw.Buffer(self.get_param_size()))
+            pw.Matrix(self.get_param_size()))
         for n, l in self.layers.items()[-2:0:-1]:
             param = self.weight_manager.get_source_view(n)
             grad = self.grad_manager.get_source_view(n)
@@ -148,10 +148,10 @@ class Network(object):
         assert f == self.layers.values()[0].get_output_size()
         self.set_buffer_manager_dimensions(t, b)
         # inject the v value
-        if isinstance(v_buffer, pw.Buffer):
+        if isinstance(v_buffer, pw.Matrix):
             self.v_manager.initialize_buffer(v_buffer)
         else:
-            self.v_manager.initialize_buffer(pw.Buffer(v_buffer))
+            self.v_manager.initialize_buffer(pw.Matrix(v_buffer))
         # inject the input buffer
         self.in_out_manager.get_source_view("Input").as_array()[:] = input_buffer
         # set r input to 0

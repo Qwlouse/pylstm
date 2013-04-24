@@ -3,11 +3,11 @@
 from __future__ import division, print_function, unicode_literals
 from scipy.optimize import approx_fprime
 import numpy as np
-from pylstm.wrapper import Buffer
+from pylstm.wrapper import Matrix
 
 
 def ensure_np_array(a):
-    if isinstance(a, Buffer):
+    if isinstance(a, Matrix):
         return a.as_array()
     else:
         return np.array(a)

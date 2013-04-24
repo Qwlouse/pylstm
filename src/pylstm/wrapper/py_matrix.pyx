@@ -9,7 +9,7 @@ np.import_array()
 # http://stackoverflow.com/questions/3046305
 # http://article.gmane.org/gmane.comp.python.cython.user/5625
 
-cdef class Buffer:
+cdef class Matrix:
     def __cinit__(self, a=None, int batches=1, int features=1):
         cdef np.ndarray[np.double_t, ndim=3, mode='c'] A
         if a is None:
@@ -40,7 +40,7 @@ cdef class Buffer:
             start = item.start or 0
             stop = item.stop or self.get_time_size()
 
-            b = Buffer()
+            b = Matrix()
             b.view = self.view.subslice(start, self.view.n_rows, self.view.n_columns, stop-start)
             b.A = self.A
             return b
@@ -49,7 +49,7 @@ cdef class Buffer:
         self.view[item] = value
 
     def feature_slice(self, start, stop=None):
-        b = Buffer()
+        b = Matrix()
         b.A = self.A
         assert 0 <= start
         if self.get_feature_size() == 0:
@@ -69,7 +69,7 @@ cdef class Buffer:
         return b
 
     def time_slice(self, start, stop=None):
-        b = Buffer()
+        b = Matrix()
         b.A = self.A
         assert 0 <= start
         if self.get_time_size() == 0:
@@ -130,7 +130,7 @@ cdef class Buffer:
         #assert batch_size >= 1
         #assert feature_size >= 1
         assert time_size * batch_size * feature_size == len(self)
-        b = Buffer()
+        b = Matrix()
         b.A = self.A
         b.view = cm.Matrix(self.view)
         b.view.n_rows = feature_size
@@ -143,44 +143,44 @@ cdef class Buffer:
 
     def __repr__(self):
         t, b, f = self.shape()
-        return "<Buffer (%d, %d, %d) at %#x>"%(t, b, f, id(self))
+        return "<Matrix (%d, %d, %d) at %#x>"%(t, b, f, id(self))
 
     def set_all_elements_to(self, value):
         self.view.set_all_elements_to(value)
 
 
-def dot(Buffer a not None, Buffer b not None, Buffer out not None):
+def dot(Matrix a not None, Matrix b not None, Matrix out not None):
     cm.dot(a.view, b.view, out.view)
 
 #def add(MatrixCPU a not None, MatrixCPU b not None, MatrixCPU out not None):
 #    cm.add(a.view, b.view, out.view)
 
-def add_into_b(Buffer a not None, Buffer b not None):
+def add_into_b(Matrix a not None, Matrix b not None):
     cm.add_into_b(a.view, b.view)
 
-def add_scalar(Buffer a not None, double b):
+def add_scalar(Matrix a not None, double b):
     cm.add_scalar(a.view, b)
 
-def mult(Buffer a not None, Buffer b not None, Buffer out not None):
+def mult(Matrix a not None, Matrix b not None, Matrix out not None):
     cm.mult(a.view, b.view, out.view)
 
-def mult_add(Buffer a not None, Buffer b not None, Buffer out not None):
+def mult_add(Matrix a not None, Matrix b not None, Matrix out not None):
     cm.mult_add(a.view, b.view, out.view)
 
-def dot(Buffer a not None, Buffer b not None, Buffer out not None):
+def dot(Matrix a not None, Matrix b not None, Matrix out not None):
     cm.dot(a.view, b.view, out.view)
 
-def dot_add(Buffer a not None, Buffer b not None, Buffer out not None):
+def dot_add(Matrix a not None, Matrix b not None, Matrix out not None):
     cm.dot_add(a.view, b.view, out.view)
 
-def apply_sigmoid(Buffer a not None, Buffer out not None):
+def apply_sigmoid(Matrix a not None, Matrix out not None):
     cm.add_into_b(a.view, out.view)
 
-def apply_tanh(Buffer a not None, Buffer out not None):
+def apply_tanh(Matrix a not None, Matrix out not None):
     cm.add_into_b(a.view, out.view)
 
-def apply_tanhx2(Buffer a not None, Buffer out not None):
+def apply_tanhx2(Matrix a not None, Matrix out not None):
     cm.add_into_b(a.view, out.view)
 
-def equals(Buffer a not None, Buffer out not None):
+def equals(Matrix a not None, Matrix out not None):
     cm.add_into_b(a.view, out.view)

@@ -5,9 +5,11 @@ import unittest
 from pylstm.netbuilder import NetworkBuilder, InvalidArchitectureError
 from pylstm.layers import create_ConstructionLayer
 
+
 class Foo(): pass
 
 FooLayer = create_ConstructionLayer(Foo)
+
 
 #noinspection PyStatementEffect
 class ConstructionLayerTests(unittest.TestCase):
@@ -41,7 +43,6 @@ class ConstructionLayerTests(unittest.TestCase):
         self.assertIn(l1, l0.sources)
         self.assertIn(l2, l0.sources)
         self.assertIn(l3, l0.sources)
-
 
     def test_get_depth_linear_architecture(self):
         layers = [FooLayer(10) for _ in range(5)]
@@ -82,11 +83,6 @@ class ConstructionLayerTests(unittest.TestCase):
         except:
             self.fail('Wrong Exception')
 
-class BufferManagerTests(unittest.TestCase):
-    def setUp(self):
-        pass
-
-
 
 class NetBuilderTests(unittest.TestCase):
     def setUp(self):
@@ -112,5 +108,3 @@ class NetBuilderTests(unittest.TestCase):
             for s in l.sources:
                 self.assertGreater(l.get_depth(), s.get_depth())
         self.assertEqual(len(layers), 6)
-
-
