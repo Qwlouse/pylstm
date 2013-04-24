@@ -25,7 +25,7 @@ def create_network(rnd):
     netb = NetworkBuilder()
     netb.input(2) >> LstmLayer(50) >> FwdLayer(2) >> netb.output
     net = netb.build()
-    net.set_param_buffer(rnd.randn(net.get_param_size()))
+    net.param_buffer = rnd.randn(net.get_param_size())
     return net
 
 

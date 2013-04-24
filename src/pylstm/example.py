@@ -21,7 +21,7 @@ from datasets import generate_memo_problem
 #
 # # create some random weights (we don't care about dimensions. Just for the size)
 # weights = np.ones(net.get_param_size())
-# net.set_param_buffer(weights)  # and set them as the parameter buffer
+# net.param_buffer = weights  # and set them as the parameter buffer
 # # create some random inputs (2 time slice, 3 batch, 5 features)
 # # X = np.random.randn(2, 3, 5)
 # X = np.ones((2, 3, 2))
@@ -51,7 +51,7 @@ from datasets import generate_memo_problem
 netb = NetworkBuilder()
 netb.input(2) >> LstmLayer(2) >> RegularLayer(2, act_func="softmax") >> netb.output
 net = netb.build()
-net.set_param_buffer(np.random.randn(net.get_param_size()))
+net.param_buffer = np.random.randn(net.get_param_size())
 
 # Generate 5bit problem
 timesteps = 30
@@ -70,6 +70,6 @@ t.train(net, X, T, epochs=50)
 # netb.input(2) >> LstmLayer(5) >> l >> netb.output
 # netb.input() >> LstmLayer(5) >> l
 # net = netb.build()
-# net.set_param_buffer(np.random.randn(net.get_param_size()))
+# net.param_buffer = np.random.randn(net.get_param_size())
 #
 # t.train(net, X, T, epochs=50)

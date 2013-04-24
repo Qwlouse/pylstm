@@ -25,6 +25,32 @@ class Network(object):
 
         self.error_func = error_func
 
+    @property
+    def in_buffer(self):
+        return self.in_out_manager.get_source_view("Input").as_array()
+
+    @property
+    def out_buffer(self):
+        return self.in_out_manager.get_sink_view("Output").as_array()
+
+    @property
+    def param_buffer(self):
+        return self.param_manager.buffer.as_array()
+
+    @param_buffer.setter
+    def param_buffer(self, buffer_view):
+        """
+        Set the parameter buffer that holds all the weights.
+        """
+        if isinstance(buffer_view, pw.Matrix):
+            self.param_manager.initialize_buffer(buffer_view)
+        else:
+            self.param_manager.initialize_buffer(pw.Matrix(buffer_view))
+
+    @property
+    def grad_buffer(self):
+        return self.grad_manager.buffer.as_array()
+
     def get_param_size(self):
         """
         Returns the total size of all parameters.
@@ -43,8 +69,20 @@ class Network(object):
     def get_fwd_state_for(self, name):
         return self.fwd_state_manager.get_source_view(name).as_array()
 
+    def get_bwd_state_for(self, name):
+        return self.bwd_state_manager.get_source_view(name).as_array()
+
+    def get_input_view_for(self, name):
+        return self.in_out_manager.get_sink_view(name).as_array()
+
     def get_output_view_for(self, name):
         return self.in_out_manager.get_source_view(name).as_array()
+
+    def get_in_deltas_view_for(self, name):
+        return self.delta_manager.get_sink_view(name).as_array()
+
+    def get_out_deltas_view_for(self, name):
+        return self.delta_manager.get_source_view(name).as_array()
 
     def clear_internal_state(self):
         if self.fwd_state_manager.buffer:
@@ -57,18 +95,6 @@ class Network(object):
         Get the layer with the given name.
         """
         return self.layers[item]
-
-    def set_param_buffer(self, buffer_view):
-        """
-        Set the parameter buffer that holds all the weights.
-        """
-        if isinstance(buffer_view, pw.Matrix):
-            self.param_manager.initialize_buffer(buffer_view)
-        else:
-            self.param_manager.initialize_buffer(pw.Matrix(buffer_view))
-
-    def get_param_buffer(self):
-        return self.param_manager.buffer.as_array()
 
     def set_buffer_manager_dimensions(self, t, b):
         self.fwd_state_manager.set_dimensions(t, b)
@@ -84,7 +110,7 @@ class Network(object):
         assert f == self.layers.values()[0].get_output_size()
         self.set_buffer_manager_dimensions(t, b)
         # inject the input buffer
-        self.in_out_manager.get_source_view("Input").as_array()[:] = input_buffer  # TODO factor this out as self.in_buffer property
+        self.in_buffer[:] = input_buffer
         # execute all the intermediate layers
         for n, l in self.layers.items()[1:-1]:
             param = self.param_manager.get_source_view(n)
@@ -95,15 +121,13 @@ class Network(object):
 
             l.forward(param, fwd_state, input_view, out)
         # read the output buffer
-        return self.in_out_manager.get_sink_view("Output").as_array()  # TODO factor this out as self.out_buffer property
+        return self.out_buffer
 
     def calculate_error(self, T):
-        X = self.in_out_manager.get_sink_view("Output")
-        return self.error_func.evaluate(X, T)
+        return self.error_func.evaluate(self.out_buffer, T)
 
     def backward_pass(self, T):
-        X = self.in_out_manager.get_sink_view("Output")
-        delta_buffer = self.error_func.deriv(X, T)
+        delta_buffer = self.error_func.deriv(self.out_buffer, T)
         t, b, f = delta_buffer.shape
         # dims should already be set during forward_pass, but in any case...
         self.set_buffer_manager_dimensions(t, b)
@@ -153,7 +177,7 @@ class Network(object):
         else:
             self.v_manager.initialize_buffer(pw.Matrix(v_buffer))
         # inject the input buffer
-        self.in_out_manager.get_source_view("Input").as_array()[:] = input_buffer
+        self.in_buffer[:] = input_buffer
         # set r input to 0
         self.r_in_out_manager.get_source_view("Input").as_array()[:] = 0.0
         # execute all the intermediate layers

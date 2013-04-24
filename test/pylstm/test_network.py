@@ -19,7 +19,7 @@ def check_gradient(net):
     T = np.zeros((n_timesteps, n_batches, net.get_output_size()))
     T[:, :, 0] = 1.0  # so the outputs sum to one
     weights = rnd.randn(net.get_param_size())
-    net.set_param_buffer(weights.copy())
+    net.param_buffer = weights.copy()
 
     ######### calculate gradient ##########
     net.forward_pass(X)
@@ -28,7 +28,7 @@ def check_gradient(net):
 
     ######### estimate gradient ##########
     def f(W):
-        net.set_param_buffer(W)
+        net.param_buffer = W
         net.forward_pass(X)
         return net.calculate_error(T)
 
@@ -42,12 +42,12 @@ def check_rpass(net, weights, v, r=1e-7):
     X = rnd.randn(n_timesteps, n_batches, net.get_input_size())
     T = np.zeros((n_timesteps, n_batches, net.get_output_size()))
     T[:, :, 0] = 1.0  # so the outputs sum to one
-    net.set_param_buffer(weights)
+    net.param_buffer = weights
     out1 = net.forward_pass(X).copy()
-    net.set_param_buffer(weights + r * v)
+    net.param_buffer = weights + r * v
     out2 = net.forward_pass(X)
     estimated = (out2 - out1) / r
-    net.set_param_buffer(weights)
+    net.param_buffer = weights
     calculated = net.r_forward_pass(X, v)
     return np.sum((estimated - calculated)**2), calculated, estimated
 
@@ -69,7 +69,7 @@ def check_deltas(net):
     T = np.zeros((n_timesteps, n_batches, net.get_output_size()))
     T[:, :, 0] = 1.0  # so the outputs sum to one
     weights = rnd.randn(net.get_param_size())
-    net.set_param_buffer(weights.copy())
+    net.param_buffer = weights.copy()
 
     ######### calculate gradient ##########
     net.forward_pass(X)
@@ -94,7 +94,7 @@ class NetworkTests(unittest.TestCase):
         prev_layer >> netb.output
 
         net = netb.build()
-        net.set_param_buffer(rnd.randn(net.get_param_size()))
+        net.param_buffer = rnd.randn(net.get_param_size())
         return net
 
     def setUp(self):

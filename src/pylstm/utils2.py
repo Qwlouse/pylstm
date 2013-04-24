@@ -21,7 +21,7 @@ def check_gradient(net):
     X = rnd.randn(timesteps, n_batches, net.get_input_size())
     weights = np.ones(net.get_param_size())
     #weights = rnd.randn(net.get_param_size())
-    net.set_param_buffer(weights)
+    net.param_buffer = weights
     IX = net.get_param_view_for('LstmLayer').IX.flatten()
     IX[:] = np.random.randn(len(IX))
 
@@ -32,7 +32,7 @@ def check_gradient(net):
     grad_calc = net.calc_gradient()
 
     def f(w):
-        net.set_param_buffer(w)
+        net.param_buffer = w
         out = net.forward_pass(X)
         return .5 * np.sum(out ** 2)#/n_batches
 

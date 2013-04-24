@@ -24,7 +24,7 @@ class SgdTrainer(object):
         self.learning_rate = learning_rate
 
     def train(self, net, X, T, epochs=100, callback=print_error_per_epoch):
-        weights = net.get_param_buffer()
+        weights = net.param_buffer
         for epoch in range(1, epochs + 1):
             net.forward_pass(X)
             error = net.calculate_error(T)
@@ -42,7 +42,7 @@ class RPropTrainer(object):
         self.initialized = False
 
     def train(self, net, X, T, epochs=100, callback=print_error_per_epoch):
-        weights = net.get_param_buffer()
+        weights = net.param_buffer
         for epoch in range(1, epochs + 1):
             out = net.forward_pass(X)
             error = self.error_fkt.forward_pass(out, T) / X.shape[1]
@@ -78,10 +78,10 @@ class CgTrainer(object):
         self.learning_rate = learning_rate
 
     def train(self, net, X, T, epochs=100, callback=print_error_per_epoch):
-        weights = net.get_param_buffer().copy()
+        weights = net.param_buffer.copy()
 
         #run forward pass, output saved in out
-        net.set_param_buffer(weights)
+        net.param_buffer = weights
         out = net.forward_pass(X)
 
         #calculate error
@@ -97,7 +97,7 @@ class CgTrainer(object):
             #select an input batch, and target batch
             
             #run forward pass, output saved in out
-            net.set_param_buffer(weights)
+            net.param_buffer = weights
             out = net.forward_pass(X)
             
             #calculate error
@@ -112,18 +112,18 @@ class CgTrainer(object):
 
             #run cg
             def f(W):
-                net.set_param_buffer(W)
+                net.param_buffer = W
                 net.forward_pass(X)
                 return net.calculate_error(T)
 
             def fprime(W):
-                net.set_param_buffer(W)
+                net.param_buffer = W
                 net.forward_pass(X)
                 net.backward_pass(T)
                 return net.calc_gradient().copy().flatten()
 
             def fhess_p(v):
-                #net.set_param_buffer(weights.as_array.copy())
+                #net.param_buffer = weights.as_array.copy()
                 return net.hessian_pass(X, v, lambda_=0., mu=0.).copy().flatten()
 
             xopt, allvecs = fmin_ncg(f, np.zeros_like(weights), grad, fhess_p=fhess_p, maxiter=50, retall=True, disp=True)
@@ -138,7 +138,7 @@ class CgTrainer(object):
             # #but can we do this backwards
             # for dwvec in dws:
             #     tmp_weights = weights.copy() + dwvec
-            #     net.set_param_buffer(tmp_weight.copy())
+            #     net.param_buffer = tmp_weight.copy()
             #     tmp_out = net.forward_pass(X)
             #     tmp_error = self.error_fkt.forward_pass(out,T) / X.shape[1]
             #
@@ -151,7 +151,7 @@ class CgTrainer(object):
             #
             # #Calculate rho based on dw
             # tmp_weights = weights.copy() + dw
-            # net.set_param_buffer(tmp_weight.copy())
+            # net.param_buffer = tmp_weight.copy()
             # tmp_out = net.forward_pass(X)
             # new_error = self.error_fkt.forward_pass(out,T) / X.shape[1]
             #
@@ -182,7 +182,7 @@ if __name__ == "__main__":
     netb.input(4) >> LstmLayer(3) >> netb.output
     net = netb.build()
     weight = rnd.randn(net.get_param_size())
-    net.set_param_buffer(weight.copy())
+    net.param_buffer = weight.copy()
     trainer = CgTrainer(learning_rate=0.01)
     X = rnd.randn(numtimesteps, numbatches,  numIn)
     T = rnd.randn(numtimesteps, numbatches, numOut)
