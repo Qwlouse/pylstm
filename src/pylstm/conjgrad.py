@@ -1306,13 +1306,24 @@ def _minimize_newtoncg(fun, x0, args=(), gradient=0, hess=None, hessp=None,
     xtol = len(x0)*avextol
     update = [2*xtol]
 
+    ## set parameters for our conjgrad version
+    miniter = 1
+    inext = 5
+    imult = 1.3
+
+    tolerance = 5e-6
+    gapRatio = 0.1
+    minGap = 10
+    maxTestgap = numpy.maximum(numpy.ceil(maxiter * gapRatio), minGap) + 1
+
+    vals = numpy.zeros(maxTestgap)
+
     xk = x0
     if retall:
         allvecs = [xk]
     k = 0
-    old_fval = f(x0)
 
-    b = squeeze(gradient)
+    b = -1*squeeze(gradient)
     maggrad = numpy.add.reduce(numpy.abs(b))
     eta = numpy.min([0.5, numpy.sqrt(maggrad)])
     termcond = eta * maggrad
@@ -1322,6 +1333,8 @@ def _minimize_newtoncg(fun, x0, args=(), gradient=0, hess=None, hessp=None,
     psupi = -ri
 
     val = 0.5*(numpy.dot((-b+ri), xsupi))
+
+    saved = False
 
     while (numpy.add.reduce(numpy.abs(update)) > xtol) and (k < maxiter):
         # Compute a search direction pk by applying the CG method to
@@ -1334,9 +1347,9 @@ def _minimize_newtoncg(fun, x0, args=(), gradient=0, hess=None, hessp=None,
         Ap = asarray(Ap).squeeze() # get rid of matrices...
         curv = numpy.dot(psupi, Ap)
 
-        if 0 <= curv <= 3*numpy.finfo(numpy.float64).eps:
-            break
-        elif curv < 0:
+        #if 0 <= curv <= 3*numpy.finfo(numpy.float64).eps:
+        #    break
+        if curv < 0:
             break
 
 
@@ -1352,24 +1365,37 @@ def _minimize_newtoncg(fun, x0, args=(), gradient=0, hess=None, hessp=None,
 
 
         pk = xsupi  # search direction is solution to system.
+        xk = pk
 
         val = 0.5*(numpy.dot((-b+ri), xsupi))
+        vals[numpy.mod(k, maxTestgap)] = val
 
-        update = pk #alphai * pk
-        xk = pk #xk + update        # upcast if necessary
+        testGap = numpy.maximum(numpy.ceil(gapRatio * k), minGap)
+        prevVal = vals[numpy.mod((k - testGap), maxTestgap)]
+
+        if k == numpy.ceil(inext):
+            allvecs.append(xk)
+            inext *= imult
+            saved = True
+
+        if (k > testGap and (val - prevVal)/val < (tolerance * testGap) and k >= miniter):
+            print("BREAK AT ITER: %d" %k  )
+            print("pAp: %d" %curv)
+            break
+
+
+
         if callback is not None:
             callback(xk)
-        if retall:
-            allvecs.append(xk)
+        #if retall:
+        #    allvecs.append(xk)
         k += 1
 
-    fval = old_fval
     if k >= maxiter:
         warnflag = 1
         msg = _status_message['maxiter']
         if disp:
             print("Warning: " + msg)
-            print("         Current function value: %f" % fval)
             print("         Iterations: %d" % k)
             print("         Function evaluations: %d" % fcalls[0])
             print("         Gradient evaluations: %d" % 0)
@@ -1379,13 +1405,12 @@ def _minimize_newtoncg(fun, x0, args=(), gradient=0, hess=None, hessp=None,
         msg = _status_message['success']
         if disp:
             print(msg)
-            print("         Current function value: %f" % fval)
             print("         Iterations: %d" % k)
             print("         Function evaluations: %d" % fcalls[0])
             print("         Gradient evaluations: %d" % 0)
             print("         Hessian evaluations: %d" % hcalls)
 
-    result = Result(fun=fval, jac=0, nfev=fcalls[0], njev=0,
+    result = Result(fun=0, jac=0, nfev=fcalls[0], njev=0,
                     nhev=hcalls, status=warnflag, success=(warnflag == 0),
                     message=msg, x=xk)
     if retall:
