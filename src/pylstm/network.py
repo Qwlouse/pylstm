@@ -68,7 +68,7 @@ class Network(object):
             self.weight_manager.initialize_buffer(pw.Buffer(buffer_view))
 
     def get_param_buffer(self):
-        return self.weight_manager.buffer
+        return self.weight_manager.buffer.as_array()
 
     def set_buffer_manager_dimensions(self, t, b):
         self.intern_manager.set_dimensions(t, b)
@@ -201,4 +201,4 @@ class Network(object):
         self.forward_pass(input_buffer)
         self.r_forward_pass(input_buffer, v_buffer)
         self.r_backward_pass(T, lambda_, mu)
-        return self.calc_gradient().as_array()
+        return self.calc_gradient()

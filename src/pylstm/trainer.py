@@ -172,12 +172,18 @@ class CgTrainer(object):
 if __name__ == "__main__":
     from netbuilder import NetworkBuilder
     from layers import LstmLayer, RegularLayer
+
+    numbatches = 1
+    numtimesteps = 5
+    numIn = 4
+    numOut = 3
+
     netb = NetworkBuilder()
     netb.input(4) >> LstmLayer(3) >> netb.output
     net = netb.build()
     weight = rnd.randn(net.get_param_size())
     net.set_param_buffer(weight.copy())
     trainer = CgTrainer(learning_rate=0.01)
-    X = rnd.randn(1, 5, 4)
-    T = rnd.randn(1, 5, 3)
+    X = rnd.randn(numtimesteps, numbatches,  numIn)
+    T = rnd.randn(numtimesteps, numbatches, numOut)
     trainer.train(net, X, T, epochs=10)

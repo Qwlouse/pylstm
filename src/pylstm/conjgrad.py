@@ -1264,7 +1264,7 @@ def fmin_ncg(f, x0, gradient, fhess_p=None, fhess=None, args=(), avextol=1e-5,
             return res['x']
 
 def _minimize_newtoncg(fun, x0, args=(), gradient=0, hess=None, hessp=None,
-                       callback=None, xtol=1e-5, eps=_epsilon, maxiter=None,
+                       callback=None, xtol=1e-5, eps=_epsilon, maxiter=300,
                        disp=False, return_all=False,
                        **unknown_options):
     """
@@ -1302,11 +1302,10 @@ def _minimize_newtoncg(fun, x0, args=(), gradient=0, hess=None, hessp=None,
     fcalls, f = wrap_function(f, args)
     #gcalls, fprime = wrap_function(fprime, args)
     hcalls = 0
-    if maxiter is None:
-        maxiter = 300
 
     xtol = len(x0)*avextol
     update = [2*xtol]
+
     xk = x0
     if retall:
         allvecs = [xk]
@@ -1317,6 +1316,7 @@ def _minimize_newtoncg(fun, x0, args=(), gradient=0, hess=None, hessp=None,
     maggrad = numpy.add.reduce(numpy.abs(b))
     eta = numpy.min([0.5, numpy.sqrt(maggrad)])
     termcond = eta * maggrad
+
     xsupi = zeros(len(x0), dtype=x0.dtype)
     ri = asarray(fhess_p(x0)).squeeze() - b
     psupi = -ri
