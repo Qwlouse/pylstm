@@ -24,11 +24,11 @@ class ErrorFunction(object):
 class MeanSquaredError(ErrorFunction):
     def evaluate(self, Y, T):
         Y = ensure_np_array(Y)
-        return 0.5 * np.sum((Y - T) ** 2)
+        return 0.5 * np.sum((Y - T) ** 2) / Y.shape[1]
 
     def deriv(self, Y, T):
         Y = ensure_np_array(Y)
-        return Y - T
+        return (Y - T) / Y.shape[1]
 
 
 class CrossEntropyError(object):
@@ -36,14 +36,14 @@ class CrossEntropyError(object):
         Y = ensure_np_array(Y)
         Y[Y < 1e-6] = 1e-6
         cee = T * np.log(Y)
-        return - np.sum(cee)
+        return - np.sum(cee) / Y.shape[1]
 
     def evaluate(self, Y, T):
         return self(Y, T)
 
     def deriv(self, Y, T):
         Y = ensure_np_array(Y)
-        return - T / Y
+        return (- T / Y) / Y.shape[1]
 
 
 class Accuracy(object):
