@@ -5,7 +5,7 @@ cimport c_matrix as cm
 from cython.operator cimport dereference as deref
 from py_matrix cimport Matrix
 
-cdef class BufferContainer:
+cdef class ViewContainer:
     cdef cl.ViewContainer* this_ptr
     
     def __cinit__(self):
@@ -49,8 +49,8 @@ cdef class BufferContainer:
 
 
 
-cdef create_BufferContainer(cl.ViewContainer* c):
-    bc = BufferContainer()
+cdef create_ViewContainer(cl.ViewContainer* c):
+    bc = ViewContainer()
     bc.this_ptr = c
     return bc
 
@@ -97,29 +97,29 @@ cdef class BaseLayer:
 
     def create_param_view(self, Matrix param_buffer, time_length=1, batch_size=1):
         cdef cl.ViewContainer* params = self.layer.create_parameter_view(param_buffer.view)
-        return create_BufferContainer(params)
+        return create_ViewContainer(params)
         
     def create_internal_view(self, Matrix internal_buffer, time_length=1, batch_size=1):
         cdef cl.ViewContainer* internal = self.layer.create_fwd_state_view(internal_buffer.view, batch_size, time_length)
-        return create_BufferContainer(internal)
+        return create_ViewContainer(internal)
 
     def create_internal_error_view(self, Matrix internal_error_buffer, time_length=1, batch_size=1):
         cdef cl.ViewContainer* deltas = self.layer.create_bwd_state_view(internal_error_buffer.view, batch_size, time_length)
-        return create_BufferContainer(deltas)
+        return create_ViewContainer(deltas)
 
-    def forward(self, BufferContainer param, BufferContainer internal, Matrix in_view, Matrix out_view):
+    def forward(self, ViewContainer param, ViewContainer internal, Matrix in_view, Matrix out_view):
         self.layer.forward_pass(deref(param.this_ptr), deref(internal.this_ptr), in_view.view, out_view.view)
 
-    def backward(self, BufferContainer param, BufferContainer internal, BufferContainer err, Matrix out_view, Matrix in_deltas, Matrix out_deltas):
+    def backward(self, ViewContainer param, ViewContainer internal, ViewContainer err, Matrix out_view, Matrix in_deltas, Matrix out_deltas):
         self.layer.backward_pass(deref(param.this_ptr), deref(internal.this_ptr), deref(err.this_ptr), out_view.view, in_deltas.view, out_deltas.view)
 
-    def gradient(self, BufferContainer param, BufferContainer grad, BufferContainer internal, BufferContainer err, Matrix out_view, Matrix in_view, Matrix out_deltas):
+    def gradient(self, ViewContainer param, ViewContainer grad, ViewContainer internal, ViewContainer err, Matrix out_view, Matrix in_view, Matrix out_deltas):
         self.layer.gradient(deref(param.this_ptr), deref(grad.this_ptr), deref(internal.this_ptr), deref(err.this_ptr), out_view.view, in_view.view, out_deltas.view)
 
-    def Rpass(self, BufferContainer param, BufferContainer v,  BufferContainer internal, BufferContainer Rinternal, Matrix in_view, Matrix out_view, Matrix Rin_view, Matrix Rout_view):
+    def Rpass(self, ViewContainer param, ViewContainer v,  ViewContainer internal, ViewContainer Rinternal, Matrix in_view, Matrix out_view, Matrix Rin_view, Matrix Rout_view):
         self.layer.Rpass(deref(param.this_ptr), deref(v.this_ptr),  deref(internal.this_ptr), deref(Rinternal.this_ptr), in_view.view, out_view.view,Rin_view.view, Rout_view.view)
 
-    def Rbackward(self, BufferContainer param, BufferContainer internal, BufferContainer internal_deltas, Matrix in_deltas, Matrix out_deltas, BufferContainer Rinternal, double _lambda, double mu):
+    def Rbackward(self, ViewContainer param, ViewContainer internal, ViewContainer internal_deltas, Matrix in_deltas, Matrix out_deltas, ViewContainer Rinternal, double _lambda, double mu):
         self.layer.Rbackward(deref(param.this_ptr), deref(internal.this_ptr), deref(internal_deltas.this_ptr), in_deltas.view, out_deltas.view, deref(Rinternal.this_ptr), _lambda, mu)
 
 
