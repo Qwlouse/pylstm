@@ -79,7 +79,8 @@ class CgTrainer(object):
 
     def train(self, net, X, T, epochs=100, callback=print_error_per_epoch):
         weights = net.param_buffer.copy()
-
+        lambda_ = .1
+        rho = 1.0 / 30.0
         #run forward pass, output saved in out
         net.param_buffer = weights
         out = net.forward_pass(X)
@@ -124,12 +125,13 @@ class CgTrainer(object):
 
             def fhess_p(v):
                 #net.param_buffer = weights.as_array.copy()
-                return net.hessian_pass(X, v, lambda_=0., mu=0.).copy().flatten()
+                return net.hessian_pass(X, v, lambda_=.1, mu=1.0/30.0).copy().flatten() + lambda_ * v
 
             xopt, allvecs = fmin_ncg(f, v, grad, fhess_p=fhess_p, maxiter=150, retall=True, disp=True)
 
 
             ## backtrack #1
+            prevError = error
             idx = len(allvecs)-1
             lowError = float('Inf')
             for testW in reversed(allvecs):
@@ -151,10 +153,20 @@ class CgTrainer(object):
                 tmpError = net.calculate_error(T) / X.shape[1]
                 if tmpError < lowError:
                     finalDW = .9**j * bestDW
+                    lowError = tmpError
+
+            ## Levenberg-Marquardt heuristic
+            drop = 2.0 / 3.0
+            boost = 1/drop
+            denom = 0.5*(np.dot(finalDW, fhess_p(finalDW)) + np.dot(np.squeeze(grad), finalDW))
+            rho = (lowError - prevError)/denom
+            if rho < 0.25:
+                lambda_ = lambda_ * boost
+            elif rho > 0.75:
+                   lambda_ = lambda_ * drop
 
 
-
-            weights = np.squeeze(weights.copy()) + finalDW
+            weights = weights.copy() + finalDW
 
             #xopt, allvecs = fmin_ncg(f, np.zeros_like(weights), fprime, fhess_p=fhess_p, maxiter=50, retall=True, disp=True)
 
