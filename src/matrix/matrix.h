@@ -52,7 +52,7 @@ public:
 
 	inline d_type* get_data() const {return &data[offset];}
 
-	Matrix subslice(size_t start, size_t n_rows, size_t n_columns, size_t n_slices); // todo: rename
+	Matrix sub_matrix(size_t start, size_t n_rows, size_t n_columns, size_t n_slices);
 
 	Matrix slice(size_t slice_index);
 	Matrix slice(size_t start, size_t stop);

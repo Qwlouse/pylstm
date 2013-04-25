@@ -53,7 +53,7 @@ public:
             size_t rows = k->n_rows;
             size_t cols = k->n_columns;
             size_t slices = k->n_slices;
-            *k = buffer.subslice(offset, rows, cols, slices);
+            *k = buffer.sub_matrix(offset, rows, cols, slices);
             offset += k->size;
             ASSERT(offset <= buffer.size);
         }

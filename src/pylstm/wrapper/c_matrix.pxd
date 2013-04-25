@@ -17,7 +17,7 @@ cdef extern from "matrix.h":
         Matrix T()
         d_type& get(size_t row, size_t col, size_t slice)
         d_type* get_data()
-        Matrix subslice(size_t start, size_t n_rows, size_t n_columns, size_t n_slices)
+        Matrix sub_matrix(size_t start, size_t n_rows, size_t n_columns, size_t n_slices)
         Matrix slice(size_t slice_index)
         Matrix slice(size_t start, size_t stop)
         Matrix row_slice(size_t row_index)

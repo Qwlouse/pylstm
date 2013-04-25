@@ -182,7 +182,7 @@ Matrix Matrix::row_slice(size_t start_row, size_t stop_row)
 }
 
 
-Matrix Matrix::subslice(size_t start, size_t rows, size_t columns, size_t slices)
+Matrix Matrix::sub_matrix(size_t start, size_t rows, size_t columns, size_t slices)
 {
     ASSERT(stride == 0);
 	return Matrix(data, offset + start, 0, state, rows, columns, slices);

@@ -41,7 +41,7 @@ cdef class Matrix:
             stop = item.stop or self.get_time_size()
 
             b = Matrix()
-            b.view = self.view.subslice(start, self.view.n_rows, self.view.n_columns, stop-start)
+            b.view = self.view.sub_matrix(start, self.view.n_rows, self.view.n_columns, stop-start)
             b.A = self.A
             return b
             
@@ -63,7 +63,7 @@ cdef class Matrix:
             else:
                 assert start <= stop <= self.get_feature_size()
                 if start == stop:
-                    b.view = self.view.subslice(0, 0, 0, 0)
+                    b.view = self.view.sub_matrix(0, 0, 0, 0)
                 else:
                     b.view = self.view.row_slice(start, stop-1)
         return b
