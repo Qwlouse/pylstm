@@ -104,7 +104,7 @@ class NetworkTests(unittest.TestCase):
         self.activation_functions = ["linear", "tanh", "tanhx2", "sigmoid", "softmax"]
         self.X = rnd.randn(2, 7, self.input_size)
 
-    def test_lstm_forward_pass_insensitive_to_internal_state(self):
+    def test_lstm_forward_pass_insensitive_to_fwd_state(self):
         net = self.build_network(LstmLayer, "tanh")
         out1 = net.forward_pass(self.X).copy()
         net.fwd_state_manager.initialize_buffer(Matrix(rnd.randn(
@@ -112,17 +112,29 @@ class NetworkTests(unittest.TestCase):
         out2 = net.forward_pass(self.X).copy()
         self.assertTrue(np.allclose(out1, out2))
 
-    def test_lstm_backward_pass_insensitive_to_internal_deltas(self):
+    def test_lstm_backward_pass_insensitive_to_bwd_state(self):
         net = self.build_network(LstmLayer, "tanh")
         net.clear_internal_state()
         out1 = net.forward_pass(self.X).copy()
-        deltas1 = net.backward_pass(out1).copy()
-        net.fwd_state_manager.initialize_buffer(Matrix(rnd.randn(
-            net.fwd_state_manager.calculate_size())))
-        net.delta_manager.initialize_buffer(Matrix(rnd.randn(
-            net.delta_manager.calculate_size())))
+        deltas1 = net.backward_pass(np.zeros_like(out1)).copy()
+        bwstate1 = net.get_bwd_state_for('LstmLayer')
+        b1 = {}
+        for h in bwstate1.keys():
+            b1[h] = bwstate1[h].copy()
+
+        net.bwd_state_manager.initialize_buffer(Matrix(rnd.randn(
+            net.bwd_state_manager.calculate_size())))
         out2 = net.forward_pass(self.X).copy()
-        deltas2 = net.backward_pass(out2).copy()
+        deltas2 = net.backward_pass(np.zeros_like(out2)).copy()
+        bwstate2 = net.get_bwd_state_for('LstmLayer')
+        b2 = {}
+        for h in bwstate2.keys():
+            b2[h] = bwstate2[h].copy()
+
+        for b in b2:
+            print(b)
+            print(b1[b] - b2[b])
+
         self.assertTrue(np.allclose(deltas1, deltas2))
 
     def test_deltas_finite_differences(self):

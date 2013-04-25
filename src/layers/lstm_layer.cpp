@@ -161,7 +161,6 @@ void LstmLayer::backward(Parameters& w, FwdState& b, BwdState& d, Matrix&, Matri
             mult_add(w.OH.T(), d.Oa.slice(t+1), d.Hb.slice(t));
 
             //! \f$\frac{dE}{dS} += \frac{dE}{dS^{t+1}} * b_F(t+1)\f$
-            //dot_add(d.S.slice(t+1), b.Fb.slice(t+1), d.S.slice(t));
             dot(d.S.slice(t+1), b.Fb.slice(t+1), d.S.slice(t));
 
             //! \f$\frac{dE}{dS} += \frac{dE}{da_I(t+1)} * W_{IS}\f$
@@ -216,9 +215,12 @@ void LstmLayer::backward(Parameters& w, FwdState& b, BwdState& d, Matrix&, Matri
         dot(d.Ib.slice(t), d.tmp1.slice(t), d.Ia.slice(t));
 
         //! FORGET GATE DERIVS
-        if (t)
+        if (t) {
             //! \f$\frac{dE}{db_F} += \frac{dE}{dS} * s(t-1)\f$
             dot(d.S.slice(t), b.S.slice(t - 1), d.Fb.slice(t));
+        } else {
+            d.Fb.slice(t).set_all_elements_to(0.0);
+        }
 
         // \f$\frac{dE}{da_F} = \frac{dE}{db_F} * f'(a_F)\f$
         apply_sigmoid_deriv(b.Fb.slice(t), d.tmp1.slice(t));

@@ -67,10 +67,10 @@ class Network(object):
         return self.param_manager.get_source_view(name).as_array()
 
     def get_fwd_state_for(self, name):
-        return self.fwd_state_manager.get_source_view(name).as_array()
+        return self.fwd_state_manager.get_source_view(name)
 
     def get_bwd_state_for(self, name):
-        return self.bwd_state_manager.get_source_view(name).as_array()
+        return self.bwd_state_manager.get_source_view(name)
 
     def get_input_view_for(self, name):
         return self.in_out_manager.get_sink_view(name).as_array()

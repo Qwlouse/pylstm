@@ -126,9 +126,6 @@ cdef class Matrix:
             assert time_size >= 1
             assert batch_size >= 1
             feature_size = len(self) // (time_size * batch_size)
-        #assert time_size >= 1
-        #assert batch_size >= 1
-        #assert feature_size >= 1
         assert time_size * batch_size * feature_size == len(self)
         b = Matrix()
         b.A = self.A
@@ -151,9 +148,6 @@ cdef class Matrix:
 
 def dot(Matrix a not None, Matrix b not None, Matrix out not None):
     cm.dot(a.c_obj, b.c_obj, out.c_obj)
-
-#def add(MatrixCPU a not None, MatrixCPU b not None, MatrixCPU out not None):
-#    cm.add(a.view, b.view, out.view)
 
 def add_into_b(Matrix a not None, Matrix b not None):
     cm.add_into_b(a.c_obj, b.c_obj)
