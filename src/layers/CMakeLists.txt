@@ -4,6 +4,7 @@ ADD_LIBRARY(layers SHARED
             rev_layer.cpp
             lstm_layer.cpp
             rnn_layer.cpp
+            view_container.cpp
             )
 
 TARGET_LINK_LIBRARIES(layers ${MATLAB_LIBRARIES} core matrix)

@@ -1,75 +1,10 @@
 #pragma once
-#include "Core.h"
-#include <map>
 #include <string>
 #include <cxxabi.h>
 
-class ViewContainer {
-public:
-    ViewContainer() : size(0) {}
-
-    virtual ~ViewContainer() {}
-
-    Matrix notFound;
-
-
-    bool contains(const std::string& name) {
-        return views.count(name) >= 1;
-    }
-
-    Matrix& operator[](const std::string& name) {
-        if (contains(name)) {
-            return *views[name];
-        }
-        else {
-            return notFound;
-        }
-    }
-
-    std::vector<std::string> get_view_names() {
-        std::vector<std::string> view_names;
-        for(std::map<std::string,Matrix*>::iterator iter = views.begin(); iter != views.end(); ++iter)
-        {
-            view_names.push_back(iter->first);
-        }
-        return view_names;
-    }
-
-    size_t get_size() {
-        return size;
-    }
-
-    std::string get_typename() {
-        int status;
-        char* demangled = abi::__cxa_demangle(typeid(*this).name(),0,0,&status);
-        return std::string(demangled);
-    }
-
-    void lay_out(Matrix& buffer) {
-        size_t offset = 0;
-        for(std::map<std::string,Matrix*>::iterator iter = views.begin(); iter != views.end(); ++iter)
-        {
-            Matrix* k =  iter->second;
-            size_t rows = k->n_rows;
-            size_t cols = k->n_columns;
-            size_t slices = k->n_slices;
-            *k = buffer.sub_matrix(offset, rows, cols, slices);
-            offset += k->size;
-            ASSERT(offset <= buffer.size);
-        }
-        size = offset;
-    }
-
-protected:
-    void add_view(const std::string& name, Matrix* view) {
-        views[name] = view;
-        size += view->size;
-    }
-
-private:
-    std::map<std::string, Matrix*> views;
-    size_t size;
-};
+#include "Core.h"
+#include "matrix/matrix.h"
+#include "view_container.h"
 
 
 class BaseLayer {

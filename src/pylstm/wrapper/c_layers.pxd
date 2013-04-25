@@ -20,7 +20,7 @@ cdef extern from "lstm_layer.h":
         LstmLayer()
         LstmLayer(ActivationFunction* f)
 
-cdef extern from "layer.hpp":
+cdef extern from "view_container.h":
     cppclass ViewContainer:
         ViewContainer()
         int contains(string name)
@@ -29,7 +29,7 @@ cdef extern from "layer.hpp":
         size_t get_size()
         string get_typename()
 
-
+cdef extern from "layer.hpp":
     cppclass BaseLayer:
         size_t in_size
         size_t out_size
