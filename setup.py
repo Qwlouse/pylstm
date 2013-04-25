@@ -9,4 +9,5 @@ setup(
     version="0.1",
     packages=['pylstm', 'pylstm.wrapper'],
     package_data={'pylstm.wrapper': ['*.so']},
+    requires=['numpy', 'scipy'],
 )

@@ -13,6 +13,7 @@ import numpy as np
 
 rnd = np.random.RandomState(12345)
 
+
 def check_gradient(net, X=None):
     X = rnd.randn(net.get_input_size() * 2)
 
