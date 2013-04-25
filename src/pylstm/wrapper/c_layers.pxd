@@ -1,33 +1,29 @@
-from c_matrix cimport Matrix, ActivationFunction
+from c_matrix cimport Matrix, ActivationFunction, ViewContainer
 from libcpp.string cimport string
-from libcpp.vector cimport vector
+
+
 cdef extern from "fwd_layer.h":
     cppclass RegularLayer:
         RegularLayer()
         RegularLayer(ActivationFunction* f)
 
+
 cdef extern from "rev_layer.h":
     cppclass ReverseLayer:
         ReverseLayer()
+
 
 cdef extern from "rnn_layer.h":
     cppclass RnnLayer:
         RnnLayer()
         RnnLayer(ActivationFunction* f)
 
+
 cdef extern from "lstm_layer.h":
     cppclass LstmLayer:
         LstmLayer()
         LstmLayer(ActivationFunction* f)
 
-cdef extern from "view_container.h":
-    cppclass ViewContainer:
-        ViewContainer()
-        int contains(string name)
-        Matrix& operator[](string name)
-        vector[string] get_view_names()
-        size_t get_size()
-        string get_typename()
 
 cdef extern from "layer.hpp":
     cppclass BaseLayer:

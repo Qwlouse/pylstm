@@ -1,4 +1,7 @@
 from libcpp cimport bool
+from libcpp.string cimport string
+from libcpp.vector cimport vector
+
 
 cdef extern from "matrix.h":
     ctypedef double d_type
@@ -24,7 +27,6 @@ cdef extern from "matrix.h":
         Matrix row_slice(size_t start_row, size_t stop_row)
         void set_all_elements_to(d_type value)
         void print_me()
-
 
 
 cdef extern from "matrix_operation.h":
@@ -60,3 +62,13 @@ cdef extern from "matrix_operation.h":
     void apply_tanhx2(Matrix a, Matrix out)
 
     bool equals(Matrix a, Matrix out)
+
+
+cdef extern from "view_container.h":
+    cppclass ViewContainer:
+        ViewContainer()
+        int contains(string name)
+        Matrix& operator[](string name)
+        vector[string] get_view_names()
+        size_t get_size()
+        string get_typename()

@@ -1,7 +1,8 @@
 # The matrix library
 ADD_LIBRARY(matrix SHARED
             matrix.cpp
-            matrix_operation.cpp)
+            matrix_operation.cpp
+            view_container.cpp)
 
 TARGET_LINK_LIBRARIES(matrix ${MATLAB_LIBRARIES} core)
 
