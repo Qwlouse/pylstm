@@ -1,7 +1,7 @@
 #pragma once
 
 #include "matrix/matrix.h"
-#include "matrix/view_container.h"
+#include "matrix/matrix_container.h"
 
 
 class ReverseLayer {
@@ -9,17 +9,17 @@ public:
 	ReverseLayer();
 	~ReverseLayer();
 
-	class Parameters : public ::ViewContainer {
+	class Parameters : public ::MatrixContainer {
 	public:
 	    Parameters(size_t n_inputs, size_t n_cells);
 	};
 
-	class FwdState : public ::ViewContainer {
+	class FwdState : public ::MatrixContainer {
 	public:
 	    FwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
 	};
 
-	class BwdState: public ::ViewContainer {
+	class BwdState: public ::MatrixContainer {
 	public:
 	    BwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
 	};

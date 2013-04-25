@@ -1,13 +1,13 @@
-#include "view_container.h"
+#include "matrix_container.h"
 
 #include <cxxabi.h>
 #include "Core.h"
 
-bool ViewContainer::contains(const std::string& name) {
+bool MatrixContainer::contains(const std::string& name) {
     return views.count(name) >= 1;
 }
 
-Matrix& ViewContainer::operator[](const std::string& name) {
+Matrix& MatrixContainer::operator[](const std::string& name) {
     if (contains(name)) {
         return *views[name];
     }
@@ -16,7 +16,7 @@ Matrix& ViewContainer::operator[](const std::string& name) {
     }
 }
 
-std::vector<std::string> ViewContainer::get_view_names() {
+std::vector<std::string> MatrixContainer::get_view_names() {
     std::vector<std::string> view_names;
     for(std::map<std::string,Matrix*>::iterator iter = views.begin(); iter != views.end(); ++iter)
     {
@@ -25,17 +25,17 @@ std::vector<std::string> ViewContainer::get_view_names() {
     return view_names;
 }
 
-size_t ViewContainer::get_size() {
+size_t MatrixContainer::get_size() {
     return size;
 }
 
-std::string ViewContainer::get_typename() {
+std::string MatrixContainer::get_typename() {
     int status;
     char* demangled = abi::__cxa_demangle(typeid(*this).name(),0,0,&status);
     return std::string(demangled);
 }
 
-void ViewContainer::lay_out(Matrix& buffer) {
+void MatrixContainer::lay_out(Matrix& buffer) {
     size_t offset = 0;
     for(std::map<std::string,Matrix*>::iterator iter = views.begin(); iter != views.end(); ++iter)
     {
@@ -50,7 +50,7 @@ void ViewContainer::lay_out(Matrix& buffer) {
     size = offset;
 }
 
-void ViewContainer::add_view(const std::string& name, Matrix* view) {
+void MatrixContainer::add_view(const std::string& name, Matrix* view) {
     views[name] = view;
     size += view->size;
 }

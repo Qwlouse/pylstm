@@ -64,9 +64,9 @@ cdef extern from "matrix_operation.h":
     bool equals(Matrix a, Matrix out)
 
 
-cdef extern from "view_container.h":
-    cppclass ViewContainer:
-        ViewContainer()
+cdef extern from "matrix_container.h":
+    cppclass MatrixContainer:
+        MatrixContainer()
         int contains(string name)
         Matrix& operator[](string name)
         vector[string] get_view_names()

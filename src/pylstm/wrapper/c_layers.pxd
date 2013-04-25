@@ -1,4 +1,4 @@
-from c_matrix cimport Matrix, ActivationFunction, ViewContainer
+from c_matrix cimport Matrix, ActivationFunction, MatrixContainer
 from libcpp.string cimport string
 
 
@@ -40,21 +40,21 @@ cdef extern from "layer.hpp":
 
         size_t get_bwd_state_size(size_t n_batches, size_t n_slices) except +
 
-        ViewContainer* create_parameter_view(Matrix& w) except +
+        MatrixContainer* create_parameter_view(Matrix& w) except +
 
-        ViewContainer* create_fwd_state_view(Matrix&b, size_t n_batches, size_t n_slices) except +
+        MatrixContainer* create_fwd_state_view(Matrix&b, size_t n_batches, size_t n_slices) except +
 
-        ViewContainer* create_bwd_state_view(Matrix&b, size_t n_batches, size_t n_slices) except +
+        MatrixContainer* create_bwd_state_view(Matrix&b, size_t n_batches, size_t n_slices) except +
 
-        void forward_pass(ViewContainer& w, ViewContainer& b, Matrix& x, Matrix& y) except +
+        void forward_pass(MatrixContainer& w, MatrixContainer& b, Matrix& x, Matrix& y) except +
 
-        void backward_pass(ViewContainer &w, ViewContainer &b, ViewContainer &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas) except +
+        void backward_pass(MatrixContainer &w, MatrixContainer &b, MatrixContainer &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas) except +
 
-        void gradient(ViewContainer &w, ViewContainer &grad, ViewContainer &b, ViewContainer &d, Matrix &y, Matrix& x, Matrix &out_deltas) except +
+        void gradient(MatrixContainer &w, MatrixContainer &grad, MatrixContainer &b, MatrixContainer &d, Matrix &y, Matrix& x, Matrix &out_deltas) except +
 
-        void Rpass(ViewContainer &w, ViewContainer &v,  ViewContainer &b, ViewContainer &Rb, Matrix &x, Matrix &y, Matrix& Rx, Matrix &Ry) except +
+        void Rpass(MatrixContainer &w, MatrixContainer &v,  MatrixContainer &b, MatrixContainer &Rb, Matrix &x, Matrix &y, Matrix& Rx, Matrix &Ry) except +
 
-        void Rbackward(ViewContainer &w, ViewContainer &b, ViewContainer &d, Matrix &in_deltas, Matrix &out_deltas, ViewContainer &Rb, double _lambda, double mu) except +
+        void Rbackward(MatrixContainer &w, MatrixContainer &b, MatrixContainer &d, Matrix &in_deltas, Matrix &out_deltas, MatrixContainer &Rb, double _lambda, double mu) except +
 
 
     cppclass Layer[L]:

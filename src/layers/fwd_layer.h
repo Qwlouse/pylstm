@@ -4,7 +4,7 @@
 
 #include "matrix/matrix.h"
 #include "matrix/matrix_operation.h"
-#include "matrix/view_container.h"
+#include "matrix/matrix_container.h"
 
 
 class RegularLayer {
@@ -14,7 +14,7 @@ public:
 	explicit RegularLayer(const ActivationFunction* f);
 	~RegularLayer();
 
-	class Parameters : public ::ViewContainer {
+	class Parameters : public ::MatrixContainer {
 	public:
 		size_t n_inputs, n_cells;
 		///Variables defining sizes
@@ -24,7 +24,7 @@ public:
 		Parameters(size_t n_inputs, size_t n_cells);
 	};
 
-	class FwdState : public ::ViewContainer{
+	class FwdState : public ::MatrixContainer {
 	public:
 		///Variables defining sizes
 		size_t n_inputs, n_cells;
@@ -35,7 +35,8 @@ public:
 		FwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
 	};
 
-	struct BwdState: public ::ViewContainer {
+	class BwdState: public ::MatrixContainer {
+	public:
 		///Variables defining sizes
 		size_t n_inputs, n_cells;
 		size_t n_batches, time;

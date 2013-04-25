@@ -1,11 +1,10 @@
 #!/usr/bin/python
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
-cimport c_layers as cl
 from py_matrix cimport Matrix
 
 
-cdef class ViewContainer:
+cdef class MatrixContainer:
     def __cinit__(self):
         self.this_ptr = NULL
 

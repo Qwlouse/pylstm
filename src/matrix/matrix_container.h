@@ -6,11 +6,11 @@
 #include "matrix/matrix.h"
 
 
-class ViewContainer {
+class MatrixContainer {
 public:
-    ViewContainer() : size(0) {}
+    MatrixContainer() : size(0) {}
 
-    virtual ~ViewContainer() {}
+    virtual ~MatrixContainer() {}
 
     Matrix notFound;
 

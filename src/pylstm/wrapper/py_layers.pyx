@@ -4,7 +4,7 @@ cimport c_layers as cl
 cimport c_matrix as cm
 from cython.operator cimport dereference as deref
 from py_matrix cimport Matrix
-from py_view_container cimport create_ViewContainer, ViewContainer
+from py_matrix_container cimport create_MatrixContainer, MatrixContainer
 
 
 cdef class BaseLayer:
@@ -48,30 +48,30 @@ cdef class BaseLayer:
         return output_buffer.reshape(time_length, batch_size, self.layer.out_size)
 
     def create_param_view(self, Matrix param_buffer, time_length=1, batch_size=1):
-        cdef cl.ViewContainer* params = self.layer.create_parameter_view(param_buffer.c_obj)
-        return create_ViewContainer(params)
+        cdef cm.MatrixContainer* params = self.layer.create_parameter_view(param_buffer.c_obj)
+        return create_MatrixContainer(params)
         
     def create_fwd_state(self, Matrix fwd_state_buffer, time_length=1, batch_size=1):
-        cdef cl.ViewContainer* fwd_state = self.layer.create_fwd_state_view(fwd_state_buffer.c_obj, batch_size, time_length)
-        return create_ViewContainer(fwd_state)
+        cdef cm.MatrixContainer* fwd_state = self.layer.create_fwd_state_view(fwd_state_buffer.c_obj, batch_size, time_length)
+        return create_MatrixContainer(fwd_state)
 
     def create_bwd_state(self, Matrix bwd_state_buffer, time_length=1, batch_size=1):
-        cdef cl.ViewContainer* bwd_state = self.layer.create_bwd_state_view(bwd_state_buffer.c_obj, batch_size, time_length)
-        return create_ViewContainer(bwd_state)
+        cdef cm.MatrixContainer* bwd_state = self.layer.create_bwd_state_view(bwd_state_buffer.c_obj, batch_size, time_length)
+        return create_MatrixContainer(bwd_state)
 
-    def forward(self, ViewContainer param, ViewContainer fwd_state, Matrix in_view, Matrix out_view):
+    def forward(self, MatrixContainer param, MatrixContainer fwd_state, Matrix in_view, Matrix out_view):
         self.layer.forward_pass(deref(param.this_ptr), deref(fwd_state.this_ptr), in_view.c_obj, out_view.c_obj)
 
-    def backward(self, ViewContainer param, ViewContainer fwd_state, ViewContainer err, Matrix out_view, Matrix in_deltas, Matrix out_deltas):
+    def backward(self, MatrixContainer param, MatrixContainer fwd_state, MatrixContainer err, Matrix out_view, Matrix in_deltas, Matrix out_deltas):
         self.layer.backward_pass(deref(param.this_ptr), deref(fwd_state.this_ptr), deref(err.this_ptr), out_view.c_obj, in_deltas.c_obj, out_deltas.c_obj)
 
-    def gradient(self, ViewContainer param, ViewContainer grad, ViewContainer fwd_state, ViewContainer err, Matrix out_view, Matrix in_view, Matrix out_deltas):
+    def gradient(self, MatrixContainer param, MatrixContainer grad, MatrixContainer fwd_state, MatrixContainer err, Matrix out_view, Matrix in_view, Matrix out_deltas):
         self.layer.gradient(deref(param.this_ptr), deref(grad.this_ptr), deref(fwd_state.this_ptr), deref(err.this_ptr), out_view.c_obj, in_view.c_obj, out_deltas.c_obj)
 
-    def Rpass(self, ViewContainer param, ViewContainer v,  ViewContainer fwd_state, ViewContainer r_fwd_state, Matrix in_view, Matrix out_view, Matrix Rin_view, Matrix Rout_view):
+    def Rpass(self, MatrixContainer param, MatrixContainer v,  MatrixContainer fwd_state, MatrixContainer r_fwd_state, Matrix in_view, Matrix out_view, Matrix Rin_view, Matrix Rout_view):
         self.layer.Rpass(deref(param.this_ptr), deref(v.this_ptr),  deref(fwd_state.this_ptr), deref(r_fwd_state.this_ptr), in_view.c_obj, out_view.c_obj,Rin_view.c_obj, Rout_view.c_obj)
 
-    def Rbackward(self, ViewContainer param, ViewContainer fwd_state, ViewContainer bwd_state, Matrix in_deltas, Matrix out_deltas, ViewContainer r_fwd_state, double _lambda, double mu):
+    def Rbackward(self, MatrixContainer param, MatrixContainer fwd_state, MatrixContainer bwd_state, Matrix in_deltas, Matrix out_deltas, MatrixContainer r_fwd_state, double _lambda, double mu):
         self.layer.Rbackward(deref(param.this_ptr), deref(fwd_state.this_ptr), deref(bwd_state.this_ptr), in_deltas.c_obj, out_deltas.c_obj, deref(r_fwd_state.this_ptr), _lambda, mu)
 
 
