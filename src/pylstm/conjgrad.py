@@ -1397,8 +1397,8 @@ def _minimize_newtoncg(fun, x0, args=(), gradient=0, hess=None, hessp=None,
         if disp:
             print("Warning: " + msg)
             print("         Iterations: %d" % k)
-            print("         Function evaluations: %d" % fcalls[0])
-            print("         Gradient evaluations: %d" % 0)
+            #print("         Function evaluations: %d" % fcalls[0])
+            #print("         Gradient evaluations: %d" % 0)
             print("         Hessian evaluations: %d" % hcalls)
     else:
         warnflag = 0
@@ -1406,8 +1406,9 @@ def _minimize_newtoncg(fun, x0, args=(), gradient=0, hess=None, hessp=None,
         if disp:
             print(msg)
             print("         Iterations: %d" % k)
-            print("         Function evaluations: %d" % fcalls[0])
-            print("         Gradient evaluations: %d" % 0)
+
+            #print("         Function evaluations: %d" % fcalls[0])
+            #print("         Gradient evaluations: %d" % 0)
             print("         Hessian evaluations: %d" % hcalls)
 
     result = Result(fun=0, jac=0, nfev=fcalls[0], njev=0,
