@@ -1,7 +1,7 @@
 #pragma once
 
 #include "matrix/matrix.h"
-#include "layer.hpp"
+#include "view_container.h"
 
 
 class ReverseLayer {

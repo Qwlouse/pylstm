@@ -1,9 +1,10 @@
 #pragma once
 
+#include <iostream>
+
 #include "matrix/matrix.h"
 #include "matrix/matrix_operation.h"
-#include <iostream>
-#include "layer.hpp"
+#include "view_container.h"
 
 
 class RegularLayer {
@@ -50,6 +51,3 @@ public:
     void Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb, Matrix &x, Matrix &y, Matrix& Rx, Matrix &Ry);
     void Rbackward(Parameters &w, FwdState &b, BwdState &d, Matrix &in_deltas, Matrix &out_deltas, FwdState &Rb, double lambda, double mu);
 };
-
-typedef Layer<RegularLayer> RLayer;
-

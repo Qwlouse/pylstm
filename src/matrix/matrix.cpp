@@ -1,7 +1,10 @@
 #include "matrix.h"
+
 #include <algorithm>
-#include "Core.h"
 #include <iostream>
+
+#include "Core.h"
+
 using std::cout;
 
 template<typename T>

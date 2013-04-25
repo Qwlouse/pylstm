@@ -1,9 +1,10 @@
 #pragma once
 
+#include <iostream>
+
 #include "matrix/matrix.h"
 #include "matrix/matrix_operation.h"
-#include <iostream>
-#include "layer.hpp"
+#include "view_container.h"
 
 class RnnLayer {
 public:

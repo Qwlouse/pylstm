@@ -1,6 +1,6 @@
 // Copyright 2011 by Klaus Greff.
 // All rights reserved.
-
+#include <iostream>
 #include <stdexcept>
 #include <string>
 
@@ -8,8 +8,6 @@
 #include <gtest/gtest-typed-test.h>
 
 #include "Core.h"
-
-#include <iostream>
 
 int dummy = (core::setUpLogging(), 1);
 

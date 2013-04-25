@@ -1,8 +1,10 @@
-
 #include "lstm_layer.h"
-#include "matrix/matrix_operation.h"
+
 #include <iostream>
 #include <vector>
+
+#include "Core.h"
+#include "matrix/matrix_operation.h"
 
 
 LstmLayer::LstmLayer():

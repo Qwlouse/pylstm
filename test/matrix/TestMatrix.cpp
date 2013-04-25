@@ -1,6 +1,7 @@
-#include <string>
 #include <iostream>
+#include <string>
 #include <vector>
+
 #include <gtest/gtest.h>
 
 #include "Config.h"

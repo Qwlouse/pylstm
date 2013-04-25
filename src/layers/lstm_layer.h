@@ -1,9 +1,10 @@
 #pragma once
 
+#include <iostream>
+
 #include "matrix/matrix.h"
 #include "matrix/matrix_operation.h"
-#include "layer.hpp"
-#include <iostream>
+#include "view_container.h"
 
 
 class LstmLayer {

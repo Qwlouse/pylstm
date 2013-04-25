@@ -1,7 +1,9 @@
 #include "fwd_layer.h"
-#include "matrix/matrix_operation.h"
+
 #include <vector>
+
 #include "Core.h"
+#include "matrix/matrix_operation.h"
 
 using std::vector;
 

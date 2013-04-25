@@ -3,12 +3,13 @@
 
 #include "matrix.h"
 
-#include <string>
 #include <algorithm>
-#include <numeric>
-#include <math.h>
-#include <blas.h>
+#include <cmath>
 #include <cstddef>
+#include <numeric>
+#include <string>
+
+#include <blas.h>
 
 
 ///Compare two matrices

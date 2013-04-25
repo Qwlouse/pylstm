@@ -1,8 +1,9 @@
 #pragma once
-#include <boost/shared_array.hpp>
 #include <cstddef>
-#include <vector>
 #include <initializer_list>
+#include <vector>
+
+#include <boost/shared_array.hpp>
 
 enum MatrixState {
 	NORMAL,

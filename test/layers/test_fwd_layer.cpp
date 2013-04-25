@@ -1,11 +1,13 @@
+#include <iostream>
+
 #include <gtest/gtest.h>
 
 #include "Config.h"
 #include "Core.h"
-
 #include "layers/fwd_layer.h"
+#include "layers/layer.hpp"
 #include "matrix/matrix_operation.h"
-#include <iostream>
+
 using namespace std;
 
 TEST(FwdLayerTest, FwdParameterConstruction)
@@ -55,7 +57,7 @@ TEST(FwdLayerTest, fwd_pass)
 
 TEST(FwdLayerTest, layer_wrapper)
 {
-	RLayer L(5, 4);
+	Layer<RegularLayer> L(5, 4);
 
 	Matrix W(1, 1, L.get_weight_size());
 	Matrix X(L.in_size, 3, 2);
