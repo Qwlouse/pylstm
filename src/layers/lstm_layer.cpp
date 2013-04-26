@@ -352,7 +352,7 @@ void LstmLayer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb, 
 
 
 //instead of normal deltas buffer, pass in empty Rdeltas buffer, and instead of out_deltas, pass in the Ry value calculated by the Rfwd pass
-void LstmLayer::Rbackward(Parameters &w, FwdState &b, BwdState &d, Matrix &in_deltas, Matrix &out_deltas, FwdState &Rb, double lambda, double mu) {
+void LstmLayer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Matrix& y, Matrix &in_deltas, Matrix &out_deltas, FwdState &Rb, double lambda, double mu) {
 
   int end_time = static_cast<int>(b.time - 1);
   mu = 0;

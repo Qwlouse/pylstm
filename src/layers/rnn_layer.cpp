@@ -163,8 +163,8 @@ void RnnLayer::Rpass(Parameters& w, Parameters& v,  FwdState& b, FwdState& Rb, M
 
 }
 
-void RnnLayer::Rbackward(Parameters&, FwdState&, BwdState&, Matrix&, Matrix&, FwdState&, double, double)
+void RnnLayer::dampened_backward(Parameters& w, FwdState& b, BwdState& d, Matrix& y, Matrix& in_deltas, Matrix& out_deltas, FwdState&, double, double)
 {
-    THROW(core::NotImplementedException("Rbackward pass not implemented yet."));
+    backward(w, b, d, y, in_deltas, out_deltas);
 }
 

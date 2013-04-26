@@ -73,7 +73,7 @@ void ReverseLayer::Rpass(Parameters&, Parameters&,  FwdState&, FwdState&, Matrix
     reverse(Rx, Ry);
 }
 
-void ReverseLayer::Rbackward(Parameters&, FwdState&, BwdState&, Matrix& in_deltas, Matrix& out_deltas, FwdState&, double, double)
+void ReverseLayer::dampened_backward(Parameters& w, FwdState& b, BwdState& d, Matrix& y, Matrix& in_deltas, Matrix& out_deltas, FwdState&, double, double)
 {
-    reverse(out_deltas, in_deltas);
+    backward(w, b, d, y, in_deltas, out_deltas);
 }

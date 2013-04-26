@@ -54,7 +54,7 @@ cdef extern from "layer.hpp":
 
         void Rpass(MatrixContainer &w, MatrixContainer &v,  MatrixContainer &b, MatrixContainer &Rb, Matrix &x, Matrix &y, Matrix& Rx, Matrix &Ry) except +
 
-        void Rbackward(MatrixContainer &w, MatrixContainer &b, MatrixContainer &d, Matrix &in_deltas, Matrix &out_deltas, MatrixContainer &Rb, double _lambda, double mu) except +
+        void dampened_backward(MatrixContainer &w, MatrixContainer &b, MatrixContainer &d,Matrix &y, Matrix &in_deltas, Matrix &out_deltas, MatrixContainer &Rb, double _lambda, double mu) except +
 
 
     cppclass Layer[L]:

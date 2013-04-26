@@ -145,7 +145,7 @@ void RegularLayer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &R
     f->apply_deriv(y, Rb.Ha, Ry);
 }
 
-void RegularLayer::Rbackward(Parameters&, FwdState&, BwdState&, Matrix&, Matrix&, FwdState&, double, double)
+void RegularLayer::dampened_backward(Parameters& w, FwdState& b, BwdState& d, Matrix& y, Matrix& in_deltas, Matrix& out_deltas, FwdState&, double, double)
 {
-    THROW(core::NotImplementedException("Rbackward pass not implemented yet."));
+    backward(w, b, d, y, in_deltas, out_deltas);
 }

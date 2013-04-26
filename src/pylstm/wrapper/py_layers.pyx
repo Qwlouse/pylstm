@@ -71,8 +71,8 @@ cdef class BaseLayer:
     def Rpass(self, MatrixContainer param, MatrixContainer v,  MatrixContainer fwd_state, MatrixContainer r_fwd_state, Matrix in_view, Matrix out_view, Matrix Rin_view, Matrix Rout_view):
         self.layer.Rpass(deref(param.this_ptr), deref(v.this_ptr),  deref(fwd_state.this_ptr), deref(r_fwd_state.this_ptr), in_view.c_obj, out_view.c_obj,Rin_view.c_obj, Rout_view.c_obj)
 
-    def Rbackward(self, MatrixContainer param, MatrixContainer fwd_state, MatrixContainer bwd_state, Matrix in_deltas, Matrix out_deltas, MatrixContainer r_fwd_state, double _lambda, double mu):
-        self.layer.Rbackward(deref(param.this_ptr), deref(fwd_state.this_ptr), deref(bwd_state.this_ptr), in_deltas.c_obj, out_deltas.c_obj, deref(r_fwd_state.this_ptr), _lambda, mu)
+    def dampened_backward(self, MatrixContainer param, MatrixContainer fwd_state, MatrixContainer bwd_state, Matrix y, Matrix in_deltas, Matrix out_deltas, MatrixContainer r_fwd_state, double _lambda, double mu):
+        self.layer.dampened_backward(deref(param.this_ptr), deref(fwd_state.this_ptr), deref(bwd_state.this_ptr), y.c_obj, in_deltas.c_obj, out_deltas.c_obj, deref(r_fwd_state.this_ptr), _lambda, mu)
 
 
     def __unicode__(self):

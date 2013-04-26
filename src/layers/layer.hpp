@@ -28,7 +28,7 @@ public:
     virtual void backward_pass(MatrixContainer& w, MatrixContainer& b, MatrixContainer& d, Matrix& y, Matrix& in_deltas, Matrix& out_deltas) = 0;
     virtual void gradient(MatrixContainer& w, MatrixContainer& grad, MatrixContainer& b, MatrixContainer& d, Matrix& y, Matrix& x, Matrix& out_deltas) = 0;
     virtual void Rpass(MatrixContainer &w, MatrixContainer &v,  MatrixContainer &b, MatrixContainer &Rb, Matrix &x, Matrix &y, Matrix& Rx, Matrix &Ry) = 0;
-    virtual void Rbackward(MatrixContainer &w, MatrixContainer &b, MatrixContainer &d, Matrix &in_deltas, Matrix &out_deltas, MatrixContainer &Rb, double lambda, double mu) = 0;
+    virtual void dampened_backward(MatrixContainer &w, MatrixContainer &b, MatrixContainer &d, Matrix& y, Matrix &in_deltas, Matrix &out_deltas, MatrixContainer &Rb, double lambda, double mu) = 0;
 };
 
 
@@ -140,12 +140,12 @@ public:
                 x, y, Rx, Ry);
     }
 
-    void Rbackward(MatrixContainer &w, MatrixContainer &b, MatrixContainer &d, Matrix &in_deltas, Matrix &out_deltas, MatrixContainer &Rb, double lambda, double mu) {
-        layer.Rbackward(
+    void dampened_backward(MatrixContainer &w, MatrixContainer &b, MatrixContainer &d, Matrix& y, Matrix &in_deltas, Matrix &out_deltas, MatrixContainer &Rb, double lambda, double mu) {
+        layer.dampened_backward(
                 dynamic_cast<typename L::Parameters&>(w),
                 dynamic_cast<typename L::FwdState&>(b),
                 dynamic_cast<typename L::BwdState&>(d),
-                in_deltas, out_deltas,
+                y, in_deltas, out_deltas,
                 dynamic_cast<typename L::FwdState&>(Rb),
                 lambda, mu);
     }
