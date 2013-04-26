@@ -12,7 +12,7 @@ nr_batches = 1
 nr_timesteps = 4
 
 netb = NetworkBuilder()
-netb.input(in_size) >> RegularLayer(out_size, act_func='sigmoid') >> netb.output
+netb.input(in_size) >> LstmLayer(out_size, act_func='linear') >> netb.output
 #netb.input(in_size) >>  RegularLayer(out_size, act_func='linear') >> netb.output
 net = netb.build()
 
