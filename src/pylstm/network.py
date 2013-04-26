@@ -64,7 +64,7 @@ class Network(object):
         return self.layers["Output"].get_input_size()
 
     def get_param_view_for(self, name):
-        return self.param_manager.get_source_view(name).as_array()
+        return self.param_manager.get_source_view(name)
 
     def get_fwd_state_for(self, name):
         return self.fwd_state_manager.get_source_view(name)
@@ -126,16 +126,15 @@ class Network(object):
     def calculate_error(self, T):
         return self.error_func.evaluate(self.out_buffer, T)
 
-    def backward_pass(self, T):
-        delta_buffer = self.error_func.deriv(self.out_buffer, T)
-        t, b, f = delta_buffer.shape
+    def pure_backpass(self, deltas):
+        t, b, f = deltas.shape
         # dims should already be set during forward_pass, but in any case...
         self.set_buffer_manager_dimensions(t, b)
         # clear all delta buffers
         self.delta_manager.clear_buffer()
         # inject delta_buffer
         out_view = self.delta_manager.get_sink_view("Output").as_array()
-        out_view[:] = delta_buffer
+        out_view[:] = deltas
         # execute all the intermediate layers backwards
         for n, l in self.layers.items()[-2:0:-1]:
             param = self.param_manager.get_source_view(n)
@@ -149,6 +148,10 @@ class Network(object):
             l.backward(param, fwd_state, bwd_state, out, delta_in, delta_out)
         # read the final delta buffer
         return self.delta_manager.get_source_view("Input").as_array()
+
+    def backward_pass(self, T):
+        delta_buffer = self.error_func.deriv(self.out_buffer, T)
+        return self.pure_backpass(delta_buffer)
 
     def calc_gradient(self):
         self.grad_manager.initialize_buffer(
@@ -201,6 +204,8 @@ class Network(object):
         t, b, f = delta_buffer.shape
         # dims should already be set during forward_pass, but in any case...
         self.set_buffer_manager_dimensions(t, b)
+        # clear all delta buffers
+        self.delta_manager.clear_buffer()
         # inject delta_buffer
         out_view = self.delta_manager.get_sink_view("Output").as_array()
         out_view[:] = delta_buffer
@@ -209,13 +214,16 @@ class Network(object):
             param = self.param_manager.get_source_view(n)
             fwd_state = self.fwd_state_manager.get_source_view(n)
             bwd_state = self.bwd_state_manager.get_source_view(n)
+            r_fwd_state = self.r_fwd_state_manager.get_source_view(n)
 
+            out = self.in_out_manager.get_source_view(n)
             delta_in = self.delta_manager.get_sink_view(n)
             delta_out = self.delta_manager.get_source_view(n)
-            out = self.in_out_manager.get_source_view(n)
-            l.backward(param, fwd_state, bwd_state, out, delta_in, delta_out)
-            # l.Rbackward(param, fwd_state, bwd_state, delta_in, delta_out, r_fwd_state, lambda_, mu)
-            # read the final delta buffer
+
+            #l.backward(param, fwd_state, bwd_state, out, delta_in, delta_out)
+            l.dampened_backward(param, fwd_state, bwd_state, out, delta_in, delta_out, r_fwd_state, lambda_, mu)
+
+        # read the final delta buffer
         return self.delta_manager.get_source_view("Input").as_array()
 
     def hessian_pass(self, input_buffer, v_buffer, lambda_=0., mu=0.):

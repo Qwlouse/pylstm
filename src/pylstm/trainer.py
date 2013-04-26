@@ -51,10 +51,10 @@ class RPropTrainer(object):
             net.backward_pass(deltas)
             grad = net.calc_gradient()
 
- 
+
             #calculate grad sign
             grad_sign = (grad > 0.0)
- 
+
             if not self.initialized:
                 self.last_grad_sign = grad_sign
                 self.stepsize = np.ones_like(grad_sign) * .00001
@@ -209,7 +209,7 @@ class CgTrainer(object):
 
 if __name__ == "__main__":
     from netbuilder import NetworkBuilder
-    from layers import LstmLayer, RegularLayer
+    from layers import LstmLayer, RegularLayer, RnnLayer
 
     numbatches = 1
     numtimesteps = 5
@@ -217,11 +217,12 @@ if __name__ == "__main__":
     numOut = 3
 
     netb = NetworkBuilder()
-    netb.input(4) >> LstmLayer(3) >> netb.output
+    netb.input(4) >> RegularLayer(3, act_func="linear") >> RegularLayer(3, act_func="linear") >> netb.output
     net = netb.build()
     weight = rnd.randn(net.get_param_size())
     net.param_buffer = weight.copy()
     trainer = CgTrainer(learning_rate=0.01)
+    #trainer = SgdTrainer(learning_rate=0.01)
     X = rnd.randn(numtimesteps, numbatches,  numIn)
     T = rnd.randn(numtimesteps, numbatches, numOut)
     trainer.train(net, X, T, epochs=10)

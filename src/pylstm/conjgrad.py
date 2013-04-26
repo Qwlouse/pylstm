@@ -1350,6 +1350,7 @@ def _minimize_newtoncg(fun, x0, args=(), gradient=0, hess=None, hessp=None,
         #if 0 <= curv <= 3*numpy.finfo(numpy.float64).eps:
         #    break
         if curv < 0:
+            print("NEGATIVE!!!!", curv)
             break
 
 
@@ -1380,7 +1381,7 @@ def _minimize_newtoncg(fun, x0, args=(), gradient=0, hess=None, hessp=None,
 
         if (k > testGap and (val - prevVal)/val < (tolerance * testGap) and k >= miniter):
             print("BREAK AT ITER: %d" %k  )
-            print("pAp: %d" %curv)
+            print("pAp: %f" %curv)
             break
 
 
