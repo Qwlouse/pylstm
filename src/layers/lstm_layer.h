@@ -15,8 +15,6 @@ public:
 
 	class Parameters : public MatrixContainer {
 	public:
-		size_t n_inputs, n_cells;
-
 		///Variables defining sizes
 		Matrix IX, IH, IS;  //!< inputs X, H, S to input gate I
 		Matrix FX, FH, FS;  //!< inputs X, H, S to forget gate F
@@ -30,10 +28,6 @@ public:
 
 	class FwdState : public MatrixContainer {
 	public:
-	  ///Variables defining sizes
-	  size_t n_inputs, n_cells;
-	  size_t n_batches, time;
-
 	  //Views on all activations
 	  Matrix Ia, Ib; //!< Input gate activation
 	  Matrix Fa, Fb; //!< forget gate activation
@@ -45,15 +39,11 @@ public:
 	  Matrix Hb;     //!< output of LSTM block
 	  Matrix tmp1;     //!< tmp varin  LSTM block
 
-	  FwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
+	  FwdState(size_t n_inputs, size_t n_cells, size_t n_batches, size_t time);
 	};
 
 	class BwdState : public MatrixContainer {
 	public:
-	  ///Variables defining sizes
-	  size_t n_inputs, n_cells;
-	  size_t n_batches, time;
-
 	  //Views on all activations
 	  Matrix Ia, Ib; //Input gate activation
 	  Matrix Fa, Fb; //forget gate activation
@@ -65,7 +55,7 @@ public:
 	  Matrix Hb;     //!< output of LSTM block
 	  Matrix tmp1;
 
-	  BwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
+	  BwdState(size_t n_inputs, size_t n_cells, size_t n_batches, size_t time);
 	};
 
 	void forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y);

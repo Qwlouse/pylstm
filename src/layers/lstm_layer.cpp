@@ -15,9 +15,7 @@ LstmLayer::LstmLayer(const ActivationFunction* f):
 	f(f)
 { }
 
-LstmLayer::Parameters::Parameters(size_t n_inputs_, size_t n_cells_) :
-    n_inputs(n_inputs_),
-    n_cells(n_cells_),
+LstmLayer::Parameters::Parameters(size_t n_inputs, size_t n_cells) :
     IX(NULL, n_cells, n_inputs, 1), IH(NULL, n_cells, n_cells, 1), IS(NULL, 1, n_cells, 1),
     FX(NULL, n_cells, n_inputs, 1), FH(NULL, n_cells, n_cells, 1), FS(NULL, 1, n_cells, 1),
     ZX(NULL, n_cells, n_inputs, 1), ZH(NULL, n_cells, n_cells, 1),
@@ -32,10 +30,7 @@ LstmLayer::Parameters::Parameters(size_t n_inputs_, size_t n_cells_) :
     add_view("I_bias", &I_bias); add_view("F_bias", &F_bias); add_view("Z_bias", &Z_bias); add_view("O_bias", &O_bias);
 }
 
-LstmLayer::FwdState::FwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_t time_) :
-    n_inputs(n_inputs_), n_cells(n_cells_),
-    n_batches(n_batches_), time(time_),
-
+LstmLayer::FwdState::FwdState(size_t, size_t n_cells, size_t n_batches, size_t time) :
     //Views on all activations
     Ia(NULL, n_cells, n_batches, time), Ib(NULL, n_cells, n_batches, time), //!< Input gate activation
     Fa(NULL, n_cells, n_batches, time), Fb(NULL, n_cells, n_batches, time), //!< forget gate activation
@@ -57,11 +52,7 @@ LstmLayer::FwdState::FwdState(size_t n_inputs_, size_t n_cells_, size_t n_batche
     add_view("tmp1", &tmp1);
 }
 
-LstmLayer::BwdState::BwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches_, size_t time_) :
-    ///Variables defining sizes
-    n_inputs(n_inputs_), n_cells(n_cells_),
-    n_batches(n_batches_), time(time_),
-
+LstmLayer::BwdState::BwdState(size_t, size_t n_cells, size_t n_batches, size_t time) :
     //Views on all activations
     Ia(n_cells, n_batches, time), Ib(n_cells, n_batches, time), //Input gate activation
     Fa(n_cells, n_batches, time), Fb(n_cells, n_batches, time), //forget gate activation
@@ -86,28 +77,12 @@ LstmLayer::BwdState::BwdState(size_t n_inputs_, size_t n_cells_, size_t n_batche
 
 
 void LstmLayer::forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y) {
-	size_t n_inputs = w.n_inputs;
-	size_t n_cells = w.n_cells;
-	size_t n_batches = b.n_batches;
-	size_t n_slices = b.time;
-	ASSERT(b.n_cells == n_cells);
-	ASSERT(b.n_inputs == n_inputs);
-
-	ASSERT(x.n_rows == n_inputs);
-	ASSERT(x.n_columns == n_batches);
-	ASSERT(x.n_slices == n_slices);
-
-	ASSERT(y.n_rows == n_cells);
-	ASSERT(y.n_columns == n_batches);
-	ASSERT(y.n_slices == n_slices);
-
-
     mult(w.IX, x.flatten_time(), b.Ia.flatten_time());
     mult(w.FX, x.flatten_time(), b.Fa.flatten_time());
     mult(w.ZX, x.flatten_time(), b.Za.flatten_time());
     mult(w.OX, x.flatten_time(), b.Oa.flatten_time());
 
-    for (size_t t(0); t < b.time; ++t) {
+    for (size_t t(0); t < x.n_slices; ++t) {
         //IF NEXT
         if (t) {
             mult_add(w.FH, y.slice(t - 1), b.Fa.slice(t));
@@ -144,15 +119,13 @@ void LstmLayer::forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y) {
 
 
 void LstmLayer::backward(Parameters& w, FwdState& b, BwdState& d, Matrix&, Matrix& in_deltas, Matrix& out_deltas) {
-
-    int end_time = static_cast<int>(b.time - 1);
+    int end_time = static_cast<int>(out_deltas.n_slices - 1);
 
     copy(out_deltas, d.Hb);
 
     //calculate t+1 values except for end_time+1
     for(int t(end_time); t >= 0; --t){
         if (t<end_time) {
-
             mult_add(w.IH.T(), d.Ia.slice(t+1), d.Hb.slice(t));
             mult_add(w.FH.T(), d.Fa.slice(t+1), d.Hb.slice(t));
             mult_add(w.ZH.T(), d.Za.slice(t+1), d.Hb.slice(t));
@@ -166,12 +139,10 @@ void LstmLayer::backward(Parameters& w, FwdState& b, BwdState& d, Matrix&, Matri
 
             //! \f$\frac{dE}{dS} += \frac{dE}{da_F(t+1)} * W_{FS}\f$
             dot_add(d.Fa.slice(t+1), w.FS, d.S.slice(t));
-
         }
 
         //! \f$\frac{dE}{df_S} += \frac{dE}{dH} * b_O\f$  THIS IS WEIRD, IT GOES WITH NEXT LINE ??!?!
         dot(d.Hb.slice(t), b.Ob.slice(t), d.f_S.slice(t));
-
 
         //OUTPUT GATES DERIVS
         //! \f$\frac{dE}{db_O} = \frac{dE}{dH} * f(s) * f(a_O)\f$
@@ -180,7 +151,6 @@ void LstmLayer::backward(Parameters& w, FwdState& b, BwdState& d, Matrix&, Matri
         //! \f$\frac{dE}{da_O} = \frac{dE}{db_O} * f'(a_O)\f$
         apply_sigmoid_deriv(b.Ob.slice(t), d.tmp1.slice(t)); //s'(O_a) == s(O_b) * (1 - s(O_b))
         dot(d.Ob.slice(t), d.tmp1.slice(t), d.Oa.slice(t));
-
 
         //! \f$\frac{dE}{dS} += \frac{dE}{df_S} * f'(s)\f$
         f->apply_deriv(b.f_S.slice(t), d.f_S.slice(t), d.tmp1.slice(t));
@@ -233,10 +203,7 @@ void LstmLayer::backward(Parameters& w, FwdState& b, BwdState& d, Matrix&, Matri
 }
 
 void LstmLayer::gradient(Parameters&, Parameters& grad, FwdState& b, BwdState& d, Matrix& y, Matrix& x, Matrix& )  {
-
-    size_t n_time(b.time);
-
-    //mult(d.output_deltas, d.Cb, delta_OT, 1.0 / n_time);
+    size_t n_time = x.n_slices;
 
     //! \f$\frac{dE}{dW_ZX} += \frac{dE}{da_Z} * x(t)\f$
     //! \f$\frac{dE}{dW_FX} += \frac{dE}{da_F} * x(t)\f$
@@ -258,7 +225,6 @@ void LstmLayer::gradient(Parameters&, Parameters& grad, FwdState& b, BwdState& d
         mult(d.Oa.slice(1, n_time-1).flatten_time(), y.slice(0, n_time - 2).flatten_time().T(), grad.OH); //(double) n_time);
     }
 
-
     //! \f$\frac{dE}{dW_FS} += \frac{dE}{da_F} * s(t-1)\f$
     //! \f$\frac{dE}{dW_IS} += \frac{dE}{da_I} * s(t-1)\f$
     if (n_time > 1) {
@@ -273,7 +239,6 @@ void LstmLayer::gradient(Parameters&, Parameters& grad, FwdState& b, BwdState& d
     squash(d.Fa, grad.F_bias); //, 1.0 / (double) n_time);
     squash(d.Za, grad.Z_bias); //, 1.0 / (double) n_time);
     squash(d.Oa, grad.O_bias); //, 1.0 / (double)n_time); //, 1.0 / (double) n_time);
-
 }
 
 void LstmLayer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb, Matrix &x, Matrix &y, Matrix& Rx, Matrix &Ry) {
@@ -289,8 +254,7 @@ void LstmLayer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb, 
   mult_add(w.OX, Rx.flatten_time(), Rb.Oa.flatten_time());
 
 
-  for (size_t t(0); t < b.time; ++t) {
-
+  for (size_t t(0); t < x.n_slices; ++t) {
     //IF NEXT
     if (t) {
       mult_add(w.IH, Ry.slice(t - 1), Rb.Ia.slice(t));
@@ -308,7 +272,6 @@ void LstmLayer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb, 
 
       dot_add(b.S.slice(t - 1), v.IS, Rb.Ia.slice(t));
       dot_add(b.S.slice(t - 1), v.FS, Rb.Fa.slice(t));
-
     }
 
     add_vector_into(v.I_bias, Rb.Ia.slice(t));
@@ -334,13 +297,11 @@ void LstmLayer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb, 
       dot_add(b.S.slice(t - 1), Rb.Fb.slice(t), Rb.S.slice(t));
     }
 
-
     dot_add(Rb.S.slice(t), w.OS, Rb.Oa.slice(t));
     dot_add(b.S.slice(t), v.OS, Rb.Oa.slice(t));
 
     apply_sigmoid_deriv(b.Ob.slice(t), Rb.tmp1.slice(t));
     dot(Rb.tmp1.slice(t), Rb.Oa.slice(t), Rb.Ob.slice(t));
-
 
     f->apply_deriv(b.f_S.slice(t), Rb.S.slice(t), Rb.tmp1.slice(t));
     dot(Rb.tmp1.slice(t), b.Ob.slice(t), Ry.slice(t));
@@ -353,14 +314,12 @@ void LstmLayer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb, 
 
 //instead of normal deltas buffer, pass in empty Rdeltas buffer, and instead of out_deltas, pass in the Ry value calculated by the Rfwd pass
 void LstmLayer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Matrix& y, Matrix &in_deltas, Matrix &out_deltas, FwdState &Rb, double lambda, double mu) {
-
-  int end_time = static_cast<int>(b.time - 1);
+  int end_time = static_cast<int>(y.n_slices - 1);
   copy(out_deltas, d.Hb);
   
   //calculate t+1 values except for end_time+1
   for(int t(end_time); t >= 0; --t){
       if (t<end_time) {
-
           mult_add(w.IH.T(), d.Ia.slice(t+1), d.Hb.slice(t));
           mult_add(w.FH.T(), d.Fa.slice(t+1), d.Hb.slice(t));
           mult_add(w.ZH.T(), d.Za.slice(t+1), d.Hb.slice(t));
@@ -374,7 +333,6 @@ void LstmLayer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Matri
 
           //! \f$\frac{dE}{dS} += \frac{dE}{da_F(t+1)} * W_{FS}\f$
           dot_add(d.Fa.slice(t+1), w.FS, d.S.slice(t));
-
       }
 
       //structural damping
