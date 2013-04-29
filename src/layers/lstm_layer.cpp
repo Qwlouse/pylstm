@@ -15,6 +15,7 @@ LstmLayer::LstmLayer(const ActivationFunction* f):
 	f(f)
 { }
 
+
 LstmLayer::Parameters::Parameters(size_t n_inputs, size_t n_cells) :
     IX(NULL, n_cells, n_inputs, 1), IH(NULL, n_cells, n_cells, 1), IS(NULL, 1, n_cells, 1),
     FX(NULL, n_cells, n_inputs, 1), FH(NULL, n_cells, n_cells, 1), FS(NULL, 1, n_cells, 1),
@@ -29,6 +30,7 @@ LstmLayer::Parameters::Parameters(size_t n_inputs, size_t n_cells) :
     add_view("OX", &OX); add_view("OH", &OH); add_view("OS", &OS);
     add_view("I_bias", &I_bias); add_view("F_bias", &F_bias); add_view("Z_bias", &Z_bias); add_view("O_bias", &O_bias);
 }
+
 
 LstmLayer::FwdState::FwdState(size_t, size_t n_cells, size_t n_batches, size_t time) :
     //Views on all activations
@@ -51,6 +53,7 @@ LstmLayer::FwdState::FwdState(size_t, size_t n_cells, size_t n_batches, size_t t
     add_view("Hb", &Hb); 
     add_view("tmp1", &tmp1);
 }
+
 
 LstmLayer::BwdState::BwdState(size_t, size_t n_cells, size_t n_batches, size_t time) :
     //Views on all activations
@@ -118,89 +121,10 @@ void LstmLayer::forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y) {
 }
 
 
-void LstmLayer::backward(Parameters& w, FwdState& b, BwdState& d, Matrix&, Matrix& in_deltas, Matrix& out_deltas) {
-    int end_time = static_cast<int>(out_deltas.n_slices - 1);
-
-    copy(out_deltas, d.Hb);
-
-    //calculate t+1 values except for end_time+1
-    for(int t(end_time); t >= 0; --t){
-        if (t<end_time) {
-            mult_add(w.IH.T(), d.Ia.slice(t+1), d.Hb.slice(t));
-            mult_add(w.FH.T(), d.Fa.slice(t+1), d.Hb.slice(t));
-            mult_add(w.ZH.T(), d.Za.slice(t+1), d.Hb.slice(t));
-            mult_add(w.OH.T(), d.Oa.slice(t+1), d.Hb.slice(t));
-
-            //! \f$\frac{dE}{dS} += \frac{dE}{dS^{t+1}} * b_F(t+1)\f$
-            dot(d.S.slice(t+1), b.Fb.slice(t+1), d.S.slice(t));
-
-            //! \f$\frac{dE}{dS} += \frac{dE}{da_I(t+1)} * W_{IS}\f$
-            dot_add(d.Ia.slice(t+1), w.IS, d.S.slice(t));
-
-            //! \f$\frac{dE}{dS} += \frac{dE}{da_F(t+1)} * W_{FS}\f$
-            dot_add(d.Fa.slice(t+1), w.FS, d.S.slice(t));
-        }
-
-        //! \f$\frac{dE}{df_S} += \frac{dE}{dH} * b_O\f$  THIS IS WEIRD, IT GOES WITH NEXT LINE ??!?!
-        dot(d.Hb.slice(t), b.Ob.slice(t), d.f_S.slice(t));
-
-        //OUTPUT GATES DERIVS
-        //! \f$\frac{dE}{db_O} = \frac{dE}{dH} * f(s) * f(a_O)\f$
-        dot(d.Hb.slice(t), b.f_S.slice(t), d.Ob.slice(t));
-
-        //! \f$\frac{dE}{da_O} = \frac{dE}{db_O} * f'(a_O)\f$
-        apply_sigmoid_deriv(b.Ob.slice(t), d.tmp1.slice(t)); //s'(O_a) == s(O_b) * (1 - s(O_b))
-        dot(d.Ob.slice(t), d.tmp1.slice(t), d.Oa.slice(t));
-
-        //! \f$\frac{dE}{dS} += \frac{dE}{df_S} * f'(s)\f$
-        f->apply_deriv(b.f_S.slice(t), d.f_S.slice(t), d.tmp1.slice(t));
-        //dot_add(d.f_S.slice(t), d.tmp1.slice(t), d.S.slice(t));
-
-        if(t<end_time)
-            {add_into_b(d.tmp1.slice(t), d.S.slice(t));}
-        else
-            {copy(d.tmp1.slice(t), d.S.slice(t));}
-
-        //! \f$\frac{dE}{dS} += \frac{dE}{da_O} * W_OS\f$
-        dot_add(d.Oa.slice(t), w.OS, d.S.slice(t));
-
-        //! CELL ACTIVATION DERIVS
-        //! \f$\frac{dE}{db_Z} = \frac{dE}{dS} * b_I\f$
-        dot(d.S.slice(t), b.Ib.slice(t), d.Zb.slice(t));
-        //! \f$dE/da_Z = dE/db_Z * f'(a_Z)\f$
-        apply(b.Zb.slice(t), d.tmp1.slice(t), &tanh_deriv);
-        dot(d.Zb.slice(t), d.tmp1.slice(t), d.Za.slice(t));
-
-        //! INPUT GATE DERIVS
-        //! \f$\frac{dE}{db_I} = \frac{dE}{dS} * b_Z \f$
-        dot(d.S.slice(t), b.Zb.slice(t), d.Ib.slice(t));
-
-        //! \f$\frac{dE}{da_I} = \frac{dE}{db_I} * f'(a_I) \f$
-        //sigmoid_deriv(d.Ib.slice(t), b.Ib.slice(t), d.temp_hidden, d.temp_hidden2, d.Ia.slice(t));
-
-        //apply_sigmoid_deriv(b.Ib.slice(t), d.Ia.slice(t));
-        apply_sigmoid_deriv(b.Ib.slice(t), d.tmp1.slice(t));
-        dot(d.Ib.slice(t), d.tmp1.slice(t), d.Ia.slice(t));
-
-        //! FORGET GATE DERIVS
-        if (t) {
-            //! \f$\frac{dE}{db_F} += \frac{dE}{dS} * s(t-1)\f$
-            dot(d.S.slice(t), b.S.slice(t - 1), d.Fb.slice(t));
-        } else {
-            d.Fb.slice(t).set_all_elements_to(0.0);
-        }
-
-        // \f$\frac{dE}{da_F} = \frac{dE}{db_F} * f'(a_F)\f$
-        apply_sigmoid_deriv(b.Fb.slice(t), d.tmp1.slice(t));
-        dot(d.Fb.slice(t), d.tmp1.slice(t), d.Fa.slice(t));
-
-        //dE/dx
-        mult_add(w.IX.T(), d.Ia.slice(t), in_deltas.slice(t));
-        mult_add(w.OX.T(), d.Oa.slice(t), in_deltas.slice(t));
-        mult_add(w.ZX.T(), d.Za.slice(t), in_deltas.slice(t));
-        mult_add(w.FX.T(), d.Fa.slice(t), in_deltas.slice(t));
-    }
+void LstmLayer::backward(Parameters& w, FwdState& b, BwdState& d, Matrix& y, Matrix& in_deltas, Matrix& out_deltas) {
+    dampened_backward(w, b, d, y, in_deltas, out_deltas, b, 0., 0.);
 }
+
 
 void LstmLayer::gradient(Parameters&, Parameters& grad, FwdState& b, BwdState& d, Matrix& y, Matrix& x, Matrix& )  {
     size_t n_time = x.n_slices;
@@ -240,6 +164,7 @@ void LstmLayer::gradient(Parameters&, Parameters& grad, FwdState& b, BwdState& d
     squash(d.Za, grad.Z_bias); //, 1.0 / (double) n_time);
     squash(d.Oa, grad.O_bias); //, 1.0 / (double)n_time); //, 1.0 / (double) n_time);
 }
+
 
 void LstmLayer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb, Matrix &x, Matrix &y, Matrix& Rx, Matrix &Ry) {
 
@@ -308,8 +233,6 @@ void LstmLayer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb, 
     dot_add(Rb.Ob.slice(t), b.f_S.slice(t), Ry.slice(t));
   }
 }
-
-
 
 
 //instead of normal deltas buffer, pass in empty Rdeltas buffer, and instead of out_deltas, pass in the Ry value calculated by the Rfwd pass
@@ -397,19 +320,21 @@ void LstmLayer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Matri
       dot(d.Ib.slice(t), d.tmp1.slice(t), d.Ia.slice(t));
 
      //! FORGET GATE DERIVS
-      if (t)
-        //! \f$\frac{dE}{db_F} += \frac{dE}{dS} * s(t-1)\f$
-        dot(d.S.slice(t), b.S.slice(t - 1), d.Fb.slice(t));
+      if (t) {
+          //! \f$\frac{dE}{db_F} += \frac{dE}{dS} * s(t-1)\f$
+          dot(d.S.slice(t), b.S.slice(t - 1), d.Fb.slice(t));
+      } else {
+          d.Fb.slice(t).set_all_elements_to(0.0);
+      }
 
       // \f$\frac{dE}{da_F} = \frac{dE}{db_F} * f'(a_F)\f$
       apply_sigmoid_deriv(b.Fb.slice(t), d.tmp1.slice(t));
       dot(d.Fb.slice(t), d.tmp1.slice(t), d.Fa.slice(t));
 
       //dE/dx
-      mult(w.IX.T(), d.Ia.slice(t), in_deltas.slice(t));
+      mult_add(w.IX.T(), d.Ia.slice(t), in_deltas.slice(t));
+      mult_add(w.OX.T(), d.Oa.slice(t), in_deltas.slice(t));
       mult_add(w.ZX.T(), d.Za.slice(t), in_deltas.slice(t));
       mult_add(w.FX.T(), d.Fa.slice(t), in_deltas.slice(t));
-
   }
 }
-
