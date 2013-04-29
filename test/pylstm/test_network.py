@@ -7,36 +7,10 @@ import numpy as np
 import itertools
 from pylstm.netbuilder import NetworkBuilder
 from pylstm.layers import LstmLayer, RnnLayer, RegularLayer
-from pylstm.utils import check_gradient, check_deltas
+from pylstm.utils import check_gradient, check_deltas, check_rpass
 from pylstm.wrapper import Matrix
 
-rnd = np.random.RandomState(2634587)
-
-
-def check_rpass(net, weights, v, r=1e-7):
-    n_timesteps = 2
-    n_batches = 1
-    X = rnd.randn(n_timesteps, n_batches, net.get_input_size())
-    T = np.zeros((n_timesteps, n_batches, net.get_output_size()))
-    T[:, :, 0] = 1.0  # so the outputs sum to one
-    net.param_buffer = weights
-    out1 = net.forward_pass(X).copy()
-    net.param_buffer = weights + r * v
-    out2 = net.forward_pass(X)
-    estimated = (out2 - out1) / r
-    net.param_buffer = weights
-    calculated = net.r_forward_pass(X, v)
-    return np.sum((estimated - calculated)**2), calculated, estimated
-
-
-def check_rpass_full(net):
-    weights = rnd.randn(net.get_param_size())
-    errs = np.zeros_like(weights)
-    for i in range(len(weights)):
-        v = np.zeros_like(weights)
-        v[i] = 1.0
-        errs[i], calc, est = check_rpass(net, weights, v)
-    return np.sum(errs**2), errs
+rnd = np.random.RandomState(26347587)
 
 
 class NetworkTests(unittest.TestCase):
@@ -96,7 +70,8 @@ class NetworkTests(unittest.TestCase):
         check_errors = []
         for l, a in itertools.product(self.layer_types, self.activation_functions):
             net = self.build_network(l, a)
-            e, grad_calc, grad_approx = check_deltas(net, n_batches=5, n_timesteps=7)
+            e, grad_calc, grad_approx = check_deltas(net, n_batches=5,
+                                                     n_timesteps=7, rnd=rnd)
             check_errors.append(e)
             if e > 1e-4:
                 diff = (grad_approx - grad_calc).reshape(3, 3, -1)
@@ -111,7 +86,8 @@ class NetworkTests(unittest.TestCase):
         check_errors = []
         for l, a in itertools.product(self.layer_types, self.activation_functions):
             net = self.build_network(l, a)
-            e, grad_calc, grad_approx = check_gradient(net, n_batches=5, n_timesteps=7)
+            e, grad_calc, grad_approx = check_gradient(net, n_batches=5,
+                                                       n_timesteps=7, rnd=rnd)
             check_errors.append(e)
             if e > 1e-4:
                 # construct a weight view and break down the differences
@@ -129,7 +105,7 @@ class NetworkTests(unittest.TestCase):
         check_errors = []
         for l, a in itertools.product(self.layer_types, self.activation_functions):
             net = self.build_network(l, a)
-            e, allerrors = check_rpass_full(net)
+            e, allerrors = check_rpass(net, n_batches=5, n_timesteps=7, rnd=rnd)
             check_errors.append(e)
             if e > 1e-4:
                 # construct a weight view and break down the differences
@@ -147,7 +123,7 @@ class NetworkTests(unittest.TestCase):
         check_errors = []
         for l, a in itertools.product(self.layer_types, self.activation_functions):
             net = self.build_network(l, a, layers=2)
-            e, allerrors = check_rpass_full(net)
+            e, allerrors = check_rpass(net, n_batches=5, n_timesteps=7, rnd=rnd)
             check_errors.append(e)
             if e > 1e-4:
                 # construct a weight view and break down the differences

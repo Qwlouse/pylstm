@@ -14,8 +14,7 @@ def check_gradient(net, X=None, T=None, n_timesteps=3, n_batches=5, rnd=np.rando
         # normalize targets to sum to one
         T = T / T.sum(2).reshape(n_timesteps, n_batches, 1)
 
-    weights = rnd.randn(net.get_param_size())
-    net.param_buffer = weights.copy()
+    weights = net.param_buffer.copy()
 
     ######### calculate gradient ##########
     net.forward_pass(X)
@@ -40,9 +39,6 @@ def check_deltas(net, X=None, T=None, n_timesteps=3, n_batches=5, rnd=np.random.
         # normalize targets to sum to one
         T = T / T.sum(2).reshape(n_timesteps, n_batches, 1)
 
-    weights = rnd.randn(net.get_param_size())
-    net.param_buffer = weights.copy()
-
     ######### calculate gradient ##########
     net.forward_pass(X)
     delta_calc = net.backward_pass(T).flatten()
@@ -54,3 +50,26 @@ def check_deltas(net, X=None, T=None, n_timesteps=3, n_batches=5, rnd=np.random.
 
     delta_approx = approx_fprime(X.copy().flatten(), f, 1e-7)
     return np.sum((delta_approx - delta_calc) ** 2) / n_batches, delta_calc, delta_approx
+
+
+def check_rpass(net, X=None, r=1e-7, n_timesteps=3, n_batches=5, rnd=np.random.RandomState()):
+    if X is None:
+        X = rnd.randn(n_timesteps, n_batches, net.get_input_size())
+
+    weights = net.param_buffer.copy()
+    errs = np.zeros_like(weights)
+    v = np.zeros_like(weights)
+    for i in range(len(weights)):
+        v[i] = 1.0
+        net.param_buffer = weights
+        out1 = net.forward_pass(X).copy()
+        net.param_buffer = weights + r * v
+        out2 = net.forward_pass(X)
+        estimated = (out2 - out1) / r
+        net.param_buffer = weights
+        calculated = net.r_forward_pass(X, v)
+        errs[i] = np.sum((estimated - calculated)**2)
+        v[i] = 0.0
+
+    return np.sum(errs**2), errs
+

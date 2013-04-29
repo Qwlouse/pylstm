@@ -35,7 +35,7 @@ class Network(object):
 
     @property
     def param_buffer(self):
-        return self.param_manager.buffer.as_array()
+        return self.param_manager.buffer.as_array().flatten()
 
     @param_buffer.setter
     def param_buffer(self, buffer_view):
@@ -199,7 +199,7 @@ class Network(object):
             # read the output buffer
         return self.r_in_out_manager.get_sink_view("Output").as_array()
 
-    def r_backward_pass(self, T, lambda_, mu):
+    def r_backward_pass(self, lambda_, mu):
         delta_buffer = self.r_in_out_manager.get_sink_view("Output").as_array()
         t, b, f = delta_buffer.shape
         # dims should already be set during forward_pass, but in any case...
@@ -229,8 +229,7 @@ class Network(object):
     def hessian_pass(self, input_buffer, v_buffer, lambda_=0., mu=0.):
         t = input_buffer.shape[0]
         b = input_buffer.shape[1]
-        T = np.zeros((t, b, self.get_output_size()))
         self.forward_pass(input_buffer)
         self.r_forward_pass(input_buffer, v_buffer)
-        self.r_backward_pass(T, lambda_, mu)
+        self.r_backward_pass(lambda_, mu)
         return self.calc_gradient()
