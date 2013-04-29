@@ -15,7 +15,6 @@ public:
 
     class Parameters : public ::MatrixContainer {
     public:
-        size_t n_inputs, n_cells;
         Matrix HX;
         Matrix HR;
         Matrix H_bias;
@@ -25,25 +24,17 @@ public:
 
     class FwdState : public ::MatrixContainer{
     public:
-        ///Variables defining sizes
-        size_t n_inputs, n_cells;
-        size_t n_batches, time;
-
         Matrix Ha; //!< total input activations for all neurons in layer
 
-        FwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
+        FwdState(size_t n_inputs, size_t n_cells, size_t n_batches, size_t time);
     };
 
     class BwdState: public ::MatrixContainer {
     public:
-        ///Variables defining sizes
-        size_t n_inputs, n_cells;
-        size_t n_batches, time;
-
         Matrix Ha; //!< activations for all neurons in layer
         Matrix Hb;
 
-        BwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
+        BwdState(size_t n_inputs, size_t n_cells, size_t n_batches, size_t time);
     };
 
     void forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y);
