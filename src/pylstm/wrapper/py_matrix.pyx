@@ -65,7 +65,7 @@ cdef class Matrix:
                 if start == stop:
                     b.c_obj = self.c_obj.sub_matrix(0, 0, 0, 0)
                 else:
-                    b.c_obj = self.c_obj.row_slice(start, stop-1)
+                    b.c_obj = self.c_obj.row_slice(start, stop)
         return b
 
     def time_slice(self, start, stop=None):
@@ -82,7 +82,7 @@ cdef class Matrix:
                 b.c_obj = self.c_obj.slice(start)
             else:
                 assert start <= stop <= self.get_time_size()
-                b.c_obj = self.c_obj.slice(start, stop-1)
+                b.c_obj = self.c_obj.slice(start, stop)
         return b
         
     # from here: https://gist.github.com/1249305

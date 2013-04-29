@@ -56,8 +56,8 @@ TEST_F(MatrixOperationsTest, check_if_equals_works_on_multi_time_slices)
     Matrix b = {{{3, 7}}, {{4, 7}}, {{5, 7}}};
     Matrix c = {{{1, 7}}, {{2, 7}}, {{3, 7}}, {{4, 7}}};
 
-	EXPECT_TRUE(equals(a.slice(3, 5), b));
-	EXPECT_TRUE(equals(a.slice(1, 4), c));
+	EXPECT_TRUE(equals(a.slice(3, 6), b));
+	EXPECT_TRUE(equals(a.slice(1, 5), c));
 }
 
 TEST_F(MatrixOperationsTest, check_if_equals_works_on_row_slices)
@@ -76,8 +76,8 @@ TEST_F(MatrixOperationsTest, check_if_equals_works_on_multi_row_slices)
     Matrix a = {{{0, 1, 2, 3}, {10, 11, 12, 13}}, {{100, 101, 102, 103}, {110, 111, 112, 113}}};
     Matrix b = {{{10, 11, 12, 13}, {20, 21, 22, 23}}, {{110, 111, 112, 113}, {120, 121, 122, 123}}};
 
-	EXPECT_TRUE(equals(m3d.row_slice(0, 1), a));
-	EXPECT_TRUE(equals(m3d.row_slice(1, 2), b));
+	EXPECT_TRUE(equals(m3d.row_slice(0, 2), a));
+	EXPECT_TRUE(equals(m3d.row_slice(1, 3), b));
 }
 
 

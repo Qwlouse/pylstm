@@ -285,7 +285,7 @@ TEST_F(MatrixTest, check_iterator_row_slice_transposed)
 
 TEST_F(MatrixTest, check_get_multirow_slice)
 {
-    Matrix n = M.row_slice(1,2);
+    Matrix n = M.row_slice(1,3);
     ASSERT_EQ(n.n_columns, 4);
     ASSERT_EQ(n.n_rows, 2);
     ASSERT_EQ(n.n_slices, 2);
@@ -300,7 +300,7 @@ TEST_F(MatrixTest, check_get_multirow_slice)
 
 TEST_F(MatrixTest, check_indexing_multirow_slice)
 {
-    Matrix n = M.row_slice(1,2);
+    Matrix n = M.row_slice(1,3);
     ASSERT_EQ(n.n_columns, 4);
     ASSERT_EQ(n.n_rows, 2);
     ASSERT_EQ(n.n_slices, 2);
@@ -312,7 +312,7 @@ TEST_F(MatrixTest, check_indexing_multirow_slice)
 
 TEST_F(MatrixTest, check_iterator_multirow_slice)
 {
-    Matrix n = M.row_slice(1,2);
+    Matrix n = M.row_slice(1,3);
     ASSERT_EQ(n.n_columns, 4);
     ASSERT_EQ(n.n_rows, 2);
     ASSERT_EQ(n.n_slices, 2);
@@ -327,7 +327,7 @@ TEST_F(MatrixTest, check_iterator_multirow_slice)
 
 TEST_F(MatrixTest, check_get_multirow_slice_transposed)
 {
-    Matrix n = M.row_slice(1,2).T();
+    Matrix n = M.row_slice(1,3).T();
     ASSERT_EQ(n.n_columns, 2);
     ASSERT_EQ(n.n_rows, 4);
     ASSERT_EQ(n.n_slices, 2);
@@ -342,7 +342,7 @@ TEST_F(MatrixTest, check_get_multirow_slice_transposed)
 
 TEST_F(MatrixTest, check_indexing_multirow_slice_transposed)
 {
-    Matrix n = M.row_slice(1,2).T();
+    Matrix n = M.row_slice(1,3).T();
     ASSERT_EQ(n.n_columns, 2);
     ASSERT_EQ(n.n_rows, 4);
     ASSERT_EQ(n.n_slices, 2);
@@ -354,7 +354,7 @@ TEST_F(MatrixTest, check_indexing_multirow_slice_transposed)
 
 TEST_F(MatrixTest, check_iterator_multirow_slice_transposed)
 {
-    Matrix n = M.row_slice(1,2).T();
+    Matrix n = M.row_slice(1,3).T();
     ASSERT_EQ(n.n_columns, 2);
     ASSERT_EQ(n.n_rows, 4);
     ASSERT_EQ(n.n_slices, 2);

@@ -166,7 +166,7 @@ Matrix Matrix::slice(size_t slice_index)
 
 Matrix Matrix::slice(size_t start, size_t stop)
 {
-	return Matrix(data, get_offset(0, 0, start), stride, state, n_rows, n_columns, stop - start + 1);
+	return Matrix(data, get_offset(0, 0, start), stride, state, n_rows, n_columns, stop - start);
 }
 
 Matrix Matrix::row_slice(size_t row_index)
@@ -180,7 +180,7 @@ Matrix Matrix::row_slice(size_t start_row, size_t stop_row)
 {
     ASSERT(stride == 0);
     ASSERT(state == NORMAL);
-    size_t rows = (stop_row - start_row + 1);
+    size_t rows = (stop_row - start_row);
     return Matrix(data, get_offset(start_row, 0, 0), n_rows - rows, state, rows, n_columns, n_slices);
 }
 
