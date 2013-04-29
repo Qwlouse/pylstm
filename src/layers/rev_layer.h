@@ -16,12 +16,12 @@ public:
 
 	class FwdState : public ::MatrixContainer {
 	public:
-	    FwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
+	    FwdState(size_t n_inputs, size_t n_cells, size_t n_batches, size_t time);
 	};
 
 	class BwdState: public ::MatrixContainer {
 	public:
-	    BwdState(size_t n_inputs_, size_t n_cells_, size_t n_batches, size_t time_);
+	    BwdState(size_t n_inputs, size_t n_cells, size_t n_batches, size_t time);
 	};
 
 	void forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y);

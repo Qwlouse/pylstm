@@ -31,11 +31,6 @@ ReverseLayer::BwdState::BwdState(size_t, size_t, size_t, size_t)
 void reverse(Matrix &x, Matrix &y)
 {
     size_t n_slices = x.n_slices;
-
-    ASSERT(x.n_rows == y.n_rows);
-	ASSERT(y.n_columns == x.n_columns);
-	ASSERT(y.n_slices == n_slices);
-
 	for (int t = 0; t < n_slices; ++t) {
 	    copy(x.slice(t), y.slice(n_slices-t-1));
 	}
@@ -44,11 +39,6 @@ void reverse(Matrix &x, Matrix &y)
 void reverse_add(Matrix &x, Matrix &y)
 {
     size_t n_slices = x.n_slices;
-
-    ASSERT(x.n_rows == y.n_rows);
-	ASSERT(y.n_columns == x.n_columns);
-	ASSERT(y.n_slices == n_slices);
-
 	for (int t = 0; t < n_slices; ++t) {
 	    add_into_b(x.slice(t), y.slice(n_slices-t-1));
 	}
