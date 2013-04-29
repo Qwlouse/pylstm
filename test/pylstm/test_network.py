@@ -7,33 +7,10 @@ import numpy as np
 import itertools
 from pylstm.netbuilder import NetworkBuilder
 from pylstm.layers import LstmLayer, RnnLayer, RegularLayer
+from pylstm.utils import check_gradient, check_deltas
 from pylstm.wrapper import Matrix
-from scipy.optimize import approx_fprime
+
 rnd = np.random.RandomState(2634587)
-
-
-def check_gradient(net):
-    n_timesteps = 3
-    n_batches = 3
-    X = rnd.randn(n_timesteps, n_batches, net.get_input_size())
-    T = np.zeros((n_timesteps, n_batches, net.get_output_size()))
-    T[:, :, 0] = 1.0  # so the outputs sum to one
-    weights = rnd.randn(net.get_param_size())
-    net.param_buffer = weights.copy()
-
-    ######### calculate gradient ##########
-    net.forward_pass(X)
-    net.backward_pass(T)
-    grad_calc = net.calc_gradient().squeeze()
-
-    ######### estimate gradient ##########
-    def f(W):
-        net.param_buffer = W
-        net.forward_pass(X)
-        return net.calculate_error(T)
-
-    grad_approx = approx_fprime(weights.copy(), f, 1e-7)
-    return np.sum((grad_approx - grad_calc) ** 2) / n_batches, grad_calc, grad_approx
 
 
 def check_rpass(net, weights, v, r=1e-7):
@@ -60,28 +37,6 @@ def check_rpass_full(net):
         v[i] = 1.0
         errs[i], calc, est = check_rpass(net, weights, v)
     return np.sum(errs**2), errs
-
-
-def check_deltas(net):
-    n_timesteps = 3
-    n_batches = 3
-    X = rnd.randn(n_timesteps, n_batches, net.get_input_size())
-    T = np.zeros((n_timesteps, n_batches, net.get_output_size()))
-    T[:, :, 0] = 1.0  # so the outputs sum to one
-    weights = rnd.randn(net.get_param_size())
-    net.param_buffer = weights.copy()
-
-    ######### calculate gradient ##########
-    net.forward_pass(X)
-    delta_calc = net.backward_pass(T).flatten()
-
-    ######### estimate gradient ##########
-    def f(X):
-        net.forward_pass(X.reshape(n_timesteps, n_batches, -1))
-        return net.calculate_error(T)
-
-    delta_approx = approx_fprime(X.copy().flatten(), f, 1e-7)
-    return np.sum((delta_approx - delta_calc) ** 2) / n_batches, delta_calc, delta_approx
 
 
 class NetworkTests(unittest.TestCase):
@@ -141,7 +96,7 @@ class NetworkTests(unittest.TestCase):
         check_errors = []
         for l, a in itertools.product(self.layer_types, self.activation_functions):
             net = self.build_network(l, a)
-            e, grad_calc, grad_approx = check_deltas(net)
+            e, grad_calc, grad_approx = check_deltas(net, n_batches=5, n_timesteps=7)
             check_errors.append(e)
             if e > 1e-4:
                 diff = (grad_approx - grad_calc).reshape(3, 3, -1)
@@ -156,7 +111,7 @@ class NetworkTests(unittest.TestCase):
         check_errors = []
         for l, a in itertools.product(self.layer_types, self.activation_functions):
             net = self.build_network(l, a)
-            e, grad_calc, grad_approx = check_gradient(net)
+            e, grad_calc, grad_approx = check_gradient(net, n_batches=5, n_timesteps=7)
             check_errors.append(e)
             if e > 1e-4:
                 # construct a weight view and break down the differences
