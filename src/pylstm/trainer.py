@@ -6,13 +6,15 @@ import numpy as np
 #from scipy.optimize import fmin_ncg
 from conjgrad import fmin_ncg
 import sys
+from pylstm.datasets import generate_memo_problem
+
 sys.path.append('.')
 sys.path.append('..')
 
 from pylstm.error_functions import MeanSquaredError
 from pylstm import wrapper
 
-rnd = np.random.RandomState()
+rnd = np.random.RandomState(92384792)
 
 
 def print_error_per_epoch(epoch, error):
@@ -24,15 +26,14 @@ class SgdTrainer(object):
         self.learning_rate = learning_rate
 
     def train(self, net, X, T, epochs=100, callback=print_error_per_epoch):
-        weights = net.param_buffer
         for epoch in range(1, epochs + 1):
             net.forward_pass(X)
             error = net.calculate_error(T)
             callback(epoch, error)
             net.backward_pass(T)
-            grad = net.calc_gradient()
+            grad = net.calc_gradient().flatten()
             grad *= - self.learning_rate
-            weights += grad
+            net.param_buffer += grad
 
 
 class RPropTrainer(object):
@@ -86,7 +87,7 @@ class CgTrainer(object):
         out = net.forward_pass(X)
 
         #calculate error
-        error = net.calculate_error(T) / X.shape[1]
+        error = net.calculate_error(T)
         callback(0, error)
 
         net.backward_pass(T)
@@ -102,7 +103,7 @@ class CgTrainer(object):
             out = net.forward_pass(X)
             
             #calculate error
-            error = net.calculate_error(T) / X.shape[1]
+            error = net.calculate_error(T)
             callback(epoch, error)
 
             net.backward_pass(T)
@@ -216,13 +217,15 @@ if __name__ == "__main__":
     numIn = 4
     numOut = 3
 
+
     netb = NetworkBuilder()
-    netb.input(4) >> RegularLayer(3, act_func="linear") >> RegularLayer(3, act_func="linear") >> netb.output
+    netb.input(2) >> LstmLayer(3, act_func="sigmoid") >> RegularLayer(2, act_func="softmax") >> netb.output
     net = netb.build()
     weight = rnd.randn(net.get_param_size())
+    X, T = generate_memo_problem(5, 2, 32, 100)
     net.param_buffer = weight.copy()
-    trainer = CgTrainer(learning_rate=0.01)
+    trainer = SgdTrainer(learning_rate=0.01)
     #trainer = SgdTrainer(learning_rate=0.01)
-    X = rnd.randn(numtimesteps, numbatches,  numIn)
-    T = rnd.randn(numtimesteps, numbatches, numOut)
-    trainer.train(net, X, T, epochs=10)
+    # X = rnd.randn(numtimesteps, numbatches,  numIn)
+    # T = rnd.randn(numtimesteps, numbatches, numOut)
+    trainer.train(net, X, T, epochs=100)
