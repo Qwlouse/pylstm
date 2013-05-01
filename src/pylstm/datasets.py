@@ -55,11 +55,11 @@ def generate_memo_problem(pattern_length, alphabet_size, batch_size, length):
 
 
 def generate_5bit_problem(total_length):
-    generate_memo_problem(5,  2, 32, total_length)
+    return generate_memo_problem(5,  2, 32, total_length)
 
 
 def generate_20bit_problem(total_length, batch_size=1000):
-    generate_memo_problem(10,  5, batch_size, total_length)
+    return generate_memo_problem(10,  5, batch_size, total_length)
 
 alphabet = ["A", "B", "C"]
 
