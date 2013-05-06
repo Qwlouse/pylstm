@@ -62,7 +62,7 @@ def generate_20bit_task(total_length, batch_size=1000):
     return generate_memo_task(10,  5, batch_size, total_length)
 
 
-def generate_math_task(T0, batch_size, operation=np.add,
+def generate_math_task(T0, batch_size, operation=np.add, input_binary=False,
                           rnd=np.random.RandomState()):
     """
     In this task there are two input channels (L = 2). The first channel
@@ -77,6 +77,8 @@ def generate_math_task(T0, batch_size, operation=np.add,
     n1 = rnd.randint(1, 0.1 * T0, batch_size)
     n2 = rnd.randint(0.1 * T0 + 1, 0.5 * T0, batch_size)
     u1 = rnd.random_sample((T0*1.1, batch_size))
+    if input_binary:
+        u1 = np.round(u1)
     u2 = np.zeros_like(u1)
     T = np.zeros_like(u1)
     for b in range(batch_size):
@@ -96,6 +98,10 @@ def generate_addition_task(T0, batch_size, rnd=np.random.RandomState()):
 def generate_multiplication_task(T0, batch_size, rnd=np.random.RandomState()):
     return generate_math_task(T0, batch_size, operation=np.multiply, rnd=rnd)
 
+
+def generate_xor_task(T0, batch_size, rnd=np.random.RandomState()):
+    return generate_math_task(T0, batch_size, operation=np.logical_xor,
+                              input_binary=True, rnd=rnd)
 
 
 
