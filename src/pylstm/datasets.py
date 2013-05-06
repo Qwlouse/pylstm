@@ -8,7 +8,7 @@ import itertools
 import collections
 
 
-def binarize_sequence(seq, alphabet = None):
+def binarize_sequence(seq, alphabet=None):
     if alphabet is None:
         alphabet = np.lib.arraysetops.unique(seq)
     else:
@@ -104,6 +104,49 @@ def generate_multiplication_task(T0, batch_size, rnd=np.random.RandomState()):
 def generate_xor_task(T0, batch_size, rnd=np.random.RandomState()):
     return generate_math_task(T0, batch_size, operation=np.logical_xor,
                               input_binary=True, rnd=rnd)
+
+
+def generate_temporal_order_task(length, batch_size,
+                                 symbol_occurences=((.1, .2), (.5, .6)),
+                                 rnd=np.random.RandomState()):
+    X = np.zeros((length, batch_size, 6))
+    T = np.zeros((length, batch_size, 2 ** len(symbol_occurences)))
+    M = np.zeros((length, batch_size, 1))
+    # distractor pattern
+    for t in range(length):
+        for b in range(batch_size):
+            X[t, b, rnd.randint(0, 4)] = 1.
+
+    # the symbols
+    for b in range(batch_size):
+        out = 0
+        for T_range in symbol_occurences:
+            Ti = rnd.randint(length*T_range[0], length*T_range[1])
+            X[Ti, b, :] = 0
+            A_or_B = rnd.randint(0, 2)
+            X[Ti, b, A_or_B + 4] = 1.
+            out *= 2
+            out += A_or_B
+        T[-1, b, out] = 1
+    M[-1] = 1
+    return X, T, M
+
+
+def generate_2_symbol_temporal_order_task(length, batch_size,
+                                          rnd=np.random.RandomState()):
+    generate_temporal_order_task(length, batch_size, rnd=rnd,
+                                 symbol_occurences=((.1, .2),
+                                                    (.5, .6)))
+
+
+def generate_3_symbol_temporal_order_task(length, batch_size,
+                                          rnd=np.random.RandomState()):
+    generate_temporal_order_task(length, batch_size, rnd=rnd,
+                                 symbol_occurences=((.1, .2),
+                                                    (.3, .4),
+                                                    (.6, .7)))
+
+
 
 
 
