@@ -162,6 +162,21 @@ def generate_3_symbol_temporal_order_task(length, batch_size,
                                                     (.6, .7)))
 
 
+def generate_random_permutation_task(length, batch_size, rnd=np.random.RandomState()):
+    outputs = []
+
+    for b in range(batch_size):
+        seq = rnd.randint(2, 100, length)
+        seq[0] = rnd.randint(0, 2)
+        outputs.append(binarize_sequence(seq, range(100)))
+
+    X = np.array(outputs).swapaxes(0, 1)
+    T = np.zeros_like(X)
+    T[-1, :, :] = X[0, :, :]
+    M = np.zeros((length, batch_size, 1))
+    M[-1, :, :] = 1
+    return X, T, M
+
 
 
 
