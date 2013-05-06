@@ -20,7 +20,8 @@ def binarize_sequence(seq, alphabet=None):
     return result
 
 
-def generate_memo_task(pattern_length, alphabet_size, batch_size, length):
+def generate_memo_task(pattern_length, alphabet_size, batch_size, length,
+                       filler=None, trigger=None):
     """
     generate_memo_task(5,  2, 32,         length) : generates 5bit  problem
     generate_memo_task(10, 5, batch_size, length) : generates 20bit problem
@@ -30,9 +31,14 @@ def generate_memo_task(pattern_length, alphabet_size, batch_size, length):
     assert length > 2 * pattern_length + 2
     assert batch_size <= alphabet_size ** pattern_length, \
         "more batches than possible patterns"
-    alphabet = range(alphabet_size)
-    filler = [0]
-    trigger = [1]
+
+    filler = [alphabet_size] if filler is None else [filler]
+    trigger = [alphabet_size + 1] if trigger is None else [trigger]
+    alphabet = set(range(alphabet_size))
+    alphabet.add(filler[0])
+    alphabet.add(trigger[0])
+    alphabet = sorted(list(alphabet))
+
     inputs = []
     outputs = []
     mid_part_size = length - 2 * pattern_length - 1
@@ -54,12 +60,21 @@ def generate_memo_task(pattern_length, alphabet_size, batch_size, length):
     return np.array(inputs).swapaxes(0, 1), np.array(outputs).swapaxes(0, 1)
 
 
-def generate_5bit_task(total_length):
+def generate_5bit_memory_task(total_length):
     return generate_memo_task(5,  2, 32, total_length)
 
 
-def generate_20bit_task(total_length, batch_size=1000):
+def generate_20bit_memory_task(total_length, batch_size=1000):
     return generate_memo_task(10,  5, batch_size, total_length)
+
+
+def generate_5bit_memory_task_compact(total_length):
+    return generate_memo_task(5,  2, 32, total_length, filler=0, trigger=1)
+
+
+def generate_20bit_memory_task_compact(total_length, batch_size=1000):
+    return generate_memo_task(10,  5, batch_size, total_length,
+                              filler=0, trigger=1)
 
 
 def generate_math_task(T0, batch_size, operation=np.add, input_binary=False,
