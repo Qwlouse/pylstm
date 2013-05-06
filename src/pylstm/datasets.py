@@ -63,15 +63,16 @@ def generate_20bit_task(total_length, batch_size=1000):
 
 
 def generate_math_task(T0, batch_size, operation=np.add, input_binary=False,
-                          rnd=np.random.RandomState()):
+                       rnd=np.random.RandomState()):
     """
     In this task there are two input channels (L = 2). The first channel
-    receives a stream u1(n) of random reals sampled uniformly from [0, 1].
+    receives a stream u1(n) of random (reals # if not input_binary) sampled
+    (uniformly) from [0, 1].
     The second channel receives zero input u2(n) = 0 at all times except at two
     timesteps n1 < n2 when u2(n1) = u2(n2) = 1. The objective is that at the
     end of a run (much later than n1 or n2), the network should output the
-    normalized sum (u1 (n1) + u1 (n2)) / 2. An additional difficulty is that the
-    length of input sequences varies randomly.
+    the given binary operation on u1(n1) and u1(n2). An additional difficulty
+    is that the length of input sequences varies randomly.
     """
     Ti = rnd.randint(T0, 1.1 * T0, batch_size)
     n1 = rnd.randint(1, 0.1 * T0, batch_size)
@@ -92,7 +93,8 @@ def generate_math_task(T0, batch_size, operation=np.add, input_binary=False,
 
 
 def generate_addition_task(T0, batch_size, rnd=np.random.RandomState()):
-    return generate_math_task(T0, batch_size, operation=np.add, rnd=rnd)
+    return generate_math_task(T0, batch_size, rnd=rnd,
+                              operation=lambda a, b: np.add(a, b)/2)
 
 
 def generate_multiplication_task(T0, batch_size, rnd=np.random.RandomState()):
