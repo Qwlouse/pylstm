@@ -10,7 +10,7 @@ from pylstm.trainer import SgdTrainer, RPropTrainer
 
 from pylstm.netbuilder import NetworkBuilder
 from pylstm.layers import LstmLayer, RegularLayer
-from datasets import generate_memo_problem
+from datasets import generate_memo_task
 
 # # Instantiate a NetworkBuilder
 # netb = NetworkBuilder()
@@ -55,7 +55,7 @@ net.param_buffer = np.random.randn(net.get_param_size())
 
 # Generate 5bit problem
 timesteps = 30
-X, T = generate_memo_problem(5,  2, 32, timesteps)
+X, T = generate_memo_task(5,  2, 32, timesteps)
 
 t = SgdTrainer(learning_rate=.01)
 t.train(net, X, T, epochs=50)

@@ -6,7 +6,7 @@ import numpy as np
 #from scipy.optimize import fmin_ncg
 from conjgrad import fmin_ncg
 import sys
-from pylstm.datasets import generate_memo_problem
+from pylstm.datasets import generate_memo_task
 
 sys.path.append('.')
 sys.path.append('..')
@@ -222,7 +222,7 @@ if __name__ == "__main__":
     netb.input(2) >> LstmLayer(3, act_func="sigmoid") >> RegularLayer(2, act_func="softmax") >> netb.output
     net = netb.build()
     weight = rnd.randn(net.get_param_size())
-    X, T = generate_memo_problem(5, 2, 32, 100)
+    X, T = generate_memo_task(5, 2, 32, 100)
     net.param_buffer = weight.copy()
     trainer = SgdTrainer(learning_rate=0.01)
     #trainer = SgdTrainer(learning_rate=0.01)

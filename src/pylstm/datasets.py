@@ -20,10 +20,10 @@ def binarize_sequence(seq, alphabet = None):
     return result
 
 
-def generate_memo_problem(pattern_length, alphabet_size, batch_size, length):
+def generate_memo_task(pattern_length, alphabet_size, batch_size, length):
     """
-    generate_memo_problem(5,  2, 32,         length) : generates 5bit  problem
-    generate_memo_problem(10, 5, batch_size, length) : generates 20bit problem
+    generate_memo_task(5,  2, 32,         length) : generates 5bit  problem
+    generate_memo_task(10, 5, batch_size, length) : generates 20bit problem
 
     """
     assert alphabet_size >= 2, "need at least 2 characters (alphabet_size>=2)"
@@ -54,12 +54,51 @@ def generate_memo_problem(pattern_length, alphabet_size, batch_size, length):
     return np.array(inputs).swapaxes(0, 1), np.array(outputs).swapaxes(0, 1)
 
 
-def generate_5bit_problem(total_length):
-    return generate_memo_problem(5,  2, 32, total_length)
+def generate_5bit_task(total_length):
+    return generate_memo_task(5,  2, 32, total_length)
 
 
-def generate_20bit_problem(total_length, batch_size=1000):
-    return generate_memo_problem(10,  5, batch_size, total_length)
+def generate_20bit_task(total_length, batch_size=1000):
+    return generate_memo_task(10,  5, batch_size, total_length)
+
+
+def generate_math_task(T0, batch_size, operation=np.add,
+                          rnd=np.random.RandomState()):
+    """
+    In this task there are two input channels (L = 2). The first channel
+    receives a stream u1(n) of random reals sampled uniformly from [0, 1].
+    The second channel receives zero input u2(n) = 0 at all times except at two
+    timesteps n1 < n2 when u2(n1) = u2(n2) = 1. The objective is that at the
+    end of a run (much later than n1 or n2), the network should output the
+    normalized sum (u1 (n1) + u1 (n2)) / 2. An additional difficulty is that the
+    length of input sequences varies randomly.
+    """
+    Ti = rnd.randint(T0, 1.1 * T0, batch_size)
+    n1 = rnd.randint(1, 0.1 * T0, batch_size)
+    n2 = rnd.randint(0.1 * T0 + 1, 0.5 * T0, batch_size)
+    u1 = rnd.random_sample((T0*1.1, batch_size))
+    u2 = np.zeros_like(u1)
+    T = np.zeros_like(u1)
+    for b in range(batch_size):
+        u2[n1[b], b] = 1.
+        u2[n2[b], b] = 1.
+        T[Ti[b]-1, b] = operation(u1[n1[b], b], u1[n2[b], b])
+    X = np.dstack((u1, u2))
+    M = np.zeros_like(T)
+    M[Ti-1] = 1.
+    return X, T, M
+
+
+def generate_addition_task(T0, batch_size, rnd=np.random.RandomState()):
+    return generate_math_task(T0, batch_size, operation=np.add, rnd=rnd)
+
+
+def generate_multiplication_task(T0, batch_size, rnd=np.random.RandomState()):
+    return generate_math_task(T0, batch_size, operation=np.multiply, rnd=rnd)
+
+
+
+
 
 alphabet = ["A", "B", "C"]
 

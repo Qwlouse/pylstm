@@ -5,7 +5,7 @@ from __future__ import division, print_function, unicode_literals
 import mlizard
 from netbuilder import NetworkBuilder
 from layers import LstmLayer, FwdLayer
-from datasets import generate_memo_problem
+from datasets import generate_memo_task
 from trainer import SgdTrainer
 import matplotlib.pyplot as plt
 conf = """
@@ -31,7 +31,7 @@ def create_network(rnd):
 
 @ex.stage
 def create_5bit_problem(timesteps):
-    X, T = generate_memo_problem(5,  2, 32, timesteps)
+    X, T = generate_memo_task(5,  2, 32, timesteps)
     return X, T
 
 
