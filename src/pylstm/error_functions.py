@@ -14,36 +14,94 @@ def ensure_np_array(a):
 
 
 class ErrorFunction(object):
-    def evaluate(self, Y, T):
+    def evaluate(self, Y, T, M=None):
         pass
 
-    def deriv(self, Y, T):
+    def deriv(self, Y, T, M=None):
         pass
 
 
 class MeanSquaredError(ErrorFunction):
-    def evaluate(self, Y, T):
-        Y = ensure_np_array(Y)
-        return 0.5 * np.sum((Y - T) ** 2) / Y.shape[1]
+    def evaluate(self, Y, T, M=None):
+        Y, T, M, diff = self._get_masked_diff(Y, T, M)
+        return 0.5 * np.sum(diff ** 2) / Y.shape[1]
 
-    def deriv(self, Y, T):
+    def deriv(self, Y, T, M=None):
+        Y, T, M, diff = self._get_masked_diff(Y, T, M)
+        return diff / Y.shape[1]
+
+    def _get_masked_diff(self, Y, T, M=None):
         Y = ensure_np_array(Y)
-        return (Y - T) / Y.shape[1]
+        T = ensure_np_array(T)
+        assert Y.shape == T.shape
+        diff = Y - T
+        if M is not None:
+            M = ensure_np_array(M)
+            assert M.shape[0] == Y.shape[0]
+            assert M.shape[1] == Y.shape[1]
+            assert M.shape[2] == 1 or M.shape[2] == Y.shape[2]
+            diff *= M
+        return Y, T, M, diff
 
 
 class CrossEntropyError(object):
-    def __call__(self, Y, T):
+    def evaluate(self, Y, T, M=None):
         Y = ensure_np_array(Y)
+        T = ensure_np_array(T)
+        assert Y.shape == T.shape
         Y[Y < 1e-6] = 1e-6
-        cee = T * np.log(Y)
+        cee = T * np.log(Y) + (1 - T) * np.log(1 - Y)
+        if M is not None:
+            M = ensure_np_array(M)
+            assert M.shape[0] == Y.shape[0]
+            assert M.shape[1] == Y.shape[1]
+            assert M.shape[2] == 1 or M.shape[2] == Y.shape[2]
+            cee *= M
         return - np.sum(cee) / Y.shape[1]
 
-    def evaluate(self, Y, T):
-        return self(Y, T)
-
-    def deriv(self, Y, T):
+    def deriv(self, Y, T, M=None):
         Y = ensure_np_array(Y)
-        return (- T / Y) / Y.shape[1]
+        T = ensure_np_array(T)
+        assert Y.shape == T.shape
+        Y[Y < 1e-6] = 1e-6
+        ceed = (T - Y) / (Y * (Y - 1))
+        if M is not None:
+            M = ensure_np_array(M)
+            assert M.shape[0] == Y.shape[0]
+            assert M.shape[1] == Y.shape[1]
+            assert M.shape[2] == 1 or M.shape[2] == Y.shape[2]
+            ceed *= M
+        return ceed / Y.shape[1]
+
+
+class MultiClassCrossEntropyError(object):
+    def evaluate(self, Y, T, M=None):
+        Y = ensure_np_array(Y)
+        T = ensure_np_array(T)
+        assert Y.shape == T.shape
+        Y[Y < 1e-6] = 1e-6
+        cee = T * np.log(Y)
+        if M is not None:
+            M = ensure_np_array(M)
+            assert M.shape[0] == Y.shape[0]
+            assert M.shape[1] == Y.shape[1]
+            assert M.shape[2] == 1 or M.shape[2] == Y.shape[2]
+            cee *= M
+        return - np.sum(cee) / Y.shape[1]
+
+    def deriv(self, Y, T, M=None):
+        Y = ensure_np_array(Y)
+        T = ensure_np_array(T)
+        assert Y.shape == T.shape
+        Y[Y < 1e-6] = 1e-6
+        quot = T / Y
+        if M is not None:
+            M = ensure_np_array(M)
+            assert M.shape[0] == Y.shape[0]
+            assert M.shape[1] == Y.shape[1]
+            assert M.shape[2] == 1 or M.shape[2] == Y.shape[2]
+            quot *= M
+        return (- quot) / Y.shape[1]
 
 
 class Accuracy(object):

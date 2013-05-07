@@ -5,7 +5,50 @@ from scipy.optimize import approx_fprime
 
 import numpy as np
 import unittest
-from pylstm.error_functions import CTC
+from pylstm.error_functions import CTC, MeanSquaredError, CrossEntropyError
+from pylstm.error_functions import MultiClassCrossEntropyError
+
+
+class SimpleErrorFuncsTest(unittest.TestCase):
+    def setUp(self):
+        # error functions under test
+        self.error_funcs = [MeanSquaredError(),
+                            CrossEntropyError(),
+                            MultiClassCrossEntropyError()]
+
+    def test_evaluate_returns_scalar(self):
+        Y = np.ones((4, 3, 2))
+        T = np.ones((4, 3, 2)) * 2
+        for err in self.error_funcs:
+            e = err.evaluate(Y, T)
+            self.assertIsInstance(e, float)
+
+    def test_evaluate_is_batch_normalized(self):
+        Y1 = np.ones((4, 1, 2))
+        T1 = np.ones((4, 1, 2)) * 2
+        Y2 = np.ones((4, 10, 2))
+        T2 = np.ones((4, 10, 2)) * 2
+        for err in self.error_funcs:
+            e1 = err.evaluate(Y1, T1)
+            e2 = err.evaluate(Y2, T2)
+            self.assertEqual(e1, e2)
+
+    def test_deriv_shape(self):
+        Y = np.ones((4, 3, 2))
+        T = np.ones((4, 3, 2)) * 2
+        for err in self.error_funcs:
+            d = err.deriv(Y, T)
+            self.assertEqual(d.shape, Y.shape)
+
+    def test_finite_differences(self):
+        Y = np.zeros((4, 3, 2)) + 0.5
+        T = np.ones((4, 3, 2))
+        for err in self.error_funcs:
+            def f(X):
+                return err.evaluate(X.reshape(*T.shape), T)
+            delta_approx = approx_fprime(Y.flatten().copy(), f, 1e-7)
+            delta_calc = err.deriv(Y, T).flatten()
+            np.testing.assert_array_almost_equal(delta_approx, delta_calc)
 
 
 class CTCTest(unittest.TestCase):
