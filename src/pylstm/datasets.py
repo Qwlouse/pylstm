@@ -34,10 +34,11 @@ def generate_memo_task(pattern_length, alphabet_size, batch_size, length,
 
     filler = [alphabet_size] if filler is None else [filler]
     trigger = [alphabet_size + 1] if trigger is None else [trigger]
-    alphabet = set(range(alphabet_size))
-    alphabet.add(filler[0])
-    alphabet.add(trigger[0])
-    alphabet = sorted(list(alphabet))
+    alphabet = range(alphabet_size)
+    full_alphabet = set(alphabet)
+    full_alphabet.add(filler[0])
+    full_alphabet.add(trigger[0])
+    full_alphabet = sorted(list(full_alphabet))
 
     inputs = []
     outputs = []
@@ -53,9 +54,9 @@ def generate_memo_task(pattern_length, alphabet_size, batch_size, length,
         pattern = list(pattern)
         in_seq = pattern + filler * mid_part_size + trigger + \
             filler * pattern_length
-        inputs.append(binarize_sequence(in_seq, alphabet))
+        inputs.append(binarize_sequence(in_seq, full_alphabet))
         out_seq = filler * (length - pattern_length) + pattern
-        outputs.append(binarize_sequence(out_seq, alphabet))
+        outputs.append(binarize_sequence(out_seq, full_alphabet))
 
     return np.array(inputs).swapaxes(0, 1), np.array(outputs).swapaxes(0, 1)
 
