@@ -126,9 +126,9 @@ class CgTrainer(object):
 
             def fhess_p(v):
                 #net.param_buffer = weights.as_array.copy()
-                return net.hessian_pass(X, v, lambda_=.1, mu=1.0/30.0).copy().flatten() + lambda_ * v
+                return net.hessian_pass(X, v, lambda_, mu=1.0/30.0).copy().flatten() + lambda_ * v
 
-            xopt, allvecs = fmin_ncg(f, v, grad, fhess_p=fhess_p, maxiter=150, retall=True, disp=True)
+            xopt, allvecs = fmin_ncg(f, v, grad, fhess_p=fhess_p, maxiter=150, retall=True, disp=False)
 
 
             ## backtrack #1
@@ -138,7 +138,7 @@ class CgTrainer(object):
             for testW in reversed(allvecs):
                 net.param_buffer = weights.copy() + testW
                 out = net.forward_pass(X)
-                tmpError = net.calculate_error(T) / X.shape[1]
+                tmpError = net.calculate_error(T)
                 if tmpError < lowError:
                     lowError = tmpError
                     lowIdx = idx
@@ -151,7 +151,7 @@ class CgTrainer(object):
             for j in range(1,10):
                 net.param_buffer = weights.copy() + .9**j * bestDW
                 out = net.forward_pass(X)
-                tmpError = net.calculate_error(T) / X.shape[1]
+                tmpError = net.calculate_error(T) 
                 if tmpError < lowError:
                     finalDW = .9**j * bestDW
                     lowError = tmpError
@@ -159,7 +159,7 @@ class CgTrainer(object):
             ## Levenberg-Marquardt heuristic
             drop = 2.0 / 3.0
             boost = 1/drop
-            denom = 0.5*(np.dot(finalDW, fhess_p(finalDW)) + np.dot(np.squeeze(grad), finalDW))
+            denom = 0.5*(np.dot(finalDW, fhess_p(finalDW))) + np.dot(np.squeeze(grad), finalDW)
             rho = (lowError - prevError)/denom
             if rho < 0.25:
                 lambda_ = lambda_ * boost
@@ -211,6 +211,7 @@ class CgTrainer(object):
 if __name__ == "__main__":
     from netbuilder import NetworkBuilder
     from layers import LstmLayer, RegularLayer, RnnLayer
+    from datasets import generate_5bit_memory_task
 
     numbatches = 1
     numtimesteps = 5
@@ -219,12 +220,13 @@ if __name__ == "__main__":
 
 
     netb = NetworkBuilder()
-    netb.input(2) >> LstmLayer(3, act_func="sigmoid") >> RegularLayer(2, act_func="softmax") >> netb.output
+    netb.input(4) >> LstmLayer(3, act_func="tanhx2") >> RegularLayer(4, act_func="softmax") >> netb.output
     net = netb.build()
     weight = rnd.randn(net.get_param_size())
-    X, T = generate_memo_task(5, 2, 32, 100)
+    #X, T = generate_memo_task(5, 2, 32, 100)
+    X, T = generate_5bit_memory_task(25)
     net.param_buffer = weight.copy()
-    trainer = SgdTrainer(learning_rate=0.01)
+    trainer = CgTrainer(learning_rate=0.01)
     #trainer = SgdTrainer(learning_rate=0.01)
     # X = rnd.randn(numtimesteps, numbatches,  numIn)
     # T = rnd.randn(numtimesteps, numbatches, numOut)
