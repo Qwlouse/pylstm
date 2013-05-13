@@ -49,13 +49,15 @@ from datasets import generate_memo_task
 # ############ Training Example ##############################
 # create and randomly initialize a network
 netb = NetworkBuilder()
-netb.input(2) >> LstmLayer(2) >> RegularLayer(2, act_func="softmax") >> netb.output
+netb.input(2) >> LstmLayer(200) >> RegularLayer(2, act_func="softmax") >> netb.output
 net = netb.build()
 net.param_buffer = np.random.randn(net.get_param_size())
 
 # Generate 5bit problem
 timesteps = 30
-X, T = generate_memo_task(5,  2, 32, timesteps)
+X = np.random.randn(100,  100, 2)
+T = np.random.randn(100,  100, 2)
+
 
 t = SgdTrainer(learning_rate=.01)
 t.train(net, X, T, epochs=50)
