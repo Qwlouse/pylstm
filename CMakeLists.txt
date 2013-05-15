@@ -52,6 +52,13 @@ IF (MATLAB_BLAS)
     SET(BLAS_INCLUDE_PATH ${MATLAB_EXTERN_INCLUDE_PATH})
 ENDIF (MATLAB_BLAS)
 
+OPTION(OPEN_BLAS "Use OpenBLAS Libraries (requires OpenBlas)" OFF)
+IF (OPEN_BLAS)
+    # TODO: this doesn't work so far
+    SET(BLAS_LIBRARIES openblas)
+    SET(BLAS_INCLUDE_PATH )
+ENDIF (OPEN_BLAS)
+
 
 # Enable Logging (requires Log4cxx)
 OPTION(LOGGING_ENABLED "Enable logging support (requires Log4cxx)" ON)
