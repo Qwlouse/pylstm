@@ -22,20 +22,29 @@ def print_error_per_epoch(epoch, error):
 
 
 class SgdTrainer(object):
-    def __init__(self, learning_rate=0.1):
+    def __init__(self, learning_rate=0.1, momentum=0.0, nesterov=False):
         self.learning_rate = learning_rate
+        self.momentum = momentum
+        self.nesterov = nesterov
 
     def train(self, net, X, T, M=None, epochs=100,
               callback=print_error_per_epoch,
               success_criterion=lambda x: False):
+        velocity = np.zeros(net.get_param_size())
         for epoch in range(1, epochs + 1):
+            velocity *= self.momentum
+            if self.nesterov:
+                net.param_buffer += velocity
             net.forward_pass(X)
             error = net.calculate_error(T, M)
             callback(epoch, error)
             net.backward_pass(T, M)
-            grad = net.calc_gradient().flatten()
-            grad *= - self.learning_rate
-            net.param_buffer += grad
+            dv = self.learning_rate * net.calc_gradient().flatten()
+            velocity -= dv
+            if self.nesterov:
+                net.param_buffer -= dv
+            else:
+                net.param_buffer += velocity
             if success_criterion(net):
                 return
 
