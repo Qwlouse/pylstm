@@ -44,6 +44,15 @@ SET(CMAKE_MODULE_PATH "${PY_LSTM_PATH}/cmake")
 #==============================================================================
 # Options settings (including optional packages)
 #==============================================================================
+
+OPTION(MATLAB_BLAS "Use Matlab BLAS Libraries (requires Matlab)" ON)
+IF (MATLAB_BLAS)
+    FIND_PACKAGE(Matlab2 REQUIRED)
+    SET(BLAS_LIBRARIES ${MATLAB_LIBRARIES})
+    SET(BLAS_INCLUDE_PATH ${MATLAB_EXTERN_INCLUDE_PATH})
+ENDIF (MATLAB_BLAS)
+
+
 # Enable Logging (requires Log4cxx)
 OPTION(LOGGING_ENABLED "Enable logging support (requires Log4cxx)" ON)
 IF (LOGGING_ENABLED)
@@ -84,12 +93,12 @@ IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
    ADD_DEFINITIONS(-I/usr/lib/c++/v1/ -libstd=libc++ -std=c++11)
    MESSAGE("USING CLANG")
 ENDIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-#==============================================================================
-# External Libs
-#==============================================================================
 
-FIND_PACKAGE(Matlab2 REQUIRED)
-INCLUDE_DIRECTORIES(${MATLAB_EXTERN_INCLUDE_PATH})
+#==============================================================================
+# BLAS
+#==============================================================================
+INCLUDE_DIRECTORIES(${BLAS_INCLUDE_PATH})
+
 
 #==============================================================================
 # Config header
