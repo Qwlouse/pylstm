@@ -97,7 +97,7 @@ def generate_math_task(T0, batch_size, operation=np.add, input_binary=False,
     if input_binary:
         u1 = np.round(u1)
     u2 = np.zeros_like(u1)
-    T = np.zeros_like(u1)
+    T = np.zeros_like(u1).reshape(-1, batch_size, 1)
     for b in range(batch_size):
         u2[n1[b], b] = 1.
         u2[n2[b], b] = 1.
