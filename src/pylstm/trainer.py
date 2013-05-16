@@ -21,32 +21,53 @@ def print_error_per_epoch(epoch, error):
     print("Epoch %d:\tError = %0.4f" % (epoch, error))
 
 
+def minibatch_generator(X, T, M, batch_size=10):
+    i = 0
+    if M is None:
+        M = np.ones_like(T)
+    total_batches = X.shape[1]
+    while i < total_batches:
+        j = min(i+batch_size, total_batches)
+        yield X[:, i:j, :], T[:, i:j, :], M[:, i:j, :]
+        i += batch_size
+
+
 class SgdTrainer(object):
     def __init__(self, learning_rate=0.1, momentum=0.0, nesterov=False):
         self.learning_rate = learning_rate
         self.momentum = momentum
         self.nesterov = nesterov
 
-    def train(self, net, X, T, M=None, epochs=100,
+    def train(self, net, X=None, T=None, M=None, epochs=100,
+              datagenerator=None,
+              minibatch_size=10,
               callback=print_error_per_epoch,
               success_criterion=lambda x: False):
         velocity = np.zeros(net.get_param_size())
-        for epoch in range(1, epochs + 1):
-            velocity *= self.momentum
-            if self.nesterov:
-                net.param_buffer += velocity
+
+        for epoch in range(0, epochs):
+            if datagenerator is not None:
+                X, T, M = datagenerator()
             net.forward_pass(X)
             error = net.calculate_error(T, M)
             callback(epoch, error)
-            net.backward_pass(T, M)
-            dv = self.learning_rate * net.calc_gradient().flatten()
-            velocity -= dv
-            if self.nesterov:
-                net.param_buffer -= dv
-            else:
-                net.param_buffer += velocity
             if success_criterion(net):
-                return
+                    return
+            for x, t, m in minibatch_generator(X, T, M, minibatch_size):
+                velocity *= self.momentum
+                if self.nesterov:
+                    net.param_buffer += velocity
+                net.forward_pass(x)
+                net.backward_pass(t, m)
+                dv = self.learning_rate * net.calc_gradient().flatten()
+                velocity -= dv
+                if self.nesterov:
+                    net.param_buffer -= dv
+                else:
+                    net.param_buffer += velocity
+                print('.', end="")
+            print("")
+
 
 
 class RPropTrainer(object):

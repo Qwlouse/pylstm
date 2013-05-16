@@ -98,13 +98,13 @@ def generate_math_task(T0, batch_size, operation=np.add, input_binary=False,
         u1 = np.round(u1)
     u2 = np.zeros_like(u1)
     T = np.zeros_like(u1).reshape(-1, batch_size, 1)
+    M = np.zeros_like(T)
     for b in range(batch_size):
         u2[n1[b], b] = 1.
         u2[n2[b], b] = 1.
         T[Ti[b]-1, b] = operation(u1[n1[b], b], u1[n2[b], b])
+        M[Ti[b]-1, b] = 1.
     X = np.dstack((u1, u2))
-    M = np.zeros_like(T)
-    M[Ti-1] = 1.
     return X, T, M
 
 
@@ -173,6 +173,7 @@ def generate_random_permutation_task(length, batch_size, rnd=np.random.RandomSta
 
     X = np.array(outputs).swapaxes(0, 1)
     T = np.zeros_like(X)
+    T[0:-1, :, :] = X[1:, :, :]
     T[-1, :, :] = X[0, :, :]
     M = np.zeros((length, batch_size, 1))
     M[-1, :, :] = 1
