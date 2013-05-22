@@ -38,13 +38,14 @@ class SgdTrainer(object):
         self.momentum = momentum
         self.nesterov = nesterov
 
-    def train(self, net, X=None, T=None, M=None, epochs=100,
+    def train(self, net, X, T, M=None, X_val=None, T_val=None, M_val=None,
+              epochs=100,
               datagenerator=None,
               minibatch_size=10,
               callback=print_error_per_epoch,
               success_criterion=lambda x: False):
         velocity = np.zeros(net.get_param_size())
-
+        old_val_error = float('inf')
         for epoch in range(0, epochs):
             if datagenerator is not None:
                 X, T, M = datagenerator()
@@ -68,7 +69,21 @@ class SgdTrainer(object):
             error = np.mean(errors)
             callback(epoch, error)
             if success_criterion(net):
-                return
+                return error
+            if X_val is not None:
+                val_errors = []
+                for x, t, m in minibatch_generator(X_val, T_val, M_val, minibatch_size):
+                    net.forward_pass(x)
+                    val_errors.append(net.calculate_error(t, m))
+                val_error = np.mean(val_errors)
+                print("Validation Error: %0.4f" % val_error)
+                if val_error > old_val_error:
+                    print("Validation Error rose! Stopping.")
+                    return error
+                old_val_error = val_error
+
+
+
 
 
 class RPropTrainer(object):
