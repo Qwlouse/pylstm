@@ -128,8 +128,7 @@ INCLUDE_DIRECTORIES(/System/Library/Frameworks/Python.framework/Versions/2.7/Ext
 # We reproduce the availability of the source files in the build tree.
 # That way we can run the unchanged setup.py from the build dir and install
 # both cython and pure python files.
-ADD_CUSTOM_TARGET( ReplicatePythonSourceTree ALL ${CMAKE_COMMAND} -P
-  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/ReplicatePythonSourceTree.cmake
+ADD_CUSTOM_TARGET( ReplicatePythonSourceTree ALL ${CMAKE_CURRENT_SOURCE_DIR}/replicate_python_sources.sh
   ${CMAKE_CURRENT_BINARY_DIR}
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} )
 
