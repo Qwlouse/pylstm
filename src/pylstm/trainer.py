@@ -18,7 +18,7 @@ rnd = np.random.RandomState(92384792)
 
 
 def print_error_per_epoch(epoch, error):
-    print("Epoch %d:\tError = %0.4f" % (epoch, error))
+    print("Epoch %d:\tTrainingerror = %0.4f" % (epoch, error))
 
 
 def minibatch_generator(X, T, M, batch_size=10):
@@ -48,16 +48,14 @@ class SgdTrainer(object):
         for epoch in range(0, epochs):
             if datagenerator is not None:
                 X, T, M = datagenerator()
-            net.forward_pass(X)
-            error = net.calculate_error(T, M)
-            callback(epoch, error)
-            if success_criterion(net):
-                    return
+
+            errors = []
             for x, t, m in minibatch_generator(X, T, M, minibatch_size):
                 velocity *= self.momentum
                 if self.nesterov:
                     net.param_buffer += velocity
                 net.forward_pass(x)
+                errors.append(net.calculate_error(t, m))
                 net.backward_pass(t, m)
                 dv = self.learning_rate * net.calc_gradient().flatten()
                 velocity -= dv
@@ -67,7 +65,10 @@ class SgdTrainer(object):
                     net.param_buffer += velocity
                 print('.', end="")
             print("")
-
+            error = np.mean(errors)
+            callback(epoch, error)
+            if success_criterion(net):
+                return
 
 
 class RPropTrainer(object):
