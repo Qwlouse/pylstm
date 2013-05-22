@@ -93,7 +93,7 @@ IF (${CMAKE_VERSION} VERSION_LESS 2.8.3)
       ENDIF (is_arg_name GREATER -1)
     ENDFOREACH(arg)
     SET(${prefix}_${current_arg_name} ${current_arg_list})
-  ENDMACRO(PARSE_ARGUMENTS)
+  ENDMACRO(CMAKE_PARSE_ARGUMENTS)
 
 ELSE (${CMAKE_VERSION} VERSION_LESS 2.8.3)
   include( CMakeParseArguments )
