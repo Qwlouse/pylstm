@@ -40,7 +40,9 @@ cdef extern from "matrix_operation.h":
     ActivationFunction Tanh
     ActivationFunction Tanhx2
     ActivationFunction Linear
+    ActivationFunction RectifiedLinear
     SoftmaxLayerActivation Softmax
+
 
 
     void add_into_b(Matrix a, Matrix b)
