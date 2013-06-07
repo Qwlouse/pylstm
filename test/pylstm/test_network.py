@@ -6,7 +6,7 @@ import unittest
 import numpy as np
 import itertools
 from pylstm.netbuilder import NetworkBuilder
-from pylstm.layers import LstmLayer, RnnLayer, RegularLayer
+from pylstm.layers import LstmLayer, Lstm97Layer, RnnLayer, RegularLayer
 from pylstm.utils import check_gradient, check_deltas, check_rpass
 from pylstm.wrapper import Matrix
 
@@ -29,7 +29,7 @@ class NetworkTests(unittest.TestCase):
     def setUp(self):
         self.input_size = 2
         self.output_size = 3
-        self.layer_types = [RegularLayer, RnnLayer, LstmLayer]
+        self.layer_types = [RegularLayer, RnnLayer, LstmLayer, Lstm97Layer]
         self.activation_functions = ["linear", "tanh", "tanhx2", "sigmoid", "softmax"]
         self.X = rnd.randn(2, 7, self.input_size)
 
@@ -67,14 +67,16 @@ class NetworkTests(unittest.TestCase):
         self.assertTrue(np.allclose(deltas1, deltas2))
 
     def test_deltas_finite_differences(self):
+        t = 7
+        b = 5
         check_errors = []
         for l, a in itertools.product(self.layer_types, self.activation_functions):
             net = self.build_network(l, a)
-            e, grad_calc, grad_approx = check_deltas(net, n_batches=5,
-                                                     n_timesteps=7, rnd=rnd)
+            e, grad_calc, grad_approx = check_deltas(net, n_batches=b,
+                                                     n_timesteps=t, rnd=rnd)
             check_errors.append(e)
             if e > 1e-4:
-                diff = (grad_approx - grad_calc).reshape(3, 3, -1)
+                diff = (grad_approx - grad_calc).reshape(t, b, -1)
                 for t in range(diff.shape[0]):
                     print("======== t=%d =========" % t)
                     print(diff[t])

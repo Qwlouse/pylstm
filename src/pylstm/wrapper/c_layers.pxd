@@ -25,6 +25,12 @@ cdef extern from "lstm_layer.h":
         LstmLayer(ActivationFunction* f)
 
 
+cdef extern from "lstm97_layer.h":
+    cppclass Lstm97Layer:
+        Lstm97Layer()
+        Lstm97Layer(ActivationFunction* f)
+
+
 cdef extern from "layer.hpp":
     cppclass BaseLayer:
         size_t in_size
