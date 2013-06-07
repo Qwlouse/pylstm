@@ -105,15 +105,20 @@ class MultiClassCrossEntropyError(object):
 
 
 class Accuracy(object):
-    def __call__(self, Y, T):
+    def __call__(self, Y, T, M=None):
         t, b, f = Y.shape
         Y = ensure_np_array(Y)
         winner_Y = np.argmax(Y, 2)
         winner_T = np.argmax(T, 2)
-        return np.sum(winner_Y == winner_T) / (t * b)
+        correct = winner_Y == winner_T
+        total = t * b
+        if M is not None:
+            correct *= M
+            total = np.sum(M)
+        return np.sum(correct) / total
 
-    def evaluate(self, Y, T):
-        return self(Y, T)
+    def evaluate(self, Y, T, M=None):
+        return self(Y, T, M)
 
 
 class CTC(object):

@@ -7,7 +7,7 @@ ADD_LIBRARY(layers SHARED
             rnn_layer.cpp
             )
 
-TARGET_LINK_LIBRARIES(layers ${MATLAB_LIBRARIES} core matrix)
+TARGET_LINK_LIBRARIES(layers ${BLAS_LIBRARIES} core matrix)
 
 IF(LOGGING_ENABLED)
     TARGET_LINK_LIBRARIES(layers ${LOG4CXX_LIBRARIES})

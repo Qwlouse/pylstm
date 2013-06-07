@@ -103,6 +103,8 @@ def create_layer(name, in_size, out_size, **kwargs):
             act_fct = <cm.ActivationFunction*> &cm.Tanh
         elif af_name.lower() == "tanhx2":
             act_fct = <cm.ActivationFunction*> &cm.Tanhx2
+        elif af_name.lower() in ["rectified_linear", "relu"]:
+            act_fct = <cm.ActivationFunction*> &cm.RectifiedLinear
         elif af_name.lower() == "linear":
             act_fct = <cm.ActivationFunction*> &cm.Linear
         elif af_name.lower() == "softmax":

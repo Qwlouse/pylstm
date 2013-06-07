@@ -44,6 +44,22 @@ SET(CMAKE_MODULE_PATH "${PY_LSTM_PATH}/cmake")
 #==============================================================================
 # Options settings (including optional packages)
 #==============================================================================
+
+OPTION(MATLAB_BLAS "Use Matlab BLAS Libraries (requires Matlab)" ON)
+IF (MATLAB_BLAS)
+    FIND_PACKAGE(Matlab2 REQUIRED)
+    SET(BLAS_LIBRARIES ${MATLAB_LIBRARIES})
+    SET(BLAS_INCLUDE_PATH ${MATLAB_EXTERN_INCLUDE_PATH})
+ENDIF (MATLAB_BLAS)
+
+OPTION(OPEN_BLAS "Use OpenBLAS Libraries (requires OpenBlas)" OFF)
+IF (OPEN_BLAS)
+    # TODO: this doesn't work so far
+    SET(BLAS_LIBRARIES openblas)
+    SET(BLAS_INCLUDE_PATH )
+ENDIF (OPEN_BLAS)
+
+
 # Enable Logging (requires Log4cxx)
 OPTION(LOGGING_ENABLED "Enable logging support (requires Log4cxx)" ON)
 IF (LOGGING_ENABLED)
@@ -84,12 +100,12 @@ IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
    ADD_DEFINITIONS(-I/usr/lib/c++/v1/ -libstd=libc++ -std=c++11)
    MESSAGE("USING CLANG")
 ENDIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-#==============================================================================
-# External Libs
-#==============================================================================
 
-FIND_PACKAGE(Matlab2 REQUIRED)
-INCLUDE_DIRECTORIES(${MATLAB_EXTERN_INCLUDE_PATH})
+#==============================================================================
+# BLAS
+#==============================================================================
+INCLUDE_DIRECTORIES(${BLAS_INCLUDE_PATH})
+
 
 #==============================================================================
 # Config header
@@ -112,8 +128,7 @@ INCLUDE_DIRECTORIES(/System/Library/Frameworks/Python.framework/Versions/2.7/Ext
 # We reproduce the availability of the source files in the build tree.
 # That way we can run the unchanged setup.py from the build dir and install
 # both cython and pure python files.
-ADD_CUSTOM_TARGET( ReplicatePythonSourceTree ALL ${CMAKE_COMMAND} -P
-  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/ReplicatePythonSourceTree.cmake
+ADD_CUSTOM_TARGET( ReplicatePythonSourceTree ALL ${CMAKE_CURRENT_SOURCE_DIR}/replicate_python_sources.sh
   ${CMAKE_CURRENT_BINARY_DIR}
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} )
 
