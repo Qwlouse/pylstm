@@ -224,14 +224,40 @@ void Lstm97Layer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb
     //IF NEXT
     if (t) {
       mult_add(w.IH, Ry.slice(t - 1), Rb.Ia.slice(t));
+      mult_add(w.II, Rb.Ib.slice(t - 1), Rb.Ia.slice(t));
+	  mult_add(w.IF, Rb.Fb.slice(t - 1), Rb.Ia.slice(t));
+	  mult_add(w.IO, Rb.Ob.slice(t - 1), Rb.Ia.slice(t));
+
       mult_add(w.FH, Ry.slice(t - 1), Rb.Fa.slice(t));
+      mult_add(w.FI, Rb.Ib.slice(t - 1), Rb.Fa.slice(t));
+	  mult_add(w.FF, Rb.Fb.slice(t - 1), Rb.Fa.slice(t));
+	  mult_add(w.FO, Rb.Ob.slice(t - 1), Rb.Fa.slice(t));
+
       mult_add(w.ZH, Ry.slice(t - 1), Rb.Za.slice(t));
+
       mult_add(w.OH, Ry.slice(t - 1), Rb.Oa.slice(t));
+      mult_add(w.OI, Rb.Ib.slice(t - 1), Rb.Oa.slice(t));
+	  mult_add(w.OF, Rb.Fb.slice(t - 1), Rb.Oa.slice(t));
+	  mult_add(w.OO, Rb.Ob.slice(t - 1), Rb.Oa.slice(t));
+
+
 
       mult_add(v.IH, y.slice(t - 1), Rb.Ia.slice(t));
+      mult_add(v.II, b.Ib.slice(t - 1), Rb.Ia.slice(t));
+	  mult_add(v.IF, b.Fb.slice(t - 1), Rb.Ia.slice(t));
+	  mult_add(v.IO, b.Ob.slice(t - 1), Rb.Ia.slice(t));
+
       mult_add(v.FH, y.slice(t - 1), Rb.Fa.slice(t));
+      mult_add(v.FI, b.Ib.slice(t - 1), Rb.Fa.slice(t));
+	  mult_add(v.FF, b.Fb.slice(t - 1), Rb.Fa.slice(t));
+	  mult_add(v.FO, b.Ob.slice(t - 1), Rb.Fa.slice(t));
+
       mult_add(v.ZH, y.slice(t - 1), Rb.Za.slice(t));
+
       mult_add(v.OH, y.slice(t - 1), Rb.Oa.slice(t));
+      mult_add(v.OI, b.Ib.slice(t - 1), Rb.Oa.slice(t));
+	  mult_add(v.OF, b.Fb.slice(t - 1), Rb.Oa.slice(t));
+	  mult_add(v.OO, b.Ob.slice(t - 1), Rb.Oa.slice(t));
 
       dot_add(Rb.S.slice(t - 1), w.IS, Rb.Ia.slice(t));
       dot_add(Rb.S.slice(t - 1), w.FS, Rb.Fa.slice(t));
