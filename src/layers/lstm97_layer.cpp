@@ -314,8 +314,8 @@ void Lstm97Layer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Mat
 
      if (t<end_time) {
           mult_add(w.OO.T(), d.Oa.slice(t+1), d.Ob.slice(t));
-          mult_add(w.OF.T(), d.Fa.slice(t+1), d.Ob.slice(t));
-          mult_add(w.OI.T(), d.Ia.slice(t+1), d.Ob.slice(t));
+          mult_add(w.FO.T(), d.Fa.slice(t+1), d.Ob.slice(t));
+          mult_add(w.IO.T(), d.Ia.slice(t+1), d.Ob.slice(t));
       }
 
 
@@ -356,22 +356,10 @@ void Lstm97Layer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Mat
 
 
       if (t<end_time) {
-          mult_add(w.IO.T(), d.Oa.slice(t+1), d.Ib.slice(t));
-          mult_add(w.IF.T(), d.Fa.slice(t+1), d.Ib.slice(t));
-          mult_add(w.II.T(), d.Ia.slice(t+1), d.Ib.slice(t));
+         mult_add(w.OI.T(), d.Oa.slice(t+1), d.Ib.slice(t));
+         mult_add(w.FI.T(), d.Fa.slice(t+1), d.Ib.slice(t));
+         mult_add(w.II.T(), d.Ia.slice(t+1), d.Ib.slice(t));
       }
-
-      //apply_sigmoid_deriv(b.Ib.slice(t), d.Ia.slice(t));
-      apply_sigmoid_deriv(b.Ib.slice(t), d.tmp1.slice(t));
-      dot(d.Ib.slice(t), d.tmp1.slice(t), d.Ia.slice(t));
-
-
-      //! INPUT GATE DERIVS
-      //! \f$\frac{dE}{db_I} = \frac{dE}{dS} * b_Z \f$
-      dot(d.S.slice(t), b.Zb.slice(t), d.Ib.slice(t));
-
-      //! \f$\frac{dE}{da_I} = \frac{dE}{db_I} * f'(a_I) \f$
-      //sigmoid_deriv(d.Ib.slice(t), b.Ib.slice(t), d.temp_hidden, d.temp_hidden2, d.Ia.slice(t));
 
       //apply_sigmoid_deriv(b.Ib.slice(t), d.Ia.slice(t));
       apply_sigmoid_deriv(b.Ib.slice(t), d.tmp1.slice(t));
@@ -387,9 +375,9 @@ void Lstm97Layer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Mat
 
 
       if (t<end_time) {
-          mult_add(w.FO.T(), d.Oa.slice(t+1), d.Fb.slice(t));
-          mult_add(w.FF.T(), d.Fa.slice(t+1), d.Fb.slice(t));
-          mult_add(w.FI.T(), d.Ia.slice(t+1), d.Fb.slice(t));
+         mult_add(w.OF.T(), d.Oa.slice(t+1), d.Fb.slice(t));
+         mult_add(w.FF.T(), d.Fa.slice(t+1), d.Fb.slice(t));
+         mult_add(w.IF.T(), d.Ia.slice(t+1), d.Fb.slice(t));
       }
 
       // \f$\frac{dE}{da_F} = \frac{dE}{db_F} * f'(a_F)\f$
