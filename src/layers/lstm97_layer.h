@@ -13,6 +13,10 @@ public:
 	Lstm97Layer();
 	explicit Lstm97Layer(const ActivationFunction* f);
 
+	bool full_gradient;
+	bool peephole_connections;
+	bool forget_gate;
+
 	class Parameters : public MatrixContainer {
 	public:
 		///Variables defining sizes

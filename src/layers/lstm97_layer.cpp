@@ -8,11 +8,17 @@
 
 
 Lstm97Layer::Lstm97Layer():
-	f(&Tanhx2)
+	f(&Tanhx2),
+    full_gradient(true),
+    peephole_connections(true),
+    forget_gate(true)
 { }
 
 Lstm97Layer::Lstm97Layer(const ActivationFunction* f):
-	f(f)
+	f(f),
+    full_gradient(true),
+    peephole_connections(true),
+    forget_gate(true)
 { }
 
 
@@ -103,22 +109,23 @@ void Lstm97Layer::forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y) {
         //IF NEXT
         if (t) {
             mult_add(w.FH, y.slice(t - 1), b.Fa.slice(t));
-	        mult_add(w.FI, b.Ib.slice(t - 1), b.Fa.slice(t));
-	        mult_add(w.FF, b.Fb.slice(t - 1), b.Fa.slice(t));
-	        mult_add(w.FO, b.Ob.slice(t - 1), b.Fa.slice(t));
+            mult_add(w.FI, b.Ib.slice(t - 1), b.Fa.slice(t));
+            mult_add(w.FF, b.Fb.slice(t - 1), b.Fa.slice(t));
+            mult_add(w.FO, b.Ob.slice(t - 1), b.Fa.slice(t));
 
             mult_add(w.IH, y.slice(t - 1), b.Ia.slice(t));
             mult_add(w.II, b.Ib.slice(t - 1), b.Ia.slice(t));
-	        mult_add(w.IF, b.Fb.slice(t - 1), b.Ia.slice(t));
-	        mult_add(w.IO, b.Ob.slice(t - 1), b.Ia.slice(t));
+            mult_add(w.IF, b.Fb.slice(t - 1), b.Ia.slice(t));
+            mult_add(w.IO, b.Ob.slice(t - 1), b.Ia.slice(t));
 
-	        mult_add(w.OH, y.slice(t - 1), b.Oa.slice(t));
-	        mult_add(w.OI, b.Ib.slice(t - 1), b.Oa.slice(t));
-	        mult_add(w.OF, b.Fb.slice(t - 1), b.Oa.slice(t));
-	        mult_add(w.OO, b.Ob.slice(t - 1), b.Oa.slice(t));
+            mult_add(w.OH, y.slice(t - 1), b.Oa.slice(t));
+            mult_add(w.OI, b.Ib.slice(t - 1), b.Oa.slice(t));
+            mult_add(w.OF, b.Fb.slice(t - 1), b.Oa.slice(t));
+            mult_add(w.OO, b.Ob.slice(t - 1), b.Oa.slice(t));
 
 
             mult_add(w.ZH, y.slice(t - 1), b.Za.slice(t));
+
 
             dot_add(b.S.slice(t - 1), w.FS, b.Fa.slice(t));
             dot_add(b.S.slice(t - 1), w.IS, b.Ia.slice(t));
@@ -176,17 +183,17 @@ void Lstm97Layer::gradient(Parameters&, Parameters& grad, FwdState& b, BwdState&
         mult(d.Fa.slice(1, n_time).flatten_time(), y.slice(0, n_time - 1).flatten_time().T(), grad.FH); //(double) n_time);
         mult(d.Oa.slice(1, n_time).flatten_time(), y.slice(0, n_time - 1).flatten_time().T(), grad.OH); //(double) n_time);
 	
-	mult(d.Ia.slice(1, n_time).flatten_time(), b.Ib.slice(0, n_time - 1).flatten_time().T(), grad.II); //(double) n_time);
-	mult(d.Ia.slice(1, n_time).flatten_time(), b.Fb.slice(0, n_time - 1).flatten_time().T(), grad.IF); //(double) n_time);
-	mult(d.Ia.slice(1, n_time).flatten_time(), b.Ob.slice(0, n_time - 1).flatten_time().T(), grad.IO); //(double) n_time);
+        mult(d.Ia.slice(1, n_time).flatten_time(), b.Ib.slice(0, n_time - 1).flatten_time().T(), grad.II); //(double) n_time);
+        mult(d.Ia.slice(1, n_time).flatten_time(), b.Fb.slice(0, n_time - 1).flatten_time().T(), grad.IF); //(double) n_time);
+        mult(d.Ia.slice(1, n_time).flatten_time(), b.Ob.slice(0, n_time - 1).flatten_time().T(), grad.IO); //(double) n_time);
 
-	mult(d.Fa.slice(1, n_time).flatten_time(), b.Ib.slice(0, n_time - 1).flatten_time().T(), grad.FI); //(double) n_time);
-	mult(d.Fa.slice(1, n_time).flatten_time(), b.Fb.slice(0, n_time - 1).flatten_time().T(), grad.FF); //(double) n_time);
-	mult(d.Fa.slice(1, n_time).flatten_time(), b.Ob.slice(0, n_time - 1).flatten_time().T(), grad.FO); //(double) n_time);
- 
-	mult(d.Oa.slice(1, n_time).flatten_time(), b.Ib.slice(0, n_time - 1).flatten_time().T(), grad.OI); //(double) n_time);
-	mult(d.Oa.slice(1, n_time).flatten_time(), b.Fb.slice(0, n_time - 1).flatten_time().T(), grad.OF); //(double) n_time);
-	mult(d.Oa.slice(1, n_time).flatten_time(), b.Ob.slice(0, n_time - 1).flatten_time().T(), grad.OO); //(double) n_time);
+        mult(d.Fa.slice(1, n_time).flatten_time(), b.Ib.slice(0, n_time - 1).flatten_time().T(), grad.FI); //(double) n_time);
+        mult(d.Fa.slice(1, n_time).flatten_time(), b.Fb.slice(0, n_time - 1).flatten_time().T(), grad.FF); //(double) n_time);
+        mult(d.Fa.slice(1, n_time).flatten_time(), b.Ob.slice(0, n_time - 1).flatten_time().T(), grad.FO); //(double) n_time);
+
+        mult(d.Oa.slice(1, n_time).flatten_time(), b.Ib.slice(0, n_time - 1).flatten_time().T(), grad.OI); //(double) n_time);
+        mult(d.Oa.slice(1, n_time).flatten_time(), b.Fb.slice(0, n_time - 1).flatten_time().T(), grad.OF); //(double) n_time);
+        mult(d.Oa.slice(1, n_time).flatten_time(), b.Ob.slice(0, n_time - 1).flatten_time().T(), grad.OO); //(double) n_time);
 
     }
 
@@ -310,10 +317,12 @@ void Lstm97Layer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Mat
   //calculate t+1 values except for end_time+1
   for(int t(end_time); t >= 0; --t){
       if (t<end_time) {
-          mult_add(w.IH.T(), d.Ia.slice(t+1), d.Hb.slice(t));
-          mult_add(w.FH.T(), d.Fa.slice(t+1), d.Hb.slice(t));
-          mult_add(w.ZH.T(), d.Za.slice(t+1), d.Hb.slice(t));
-          mult_add(w.OH.T(), d.Oa.slice(t+1), d.Hb.slice(t));
+          if (full_gradient) {
+              mult_add(w.IH.T(), d.Ia.slice(t+1), d.Hb.slice(t));
+              mult_add(w.FH.T(), d.Fa.slice(t+1), d.Hb.slice(t));
+              mult_add(w.ZH.T(), d.Za.slice(t+1), d.Hb.slice(t));
+              mult_add(w.OH.T(), d.Oa.slice(t+1), d.Hb.slice(t));
+          }
 
           //! \f$\frac{dE}{dS} += \frac{dE}{dS^{t+1}} * b_F(t+1)\f$
           dot(d.S.slice(t+1), b.Fb.slice(t+1), d.S.slice(t));
@@ -337,13 +346,13 @@ void Lstm97Layer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Mat
       //! \f$\frac{dE}{db_O} = \frac{dE}{dH} * f(s) * f(a_O)\f$
       dot(d.Hb.slice(t), b.f_S.slice(t), d.Ob.slice(t));
 
-
-     if (t<end_time) {
-          mult_add(w.OO.T(), d.Oa.slice(t+1), d.Ob.slice(t));
-          mult_add(w.FO.T(), d.Fa.slice(t+1), d.Ob.slice(t));
-          mult_add(w.IO.T(), d.Ia.slice(t+1), d.Ob.slice(t));
-      }
-
+     if (full_gradient) {
+         if (t<end_time) {
+              mult_add(w.OO.T(), d.Oa.slice(t+1), d.Ob.slice(t));
+              mult_add(w.FO.T(), d.Fa.slice(t+1), d.Ob.slice(t));
+              mult_add(w.IO.T(), d.Ia.slice(t+1), d.Ob.slice(t));
+          }
+     }
 
       //! \f$\frac{dE}{da_O} = \frac{dE}{db_O} * f'(a_O)\f$
       apply_sigmoid_deriv(b.Ob.slice(t), d.tmp1.slice(t)); //s'(O_a) == s(O_b) * (1 - s(O_b))
@@ -380,11 +389,12 @@ void Lstm97Layer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Mat
       //! \f$\frac{dE}{da_I} = \frac{dE}{db_I} * f'(a_I) \f$
       //sigmoid_deriv(d.Ib.slice(t), b.Ib.slice(t), d.temp_hidden, d.temp_hidden2, d.Ia.slice(t));
 
-
-      if (t<end_time) {
-         mult_add(w.OI.T(), d.Oa.slice(t+1), d.Ib.slice(t));
-         mult_add(w.FI.T(), d.Fa.slice(t+1), d.Ib.slice(t));
-         mult_add(w.II.T(), d.Ia.slice(t+1), d.Ib.slice(t));
+      if (full_gradient) {
+          if (t<end_time) {
+             mult_add(w.OI.T(), d.Oa.slice(t+1), d.Ib.slice(t));
+             mult_add(w.FI.T(), d.Fa.slice(t+1), d.Ib.slice(t));
+             mult_add(w.II.T(), d.Ia.slice(t+1), d.Ib.slice(t));
+          }
       }
 
       //apply_sigmoid_deriv(b.Ib.slice(t), d.Ia.slice(t));
@@ -399,11 +409,12 @@ void Lstm97Layer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Mat
           d.Fb.slice(t).set_all_elements_to(0.0);
       }
 
-
-      if (t<end_time) {
-         mult_add(w.OF.T(), d.Oa.slice(t+1), d.Fb.slice(t));
-         mult_add(w.FF.T(), d.Fa.slice(t+1), d.Fb.slice(t));
-         mult_add(w.IF.T(), d.Ia.slice(t+1), d.Fb.slice(t));
+      if (full_gradient) {
+          if (t<end_time) {
+             mult_add(w.OF.T(), d.Oa.slice(t+1), d.Fb.slice(t));
+             mult_add(w.FF.T(), d.Fa.slice(t+1), d.Fb.slice(t));
+             mult_add(w.IF.T(), d.Ia.slice(t+1), d.Fb.slice(t));
+          }
       }
 
       // \f$\frac{dE}{da_F} = \frac{dE}{db_F} * f'(a_F)\f$

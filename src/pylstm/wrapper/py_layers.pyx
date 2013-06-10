@@ -90,7 +90,7 @@ def create_layer(name, in_size, out_size, **kwargs):
     l = BaseLayer()
     cdef cm.ActivationFunction* act_fct = <cm.ActivationFunction*> &cm.Sigmoid
 
-    unexpected_kwargs = [k for k in kwargs if k not in {'act_func'}]
+    unexpected_kwargs = [k for k in kwargs if k not in {'act_func', 'full_gradient'}]
     if unexpected_kwargs:
         import warnings
         warnings.warn("Warning: got unexpected kwargs: %s"%unexpected_kwargs)
@@ -110,6 +110,7 @@ def create_layer(name, in_size, out_size, **kwargs):
         elif af_name.lower() == "softmax":
             act_fct = <cm.ActivationFunction*> &cm.Softmax
 
+    cdef cl.Lstm97Layer lstm97
     if name.lower() == "regularlayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.RegularLayer](in_size, out_size, cl.RegularLayer(act_fct)))
     elif name.lower() == "rnnlayer":
@@ -117,7 +118,10 @@ def create_layer(name, in_size, out_size, **kwargs):
     elif name.lower() == "lstmlayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.LstmLayer](in_size, out_size, cl.LstmLayer(act_fct)))
     elif name.lower() == "lstm97layer":
-        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.Lstm97Layer](in_size, out_size, cl.Lstm97Layer(act_fct)))
+        lstm97 = cl.Lstm97Layer(act_fct)
+        if 'full_gradient' in kwargs:
+            lstm97.full_gradient = kwargs['full_gradient']
+        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.Lstm97Layer](in_size, out_size, lstm97))
     elif name.lower() == "reverselayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.ReverseLayer](in_size, out_size, cl.ReverseLayer()))
     else :
