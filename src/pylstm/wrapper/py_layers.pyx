@@ -123,6 +123,8 @@ def create_layer(name, in_size, out_size, **kwargs):
             lstm97.full_gradient = kwargs['full_gradient']
         if 'peephole_connections' in kwargs:
             lstm97.peephole_connections = kwargs['peephole_connections']
+        if 'forget_gate' in kwargs:
+            lstm97.forget_gate = kwargs['forget_gate']
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.Lstm97Layer](in_size, out_size, lstm97))
     elif name.lower() == "reverselayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.ReverseLayer](in_size, out_size, cl.ReverseLayer()))
