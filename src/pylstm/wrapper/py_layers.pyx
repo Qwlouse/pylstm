@@ -125,6 +125,9 @@ def create_layer(name, in_size, out_size, **kwargs):
             lstm97.peephole_connections = kwargs['peephole_connections']
         if 'forget_gate' in kwargs:
             lstm97.forget_gate = kwargs['forget_gate']
+        if 'gate_recurrence' in kwargs:
+            lstm97.gate_recurrence = kwargs['gate_recurrence']
+
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.Lstm97Layer](in_size, out_size, lstm97))
     elif name.lower() == "reverselayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.ReverseLayer](in_size, out_size, cl.ReverseLayer()))
