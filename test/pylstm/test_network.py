@@ -19,7 +19,7 @@ class NetworkTests(unittest.TestCase):
 
         prev_layer = netb.input(self.input_size)
         for l in range(layers):
-            prev_layer = prev_layer >> layer_type(self.output_size, act_func=activation_function)
+            prev_layer = prev_layer >> layer_type(self.output_size, act_func=activation_function, peephole_connections=False)
         prev_layer >> netb.output
 
         net = netb.build()

@@ -127,8 +127,10 @@ void Lstm97Layer::forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y) {
             mult_add(w.ZH, y.slice(t - 1), b.Za.slice(t));
 
 
-            dot_add(b.S.slice(t - 1), w.FS, b.Fa.slice(t));
-            dot_add(b.S.slice(t - 1), w.IS, b.Ia.slice(t));
+            if (peephole_connections) {
+                dot_add(b.S.slice(t - 1), w.FS, b.Fa.slice(t));
+                dot_add(b.S.slice(t - 1), w.IS, b.Ia.slice(t));
+            }
         }
 
         add_vector_into(w.F_bias, b.Fa.slice(t));
@@ -141,14 +143,14 @@ void Lstm97Layer::forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y) {
         apply_tanh(b.Za.slice(t), b.Zb.slice(t));
         dot(b.Zb.slice(t), b.Ib.slice(t), b.S.slice(t));
 
-        if (t)
+        if (t) {
             dot_add(b.S.slice(t - 1), b.Fb.slice(t), b.S.slice(t));
+        }
         f->apply(b.S.slice(t), b.f_S.slice(t));
-        dot_add(b.S.slice(t), w.OS, b.Oa.slice(t));
-
-        //mult_add(b.S.slice(t), w.OS, b.Oa.slice(t));
+        if (peephole_connections) {
+            dot_add(b.S.slice(t), w.OS, b.Oa.slice(t));
+        }
         apply_sigmoid(b.Oa.slice(t), b.Ob.slice(t));
-        //copy(b.Oa.slice(t), b.Ob.slice(t));
 
         dot(b.f_S.slice(t), b.Ob.slice(t), y.slice(t));
     }
@@ -199,13 +201,15 @@ void Lstm97Layer::gradient(Parameters&, Parameters& grad, FwdState& b, BwdState&
 
     //! \f$\frac{dE}{dW_FS} += \frac{dE}{da_F} * s(t-1)\f$
     //! \f$\frac{dE}{dW_IS} += \frac{dE}{da_I} * s(t-1)\f$
-    if (n_time > 1) {
+    if (n_time > 1 && peephole_connections) {
         dot_squash(d.Fa.slice(1, n_time), b.S.slice(0, n_time - 1), grad.FS);
         dot_squash(d.Ia.slice(1, n_time), b.S.slice(0, n_time - 1), grad.IS);
     }
 
     //! \f$\frac{dE}{dW_OS} += \frac{dE}{da_O} * s(t)\f$
-    dot_squash(d.Oa, b.S, grad.OS);
+    if (peephole_connections) {
+        dot_squash(d.Oa, b.S, grad.OS);
+    }
 
     squash(d.Ia, grad.I_bias); //, 1.0 / (double) n_time);
     squash(d.Fa, grad.F_bias); //, 1.0 / (double) n_time);
@@ -266,11 +270,13 @@ void Lstm97Layer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb
 	  mult_add(v.OF, b.Fb.slice(t - 1), Rb.Oa.slice(t));
 	  mult_add(v.OO, b.Ob.slice(t - 1), Rb.Oa.slice(t));
 
-      dot_add(Rb.S.slice(t - 1), w.IS, Rb.Ia.slice(t));
-      dot_add(Rb.S.slice(t - 1), w.FS, Rb.Fa.slice(t));
+      if (peephole_connections) {
+        dot_add(Rb.S.slice(t - 1), w.IS, Rb.Ia.slice(t));
+        dot_add(Rb.S.slice(t - 1), w.FS, Rb.Fa.slice(t));
 
-      dot_add(b.S.slice(t - 1), v.IS, Rb.Ia.slice(t));
-      dot_add(b.S.slice(t - 1), v.FS, Rb.Fa.slice(t));
+        dot_add(b.S.slice(t - 1), v.IS, Rb.Ia.slice(t));
+        dot_add(b.S.slice(t - 1), v.FS, Rb.Fa.slice(t));
+      }
     }
 
     add_vector_into(v.I_bias, Rb.Ia.slice(t));
@@ -295,10 +301,10 @@ void Lstm97Layer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb
       dot_add(Rb.S.slice(t - 1), b.Fb.slice(t), Rb.S.slice(t));
       dot_add(b.S.slice(t - 1), Rb.Fb.slice(t), Rb.S.slice(t));
     }
-
-    dot_add(Rb.S.slice(t), w.OS, Rb.Oa.slice(t));
-    dot_add(b.S.slice(t), v.OS, Rb.Oa.slice(t));
-
+    if (peephole_connections) {
+      dot_add(Rb.S.slice(t), w.OS, Rb.Oa.slice(t));
+      dot_add(b.S.slice(t), v.OS, Rb.Oa.slice(t));
+    }
     apply_sigmoid_deriv(b.Ob.slice(t), Rb.tmp1.slice(t));
     dot(Rb.tmp1.slice(t), Rb.Oa.slice(t), Rb.Ob.slice(t));
 
@@ -327,11 +333,13 @@ void Lstm97Layer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Mat
           //! \f$\frac{dE}{dS} += \frac{dE}{dS^{t+1}} * b_F(t+1)\f$
           dot(d.S.slice(t+1), b.Fb.slice(t+1), d.S.slice(t));
 
-          //! \f$\frac{dE}{dS} += \frac{dE}{da_I(t+1)} * W_{IS}\f$
-          dot_add(d.Ia.slice(t+1), w.IS, d.S.slice(t));
+          if (peephole_connections) {
+              //! \f$\frac{dE}{dS} += \frac{dE}{da_I(t+1)} * W_{IS}\f$
+              dot_add(d.Ia.slice(t+1), w.IS, d.S.slice(t));
 
-          //! \f$\frac{dE}{dS} += \frac{dE}{da_F(t+1)} * W_{FS}\f$
-          dot_add(d.Fa.slice(t+1), w.FS, d.S.slice(t));
+              //! \f$\frac{dE}{dS} += \frac{dE}{da_F(t+1)} * W_{FS}\f$
+              dot_add(d.Fa.slice(t+1), w.FS, d.S.slice(t));
+          }
       }
 
       //structural damping
@@ -368,9 +376,10 @@ void Lstm97Layer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Mat
       else
           {copy(d.tmp1.slice(t), d.S.slice(t));}
 
-      //! \f$\frac{dE}{dS} += \frac{dE}{da_O} * W_OS\f$
-      dot_add(d.Oa.slice(t), w.OS, d.S.slice(t));
-
+      if (peephole_connections) {
+          //! \f$\frac{dE}{dS} += \frac{dE}{da_O} * W_OS\f$
+          dot_add(d.Oa.slice(t), w.OS, d.S.slice(t));
+      }
       //! CELL ACTIVATION DERIVS
       //! \f$\frac{dE}{db_Z} = \frac{dE}{dS} * b_I\f$
       dot(d.S.slice(t), b.Ib.slice(t), d.Zb.slice(t));
