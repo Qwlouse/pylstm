@@ -90,7 +90,9 @@ def create_layer(name, in_size, out_size, **kwargs):
     l = BaseLayer()
     cdef cm.ActivationFunction* act_fct = <cm.ActivationFunction*> &cm.Sigmoid
 
-    unexpected_kwargs = [k for k in kwargs if k not in {'act_func', 'full_gradient'}]
+    unexpected_kwargs = [k for k in kwargs if k not in {'act_func'}]
+    if name.lower() == "lstm97layer":
+        unexpected_kwargs = list(set(unexpected_kwargs) - {'full_gradient', 'peephole_connections', 'forget_gate', 'output_gate', 'gate_recurrence'})
     if unexpected_kwargs:
         import warnings
         warnings.warn("Warning: got unexpected kwargs: %s"%unexpected_kwargs)
@@ -125,6 +127,8 @@ def create_layer(name, in_size, out_size, **kwargs):
             lstm97.peephole_connections = kwargs['peephole_connections']
         if 'forget_gate' in kwargs:
             lstm97.forget_gate = kwargs['forget_gate']
+        if 'output_gate' in kwargs:
+            lstm97.output_gate = kwargs['output_gate']
         if 'gate_recurrence' in kwargs:
             lstm97.gate_recurrence = kwargs['gate_recurrence']
 

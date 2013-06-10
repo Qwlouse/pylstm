@@ -32,6 +32,7 @@ cdef extern from "lstm97_layer.h":
         bool full_gradient
         bool peephole_connections
         bool forget_gate
+        bool output_gate
         bool gate_recurrence
 
 
