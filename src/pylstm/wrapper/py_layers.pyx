@@ -91,6 +91,8 @@ def create_layer(name, in_size, out_size, **kwargs):
     cdef cm.ActivationFunction* act_fct = <cm.ActivationFunction*> &cm.Sigmoid
 
     unexpected_kwargs = [k for k in kwargs if k not in {'act_func'}]
+    if name.lower() == "lstm97layer":
+        unexpected_kwargs = list(set(unexpected_kwargs) - {'full_gradient', 'peephole_connections', 'forget_gate', 'output_gate', 'gate_recurrence'})
     if unexpected_kwargs:
         import warnings
         warnings.warn("Warning: got unexpected kwargs: %s"%unexpected_kwargs)
@@ -103,6 +105,8 @@ def create_layer(name, in_size, out_size, **kwargs):
             act_fct = <cm.ActivationFunction*> &cm.Tanh
         elif af_name.lower() == "tanhx2":
             act_fct = <cm.ActivationFunction*> &cm.Tanhx2
+        elif af_name.lower() in ["rectified_linear", "relu"]:
+            act_fct = <cm.ActivationFunction*> &cm.RectifiedLinear
         elif af_name.lower() == "linear":
             act_fct = <cm.ActivationFunction*> &cm.Linear
         elif af_name.lower() == "softmax":
@@ -110,12 +114,27 @@ def create_layer(name, in_size, out_size, **kwargs):
         elif af_name.lower() == "winout":
             act_fct = <cm.ActivationFunction*> &cm.Winout
 
+    cdef cl.Lstm97Layer lstm97
     if name.lower() == "regularlayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.RegularLayer](in_size, out_size, cl.RegularLayer(act_fct)))
     elif name.lower() == "rnnlayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.RnnLayer](in_size, out_size, cl.RnnLayer(act_fct)))
     elif name.lower() == "lstmlayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.LstmLayer](in_size, out_size, cl.LstmLayer(act_fct)))
+    elif name.lower() == "lstm97layer":
+        lstm97 = cl.Lstm97Layer(act_fct)
+        if 'full_gradient' in kwargs:
+            lstm97.full_gradient = kwargs['full_gradient']
+        if 'peephole_connections' in kwargs:
+            lstm97.peephole_connections = kwargs['peephole_connections']
+        if 'forget_gate' in kwargs:
+            lstm97.forget_gate = kwargs['forget_gate']
+        if 'output_gate' in kwargs:
+            lstm97.output_gate = kwargs['output_gate']
+        if 'gate_recurrence' in kwargs:
+            lstm97.gate_recurrence = kwargs['gate_recurrence']
+
+        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.Lstm97Layer](in_size, out_size, lstm97))
     elif name.lower() == "reverselayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.ReverseLayer](in_size, out_size, cl.ReverseLayer()))
     else :

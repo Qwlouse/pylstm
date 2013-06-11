@@ -75,6 +75,13 @@ inline double one(double) {
     return 1.0;
 }
 
+inline double rectified_linear(double val) {
+    return std::min(val, 0.0);
+}
+
+inline double reclin_deriv(double val) {
+    return val == 0.0 ? 0.0 : 1.0;
+}
 
 // Function pointer to a unary double function
 typedef double (*unary_double_func)(double);
@@ -109,7 +116,7 @@ const ActivationFunction Tanh(&tanh_, &tanh_deriv);
 const SoftmaxLayerActivation Softmax;
 const ActivationFunction Tanhx2(&tanhx2, &tanhx2_deriv);
 const WinoutActivation Winout;
-
+const ActivationFunction RectifiedLinear(&rectified_linear, &reclin_deriv);
 
 
 void apply(Matrix in, Matrix out, unary_double_func f);

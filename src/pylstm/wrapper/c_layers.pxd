@@ -1,6 +1,6 @@
 from c_matrix cimport Matrix, ActivationFunction, MatrixContainer
 from libcpp.string cimport string
-
+from libcpp cimport bool
 
 cdef extern from "fwd_layer.h":
     cppclass RegularLayer:
@@ -23,6 +23,17 @@ cdef extern from "lstm_layer.h":
     cppclass LstmLayer:
         LstmLayer()
         LstmLayer(ActivationFunction* f)
+
+
+cdef extern from "lstm97_layer.h":
+    cppclass Lstm97Layer:
+        Lstm97Layer()
+        Lstm97Layer(ActivationFunction* f)
+        bool full_gradient
+        bool peephole_connections
+        bool forget_gate
+        bool output_gate
+        bool gate_recurrence
 
 
 cdef extern from "layer.hpp":

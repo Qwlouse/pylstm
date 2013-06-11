@@ -78,8 +78,8 @@ BANDS = 40                               # Number of Mel filters
 COEFS = 13                               # Number of Mel cepstra coefficients to keep
 POWER_SPECTRUM_FLOOR = 1e-100            # Flooring for the power to avoid log(0)
 M, CF = melfb(BANDS, FFT_SIZE, FS)       # The Mel filterbank matrix and the center frequencies of each band
-D = dctmtx(BANDS)[0:COEFS]             # The DCT matrix. Change the index to [0:COEFS] if you want to keep the 0-th coefficient
-invD = inv(dctmtx(BANDS))[:, 0:COEFS]  # The inverse DCT matrix. Change the index to [0:COEFS] if you want to keep the 0-th coefficient
+D = dctmtx(BANDS)[0:COEFS]               # The DCT matrix. Change the index to [0:COEFS] if you want to keep the 0-th coefficient
+invD = inv(dctmtx(BANDS))[:, 0:COEFS]    # The inverse DCT matrix. Change the index to [0:COEFS] if you want to keep the 0-th coefficient
 
 
 def extract(x, show = False):

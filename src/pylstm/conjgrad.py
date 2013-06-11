@@ -9,7 +9,6 @@
 # A collection of optimization algorithms.  Version 0.5
 # CHANGES
 #  Added fminbound (July 2001)
-#  Added brute (Aug. 2002)
 #  Finished line search satisfying strong Wolfe conditions (Mar. 2004)
 #  Updated strong Wolfe conditions line search to use cubic-interpolation (Mar. 2004)
 
@@ -20,7 +19,7 @@ from __future__ import division, print_function, absolute_import
 
 __all__ = ['fmin', 'fmin_powell', 'fmin_bfgs', 'fmin_ncg', 'fmin_cg',
            'fminbound', 'brent', 'golden', 'bracket', 'rosen', 'rosen_der',
-           'rosen_hess', 'rosen_hess_prod', 'brute', 'approx_fprime',
+           'rosen_hess', 'rosen_hess_prod', 'approx_fprime',
            'line_search', 'check_grad', 'Result', 'show_options',
            'OptimizeWarning']
 
@@ -28,7 +27,6 @@ __docformat__ = "restructuredtext en"
 
 import warnings
 import numpy
-from scipy.lib.six import callable
 from numpy import atleast_1d, eye, mgrid, argmin, zeros, shape, \
     squeeze, vectorize, asarray, sqrt, Inf, asfarray, isinf
 from scipy.optimize.linesearch import \
@@ -2264,100 +2262,6 @@ def _endprint(x, flag, fval, maxfun, xtol, disp):
             print("\nMaximum number of function evaluations exceeded --- " \
                   "increase maxfun argument.\n")
     return
-
-
-def brute(func, ranges, args=(), Ns=20, full_output=0, finish=fmin, disp=False):
-    """Minimize a function over a given range by brute force.
-
-    Parameters
-    ----------
-    func : callable ``f(x,*args)``
-        Objective function to be minimized.
-    ranges : tuple
-        Each element is a tuple of parameters or a slice object to
-        be handed to ``numpy.mgrid``.
-    args : tuple
-        Extra arguments passed to function.
-    Ns : int
-        Default number of samples, if those are not provided.
-    full_output : bool
-        If True, return the evaluation grid.
-    finish : callable, optional
-        An optimization function that is called with the result of brute force
-        minimization as initial guess.  `finish` should take the initial guess
-        as positional argument, and take take `args`, `full_output` and `disp`
-        as keyword arguments.  See Notes for more details.
-    disp : bool, optional
-        Set to True to print convergence messages.
-
-    Returns
-    -------
-    x0 : ndarray
-        Value of arguments to `func`, giving minimum over the grid.
-    fval : int
-        Function value at minimum.
-    grid : tuple
-        Representation of the evaluation grid.  It has the same
-        length as x0.
-    Jout : ndarray
-        Function values over grid:  ``Jout = func(*grid)``.
-
-    Notes
-    -----
-    The range is respected by the brute force minimization, but if the `finish`
-    keyword specifies another optimization function (including the default
-    `fmin`), the returned value may still be (just) outside the range.  In
-    order to ensure the range is specified, use ``finish=None``.
-
-    """
-    N = len(ranges)
-    if N > 40:
-        raise ValueError("Brute Force not possible with more " \
-                         "than 40 variables.")
-    lrange = list(ranges)
-    for k in range(N):
-        if type(lrange[k]) is not type(slice(None)):
-            if len(lrange[k]) < 3:
-                lrange[k] = tuple(lrange[k]) + (complex(Ns),)
-            lrange[k] = slice(*lrange[k])
-    if (N == 1):
-        lrange = lrange[0]
-
-    def _scalarfunc(*params):
-        params = squeeze(asarray(params))
-        return func(params, *args)
-
-    vecfunc = vectorize(_scalarfunc)
-    grid = mgrid[lrange]
-    if (N == 1):
-        grid = (grid,)
-    Jout = vecfunc(*grid)
-    Nshape = shape(Jout)
-    indx = argmin(Jout.ravel(), axis=-1)
-    Nindx = zeros(N, int)
-    xmin = zeros(N, float)
-    for k in range(N - 1, -1, -1):
-        thisN = Nshape[k]
-        Nindx[k] = indx % Nshape[k]
-        indx = indx // thisN
-    for k in range(N):
-        xmin[k] = grid[k][tuple(Nindx)]
-
-    Jmin = Jout[tuple(Nindx)]
-    if (N == 1):
-        grid = grid[0]
-        xmin = xmin[0]
-    if callable(finish):
-        vals = finish(func, xmin, args=args, full_output=1, disp=disp)
-        xmin = vals[0]
-        Jmin = vals[1]
-        if vals[-1] > 0:
-            if disp:
-                print("Warning: Final optimization did not succeed")
-    if full_output:
-        return xmin, Jmin, grid, Jout
-    else:
-        return xmin
 
 def show_options(solver, method=None):
     """

@@ -71,14 +71,14 @@ class TimitSample(object):
 
     def get_labels(self, frame_size=400, frame_shift=160, basedir=TIMIT_DIR):
         phonemes = self.get_phonemes(basedir)
-        p_extended = []
+        p_extended = [silence_label] * (phonemes[0][0])
         for a in phonemes:
             p_extended += [a[3]] * (int(a[1]) - int(a[0]))
         end = phonemes[-1][1]
         windows = zip(range(0, end - frame_size + 1, frame_shift),
                       range(frame_size, end + 1, frame_shift))
         labels = [np.bincount(p_extended[f[0]:f[1]]).argmax() for f in windows]
-        return labels
+        return np.array(labels)
 
     def get_features(self, basedir=TIMIT_DIR):
         d = self.get_audio_data(basedir)
@@ -87,7 +87,16 @@ class TimitSample(object):
         mfcc_d2 = np.gradient(mfcc_d1)[0]
         features = np.hstack((mfcc, mfcc_d1, mfcc_d2))
         labels = self.get_labels(basedir=basedir)
-        return features, np.array(labels)
+        return features, labels
+
+    def __unicode__(self):
+        return '<TimitSample ' + '/'.join([self.usage, self.dialect,
+                                           self.sex + self.speaker_id,
+                                           self.sentence_id]) + \
+               '>'
+
+    def __repr__(self):
+        return self.__unicode__()
 
 
 def read_all_samples(timit_dir=TIMIT_DIR):
@@ -116,11 +125,13 @@ def get_features_and_labels_for(samples, timit_dir=TIMIT_DIR):
     padded_labels = []
     masks = []
     for f, l in ds_list:
-        pad_length = maxlen - f.shape[0]
+        pad_length_f = maxlen - f.shape[0]
+        pad_length_l = maxlen - l.shape[0]
+
         mask = np.ones_like(l)
-        padded_features.append(np.vstack((f, np.zeros((pad_length, f.shape[1])))))
-        padded_labels.append(np.hstack((l, np.ones(pad_length) * silence_label)))
-        masks.append(np.hstack((mask, np.zeros(pad_length))))
+        padded_features.append(np.vstack((f, np.zeros((pad_length_f, f.shape[1])))))
+        padded_labels.append(np.hstack((l, np.ones(pad_length_l) * silence_label)))
+        masks.append(np.hstack((mask, np.zeros(pad_length_l))))
 
     features = np.dstack(padded_features).swapaxes(1, 2)
     labels = np.vstack(padded_labels).T.reshape(maxlen, -1, 1)
@@ -132,5 +143,20 @@ if __name__ == '__main__':
     timit_dir = '/home/greff/Datasets/realtimit/timit'
     samples = read_all_samples(timit_dir)
     print('allread')
-    X, T, M = get_features_and_labels_for(samples[:10], timit_dir=timit_dir)
+    import time
+    start = time.time()
+    # train = filter_samples(samples, usage='train')
+    # X, T, M = get_features_and_labels_for(train, timit_dir=timit_dir)
+    # print(time.time() - start)
+    # np.save(str('timit_train_X.numpy'), X)
+    # np.save(str('timit_train_T.numpy'), T)
+    # np.save(str('timit_train_M.numpy'), M)
+
+    test = filter_samples(samples, usage='test')
+    X, T, M = get_features_and_labels_for(test[:24], timit_dir=timit_dir)
+    print(time.time() - start)
+    print(X.shape)
+    # np.save(str('timit_test_X.numpy'), X)
+    # np.save(str('timit_test_T.numpy'), T)
+    # np.save(str('timit_test_M.numpy'), M)
 

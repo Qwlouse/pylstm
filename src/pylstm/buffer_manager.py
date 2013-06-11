@@ -97,6 +97,9 @@ class BufferManager(object):
     def set_dimensions(self, slice_count, batch_count, force_resize=False):
         assert slice_count > 0
         assert batch_count > 0
+        # todo: here is some room for optimization:
+        # if the dims didn't change and force_resize is false then we don't
+        # need to do all of the following steps
         self.slice_count = slice_count
         self.batch_count = batch_count
         for bh in self.buffer_hubs:
@@ -104,9 +107,7 @@ class BufferManager(object):
         new_size = self.calculate_size()
         if self.buffer and (new_size > len(self.buffer) or force_resize):
             self.buffer = None
-            self.views_ready = False
-        if self.buffer and new_size != len(self.buffer):
-            self.views_ready = False
+        self.views_ready = False
 
     def calculate_size(self):
         return sum(bh.get_size() for bh in self.buffer_hubs)

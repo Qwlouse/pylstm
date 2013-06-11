@@ -18,22 +18,76 @@ rnd = np.random.RandomState(92384792)
 
 
 def print_error_per_epoch(epoch, error):
-    print("Epoch %d:\tError = %0.4f" % (epoch, error))
+    print("Epoch %d:\tTrainingerror = %0.4f" % (epoch, error))
+
+
+def minibatch_generator(X, T, M, batch_size=10, loop=False):
+    i = 0
+    if M is None:
+        M = np.ones_like(T)
+    total_batches = X.shape[1]
+
+    while True:
+        if i >= total_batches:
+            if not loop:
+                break
+            i = 0
+
+        j = min(i + batch_size, total_batches)
+        yield X[:, i:j, :], T[:, i:j, :], M[:, i:j, :]
+        i += batch_size
 
 
 class SgdTrainer(object):
-    def __init__(self, learning_rate=0.1):
+    def __init__(self, learning_rate=0.1, momentum=0.0, nesterov=False):
         self.learning_rate = learning_rate
+        self.momentum = momentum
+        self.nesterov = nesterov
 
-    def train(self, net, X, T, epochs=100, callback=print_error_per_epoch):
-        for epoch in range(1, epochs + 1):
-            net.forward_pass(X)
-            error = net.calculate_error(T)
+    def train(self, net, X, T, M=None, X_val=None, T_val=None, M_val=None,
+              epochs=100,
+              datagenerator=None,
+              minibatch_size=10,
+              callback=print_error_per_epoch,
+              success_criterion=lambda x: False):
+        velocity = np.zeros(net.get_param_size())
+        old_val_error = float('inf')
+        for epoch in range(0, epochs):
+            if datagenerator is not None:
+                X, T, M = datagenerator()
+
+            errors = []
+            for x, t, m in minibatch_generator(X, T, M, minibatch_size):
+                velocity *= self.momentum
+                if self.nesterov:
+                    net.param_buffer += velocity
+                net.forward_pass(x)
+                errors.append(net.calculate_error(t, m))
+                net.backward_pass(t, m)
+                dv = self.learning_rate * net.calc_gradient().flatten()
+                velocity -= dv
+                if self.nesterov:
+                    net.param_buffer -= dv
+                else:
+                    net.param_buffer += velocity
+                print('.', end="")
+            print("")
+            error = np.mean(errors)
             callback(epoch, error)
-            net.backward_pass(T)
-            grad = net.calc_gradient().flatten()
-            grad *= - self.learning_rate
-            net.param_buffer += grad
+            if success_criterion(net):
+                return error
+            if X_val is not None:
+                val_errors = []
+                for x, t, m in minibatch_generator(X_val, T_val, M_val,
+                                                   minibatch_size):
+                    net.forward_pass(x)
+                    val_errors.append(net.calculate_error(t, m))
+                val_error = np.mean(val_errors)
+                print("Validation Error: %0.4f" % val_error)
+                if val_error > old_val_error:
+                    print("Validation Error rose! Stopping.")
+                    return error
+                old_val_error = val_error
 
 
 class RPropTrainer(object):
@@ -62,9 +116,11 @@ class RPropTrainer(object):
                 self.initialized = True
                 continue
             increase = (grad_sign == self.last_grad_sign)
-            self.stepsize = (self.stepsize * (increase * 1.01 + (increase == False) * .99))
+            self.stepsize = (
+                self.stepsize * (increase * 1.01 + (increase == False) * .99))
 
-            grad[:] = self.stepsize * grad_sign + -self.stepsize * (grad_sign == False)
+            grad[:] = self.stepsize * grad_sign + -self.stepsize * (
+                grad_sign == False)
             #print("grad arr:", grad_arr)
             #print("grad:", grad)
             #print(((grad_sign==False)).flatten())
@@ -72,7 +128,109 @@ class RPropTrainer(object):
             weights += grad
             print("weights after:", weights.flatten())
             self.last_grad_sign = grad_sign.copy()
-            
+
+
+def conjgrad(gradient, v, f_hessp, maxiter=20):
+    r = gradient - f_hessp(v)  # residual
+    p = r  # current step
+    rsold = r.T.dot(r)
+    allvecs = [v.copy()]
+    for i in range(maxiter):
+        Ap = f_hessp(p)
+        curv = (p.T.dot(Ap))
+        if curv < 3 * np.finfo(np.float64).eps:
+            break  # curvature is negative or zero
+        alpha = rsold / curv
+        v += alpha * p
+        allvecs.append(v.copy())
+        r = r - alpha * Ap   # updated residual
+        rsnew = r.T.dot(r)
+        if np.sqrt(rsnew) < 1e-10:
+            break  # found solution
+        p = r + rsnew / rsold * p
+
+        rsold = rsnew
+
+    return allvecs
+
+
+class CgLiteTrainer(object):
+    def __init__(self):
+        pass
+
+    def train(self, net, X, T, M=None, epochs=10, minibatch_size=32, mu=1./30,
+              maxiter=20, success=lambda x: True):
+        mb = minibatch_generator(X, T, M, minibatch_size, loop=True)
+        lambda_ = .1
+
+        for i in range(epochs):
+            print("======= Epoch %d =====" % i)
+            ## calculate the gradient
+            grad = np.zeros_like(net.param_buffer.flatten())
+            error = []
+            for x, t, m in minibatch_generator(X, T, M, minibatch_size):
+                net.forward_pass(x)
+                net.backward_pass(t, m)
+                error.append(net.calculate_error(t, m))
+                grad += net.calc_gradient().flatten()
+            error = np.mean(error)
+            print("Error:", error)
+
+            ## initialize v
+            v = np.zeros(net.get_param_size())
+
+            ## get next minibatch to work with
+            x, t, m = mb.next()
+
+            ## define hessian pass
+            def fhess_p(v):
+                return net.hessian_pass(x, v, mu, lambda_).copy().flatten()
+
+            ## run CG
+            all_v = conjgrad(grad, v.copy(), fhess_p, maxiter=maxiter)
+
+            ## backtrack #1
+            lowError = float('Inf')
+            lowIdx = 0
+            weights = net.param_buffer.copy()
+            for i, testW in reversed(list(enumerate(all_v))):
+                net.param_buffer = weights - testW
+                net.forward_pass(x)
+                tmpError = net.calculate_error(t, m)
+                if tmpError < lowError:
+                    lowError = tmpError
+                    lowIdx = i
+            bestDW = all_v[lowIdx]
+
+            ## backtrack #2
+            finalDW = bestDW
+            for j in np.arange(0, 1.0, 0.1):
+                tmpDW = j * bestDW
+                net.param_buffer = weights - tmpDW
+                net.forward_pass(X)
+                tmpError = net.calculate_error(T)
+                if tmpError < lowError:
+                    finalDW = tmpDW
+                    lowError = tmpError
+
+            ## Levenberg-Marquardt heuristic
+            boost = 3.0 / 2.0
+            net.param_buffer = weights
+            denom = 0.5 * (np.dot(finalDW, fhess_p(finalDW))) + np.dot(
+                np.squeeze(grad), finalDW)
+            rho = (lowError - error) / denom
+            if rho < 0.25:
+                lambda_ *= boost
+            elif rho > 0.75:
+                lambda_ /= boost
+
+            ## update weights
+            net.param_buffer = weights - finalDW
+
+            if success(net):
+                print('Success!!!! after %d Epochs' % i)
+                return i
+
 
 class CgTrainer(object):
     def __init__(self, learning_rate=0.1):
@@ -95,13 +253,13 @@ class CgTrainer(object):
 
 
         for epoch in range(1, epochs + 1):
-            
+
             #select an input batch, and target batch
-            
+
             #run forward pass, output saved in out
             net.param_buffer = weights
             out = net.forward_pass(X)
-            
+
             #calculate error
             error = net.calculate_error(T)
             callback(epoch, error)
@@ -151,7 +309,7 @@ class CgTrainer(object):
             for j in range(1,10):
                 net.param_buffer = weights.copy() + .9**j * bestDW
                 out = net.forward_pass(X)
-                tmpError = net.calculate_error(T) 
+                tmpError = net.calculate_error(T)
                 if tmpError < lowError:
                     finalDW = .9**j * bestDW
                     lowError = tmpError
@@ -201,8 +359,8 @@ class CgTrainer(object):
             #     lambda_ *= 2/3
             # elif rho < .25:
             #     lambda_ *= 3/2
-            
-            
+
+
             #run backtrack 2 on dw
             #grad *= - self.learning_rate
             #weights += grad
@@ -220,7 +378,8 @@ if __name__ == "__main__":
 
 
     netb = NetworkBuilder()
-    netb.input(4) >> LstmLayer(3, act_func="tanhx2") >> RegularLayer(4, act_func="softmax") >> netb.output
+    netb.input(4) >> LstmLayer(3, act_func="tanhx2") >> RegularLayer(4,
+                                                                     act_func="softmax") >> netb.output
     net = netb.build()
     weight = rnd.randn(net.get_param_size())
     #X, T = generate_memo_task(5, 2, 32, 100)
