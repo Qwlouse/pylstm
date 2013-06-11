@@ -96,11 +96,19 @@ struct SoftmaxLayerActivation: public ActivationFunction {
 	virtual void apply_deriv(Matrix a, Matrix d, Matrix out) const;
 };
 
+struct WinoutActivation: public ActivationFunction {
+	WinoutActivation() {};
+
+	virtual void apply(Matrix a, Matrix out) const;
+	virtual void apply_deriv(Matrix a, Matrix d, Matrix out) const;
+};
+
 const ActivationFunction Sigmoid(&sigmoid, &sigmoid_deriv);
 const ActivationFunction Linear(&identity, &one);
 const ActivationFunction Tanh(&tanh_, &tanh_deriv);
 const SoftmaxLayerActivation Softmax;
 const ActivationFunction Tanhx2(&tanhx2, &tanhx2_deriv);
+const WinoutActivation Winout;
 
 
 

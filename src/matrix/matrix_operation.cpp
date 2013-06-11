@@ -233,6 +233,43 @@ void SoftmaxLayerActivation::apply_deriv(Matrix in, Matrix d, Matrix out) const 
     }
 }
 
+void WinoutActivation::apply(Matrix in, Matrix out) const {
+    for (size_t slice = 0; slice < in.n_slices; ++slice ) {
+        for (size_t column = 0; column < in.n_columns; ++column ) {
+            const int group_size = 2;
+            for (size_t row = 0; row < in.n_rows; row += group_size) {
+                d_type max = -1e10;
+                size_t max_i = row;
+                for (size_t row_g = row; row_g < row + group_size; row_g++) {
+                    d_type current = in.get(row_g, column, slice);
+                    if (current > max) {
+                        max = current;
+                        max_i = row_g;
+                    }
+                }
+                for (size_t row_g = row; row_g < row + group_size; row_g++) {
+                    if (row_g == max_i) {
+                        out.get(row_g, column, slice) = in.get(row_g, column, slice);
+                    }
+                    else {
+                        out.get(row_g, column, slice) = 0;
+                    }
+                }
+            }
+        }
+    }
+}
+
+void WinoutActivation::apply_deriv(Matrix in, Matrix d, Matrix out) const {
+    for (size_t pos = 0; pos < in.size; ++pos ) {
+        if (in[pos] == 0) {
+            out[pos] = 0;
+        }
+        else {
+            out[pos] = d[pos];
+        }
+    }
+}
 
 void apply(Matrix in, Matrix out, unary_double_func f) {
 	transform(in.begin(), in.end(), out.begin(), *f);
