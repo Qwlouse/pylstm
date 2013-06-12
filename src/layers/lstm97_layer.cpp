@@ -427,7 +427,7 @@ void Lstm97Layer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Mat
             copy(d.S.slice(t+1), d.S.slice(t));
           }
 
-          if (peephole_connections) {
+          if (peephole_connections && full_gradient) {
               //! \f$\frac{dE}{dS} += \frac{dE}{da_I(t+1)} * W_{IS}\f$
               dot_add(d.Ia.slice(t+1), w.IS, d.S.slice(t));
 
