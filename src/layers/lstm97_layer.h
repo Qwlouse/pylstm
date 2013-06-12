@@ -18,6 +18,7 @@ public:
 	bool forget_gate;
 	bool output_gate;
 	bool gate_recurrence;
+	bool use_bias;
 
 	class Parameters : public MatrixContainer {
 	public:

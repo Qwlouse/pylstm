@@ -13,7 +13,8 @@ Lstm97Layer::Lstm97Layer():
     peephole_connections(true),
     forget_gate(true),
     output_gate(true),
-    gate_recurrence(true)
+    gate_recurrence(true),
+    use_bias(true)
 { }
 
 Lstm97Layer::Lstm97Layer(const ActivationFunction* f):
@@ -22,7 +23,8 @@ Lstm97Layer::Lstm97Layer(const ActivationFunction* f):
     peephole_connections(true),
     forget_gate(true),
     output_gate(true),
-    gate_recurrence(true)
+    gate_recurrence(true),
+    use_bias(true)
 { }
 
 
@@ -153,13 +155,14 @@ void Lstm97Layer::forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y) {
             }
         }
 
-        if (forget_gate)
-            add_vector_into(w.F_bias, b.Fa.slice(t));
-        add_vector_into(w.I_bias, b.Ia.slice(t));
-        add_vector_into(w.Z_bias, b.Za.slice(t));
-        if (output_gate)
-            add_vector_into(w.O_bias, b.Oa.slice(t));
-
+        if (use_bias) {
+            if (forget_gate)
+                add_vector_into(w.F_bias, b.Fa.slice(t));
+            add_vector_into(w.I_bias, b.Ia.slice(t));
+            add_vector_into(w.Z_bias, b.Za.slice(t));
+            if (output_gate)
+                add_vector_into(w.O_bias, b.Oa.slice(t));
+        }
         if (forget_gate)
             apply_sigmoid(b.Fa.slice(t), b.Fb.slice(t));
         apply_sigmoid(b.Ia.slice(t), b.Ib.slice(t));
@@ -254,12 +257,14 @@ void Lstm97Layer::gradient(Parameters&, Parameters& grad, FwdState& b, BwdState&
         dot_squash(d.Oa, b.S, grad.OS);
     }
 
-    squash(d.Ia, grad.I_bias); //, 1.0 / (double) n_time);
-    if (forget_gate)
-        squash(d.Fa, grad.F_bias); //, 1.0 / (double) n_time);
-    squash(d.Za, grad.Z_bias); //, 1.0 / (double) n_time);
-    if (output_gate)
-        squash(d.Oa, grad.O_bias); //, 1.0 / (double)n_time); //, 1.0 / (double) n_time);
+    if (use_bias) {
+        squash(d.Ia, grad.I_bias); //, 1.0 / (double) n_time);
+        if (forget_gate)
+            squash(d.Fa, grad.F_bias); //, 1.0 / (double) n_time);
+        squash(d.Za, grad.Z_bias); //, 1.0 / (double) n_time);
+        if (output_gate)
+            squash(d.Oa, grad.O_bias); //, 1.0 / (double)n_time); //, 1.0 / (double) n_time);
+    }
 }
 
 
@@ -355,12 +360,14 @@ void Lstm97Layer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb
       }
     }
 
-    add_vector_into(v.I_bias, Rb.Ia.slice(t));
-    if (forget_gate)
-      add_vector_into(v.F_bias, Rb.Fa.slice(t));
-    add_vector_into(v.Z_bias, Rb.Za.slice(t));
-    if (output_gate)
-        add_vector_into(v.O_bias, Rb.Oa.slice(t));
+    if (use_bias) {
+        add_vector_into(v.I_bias, Rb.Ia.slice(t));
+        if (forget_gate)
+          add_vector_into(v.F_bias, Rb.Fa.slice(t));
+        add_vector_into(v.Z_bias, Rb.Za.slice(t));
+        if (output_gate)
+            add_vector_into(v.O_bias, Rb.Oa.slice(t));
+    }
 
     apply_sigmoid_deriv(b.Ib.slice(t), Rb.tmp1.slice(t));
     dot(Rb.tmp1.slice(t), Rb.Ia.slice(t), Rb.Ib.slice(t));

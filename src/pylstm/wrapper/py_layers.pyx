@@ -92,7 +92,10 @@ def create_layer(name, in_size, out_size, **kwargs):
 
     unexpected_kwargs = [k for k in kwargs if k not in {'act_func'}]
     if name.lower() == "lstm97layer":
-        unexpected_kwargs = list(set(unexpected_kwargs) - {'full_gradient', 'peephole_connections', 'forget_gate', 'output_gate', 'gate_recurrence'})
+        expected_kwargs = {'full_gradient', 'peephole_connections',
+                           'forget_gate', 'output_gate', 'gate_recurrence',
+                           'use_bias'}
+        unexpected_kwargs = list(set(unexpected_kwargs) - expected_kwargs)
     if unexpected_kwargs:
         import warnings
         warnings.warn("Warning: got unexpected kwargs: %s"%unexpected_kwargs)
@@ -131,6 +134,8 @@ def create_layer(name, in_size, out_size, **kwargs):
             lstm97.output_gate = kwargs['output_gate']
         if 'gate_recurrence' in kwargs:
             lstm97.gate_recurrence = kwargs['gate_recurrence']
+        if 'use_bias' in kwargs:
+            lstm97.use_bias = kwargs['use_bias']
 
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.Lstm97Layer](in_size, out_size, lstm97))
     elif name.lower() == "reverselayer":
