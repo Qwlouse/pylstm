@@ -8,11 +8,13 @@
 using std::vector;
 
 RegularLayer::RegularLayer():
-	f(&Sigmoid)
+	f(&Sigmoid),
+	use_bias(true)
 { }
 
 RegularLayer::RegularLayer(const ActivationFunction* f):
-	f(f)
+	f(f),
+    use_bias(true)
 { }
 
 RegularLayer::~RegularLayer()
@@ -47,7 +49,8 @@ RegularLayer::BwdState::BwdState(size_t, size_t n_cells, size_t n_batches, size_
 void RegularLayer::forward(RegularLayer::Parameters &w, RegularLayer::FwdState &b, Matrix &x, Matrix &y) {
 	mult(w.HX, x.flatten_time(), b.Ha.flatten_time());
 
-	add_vector_into(w.H_bias, b.Ha);
+    if (use_bias)
+	    add_vector_into(w.H_bias, b.Ha);
 	f->apply(b.Ha, y);
 }
 
@@ -59,7 +62,8 @@ void RegularLayer::backward(RegularLayer::Parameters &w, RegularLayer::FwdState 
 void RegularLayer::gradient(RegularLayer::Parameters&, RegularLayer::Parameters& grad, RegularLayer::FwdState&, RegularLayer::BwdState& d, Matrix&, Matrix& x, Matrix&)
 {
 	mult_add(d.Ha.flatten_time(), x.flatten_time().T(), grad.HX);
-    squash(d.Ha, grad.H_bias);
+	if (use_bias)
+        squash(d.Ha, grad.H_bias);
 }
 
 void RegularLayer::Rpass(Parameters &w, Parameters &v,  FwdState &, FwdState &Rb, Matrix &x, Matrix &y, Matrix& Rx, Matrix &Ry)
@@ -68,7 +72,8 @@ void RegularLayer::Rpass(Parameters &w, Parameters &v,  FwdState &, FwdState &Rb
     mult(v.HX, x.flatten_time(), Rb.Ha.flatten_time());
     mult_add(w.HX, Rx.flatten_time(), Rb.Ha.flatten_time());
 
-    add_vector_into(v.H_bias, Rb.Ha);
+    if (use_bias)
+        add_vector_into(v.H_bias, Rb.Ha);
 
 	// Ry = f'(b.Ha)*Rb.Ha
     f->apply_deriv(y, Rb.Ha, Ry);

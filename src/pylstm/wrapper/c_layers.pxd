@@ -6,6 +6,7 @@ cdef extern from "fwd_layer.h":
     cppclass RegularLayer:
         RegularLayer()
         RegularLayer(ActivationFunction* f)
+        bool use_bias
 
 
 cdef extern from "rev_layer.h":

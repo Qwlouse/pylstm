@@ -10,6 +10,8 @@
 class RegularLayer {
 public:
 	const ActivationFunction* f;
+	bool use_bias;
+
 	RegularLayer();
 	explicit RegularLayer(const ActivationFunction* f);
 	~RegularLayer();

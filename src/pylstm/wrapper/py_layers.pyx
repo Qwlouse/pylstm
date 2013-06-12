@@ -91,11 +91,14 @@ def create_layer(name, in_size, out_size, **kwargs):
     cdef cm.ActivationFunction* act_fct = <cm.ActivationFunction*> &cm.Sigmoid
 
     unexpected_kwargs = [k for k in kwargs if k not in {'act_func'}]
+    expected_kwargs = set()
     if name.lower() == "lstm97layer":
         expected_kwargs = {'full_gradient', 'peephole_connections',
                            'forget_gate', 'output_gate', 'gate_recurrence',
                            'use_bias'}
-        unexpected_kwargs = list(set(unexpected_kwargs) - expected_kwargs)
+    if name.lower() == "regularlayer":
+        expected_kwargs = {'use_bias'}
+    unexpected_kwargs = list(set(unexpected_kwargs) - expected_kwargs)
     if unexpected_kwargs:
         import warnings
         warnings.warn("Warning: got unexpected kwargs: %s"%unexpected_kwargs)
@@ -116,8 +119,13 @@ def create_layer(name, in_size, out_size, **kwargs):
             act_fct = <cm.ActivationFunction*> &cm.Softmax
 
     cdef cl.Lstm97Layer lstm97
+    cdef cl.RegularLayer regular_layer
+
     if name.lower() == "regularlayer":
-        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.RegularLayer](in_size, out_size, cl.RegularLayer(act_fct)))
+        regular_layer = cl.RegularLayer(act_fct)
+        if 'use_bias' in kwargs:
+            regular_layer.use_bias = kwargs['use_bias']
+        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.RegularLayer](in_size, out_size, regular_layer))
     elif name.lower() == "rnnlayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.RnnLayer](in_size, out_size, cl.RnnLayer(act_fct)))
     elif name.lower() == "lstmlayer":
