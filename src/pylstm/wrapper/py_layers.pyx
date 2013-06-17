@@ -117,6 +117,8 @@ def create_layer(name, in_size, out_size, **kwargs):
             act_fct = <cm.ActivationFunction*> &cm.Linear
         elif af_name.lower() == "softmax":
             act_fct = <cm.ActivationFunction*> &cm.Softmax
+        elif af_name.lower() == "winout":
+            act_fct = <cm.ActivationFunction*> &cm.Winout
 
     cdef cl.Lstm97Layer lstm97
     cdef cl.RegularLayer regular_layer

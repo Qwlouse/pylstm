@@ -35,6 +35,8 @@ cdef extern from "matrix_operation.h":
         pass
     cppclass SoftmaxLayerActivation(ActivationFunction):
         pass
+    cppclass WinoutActivation(ActivationFunction):
+        pass
 
     ActivationFunction Sigmoid
     ActivationFunction Tanh
@@ -42,6 +44,7 @@ cdef extern from "matrix_operation.h":
     ActivationFunction Linear
     ActivationFunction RectifiedLinear
     SoftmaxLayerActivation Softmax
+    WinoutActivation Winout
 
 
 
