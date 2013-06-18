@@ -3,7 +3,8 @@ ADD_LIBRARY(layers SHARED
             fwd_layer.cpp
             rev_layer.cpp
             lstm_layer.cpp
-	    lstm97_layer.cpp
+            lstm97_layer.cpp
+            mrnn_layer.cpp
             rnn_layer.cpp
             )
 

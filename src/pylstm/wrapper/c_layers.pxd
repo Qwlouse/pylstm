@@ -20,6 +20,12 @@ cdef extern from "rnn_layer.h":
         RnnLayer(ActivationFunction* f)
 
 
+cdef extern from "mrnn_layer.h":
+    cppclass MrnnLayer:
+        MrnnLayer()
+        MrnnLayer(ActivationFunction* f)
+
+
 cdef extern from "lstm_layer.h":
     cppclass LstmLayer:
         LstmLayer()
