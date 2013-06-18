@@ -16,7 +16,7 @@
 bool equals(Matrix a, Matrix out);
 
 ///Elementwise add
-//void add(Matrix a, Matrix b, Matrix out);
+void add(Matrix a, Matrix b, Matrix out);
 
 ///Elementwise a+b into b
 void add_into_b(Matrix a, Matrix b);

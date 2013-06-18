@@ -382,16 +382,21 @@ void scale_into(Matrix a, d_type alpha) {
 }
 
 
-/*
-///Elementwise add
-void add(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out) {
-  if (a.data == out.data) {
-  } else if() {
 
-  }
+///Elementwise add
+void add(Matrix a, Matrix b, Matrix out) {
+    ASSERT(a.size == b.size);
+    ASSERT(a.size == out.size);
+    Matrix::iterator ita = a.begin();
+    Matrix::iterator ita_end = a.end();
+    Matrix::iterator itb = b.begin();
+    Matrix::iterator itout = out.begin();
+    for (; ita != ita_end; ++ita, ++itb, ++itout) {
+        *itout = *ita + *itb;
+    }
 }
 
-
+/*
 
 
 
