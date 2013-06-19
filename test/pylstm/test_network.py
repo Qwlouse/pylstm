@@ -10,7 +10,7 @@ from pylstm.layers import LstmLayer, Lstm97Layer, RnnLayer, MrnnLayer, RegularLa
 from pylstm.utils import check_gradient, check_deltas, check_rpass
 from pylstm.wrapper import Matrix
 
-rnd = np.random.RandomState()#2138127806)
+rnd = np.random.RandomState(2138127806)
 
 
 class NetworkTests(unittest.TestCase):
@@ -107,7 +107,7 @@ class NetworkTests(unittest.TestCase):
         check_errors = []
         for l, a in itertools.product(self.layer_types, self.activation_functions):
             net = self.build_network(l, a)
-            e, allerrors = check_rpass(net, n_batches=5, n_timesteps=7, rnd=rnd)
+            e, allerrors = check_rpass(net, n_batches=5, n_timesteps=2, rnd=rnd)
             check_errors.append(e)
             if e > 1e-4:
                 # construct a weight view and break down the differences
