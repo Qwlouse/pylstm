@@ -10,7 +10,7 @@ from pylstm.layers import LstmLayer, Lstm97Layer, RnnLayer, MrnnLayer, RegularLa
 from pylstm.utils import check_gradient, check_deltas, check_rpass
 from pylstm.wrapper import Matrix
 
-rnd = np.random.RandomState(2647687)
+rnd = np.random.RandomState()#2138127806)
 
 
 class NetworkTests(unittest.TestCase):
@@ -96,9 +96,9 @@ class NetworkTests(unittest.TestCase):
                 layer = net.layers.values()[1]  # the only layer
                 b = Matrix(grad_approx - grad_calc)
                 diff = layer.create_param_view(b)
-                for n, b in diff.items():
+                for n, q in diff.items():
                     print("====== %s ======" % n)
-                    print(b)
+                    print(q)
 
             print("Checking Gradient of %s with %s = %0.4f" % (l(3), a, e))
         self.assertTrue(np.all(np.array(check_errors) < 1e-4))
@@ -114,9 +114,9 @@ class NetworkTests(unittest.TestCase):
                 layer = net.layers.values()[1]  # the only layer
                 b = Matrix(allerrors.copy())
                 diff = layer.create_param_view(b)
-                for n, b in diff.items():
+                for n, q in diff.items():
                     print("====== %s ======" % n)
-                    print(b)
+                    print(q)
 
             print("Checking RForward pass of %s with %s = %0.4g" % (l(3), a, e))
         self.assertTrue(np.all(np.array(check_errors) < 1e-4))
@@ -132,9 +132,9 @@ class NetworkTests(unittest.TestCase):
                 layer = net.layers.values()[1]  # the only layer
                 b = Matrix(allerrors.copy())
                 diff = layer.create_param_view(b)
-                for n, b in diff.items():
+                for n, q in diff.items():
                     print("====== %s ======" % n)
-                    print(b)
+                    print(q)
 
             print("Checking RForward pass of %s with %s = %0.4g" % (l(3), a, e))
         self.assertTrue(np.all(np.array(check_errors) < 1e-4))
