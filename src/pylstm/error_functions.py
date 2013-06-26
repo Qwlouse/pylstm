@@ -127,7 +127,10 @@ class CTC(object):
     def __call__(self, Y, T):
         import warnings
         with warnings.catch_warnings():
+            # This removes all the warnings about -inf in logaddexp
+            # those values are necessary and the results are correct
             warnings.simplefilter("ignore")
+
             # Y are network outputs with one output for each label plus the blank
             # blank label is index 0
             # T is the label sequence It does not have to have the same length
