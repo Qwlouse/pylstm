@@ -142,11 +142,15 @@ void LstmLayer::gradient(Parameters&, Parameters& grad, FwdState& b, BwdState& d
     //! \f$\frac{dE}{dW_FH} += \frac{dE}{da_F} * h(t-1)\f$
     //! \f$\frac{dE}{dW_IH} += \frac{dE}{da_I} * h(t-1)\f$
     //! \f$\frac{dE}{dW_OH} += \frac{dE}{da_O} * h(t-1)\f$
-    if (n_time > 1) {
-        mult(d.Ia.slice(1, n_time).flatten_time(), y.slice(0, n_time - 1).flatten_time().T(), grad.IH); //(double) n_time);
-        mult(d.Za.slice(1, n_time).flatten_time(), y.slice(0, n_time - 1).flatten_time().T(), grad.ZH); //(double) n_time);
-        mult(d.Fa.slice(1, n_time).flatten_time(), y.slice(0, n_time - 1).flatten_time().T(), grad.FH); //(double) n_time);
-        mult(d.Oa.slice(1, n_time).flatten_time(), y.slice(0, n_time - 1).flatten_time().T(), grad.OH); //(double) n_time);
+    grad.IH.set_all_elements_to(0.0);
+    grad.ZH.set_all_elements_to(0.0);
+    grad.FH.set_all_elements_to(0.0);
+    grad.OH.set_all_elements_to(0.0);
+    for (int t = 0; t < n_time - 1; ++t) {
+        mult_add(d.Ia.slice(t), y.slice(t).T(), grad.IH); //(double) n_time);
+        mult_add(d.Za.slice(t), y.slice(t).T(), grad.ZH); //(double) n_time);
+        mult_add(d.Fa.slice(t), y.slice(t).T(), grad.FH); //(double) n_time);
+        mult_add(d.Oa.slice(t), y.slice(t).T(), grad.OH); //(double) n_time);
     }
 
     //! \f$\frac{dE}{dW_FS} += \frac{dE}{da_F} * s(t-1)\f$
