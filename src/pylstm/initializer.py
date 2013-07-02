@@ -17,7 +17,8 @@ class WeightInitializer(object):
                 'LstmLayer': {'FH': 'uniform'}})
     wi.initialize()
     
-    Supported initializations: 'zeros', 'gaussian', 'uniform'.
+    Supported initializations: 'zeros', 'constant', 'gaussian', 'uniform'.
+    You can specify value for constant as ['constant', value]
     You can specify mean and variance for gaussian as ['gaussian', mean, variance].
     You can specify lower and upper bound for uniform as ['uniform', lowb, upb].
     You can use set_default() to set the initialization for all params which are not added by you.
@@ -58,6 +59,13 @@ class WeightInitializer(object):
         param_size  = self.network.get_param_view_for(layer_name)[param_name].size
         if init_type.lower() == 'zeros':
             self.network.get_param_view_for(layer_name)[param_name][:] = 0
+        elif init_type.lower() == 'constant':
+            if type(param_init) is list:
+                constant = param_init[1]
+            else:
+                constant = 0
+            self.network.get_param_view_for(layer_name)[param_name][:] = constant
+            
         elif init_type.lower() == 'gaussian':
             if type(param_init) is list:
                 mu = param_init[1]
@@ -66,7 +74,6 @@ class WeightInitializer(object):
                 mu    = 0
                 sigma = 0.1
             self.network.get_param_view_for(layer_name)[param_name][:] = (np.random.randn(param_size).reshape(param_shape) * sigma) + mu
-            print(self.network.get_param_view_for(layer_name)[param_name])
             
         elif init_type.lower() == 'uniform':
             if type(param_init) is list:
