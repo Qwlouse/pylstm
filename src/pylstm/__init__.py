@@ -7,3 +7,5 @@ from error_functions import MeanSquaredError, CrossEntropyError
 from trainer import SgdTrainer, CgTrainer
 from datasets import generate_memo_task, generate_5bit_memory_task
 from datasets import generate_5bit_memory_task
+from initializer import WeightInitializer
+from regularizer import WeightRegularizer
