@@ -7,7 +7,7 @@ import wrapper
 
 
 class BufferHub(object):
-    def __init__(self, sources, sinks, slices=1, batches=1, con_table=None):
+    def __init__(self, sources, sinks, con_table=None):
         # only full connection supported so far
         assert con_table is None or np.all(con_table == 1), \
             "Only full connections supported so far."
@@ -15,14 +15,14 @@ class BufferHub(object):
         self.sinks = sinks
         self.buffer = None
         self.views = None
-        assert slices >= 1
-        assert batches >= 1
-        self.slice_count = slices
-        self.batch_count = batches
+        self.slice_count = None
+        self.batch_count = None
         # evaluate size lazily
         self.size = None
 
     def set_dimensions(self, slice_count, batch_count):
+        if slice_count == self.slice_count and batch_count == self.batch_count:
+            return
         assert slice_count > 0
         assert batch_count > 0
         self.slice_count = slice_count
@@ -33,6 +33,8 @@ class BufferHub(object):
     def get_size(self):
         # with full connections the size is determined by the sum of all sources
         # or by the size of any single sink
+        assert self.slice_count is not None
+        assert self.batch_count is not None
         if self.size is None:
             if len(self.sinks) > 0:
                 # get a sink
@@ -44,11 +46,16 @@ class BufferHub(object):
         return self.size
 
     def set_buffer(self, buffer_view):
+        assert self.slice_count is not None
+        assert self.batch_count is not None
         self.buffer = buffer_view
         self.buffer = buffer_view.reshape(self.slice_count, self.batch_count, -1)
         self.views = None
 
     def _lay_out_source_buffers(self):
+        assert self.slice_count is not None
+        assert self.batch_count is not None
+        assert self.buffer is not None
         start = 0
         for n, (sg, vf) in self.sources.items():
             s = sg(self.slice_count, self.batch_count)
@@ -60,6 +67,9 @@ class BufferHub(object):
         return start * self.slice_count * self.batch_count
 
     def create_views(self):
+        assert self.slice_count is not None
+        assert self.batch_count is not None
+        assert self.buffer is not None
         self.views = {}
         source_size = self._lay_out_source_buffers()
         assert source_size == 0 or (source_size == self.get_size())
@@ -71,17 +81,17 @@ class BufferHub(object):
 
     def get_buffer(self, name):
         assert self.buffer is not None
+        assert self.slice_count is not None
+        assert self.batch_count is not None
         if self.views is None:
             self.create_views()
         return self.views[name]
 
 
 class BufferManager(object):
-    def __init__(self, slice_count=1, batch_count=1):
-        assert slice_count > 0
-        assert batch_count > 0
-        self.slice_count = slice_count
-        self.batch_count = batch_count
+    def __init__(self):
+        self.slice_count = None
+        self.batch_count = None
         self.buffer = None
         self.views_ready = False
 
@@ -91,9 +101,7 @@ class BufferManager(object):
 
     def add(self, sources, sinks, con_table=None):
         self.buffer = None
-        bh = BufferHub(sources, sinks,
-                       self.slice_count, self.batch_count,
-                       con_table)
+        bh = BufferHub(sources, sinks, con_table)
         self.buffer_hubs.append(bh)
         for n in sources:
             self.buffers_by_source[n] = bh
@@ -101,11 +109,12 @@ class BufferManager(object):
             self.buffers_by_sinks[n] = bh
 
     def set_dimensions(self, slice_count, batch_count, force_resize=False):
+        if (slice_count == self.slice_count and
+                batch_count == self.batch_count and
+                not force_resize):
+            return
         assert slice_count > 0
         assert batch_count > 0
-        # todo: here is some room for optimization:
-        # if the dims didn't change and force_resize is false then we don't
-        # need to do all of the following steps
         self.slice_count = slice_count
         self.batch_count = batch_count
         for bh in self.buffer_hubs:

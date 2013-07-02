@@ -14,6 +14,7 @@ class BufferManagerTest(unittest.TestCase):
         size_getter = lambda t, b : 10 * t + b
         view_factory = lambda x, t, b : x
         bm.add({'foo': (size_getter, view_factory)}, {})
+        bm.set_dimensions(1, 1)
         self.assertEqual(bm.calculate_size(), 11)
         bm.set_dimensions(10, 5)
         self.assertEqual(bm.calculate_size(), 105)
@@ -25,6 +26,7 @@ class BufferManagerTest(unittest.TestCase):
         size_getter = lambda t, b : 10 * t + b
         view_factory = lambda x, t, b : x
         bm.add({}, {'foo': (size_getter, view_factory)})
+        bm.set_dimensions(1, 1)
         self.assertEqual(bm.calculate_size(), 11)
         bm.set_dimensions(10, 5)
         self.assertEqual(bm.calculate_size(), 105)
@@ -36,6 +38,7 @@ class BufferManagerTest(unittest.TestCase):
         size_getter = lambda t, b : 10 * t + b
         view_factory = lambda x, t, b : x
         bm.add({'source': (size_getter, view_factory)}, {'sink': (size_getter, view_factory)})
+        bm.set_dimensions(1, 1)
         self.assertEqual(bm.calculate_size(), 11)
         bm.set_dimensions(10, 5)
         self.assertEqual(bm.calculate_size(), 105)
@@ -51,6 +54,7 @@ class BufferManagerTest(unittest.TestCase):
         bm.add({'foo1': (sg1, view_factory)}, {})
         bm.add({'foo2': (sg2, view_factory)}, {})
         bm.add({}, {'foo3': (sg3, view_factory)})
+        bm.set_dimensions(1, 1)
         self.assertEqual(bm.calculate_size(), 111111)
         bm.set_dimensions(2, 3)
         self.assertEqual(bm.calculate_size(), 232323)
@@ -61,7 +65,7 @@ class BufferManagerTest(unittest.TestCase):
         sg2 = lambda t, b : 3 * t * b
         view_factory = lambda x, t, b : x
         bm.add({'foo1': (sg1, view_factory), 'foo2': (sg2, view_factory)}, {})
-
+        bm.set_dimensions(1, 1)
         self.assertEqual(len(bm.get_source_view('foo1')), 2)
         self.assertEqual(len(bm.get_source_view('foo2')), 3)
         bm.set_dimensions(2, 3)

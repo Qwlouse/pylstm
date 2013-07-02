@@ -115,6 +115,8 @@ class NetworkBuilder(object):
             in_out_manager.add(sources, sinks, con_table)
             delta_manager.add(sources, sinks, con_table)
 
+        param_manager.set_dimensions(1, 1)
+
         net = Network(layers, param_manager, fwd_state_manager, in_out_manager,
                       bwd_state_manager, delta_manager, self.error_func)
         return net
