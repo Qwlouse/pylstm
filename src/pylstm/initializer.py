@@ -7,6 +7,7 @@ import sys
 sys.path.append('.')
 sys.path.append('..')
 
+
 class WeightInitializer(object):
     """
     Neural Network Weight Initializer
@@ -26,16 +27,16 @@ class WeightInitializer(object):
         self.network = net
         self.init_set = {}
         self.default_init = 'zeros'
-        for layer_name in net.layers.keys():
+        for layer_name in net.layers:
             if layer_name.lower() != 'input' and layer_name.lower() != 'output':
                 self.init_set[layer_name] = {}
-                for param_name in net.get_param_view_for(layer_name).keys():
+                for param_name in net.get_param_view_for(layer_name):
                     self.init_set[layer_name][param_name] = 'default'
         
     def add_init(self, layer_init_dict):
-        for layer_name in layer_init_dict.keys():
+        for layer_name in layer_init_dict:
             if layer_name in self.init_set:
-                for param_name in layer_init_dict[layer_name].keys():
+                for param_name in layer_init_dict[layer_name]:
                     if param_name in self.init_set[layer_name]:
                         self.init_set[layer_name][param_name] = layer_init_dict[layer_name][param_name]
                     else:
@@ -44,16 +45,17 @@ class WeightInitializer(object):
                 raise KeyError("Layer " + layer_name + " does not exist.")
     
     def initialize(self):
-        for layer_name in self.init_set.keys():
-            for param_name in self.init_set[layer_name].keys():
+        for layer_name in self.init_set:
+            for param_name in self.init_set[layer_name]:
                 self.initialize_param(layer_name, param_name, self.init_set[layer_name][param_name])
                 
     def initialize_param(self, layer_name, param_name, param_init):
         if param_init == 'default':
             init_type = self.default_init
+        else:
+            init_type = param_init[0] if (type(param_init) is list) else param_init
         param_shape = self.network.get_param_view_for(layer_name)[param_name].shape
         param_size  = self.network.get_param_view_for(layer_name)[param_name].size
-        init_type = param_init[0] if (type(param_init) is list) else param_init
         if init_type.lower() == 'zeros':
             self.network.get_param_view_for(layer_name)[param_name][:] = 0
         elif init_type.lower() == 'gaussian':
@@ -75,8 +77,7 @@ class WeightInitializer(object):
                 upb  =  0.1
             self.network.get_param_view_for(layer_name)[param_name][:] = ((upb - lowb) * np.random.rand(param_size).reshape(param_shape)) + lowb
         else:
-            raise NotImplementedError
+            raise NotImplementedError(init_type.lower())
         
     def set_default(self, default_init):
         self.default_init = default_init
-        

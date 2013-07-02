@@ -35,6 +35,10 @@ cdef class MatrixContainer:
     def __len__(self):
         return self.this_ptr.get_size()
 
+    def __iter__(self):
+        for k in self.keys():
+            yield k
+
     def keys(self):
         return self.this_ptr.get_view_names()
 
