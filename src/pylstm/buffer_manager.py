@@ -19,6 +19,8 @@ class BufferHub(object):
         assert batches >= 1
         self.slice_count = slices
         self.batch_count = batches
+        # evaluate size lazily
+        self.size = None
 
     def set_dimensions(self, slice_count, batch_count):
         assert slice_count > 0
@@ -26,17 +28,20 @@ class BufferHub(object):
         self.slice_count = slice_count
         self.batch_count = batch_count
         self.views = None
+        self.size = None
 
     def get_size(self):
         # with full connections the size is determined by the sum of all sources
         # or by the size of any single sink
-        if len(self.sinks) > 0:
-            # get a sink
-            sg, vf = self.sinks.values()[0]
-            return sg(self.slice_count, self.batch_count)
-        else:
-            return sum(sg(self.slice_count, self.batch_count)
-                       for (sg, vf) in self.sources.values())
+        if self.size is None:
+            if len(self.sinks) > 0:
+                # get a sink
+                sg, vf = self.sinks.values()[0]
+                self.size = sg(self.slice_count, self.batch_count)
+            else:
+                self.size = sum(sg(self.slice_count, self.batch_count)
+                                for (sg, vf) in self.sources.values())
+        return self.size
 
     def set_buffer(self, buffer_view):
         self.buffer = buffer_view
