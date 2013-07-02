@@ -17,3 +17,9 @@ __pycache__
 # built python libraries (.so files on linux)
 # I've added this to be able to symlink built libraries in my working dir
 *.so
+
+# PyDev project
+.project
+.pydevproject
+.settings
+tags
