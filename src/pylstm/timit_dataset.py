@@ -135,8 +135,31 @@ def filter_samples(samples, usage=None, dialect=None, sex=None, speaker_id=None,
     return [s for s in samples if match(s)]
 
 
-def get_features_and_labels_for(samples, timit_dir=TIMIT_DIR):
+def get_features_and_labels_for(samples, timit_dir=TIMIT_DIR, normalize=True):
     ds_list = [s.get_features(timit_dir) for s in samples]
+    if normalize:
+        features_mean = np.zeros((1, ds_list[0][0].shape[1]))
+        features_num  = 0
+        # Calculate the mean
+        for f, _ in ds_list:
+            features_mean = features_mean + f.sum(0)
+            features_num  = features_num  + f.shape[0]
+        features_mean = features_mean/features_num
+        
+        # Subtract the mean
+        for f, _ in ds_list:
+            f[:] = f[:] - features_mean
+        
+        # Calculate the std. dev.
+        features_stddev = np.zeros((1, ds_list[0][0].shape[1]))
+        for f, _ in ds_list:
+            features_stddev = features_stddev + (f.sum(0)**2)
+        features_stddev = np.sqrt(features_stddev/features_num)
+        
+        # Normalize by the std. dev.
+        for f, _ in ds_list:
+            f[:] = f[:] / features_stddev
+        
     maxlen = max(f.shape[0] for f, l in ds_list)
     padded_features = []
     padded_labels = []
