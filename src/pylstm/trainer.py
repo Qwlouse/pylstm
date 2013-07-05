@@ -18,7 +18,7 @@ rnd = np.random.RandomState(92384792)
 
 
 def print_error_per_epoch(epoch, error):
-    print("Epoch %d:\tTrainingerror = %0.4f" % (epoch, error))
+    print("Epoch %d:\tTraining error = %0.4f" % (epoch, error))
 
 
 def minibatch_generator(X, T, M, batch_size=10, loop=False):

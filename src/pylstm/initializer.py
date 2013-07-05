@@ -52,7 +52,7 @@ class WeightInitializer(object):
                 
     def initialize_param(self, layer_name, param_name, param_init):
         if param_init == 'default':
-            init_type = self.default_init
+            init_type = self.default_init[0] if (type(self.default_init) is list) else self.default_init
         else:
             init_type = param_init[0] if (type(param_init) is list) else param_init
         param_shape = self.network.get_param_view_for(layer_name)[param_name].shape
