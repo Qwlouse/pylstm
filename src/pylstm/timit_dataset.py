@@ -153,7 +153,7 @@ def get_features_and_labels_for(samples, timit_dir=TIMIT_DIR, normalize=True):
         # Calculate the std. dev.
         features_stddev = np.zeros((1, ds_list[0][0].shape[1]))
         for f, _ in ds_list:
-            features_stddev = features_stddev + (f.sum(0)**2)
+            features_stddev = features_stddev + (f**2).sum(0)
         features_stddev = np.sqrt(features_stddev/features_num)
         
         # Normalize by the std. dev.
