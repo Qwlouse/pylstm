@@ -75,3 +75,5 @@ t.train(net, X, T, epochs=50)
 # net.param_buffer = np.random.randn(net.get_param_size())
 #
 # t.train(net, X, T, epochs=50)
+
+net = Input(7) >> LstmLayer(10) >> MeanSquaredError()

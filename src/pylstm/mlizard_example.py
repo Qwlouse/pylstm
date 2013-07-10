@@ -38,7 +38,7 @@ def create_5bit_problem(timesteps):
 @ex.stage
 def train(net, X, T, learning_rate, epochs, logger):
     t = SgdTrainer(learning_rate=learning_rate)
-    t.train(net, X, T, epochs=epochs,
+    t.train(net, X, T, max_epochs=epochs,
             callback=lambda e, err: logger.append_result(error=err))
 
 
