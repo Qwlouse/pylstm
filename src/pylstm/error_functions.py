@@ -3,7 +3,7 @@
 from __future__ import division, print_function, unicode_literals
 from scipy.optimize import approx_fprime
 import numpy as np
-
+from trainer import Online
 
 def MeanSquaredError(Y, T, M=None):
     diff = Y - T
@@ -111,10 +111,7 @@ def ctc_calculate_betas(Y_log, T):
                     beta[t - 1, s] = np.logaddexp(beta[t - 1, s], beta[t, s + 2] + Y_log[t, label])
     return np.exp(beta)
 
-
-
 def CTC(Y, T, M=None):
-    # TODO remove multibatch support and move it to a loop
     import warnings
     with warnings.catch_warnings():
         # This removes all the warnings about -inf in logaddexp
@@ -124,40 +121,43 @@ def CTC(Y, T, M=None):
         # Y are network outputs with one output for each label plus the blank
         # blank label is index 0
         # T is the label sequence It does not have to have the same length
-        # sanity checks:
-        N, label_count = Y.shape
-        S = len(T)
-        required_time = S
-        previous_label = -1
-        #T = T[:, :, 0]
-        for s in range(S):
-            required_time += T[s] == previous_label
-            previous_label = T[s]
-        assert np.all(required_time <= N)
-        labels = np.unique(T)
-        assert len(labels) + 1 <= label_count
-        Z = 2 * S + 1
+        N, batch_size, label_count = Y.shape
+
         #### Convert Y to log scale:
         Y_log = np.log(Y)
         # calculate forward variables alpha
         ## set up the dynamic programming matrix
+        deltas = np.zeros((N, batch_size, label_count))
+        errors = []
+        for b, (y, t, m) in enumerate(Online(Y_log, T, M)):
 
-        alpha = ctc_calculate_alphas(Y_log, T)
-        beta = ctc_calculate_betas(Y_log, T)
 
-        ppix = alpha * beta
-        pzx = ppix.sum(1)
-        deltas = np.zeros((N, label_count))
+            t = t[0]
+            y = y.reshape(-1, label_count)
+            # check required time is met
+            S = len(t)
+            required_time = S
+            previous_label = -1
+            for s in range(S):
+                required_time += t[s] == previous_label
+                previous_label = t[s]
+            assert required_time <= y.shape[0]
 
-        deltas[:, 0] = ppix[:, ::2].sum(1)
-        for s in range(1, Z, 2):
-            deltas[:,  T[s // 2]] += ppix[:, s]
-        for l in range(label_count):
-            deltas[:, l] /= - Y[:, l] * pzx
+            alpha = ctc_calculate_alphas(y, t)
+            beta = ctc_calculate_betas(y, t)
 
-        error = -(np.log(ppix.sum(1))).mean()
+            ppix = alpha * beta
+            pzx = ppix.sum(1)
 
-        return error, deltas
+            deltas[:, b, 0] = ppix[:, ::2].sum(1)
+            for s in range(1, 2 * S + 1, 2):
+                deltas[:, b, t[s // 2]] += ppix[:, s]
+            for l in range(label_count):
+                deltas[:, b, l] /= - np.exp(y[:, l]) * pzx
+
+            errors.append(-(np.log(ppix.sum(1))).mean())
+
+        return np.mean(errors), deltas / batch_size
 
 
 if __name__ == "__main__":

@@ -147,16 +147,15 @@ class CTCTest(unittest.TestCase):
     def test_finite_diff(self):
         # finite differences testing
         def f(X):
-            return CTC(X.reshape(4, 3), self.T)[0]
+            return CTC(X.reshape(4, 1, 3), [self.T])[0]
 
-        e, d = CTC(self.Y, self.T)
-        print("delta_calc\n", d.reshape(4, 3).T)
+        e, d = CTC(self.Y.reshape(4, 1, 3), [self.T])
+        print("delta_calc\n", d.reshape(4, 1, 3).T)
         delta_approx = approx_fprime(self.Y.copy().flatten(), f, 1e-5)
-        print("delta_approx\n", delta_approx.reshape(4, 3).T)
+        print("delta_approx\n", delta_approx.reshape(4, 1, 3).T)
 
-        self.assertLess(np.sum((delta_approx.reshape(4, 3) - d) ** 2), 1e-4)
+        self.assertLess(np.sum((delta_approx.reshape(4, 1, 3) - d) ** 2), 1e-4)
 
-    @unittest.skip
     def test_finite_diff_multibatch(self):
         batches = 7
         input_time_size = 9
@@ -166,34 +165,26 @@ class CTCTest(unittest.TestCase):
         Y /= Y.sum(2).reshape(input_time_size, batches, 1)  # normalize to get prob distr
         # T = np.vstack([np.arange(1, labels + 1)] * batches).T  # no repeated numbers for now
         # T = T.reshape(labels, batches, 1)
-        T = np.random.randint(1, labels + 1, (label_seq_length, batches, 1))
+        T = np.random.randint(1, labels + 1, (label_seq_length, batches))
+        T = [t for t in T.swapaxes(0,1)]
 
         # finite differences testing
         def f(X):
-            a, b, d = CTC(X.reshape(input_time_size, batches, labels + 1), T)
-            return -(np.log((a * b).sum(2))).sum(1).mean()
+            return CTC(X.reshape(input_time_size, batches, labels + 1), T)[0]
 
         delta_approx = approx_fprime(Y.copy().flatten(), f, 1e-5)
 
-        a, b, d = CTC(Y, T)
+        e, d = CTC(Y, T)
         #print("pzx\n", (a*b).sum(2))
 
         print("approx\n", delta_approx.reshape(input_time_size, batches, labels + 1).T)
         print("calculated\n", d.T)
         print("diff\n", (delta_approx.reshape(input_time_size, batches, labels + 1) - d).T)
 
-        a1, b1, d1 = CTC(Y[:, 0:1, :], T[:, 0:1, :])
-        a2, b2, d2 = CTC(Y[:, 1:2, :], T[:, 1:2, :])
+        e1, d1 = CTC(Y[:, 0:1, :], T[0:1])
+        e2, d2 = CTC(Y[:, 1:2, :], T[1:2])
         d_correct = np.hstack((d1, d2))
         print("delta calculated individually:\n", d_correct.T)
-        a_corr = np.hstack((a1, a2))
-        print("alpha calc\n", a.T)
-        print("alpha calc individually\n", a_corr.T)
-
-        b_corr = np.hstack((b1, b2))
-        print("beta calc\n", b.T)
-        print("beta calc individually\n", b_corr.T)
-
         self.assertLess(np.sum((d.flatten() - delta_approx) ** 2), 1e-4)
 
 
