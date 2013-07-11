@@ -13,7 +13,7 @@ class NetworkBuilder(object):
     def __init__(self):
         self.input_layer = None
         self.output = DummyLayer(0, "Output")
-        self.error_func = MeanSquaredError()
+        self.error_func = MeanSquaredError
 
     def input(self, size=None):
         if size:

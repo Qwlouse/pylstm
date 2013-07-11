@@ -124,7 +124,7 @@ class Network(object):
         return self.out_buffer
 
     def calculate_error(self, T, M=None):
-        return self.error_func.evaluate(self.out_buffer, T, M)
+        return self.error_func(self.out_buffer, T, M)[0]
 
     def pure_backpass(self, deltas):
         t, b, f = deltas.shape
@@ -150,7 +150,7 @@ class Network(object):
         return self.delta_manager.get_source_view("Input").as_array()
 
     def backward_pass(self, T, M=None):
-        delta_buffer = self.error_func.deriv(self.out_buffer, T, M)
+        delta_buffer = self.error_func(self.out_buffer, T, M)[1]
         return self.pure_backpass(delta_buffer)
 
     def calc_gradient(self):

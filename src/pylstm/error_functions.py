@@ -3,218 +3,165 @@
 from __future__ import division, print_function, unicode_literals
 from scipy.optimize import approx_fprime
 import numpy as np
-from pylstm.wrapper import Matrix
 
 
-def ensure_np_array(a):
-    if isinstance(a, Matrix):
-        return a.as_array()
-    else:
-        return np.array(a)
+def MeanSquaredError(Y, T, M=None):
+    diff = Y - T
+    norm = Y.shape[0] * Y.shape[1]
+    if M is not None:
+        diff *= M
+        norm = M.sum()
+    error = 0.5 * np.sum(diff ** 2) / norm
+    deltas = diff / norm
+    return error, deltas
 
 
-class ErrorFunction(object):
-    def evaluate(self, Y, T, M=None):
-        pass
-
-    def deriv(self, Y, T, M=None):
-        pass
-
-
-class MeanSquaredError(ErrorFunction):
-    def evaluate(self, Y, T, M=None):
-        Y, T, M, diff = self._get_masked_diff(Y, T, M)
-        return 0.5 * np.sum(diff ** 2) / Y.shape[1]
-
-    def deriv(self, Y, T, M=None):
-        Y, T, M, diff = self._get_masked_diff(Y, T, M)
-        return diff / Y.shape[1]
-
-    def _get_masked_diff(self, Y, T, M=None):
-        Y = ensure_np_array(Y)
-        T = ensure_np_array(T)
-        assert Y.shape == T.shape
-        diff = Y - T
-        if M is not None:
-            M = ensure_np_array(M)
-            assert M.shape[0] == Y.shape[0]
-            assert M.shape[1] == Y.shape[1]
-            assert M.shape[2] == 1 or M.shape[2] == Y.shape[2]
-            diff *= M
-        return Y, T, M, diff
+def CrossEntropyError(Y, T, M=None):
+    Y = Y.copy()  # do not modify original Y
+    Y[Y < 1e-6] = 1e-6
+    cee = T * np.log(Y) + (1 - T) * np.log(1 - Y)
+    ceed = (T - Y) / (Y * (Y - 1))
+    norm = Y.shape[0] * Y.shape[1]
+    if M is not None:
+        cee *= M
+        ceed *= M
+        norm = M.sum()
+    error = - np.sum(cee) / norm
+    deltas = ceed / norm
+    return error, deltas
 
 
-class CrossEntropyError(object):
-    def evaluate(self, Y, T, M=None):
-        Y = ensure_np_array(Y)
-        T = ensure_np_array(T)
-        assert Y.shape == T.shape
-        Y[Y < 1e-6] = 1e-6
-        cee = T * np.log(Y) + (1 - T) * np.log(1 - Y)
-        if M is not None:
-            M = ensure_np_array(M)
-            assert M.shape[0] == Y.shape[0]
-            assert M.shape[1] == Y.shape[1]
-            assert M.shape[2] == 1 or M.shape[2] == Y.shape[2]
-            cee *= M
-        return - np.sum(cee) / Y.shape[1]
+def MultiClassCrossEntropyError(Y, T, M=None):
+    Y = Y.copy()  # do not modify original Y
+    Y[Y < 1e-6] = 1e-6
+    cee = T * np.log(Y)
+    quot = T / Y
+    norm = Y.shape[0] * Y.shape[1]
+    if M is not None:
+        cee *= M
+        quot *= M
+        norm = M.sum()
+    error = - np.sum(cee) / norm
+    deltas = - quot / norm
+    return error, deltas
 
-    def deriv(self, Y, T, M=None):
-        Y = ensure_np_array(Y)
-        T = ensure_np_array(T)
-        assert Y.shape == T.shape
-        Y[Y < 1e-6] = 1e-6
-        ceed = (T - Y) / (Y * (Y - 1))
-        if M is not None:
-            M = ensure_np_array(M)
-            assert M.shape[0] == Y.shape[0]
-            assert M.shape[1] == Y.shape[1]
-            assert M.shape[2] == 1 or M.shape[2] == Y.shape[2]
-            ceed *= M
-        return ceed / Y.shape[1]
-
-
-class MultiClassCrossEntropyError(object):
-    def evaluate(self, Y, T, M=None):
-        Y = ensure_np_array(Y)
-        T = ensure_np_array(T)
-        assert Y.shape == T.shape
-        Y[Y < 1e-6] = 1e-6
-        cee = T * np.log(Y)
-        if M is not None:
-            M = ensure_np_array(M)
-            assert M.shape[0] == Y.shape[0]
-            assert M.shape[1] == Y.shape[1]
-            assert M.shape[2] == 1 or M.shape[2] == Y.shape[2]
-            cee *= M
-        return - np.sum(cee) / Y.shape[1]
-
-    def deriv(self, Y, T, M=None):
-        Y = ensure_np_array(Y)
-        T = ensure_np_array(T)
-        assert Y.shape == T.shape
-        Y[Y < 1e-6] = 1e-6
-        quot = T / Y
-        if M is not None:
-            M = ensure_np_array(M)
-            assert M.shape[0] == Y.shape[0]
-            assert M.shape[1] == Y.shape[1]
-            assert M.shape[2] == 1 or M.shape[2] == Y.shape[2]
-            quot *= M
-        return (- quot) / Y.shape[1]
-
-
-class Accuracy(object):
-    def __call__(self, Y, T, M=None):
-        t, b, f = Y.shape
-        Y = ensure_np_array(Y)
-        winner_Y = np.argmax(Y, 2)
-        winner_T = np.argmax(T, 2)
-        correct = winner_Y == winner_T
-        total = t * b
-        if M is not None:
-            correct *= M
-            total = np.sum(M)
-        return np.sum(correct) / total
-
-    def evaluate(self, Y, T, M=None):
-        return self(Y, T, M)
 
 neg_inf = float('-inf')
 
+def ctc_calculate_alphas(Y_log, T):
+    N, batch_size, label_count = Y_log.shape
+    S, _, _ = T.shape
+    Z = 2 * S + 1
 
-class CTC(object):
-    def __call__(self, Y, T):
-        import warnings
-        with warnings.catch_warnings():
-            # This removes all the warnings about -inf in logaddexp
-            # those values are necessary and the results are correct
-            warnings.simplefilter("ignore")
+    alpha = np.zeros((N, batch_size, Z))
+    alpha[:] = neg_inf
+    alpha[0, :, 0] = Y_log[0, :, 0]
+    alpha[0, :, 1] = Y_log[0, range(batch_size), T[0, :]]
+    for t in range(1, N):
+        start = max(-1, 2 * (S - N + t) + 1)
+        for s in range(start + 1, Z, 2):  # loop the even ones (blanks)
+            alpha[t, :, s] = np.logaddexp(alpha[t, :, s], alpha[t - 1, :, s])
+            if s > 0:
+                alpha[t, :, s] = np.logaddexp(alpha[t, :, s], alpha[t - 1, :, s - 1])
 
-            # Y are network outputs with one output for each label plus the blank
-            # blank label is index 0
-            # T is the label sequence It does not have to have the same length
-            # sanity checks:
-            N, batch_size, label_count = Y.shape
-            S, b, tmp = T.shape
-            assert batch_size == b
-            assert tmp == 1
-            required_time = S
-            previous_labels = -np.ones((batch_size,))
-            T = T[:, :, 0]
-            for s in range(S):
-                required_time += T[s, :] == previous_labels
-                previous_labels = T[s, :]
-            assert np.all(required_time <= N)
-            labels = np.unique(T)
-            assert len(labels) + 1 <= label_count
-            Z = 2 * S + 1
-            #### Convert Y to log scale:
-            Y_log = np.log(Y)
-            # calculate forward variables alpha
-            ## set up the dynamic programming matrix
-            alpha = np.zeros((N, batch_size, Z))
-            alpha[:] = neg_inf
-            alpha[0, :, 0] = Y_log[0, :, 0]
-            alpha[0, :, 1] = Y_log[0, range(b), T[0, :]]
-            for t in range(1, N):
-                start = max(-1, 2 * (S - N + t) + 1)
-                for s in range(start + 1, Z, 2):  # loop the even ones (blanks)
-                    alpha[t, :, s] = np.logaddexp(alpha[t, :, s], alpha[t - 1, :, s])
-                    if s > 0:
-                        alpha[t, :, s] = np.logaddexp(alpha[t, :, s], alpha[t - 1, :, s - 1])
+            alpha[t, :, s] += Y_log[t, :, 0]
+        previous_labels = -np.ones((batch_size,))
+        if start > 0:
+            previous_labels = T[start // 2 - 1, :]
+        for s in range(max(1, start), Z, 2):  # loop the odd ones (labels)
+            alpha[t, :, s] = np.logaddexp(alpha[t, :, s], alpha[t - 1, :, s])
+            alpha[t, :, s] = np.logaddexp(alpha[t, :, s], alpha[t - 1, :, s - 1])
+            labels = T[s // 2, :]
+            if s > 1:
+                alpha[t, :, s] = np.logaddexp(alpha[t, :, s], alpha[t - 1, :, s - 2] + np.log(labels != previous_labels))
+            for b in range(batch_size):
+                alpha[t, b, s] += Y_log[t, b, labels[b]]
+            previous_labels = labels
 
-                    alpha[t, :, s] += Y_log[t, :, 0]
-                previous_labels = -np.ones((batch_size,))
-                if start > 0:
-                    previous_labels = T[start // 2 - 1, :]
-                for s in range(max(1, start), Z, 2):  # loop the odd ones (labels)
-                    alpha[t, :, s] = np.logaddexp(alpha[t, :, s], alpha[t - 1, :, s])
-                    alpha[t, :, s] = np.logaddexp(alpha[t, :, s], alpha[t - 1, :, s - 1])
-                    labels = T[s // 2, :]
-                    if s > 1:
-                        alpha[t, :, s] = np.logaddexp(alpha[t, :, s], alpha[t - 1, :, s - 2] + np.log(labels != previous_labels))
-                    for b in range(batch_size):
-                        alpha[t, b, s] += Y_log[t, b, labels[b]]
-                    previous_labels = labels
+    return np.exp(alpha)
 
-            beta = np.zeros((N, batch_size, Z))
-            beta[:] = neg_inf
-            beta[N - 1, :, 2 * S - 1] = 0.0
-            beta[N - 1, :, 2 * S] = 0.0
-            ## >>>> Log-scale up to this point
-            for t in range(N - 1, 0, -1):
-                stop = min(Z, 2 * t)
-                for s in range(0, stop, 2):  # loop the even ones (blanks)
-                    beta[t - 1, :, s] = np.logaddexp(beta[t - 1, :, s], beta[t, :, s] + Y_log[t, :, 0])
-                    if s < Z - 1:
-                        labels = T[(s + 1) // 2, :]
-                        for b in range(batch_size):
-                            beta[t - 1, b, s] = np.logaddexp(beta[t - 1, b, s], beta[t, b, s + 1] + Y_log[t, b, labels[b]])
-                for s in range(1, stop, 2):  # loop the odd ones (labels)
-                    labels = T[s // 2, :]
-                    for b in range(batch_size):
-                        beta[t - 1, b, s] = np.logaddexp(beta[t - 1, b, s], beta[t, b, s] + Y_log[t, b, labels[b]])
-                    beta[t - 1, :, s] = np.logaddexp(beta[t - 1, :, s], beta[t, :, s + 1] + Y_log[t, :, 0])
-                    if s < Z - 2:
-                        previous_labels = labels
-                        labels = T[(s + 2) // 2, :]
-                        for b in range(batch_size):
-                            if labels[b] != previous_labels[b]:
-                                beta[t - 1, b, s] = np.logaddexp(beta[t - 1, b, s], beta[t, b, s + 2] + Y_log[t, b, labels[b]])
 
-            ppix = np.exp(alpha + beta)
-            pzx = ppix.sum(2)
-            deltas = np.zeros((N, batch_size, label_count))
+def ctc_calculate_betas(Y_log, T):
+    N, batch_size, label_count = Y_log.shape
+    S, _, _ = T.shape
+    Z = 2 * S + 1
 
-            deltas[:, :, 0] = ppix[:, :, ::2].sum(2)
-            for s in range(1, Z, 2):
+    beta = np.zeros((N, batch_size, Z))
+    beta[:] = neg_inf
+    beta[N - 1, :, 2 * S - 1] = 0.0
+    beta[N - 1, :, 2 * S] = 0.0
+    for t in range(N - 1, 0, -1):
+        stop = min(Z, 2 * t)
+        for s in range(0, stop, 2):  # loop the even ones (blanks)
+            beta[t - 1, :, s] = np.logaddexp(beta[t - 1, :, s], beta[t, :, s] + Y_log[t, :, 0])
+            if s < Z - 1:
+                labels = T[(s + 1) // 2, :]
                 for b in range(batch_size):
-                    deltas[:,  b, T[s // 2, b]] += ppix[:, b, s]
-            for l in range(label_count):
-                deltas[:, :, l] /= - Y[:, :, l] * pzx
+                    beta[t - 1, b, s] = np.logaddexp(beta[t - 1, b, s], beta[t, b, s + 1] + Y_log[t, b, labels[b]])
+        for s in range(1, stop, 2):  # loop the odd ones (labels)
+            labels = T[s // 2, :]
+            for b in range(batch_size):
+                beta[t - 1, b, s] = np.logaddexp(beta[t - 1, b, s], beta[t, b, s] + Y_log[t, b, labels[b]])
+            beta[t - 1, :, s] = np.logaddexp(beta[t - 1, :, s], beta[t, :, s + 1] + Y_log[t, :, 0])
+            if s < Z - 2:
+                previous_labels = labels
+                labels = T[(s + 2) // 2, :]
+                for b in range(batch_size):
+                    if labels[b] != previous_labels[b]:
+                        beta[t - 1, b, s] = np.logaddexp(beta[t - 1, b, s], beta[t, b, s + 2] + Y_log[t, b, labels[b]])
+    return np.exp(beta)
 
-            return np.exp(alpha), np.exp(beta), deltas
+
+
+def CTC(Y, T, M=None):
+    # TODO remove multibatch support and move it to a loop in evaluate and deriv
+    import warnings
+    with warnings.catch_warnings():
+        # This removes all the warnings about -inf in logaddexp
+        # those values are necessary and the results are correct
+        warnings.simplefilter("ignore")
+
+        # Y are network outputs with one output for each label plus the blank
+        # blank label is index 0
+        # T is the label sequence It does not have to have the same length
+        # sanity checks:
+        N, batch_size, label_count = Y.shape
+        S, b, tmp = T.shape
+        assert batch_size == b
+        assert tmp == 1
+        required_time = S
+        previous_labels = -np.ones((batch_size,))
+        #T = T[:, :, 0]
+        for s in range(S):
+            required_time += T[s, :] == previous_labels
+            previous_labels = T[s, :]
+        assert np.all(required_time <= N)
+        labels = np.unique(T)
+        assert len(labels) + 1 <= label_count
+        Z = 2 * S + 1
+        #### Convert Y to log scale:
+        Y_log = np.log(Y)
+        # calculate forward variables alpha
+        ## set up the dynamic programming matrix
+
+        alpha = ctc_calculate_alphas(Y_log, T)
+        beta = ctc_calculate_betas(Y_log, T)
+
+        ppix = alpha * beta
+        pzx = ppix.sum(2)
+        deltas = np.zeros((N, batch_size, label_count))
+
+        deltas[:, :, 0] = ppix[:, :, ::2].sum(2)
+        for s in range(1, Z, 2):
+            for b in range(batch_size):
+                deltas[:,  b, T[s // 2, b, 0]] += ppix[:, b, s]
+        for l in range(label_count):
+            deltas[:, :, l] /= - Y[:, :, l] * pzx
+
+        error = -(np.log(ppix.sum(2))).sum(1).mean()
+
+        return error, deltas
+
 
 if __name__ == "__main__":
     Y = np.array([[.1, .7, .2], [.8, .1, .1], [.3, .3, .4], [.7, .1, .2]]).reshape(4, 1, 3)
