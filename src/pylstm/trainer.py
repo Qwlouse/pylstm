@@ -19,7 +19,11 @@ class SaveWeightsPerEpoch(object):
 
 
 ################## Minibatch Iterators ######################
-class IterateBatchwise(object):
+def Undivided(X, T, M):
+    yield X, T, M
+
+
+class Minibatches(object):
     def __init__(self, batch_size=1):
         self.batch_size = batch_size
 
@@ -35,25 +39,30 @@ class IterateBatchwise(object):
             i += self.batch_size
 
 
-def run_en_block(X, T, M):
-    yield X, T, M
+def Online(X, T, M=None):
+    for i in range(X.shape[1]):
+        # TODO: cut X according to mask
+        x = X[:, i:i+1, :]
+        t = T[i:i+1] if isinstance(T, list) else T[:, i:i+1, :]
+        m = None if M is None else M[:, i:i+1, :]
+        yield x, t, m
 
 
 ################## Success Criteria ######################
 class ValidationErrorRises(object):
-    def __init__(self, X, T, M=None, minibatch_size=10):
+    def __init__(self, X, T, M=None, process_data=Undivided):
         self.old_val_error = float('inf')
         self.X = X
         self.T = T
         self.M = M
-        self.minibatch_size = minibatch_size
+        self.process_data = process_data
 
     def restart(self):
         self.old_val_error = float('inf')
 
     def __call__(self, net, train_error):
         val_errors = []
-        for x, t, m in IterateBatchwise(2)(self.X, self.T, self.M):
+        for x, t, m in self.process_data(self.X, self.T, self.M):
             net.forward_pass(x)
             val_errors.append(net.calculate_error(t, m))
         val_error = np.mean(val_errors)
@@ -75,7 +84,10 @@ class DiagnosticStep(object):
 
     def run(self, x, t, m):
         print("DiagnosticStep: x.shape=", x.shape)
-        print("DiagnosticStep: t.shape=", t.shape)
+        if isinstance(t, list):
+            print("DiagnosticStep: len(t)=", len(t))
+        else:
+            print("DiagnosticStep: t.shape=", t.shape)
         print("DiagnosticStep: m=", m)
         return 15
 
@@ -217,13 +229,13 @@ class Trainer(object):
 
     def train(self, X, T, M=None,
               max_epochs=100,
-              minibatch_generator=run_en_block):
+              process_data=Undivided):
         self.stepper.start(self.net)
         self.restart_success_criteria()
 
         for epoch in range(1, max_epochs + 1):
             errors = []
-            for x, t, m in minibatch_generator(X, T, M):
+            for x, t, m in process_data(X, T, M):
                 errors.append(self.stepper.run(x, t, m))
 
             train_error = np.mean(errors)
@@ -347,12 +359,12 @@ if __name__ == "__main__":
     net = netb.build()
     net.param_buffer = rnd.randn(net.get_param_size())
     X = rnd.randn(7, 5, 3)
-    T = rnd.randn(7, 5, 1)
+    T = [[1]*7, [2]*7, [3]*7, [4]*7, [5]*7]
 
     trainer = Trainer(net, DiagnosticStep())
     trainer.success_criteria.append(ValidationErrorRises(X, T))
 
-    trainer.train(X, T, max_epochs=50, minibatch_generator=IterateBatchwise(1))
+    trainer.train(X, T, max_epochs=50, process_data=Online)
 
 
 
