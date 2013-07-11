@@ -10,7 +10,7 @@ from pylstm.layers import LstmLayer, Lstm97Layer, RnnLayer, MrnnLayer, RegularLa
 from pylstm.utils import check_gradient, check_deltas, check_rpass
 from pylstm.wrapper import Matrix
 
-rnd = np.random.RandomState(2138127806)
+rnd = np.random.RandomState(2138199806)
 
 
 class NetworkTests(unittest.TestCase):

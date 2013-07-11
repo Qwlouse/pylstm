@@ -1,9 +1,9 @@
 #!/usr/bin/python
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
-from scipy.optimize import approx_fprime
 import numpy as np
 from trainer import Online
+
 
 def MeanSquaredError(Y, T, M=None):
     diff = Y - T
@@ -130,8 +130,6 @@ def CTC(Y, T, M=None):
         deltas = np.zeros((N, batch_size, label_count))
         errors = []
         for b, (y, t, m) in enumerate(Online(Y_log, T, M)):
-
-
             t = t[0]
             y = y.reshape(-1, label_count)
             # check required time is met
@@ -159,24 +157,3 @@ def CTC(Y, T, M=None):
 
         return np.mean(errors), deltas / batch_size
 
-
-if __name__ == "__main__":
-    Y = np.array([[.1, .7, .2], [.8, .1, .1], [.3, .3, .4], [.7, .1, .2]]).reshape(4, 1, 3)
-    T = np.array([1, 2]).reshape(-1, 1, 1)
-    c = CTC()
-    a, b, d = c(Y, T)
-    a_expected = np.array([[.1, .08, 0, 0], [.7, .08, .048, 0], [0, .56, .192, 0], [0, .07, .284, .1048], [0, 0, .021, .2135]])
-    b_expected = np.array([[.096, .06, 0, 0], [.441, .48, .2, 0], [0, .42, .2, 0], [0, .57, .9, 1], [0, 0, .7, 1]])
-    print("alphas\n", a.T)
-    print("betas\n", b.T)
-    print("p(z|x) =", (a * b).T.sum(0) ) # should all be equal
-    print("loss =", -(np.log((a * b).sum(2))).sum(1).mean())
-    print("deltas\n", d.T)
-
-    # finite differences testing
-    def f(X):
-        a, b, d = c(X.reshape(4, 1, 3), T)
-        return -np.log((a * b).T.sum(0).mean())
-
-    delta_approx = approx_fprime(Y.copy().flatten(), f, 1e-5)
-    print("delta_approx\n", delta_approx.reshape(4, 3).T)
