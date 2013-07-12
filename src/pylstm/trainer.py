@@ -41,10 +41,16 @@ class Minibatches(object):
 
 def Online(X, T, M=None):
     for i in range(X.shape[1]):
-        # TODO: cut X according to mask
         x = X[:, i:i+1, :]
         t = T[i:i+1] if isinstance(T, list) else T[:, i:i+1, :]
-        m = None if M is None else M[:, i:i+1, :]
+        m = None
+        if M is not None:
+            m = M[:, i:i+1, :]
+            for k in range(m.shape[0] - 1, -1, -1):
+                if m[k, 0, 0] != 0:
+                    x = x[:k + 1, :, :]
+                    t = t[:k + 1, :, :] if not isinstance(t, list) else t
+                    break
         yield x, t, m
 
 
@@ -362,11 +368,14 @@ if __name__ == "__main__":
     net.param_buffer = rnd.randn(net.get_param_size())
     X = rnd.randn(7, 5, 3)
     T = [np.array([i]*2) for i in range(1, 6)]
+    M = np.ones((7, 5, 1))
+    M[6, :, :] = 0
+    M[5, 0, :] = 0
 
-    trainer = Trainer(net, SGDStep())
+    trainer = Trainer(net, DiagnosticStep())
     trainer.success_criteria.append(ValidationErrorRises(X, T))
 
-    trainer.train(X, T, max_epochs=50, process_data=Online)
+    trainer.train(X, T, M, max_epochs=50, process_data=Online)
 
 
 
