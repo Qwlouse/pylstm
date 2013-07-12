@@ -25,6 +25,9 @@ class Network(object):
 
         self.error_func = error_func
 
+        self.error = None
+        self.deltas = None
+
     @property
     def in_buffer(self):
         return self.in_out_manager.get_source_view("Input").as_array()
@@ -105,6 +108,8 @@ class Network(object):
         self.delta_manager.set_dimensions(t, b)
 
     def forward_pass(self, input_buffer):
+        self.error = None
+        self.deltas = None
         # determine dimensions and set buffer managers accordingly
         t, b, f = input_buffer.shape
         assert f == self.layers.values()[0].get_output_size()
@@ -124,7 +129,9 @@ class Network(object):
         return self.out_buffer
 
     def calculate_error(self, T, M=None):
-        return self.error_func(self.out_buffer, T, M)[0]
+        if self.error is None:
+            self.error, self.deltas = self.error_func(self.out_buffer, T, M)
+        return self.error
 
     def pure_backpass(self, deltas):
         t, b, f = deltas.shape
@@ -150,8 +157,9 @@ class Network(object):
         return self.delta_manager.get_source_view("Input").as_array()
 
     def backward_pass(self, T, M=None):
-        delta_buffer = self.error_func(self.out_buffer, T, M)[1]
-        return self.pure_backpass(delta_buffer)
+        if self.deltas is None:
+            self.error, self.deltas = self.error_func(self.out_buffer, T, M)
+        return self.pure_backpass(self.deltas)
 
     def calc_gradient(self):
         self.grad_manager.initialize_buffer(
