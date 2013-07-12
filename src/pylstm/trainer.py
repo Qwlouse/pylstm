@@ -224,7 +224,7 @@ class Trainer(object):
         for sc in self.success_criteria:
             try:
                 sc.restart()
-            except NameError:
+            except AttributeError:
                 pass
 
     def train(self, X, T, M=None,
@@ -351,17 +351,19 @@ class CgLiteTrainer(object):
 if __name__ == "__main__":
     from pylstm.netbuilder import NetworkBuilder
     from pylstm.layers import RegularLayer
+    from pylstm.error_functions import CTC
 
-    rnd = np.random.RandomState(12345)
+    rnd = np.random.RandomState(145)
 
     netb = NetworkBuilder()
-    netb.input(3) >> RegularLayer(1) >> netb.output
+    netb.input(3) >> RegularLayer(6, act_func="softmax") >> netb.output
+    netb.error_func = CTC
     net = netb.build()
     net.param_buffer = rnd.randn(net.get_param_size())
     X = rnd.randn(7, 5, 3)
-    T = [[1]*7, [2]*7, [3]*7, [4]*7, [5]*7]
+    T = [np.array([i]*2) for i in range(1, 6)]
 
-    trainer = Trainer(net, DiagnosticStep())
+    trainer = Trainer(net, SGDStep())
     trainer.success_criteria.append(ValidationErrorRises(X, T))
 
     trainer.train(X, T, max_epochs=50, process_data=Online)
