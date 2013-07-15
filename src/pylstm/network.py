@@ -3,7 +3,6 @@
 from __future__ import division, print_function, unicode_literals
 from copy import deepcopy
 import wrapper as pw
-import numpy as np
 
 
 class Network(object):
@@ -29,6 +28,7 @@ class Network(object):
         self.deltas = None
 
         self.regularizers = {}
+        self.constraints = {}
 
     @property
     def in_buffer(self):
@@ -51,6 +51,14 @@ class Network(object):
             self.param_manager.initialize_buffer(buffer_view)
         else:
             self.param_manager.initialize_buffer(pw.Matrix(buffer_view))
+        ## ensure constraints
+        for layer_name, layer_constraints in self.constraints.items():
+            params = self.get_param_view_for(layer_name)
+            for view, view_constraints in layer_constraints.items():
+                for constraint in view_constraints:
+                    params[view][:] = constraint(params[view])
+
+
 
     @property
     def grad_buffer(self):
@@ -284,35 +292,40 @@ class Network(object):
         """
         regularizers = dict(reg_dict)
         regularizers.update(kwargs)
+        self._flatten_view_references(regularizers, self.regularizers)
+
+    def set_constraints(self, constraint_dict=(), **kwargs):
+        constraints = dict(constraint_dict)
+        constraints.update(kwargs)
+        self._flatten_view_references(constraints, self.constraints)
+
+    def _flatten_view_references(self, references, flattened):
         allowed_layers = self.layers.keys()[1:-1]
-        for layer_name, reg in regularizers.items():
+        for layer_name, ref in references.items():
             assert layer_name in allowed_layers, "Unknown Layer '%s'.\n" \
                                                  "Possible layers are: %s" % \
                                                  (layer_name,
                                                  ", ".join(allowed_layers))
-            if layer_name not in self.regularizers:
-                self.regularizers[layer_name] = {}
-            layer_regularizers = self.regularizers[layer_name]
-            if isinstance(reg, dict):
-                param_view = self.param_manager.get_source_view(layer_name)
-                if 'other' in reg and reg['other'] is not None:
+            if layer_name not in flattened:
+                flattened[layer_name] = {}
+            layer_references = flattened[layer_name]
+            param_view = self.param_manager.get_source_view(layer_name)
+            if isinstance(ref, dict):
+                if 'other' in ref and ref['other'] is not None:
                     for view in param_view:
-                        if view not in layer_regularizers:
-                            layer_regularizers[view] = ensure_list(reg['other'])
+                        if view not in layer_references:
+                            layer_references[view] = ensure_list(ref['other'])
 
-                for view_name, r in reg.items():
+                for view_name, r in ref.items():
                     if view_name == 'other':
                         continue
                     assert view_name in param_view, \
                         "Unknown view '%s' for '%s'.\nPossible views are: %s"\
                         % (view_name, layer_name, ", ".join(param_view.keys()))
-                    layer_regularizers[view_name] = ensure_list(r)
-
+                    layer_references[view_name] = ensure_list(r)
             else:
-                param_view = self.param_manager.get_source_view(layer_name)
                 for view in param_view:
-                    layer_regularizers[view] = ensure_list(reg)
-
+                    layer_references[view] = ensure_list(ref)
 
 
 def ensure_list(a):
