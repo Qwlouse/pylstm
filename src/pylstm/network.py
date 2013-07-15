@@ -254,6 +254,34 @@ class Network(object):
         return self.calc_gradient()
 
     def set_regularizers(self, reg_dict=(), **kwargs):
+        """
+        Set weight regularizers for layers and even individual views of a layer.
+        A regularizer has to be callable(function or object) with a single
+        argument.
+
+        Example Usage:
+        # you can set regularizers for layers in two equivalent ways:
+        1) by passing a dictionary:
+        >> net.set_regularizers({'RegularLayer': L2(0.5), 'LstmLayer': L1(0.1)})
+
+        2) by using keyword aguments:
+        >> net.set_regularizers(RegularLayer=L2(0.5), LstmLayer=L1(0.1))
+
+        (you should not combine the two. If you do, however, then the keyword
+         arguments take precedence)
+
+        You can specify a single Regularizer or a list of them:
+        >> net.set_regularizers(RegularLayer=[L2(0.5), L1(0.1)])
+
+        To target only some of the weights of a layer can pass in a dict:
+        >> net.set_regularizers(LstmLayer={'HX': L2(0.5),
+                                           'IX': None,
+                                           'other': L1(0.5)})
+        The use of 'other' sets all previously unset views of the layer.
+        Passing None as a Regularizer is a way of specifying that this view
+        should not be regularized. This is useful in combination with 'other'.
+
+        """
         regularizers = dict(reg_dict)
         regularizers.update(kwargs)
         allowed_layers = self.layers.keys()[1:-1]
