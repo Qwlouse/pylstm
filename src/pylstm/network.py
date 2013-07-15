@@ -28,6 +28,8 @@ class Network(object):
         self.error = None
         self.deltas = None
 
+        self.regularizers = {}
+
     @property
     def in_buffer(self):
         return self.in_out_manager.get_source_view("Input").as_array()
@@ -175,6 +177,15 @@ class Network(object):
             delta_out = self.delta_manager.get_source_view(n)
 
             l.gradient(param, grad, fwd_state, bwd_state, out, input_view, delta_out)
+
+            if n in self.regularizers:
+                regularizer = self.regularizers[n]
+                for view, view_regularizers in regularizer.items():
+                    view_param = param[view]
+                    view_grad = grad[view]
+                    for view_regularizer in view_regularizers:
+                        view_grad += view_regularizer(view_param)
+
         return self.grad_manager.buffer.as_array()
 
     def r_forward_pass(self, input_buffer, v_buffer):
@@ -241,3 +252,41 @@ class Network(object):
         self.r_forward_pass(input_buffer, v_buffer)
         self.r_backward_pass(lambda_, mu)
         return self.calc_gradient()
+
+    def set_regularizers(self, reg_dict=(), **kwargs):
+        regularizers = dict(reg_dict)
+        regularizers.update(kwargs)
+        for layer_name, reg in regularizers.items():
+            assert layer_name in self.layers, "Unknown Layer %s!" % layer_name
+            if layer_name not in self.regularizers:
+                self.regularizers[layer_name] = {}
+            layer_regularizers = self.regularizers[layer_name]
+            if isinstance(reg, dict):
+                if 'other' in reg and reg['other'] is not None:
+                    param_view = self.param_manager.get_source_view(layer_name)
+                    for view in param_view:
+                        if view not in layer_regularizers:
+                            layer_regularizers[view] = ensure_list(reg['other'])
+
+                for view_name, r in reg.items():
+                    if view_name == 'other':
+                        continue
+                    layer_regularizers[view_name] = ensure_list(r)
+
+            else:
+                param_view = self.param_manager.get_source_view(layer_name)
+                for view in param_view:
+                    layer_regularizers[view] = ensure_list(reg)
+
+
+
+def ensure_list(a):
+    if isinstance(a, list):
+        return a
+    elif a is None:
+        return []
+    else:
+        return [a]
+
+
+
