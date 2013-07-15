@@ -256,14 +256,18 @@ class Network(object):
     def set_regularizers(self, reg_dict=(), **kwargs):
         regularizers = dict(reg_dict)
         regularizers.update(kwargs)
+        allowed_layers = self.layers.keys()[1:-1]
         for layer_name, reg in regularizers.items():
-            assert layer_name in self.layers, "Unknown Layer %s!" % layer_name
+            assert layer_name in allowed_layers, "Unknown Layer '%s'.\n" \
+                                                 "Possible layers are: %s" % \
+                                                 (layer_name,
+                                                 ", ".join(allowed_layers))
             if layer_name not in self.regularizers:
                 self.regularizers[layer_name] = {}
             layer_regularizers = self.regularizers[layer_name]
             if isinstance(reg, dict):
+                param_view = self.param_manager.get_source_view(layer_name)
                 if 'other' in reg and reg['other'] is not None:
-                    param_view = self.param_manager.get_source_view(layer_name)
                     for view in param_view:
                         if view not in layer_regularizers:
                             layer_regularizers[view] = ensure_list(reg['other'])
@@ -271,6 +275,9 @@ class Network(object):
                 for view_name, r in reg.items():
                     if view_name == 'other':
                         continue
+                    assert view_name in param_view, \
+                        "Unknown view '%s' for '%s'.\nPossible views are: %s"\
+                        % (view_name, layer_name, ", ".join(param_view.keys()))
                     layer_regularizers[view_name] = ensure_list(r)
 
             else:
