@@ -67,7 +67,7 @@ class CTCTest(unittest.TestCase):
              [0, .56, .192, 0],
              [0, .07, .284, .1048],
              [0, 0, .021, .2135]]).T
-        self.assertTrue(np.allclose(a, a_expected))
+        self.assertTrue(np.allclose(np.exp(a), a_expected))
 
     def test_beta_values(self):
         b = ctc_calculate_betas(np.log(self.Y), self.T)
@@ -77,7 +77,7 @@ class CTCTest(unittest.TestCase):
              [0, .42, .2, 0],
              [0, .57, .9, 1],
              [0, 0, .7, 1]]).T
-        self.assertTrue(np.allclose(b, b_expected))
+        self.assertTrue(np.allclose(np.exp(b), b_expected))
 
     def test_alpha_values_duplicate_label(self):
         T = np.array([1, 1])
@@ -88,7 +88,7 @@ class CTCTest(unittest.TestCase):
              [0, .56, .192, 0],
              [0, 0, .168, .036],
              [0, 0, 0, .1176]]).T
-        self.assertTrue(np.allclose(a, a_expected))
+        self.assertTrue(np.allclose(np.exp(a), a_expected))
 
     def test_beta_values_duplicate_label(self):
         T = np.array([1, 1])
@@ -99,7 +99,7 @@ class CTCTest(unittest.TestCase):
              [0, .27, .1, 0],
              [0, .45, .8, 1],
              [0, 0, .7, 1]]).T
-        self.assertTrue(np.allclose(b, b_expected))
+        self.assertTrue(np.allclose(np.exp(b), b_expected))
 
     @unittest.skip
     def test_forward_values_multibatch1(self):
@@ -129,7 +129,7 @@ class CTCTest(unittest.TestCase):
     def test_pxz_equal_for_all_t(self):
         a = ctc_calculate_alphas(np.log(self.Y), self.T)
         b = ctc_calculate_betas(np.log(self.Y), self.T)
-        pxz = (a * b).T.sum(0)
+        pxz = np.exp(a + b).T.sum(0)
         self.assertTrue(np.allclose(pxz, pxz.mean()))
 
     @unittest.skip

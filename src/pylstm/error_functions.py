@@ -82,7 +82,7 @@ def ctc_calculate_alphas(Y_log, T):
             alpha[t, s] += Y_log[t, label]
             previous_label = label
 
-    return np.exp(alpha)
+    return alpha
 
 
 def ctc_calculate_betas(Y_log, T):
@@ -109,7 +109,7 @@ def ctc_calculate_betas(Y_log, T):
                 label = T[(s + 2) // 2]
                 if label != previous_label:
                     beta[t - 1, s] = np.logaddexp(beta[t - 1, s], beta[t, s + 2] + Y_log[t, label])
-    return np.exp(beta)
+    return beta
 
 def CTC(Y, T, M=None):
     import warnings
@@ -128,6 +128,7 @@ def CTC(Y, T, M=None):
         # calculate forward variables alpha
         ## set up the dynamic programming matrix
         deltas = np.zeros((N, batch_size, label_count))
+        deltas[:] = neg_inf
         errors = []
         for b, (y, t, m) in enumerate(Online(Y_log, T, M)):
             t = t[0]
@@ -144,16 +145,16 @@ def CTC(Y, T, M=None):
             alpha = ctc_calculate_alphas(y, t)
             beta = ctc_calculate_betas(y, t)
 
-            ppix = alpha * beta
-            pzx = ppix.sum(1)
+            ppix = alpha + beta
+            pzx = np.logaddexp.accumulate(ppix, axis=1)[:, -1]
 
-            deltas[:, b, 0] = ppix[:, ::2].sum(1)
+            deltas[:, b, 0] = np.logaddexp.accumulate(ppix[:, ::2], axis=1)[:, -1]
             for s in range(1, 2 * S + 1, 2):
-                deltas[:, b, t[s // 2]] += ppix[:, s]
+                deltas[:, b, t[s // 2]] = np.logaddexp(deltas[:, b, t[s // 2]], ppix[:, s])
             for l in range(label_count):
-                deltas[:, b, l] /= - np.exp(y[:, l]) * pzx
+                deltas[:, b, l] -= y[:, l] + pzx
 
-            errors.append(-(np.log(ppix.sum(1))).mean())
+            errors.append(-pzx.mean())
 
-        return np.mean(errors), deltas / batch_size
+        return np.mean(errors), -np.exp(deltas) / batch_size
 
