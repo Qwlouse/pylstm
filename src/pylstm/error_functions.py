@@ -146,9 +146,9 @@ def CTC(Y, T, M=None):
             beta = ctc_calculate_betas(y, t)
 
             ppix = alpha + beta
-            pzx = np.logaddexp.accumulate(ppix, axis=1)[:, -1]
+            pzx = np.logaddexp.reduce(ppix, axis=1)
 
-            deltas[:, b, 0] = np.logaddexp.accumulate(ppix[:, ::2], axis=1)[:, -1]
+            deltas[:, b, 0] = np.logaddexp.reduce(ppix[:, ::2], axis=1)
             for s in range(1, 2 * S + 1, 2):
                 deltas[:, b, t[s // 2]] = np.logaddexp(deltas[:, b, t[s // 2]], ppix[:, s])
             for l in range(label_count):
