@@ -50,6 +50,7 @@ def Online(X, T, M=None):
                 if m[k, 0, 0] != 0:
                     x = x[:k + 1, :, :]
                     t = t[:k + 1, :, :] if not isinstance(t, list) else t
+                    m = t[:k + 1, :, :]
                     break
         yield x, t, m
 
@@ -376,7 +377,3 @@ if __name__ == "__main__":
     trainer.success_criteria.append(ValidationErrorRises(X, T))
 
     trainer.train(X, T, M, max_epochs=50, process_data=Online)
-
-
-
-

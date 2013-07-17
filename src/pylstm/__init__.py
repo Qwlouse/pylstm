@@ -3,9 +3,9 @@
 
 from netbuilder import NetworkBuilder
 from layers import RegularLayer, ReverseLayer, LstmLayer, Lstm97Layer, RnnLayer
-from error_functions import MeanSquaredError, CrossEntropyError
-#from trainer import SgdTrainer, CgTrainer
+from error_functions import MeanSquaredError, CrossEntropyError, MultiClassCrossEntropyError
+from trainer import *
 from datasets import generate_memo_task, generate_5bit_memory_task
 from datasets import generate_5bit_memory_task
 from initializer import WeightInitializer
-from regularizer import WeightRegularizer
+from regularizers import *
