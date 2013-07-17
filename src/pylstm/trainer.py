@@ -24,8 +24,9 @@ def Undivided(X, T, M):
 
 
 class Minibatches(object):
-    def __init__(self, batch_size=1):
+    def __init__(self, batch_size=1, loop=False):
         self.batch_size = batch_size
+        self.loop = loop
 
     def __call__(self, X, T, M=None):
         i = 0
@@ -37,6 +38,8 @@ class Minibatches(object):
             m = None if M is None else M[:, i:j, :]
             yield x, t, m
             i += self.batch_size
+            if self.loop and i >= total_batches:
+                i = 0
 
 
 def Online(X, T, M=None):
@@ -50,7 +53,7 @@ def Online(X, T, M=None):
                 if m[k, 0, 0] != 0:
                     x = x[:k + 1, :, :]
                     t = t[:k + 1, :, :] if not isinstance(t, list) else t
-                    m = t[:k + 1, :, :]
+                    m = m[:k + 1, :, :]
                     break
         yield x, t, m
 
@@ -282,8 +285,8 @@ class CgLiteTrainer(object):
         pass
 
     def train(self, net, X, T, M=None, epochs=10, minibatch_size=32, mu=1. / 30,
-              maxiter=20, success=lambda x: True):
-        mb = minibatch_generator(X, T, M, minibatch_size, loop=True)
+              maxiter=20, success=lambda x: False):
+        mb = Minibatches(1, loop=True)(X, T, M)
         lambda_ = .1
 
         for i in range(epochs):
@@ -291,7 +294,7 @@ class CgLiteTrainer(object):
             ## calculate the gradient
             grad = np.zeros_like(net.param_buffer.flatten())
             error = []
-            for x, t, m in minibatch_generator(X, T, M, minibatch_size):
+            for x, t, m in Minibatches(minibatch_size)(X, T, M):
                 net.forward_pass(x)
                 net.backward_pass(t, m)
                 error.append(net.calculate_error(t, m))
