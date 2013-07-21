@@ -2,6 +2,7 @@
 # coding=utf-8
 
 from __future__ import division, print_function, unicode_literals
+from collections import OrderedDict
 import numpy as np
 import sys
 sys.path.append('.')
@@ -24,16 +25,20 @@ class WeightInitializer(object):
     You can use set_default() to set the initialization for all params which are not added by you.
     """
                 
-    def __init__(self, net):
+    def __init__(self, net, seed = 42):
         self.network = net
-        self.init_set = {}
+        self.seed = seed
+        self.init_set = OrderedDict()
         self.default_init = 'zeros'
         for layer_name in net.layers:
             if layer_name.lower() != 'input' and layer_name.lower() != 'output':
-                self.init_set[layer_name] = {}
+                self.init_set[layer_name] = OrderedDict()
                 for param_name in net.get_param_view_for(layer_name):
                     self.init_set[layer_name][param_name] = 'default'
-        
+
+    def set_seed(self, seed):
+        self.seed = seed
+
     def add_init(self, layer_init_dict):
         for layer_name in layer_init_dict:
             if layer_name in self.init_set:
@@ -46,11 +51,13 @@ class WeightInitializer(object):
                 raise KeyError("Layer " + layer_name + " does not exist.")
     
     def initialize(self):
+        rnd = np.random.RandomState(self.seed)
         for layer_name in self.init_set:
             for param_name in self.init_set[layer_name]:
-                self.initialize_param(layer_name, param_name, self.init_set[layer_name][param_name])
+                self.initialize_param(rnd, layer_name, param_name, self.init_set[layer_name][param_name])
                 
-    def initialize_param(self, layer_name, param_name, param_init):
+    def initialize_param(self, rnd, layer_name, param_name, param_init):
+
         if param_init == 'default':
             init_type = self.default_init[0] if (type(self.default_init) is list) else self.default_init
         else:
@@ -73,7 +80,7 @@ class WeightInitializer(object):
             else:
                 mu    = 0
                 sigma = 0.1
-            self.network.get_param_view_for(layer_name)[param_name][:] = (np.random.randn(param_size).reshape(param_shape) * sigma) + mu
+            self.network.get_param_view_for(layer_name)[param_name][:] = (rnd.randn(param_size).reshape(param_shape) * sigma) + mu
             
         elif init_type.lower() == 'uniform':
             if type(param_init) is list:
@@ -82,7 +89,7 @@ class WeightInitializer(object):
             else:
                 lowb = -0.1
                 upb  =  0.1
-            self.network.get_param_view_for(layer_name)[param_name][:] = ((upb - lowb) * np.random.rand(param_size).reshape(param_shape)) + lowb
+            self.network.get_param_view_for(layer_name)[param_name][:] = ((upb - lowb) * rnd.rand(param_size).reshape(param_shape)) + lowb
         else:
             raise NotImplementedError(init_type.lower())
         
