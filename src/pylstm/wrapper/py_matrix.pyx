@@ -37,8 +37,8 @@ cdef class Matrix:
         if isinstance(item, int):
             return self.c_obj[item]
         elif isinstance(item, slice):
-            start = item.start or 0
-            stop = item.stop or self.get_time_size()
+            start = item.start if item.start is not None else 0
+            stop = item.stop if item.stop is not None else self.get_time_size()
 
             b = Matrix()
             b.c_obj = self.c_obj.sub_matrix(start, self.c_obj.n_rows, self.c_obj.n_columns, stop-start)
