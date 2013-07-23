@@ -147,10 +147,10 @@ void LstmLayer::gradient(Parameters&, Parameters& grad, FwdState& b, BwdState& d
     grad.FH.set_all_elements_to(0.0);
     grad.OH.set_all_elements_to(0.0);
     for (int t = 0; t < n_time - 1; ++t) {
-        mult_add(d.Ia.slice(t), y.slice(t).T(), grad.IH); //(double) n_time);
-        mult_add(d.Za.slice(t), y.slice(t).T(), grad.ZH); //(double) n_time);
-        mult_add(d.Fa.slice(t), y.slice(t).T(), grad.FH); //(double) n_time);
-        mult_add(d.Oa.slice(t), y.slice(t).T(), grad.OH); //(double) n_time);
+        mult_add(d.Ia.slice(t+1), y.slice(t).T(), grad.IH); //(double) n_time);
+        mult_add(d.Za.slice(t+1), y.slice(t).T(), grad.ZH); //(double) n_time);
+        mult_add(d.Fa.slice(t+1), y.slice(t).T(), grad.FH); //(double) n_time);
+        mult_add(d.Oa.slice(t+1), y.slice(t).T(), grad.OH); //(double) n_time);
     }
 
     //! \f$\frac{dE}{dW_FS} += \frac{dE}{da_F} * s(t-1)\f$
