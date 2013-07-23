@@ -3,14 +3,15 @@
 
 from __future__ import division, print_function, unicode_literals
 import numpy as np
+import sys
 
 
 ################## Callback Functions ######################
 def print_error_per_epoch(epoch, net, training_errors, validation_errors):
     if len(validation_errors) == 0:
-        print("Epoch %d:\tTraining error = %0.4f" % (epoch, training_errors[-1]))
+        print("\nEpoch %d:\tTraining error = %0.4f" % (epoch, training_errors[-1]))
     else:
-        print("Epoch %d:\tTraining error = %0.4f Validation error = %0.4f" %
+        print("\nEpoch %d:\tTraining error = %0.4f Validation error = %0.4f" %
               (epoch, training_errors[-1], validation_errors[-1]))
 
 
@@ -34,12 +35,11 @@ class Undivided(object):
 
 
 class Minibatches(object):
-    def __init__(self, X, T, M=None, batch_size=1, loop=False):
+    def __init__(self, X, T, M=None, batch_size=1):
         self.X = X
         self.T = T
         self.M = M
         self.batch_size = batch_size
-        self.loop = loop
 
     def __call__(self):
         i = 0
@@ -51,8 +51,6 @@ class Minibatches(object):
             m = None if self.M is None else self.M[:, i:j, :]
             yield x, t, m
             i += self.batch_size
-            if self.loop and i >= total_batches:
-                i = 0
 
 
 class Online(object):
@@ -65,6 +63,7 @@ class Online(object):
         i = 0
         total_batches = self.X.shape[1]
         while i < total_batches:
+            update_progress(i/total_batches)
             x = self.X[:, i:i+1, :]
             t = self.T[i:i+1] if isinstance(self.T, list) else self.T[:, i:i+1, :]
             m = None
@@ -77,8 +76,27 @@ class Online(object):
                         m = m[:k + 1, :, :]
                         break
             yield x, t, m
-            if i >= total_batches:
-                i = 0
+            i += 1
+
+
+def update_progress(progress):
+    barLength = 50  # Modify this to change the length of the progress bar
+    status = ""
+    if isinstance(progress, int):
+        progress = float(progress)
+    if not isinstance(progress, float):
+        progress = 0
+        status = "error: progress var must be float\r\n"
+    if progress < 0:
+        progress = 0
+        status = "Halt...\r\n"
+    if progress >= 1:
+        progress = 1
+        status = "Done...\r\n"
+    block = int(round(barLength*progress))
+    text = "\rEpoch progress: [{0}] {1}% {2}".format("#"*block + "-"*(barLength-block), round(progress*100, 2), status)
+    sys.stdout.write(text)
+    sys.stdout.flush()
 
 
 ################## Success Criteria ######################
