@@ -3,6 +3,7 @@
 
 # gedit temporary files
 *~
+*\#
 
 # the build directory
 build

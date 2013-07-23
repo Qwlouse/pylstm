@@ -1,0 +1,221 @@
+\documentclass{article}
+
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+\begin{document}
+
+\section{Notes}
+
+\section{LSTM}
+The forward / backwards passes for LSTM, with variables mirroring our code
+
+\subsection{forward pass}
+
+\subsubsection{input (I), forget (F), cell activations}
+
+\begin{eqnarray*}
+a_{I}^t &=& W_{I,X}x^t + W_{I,H}h^{t-1}+W_{I,S}s^{t-1} + W_{I,I}b_{I}^{t-1} + W_{I,F}b_{F}^{t-1} + W_{I,O}b_{O}^{t-1}\\
+b_{I}^t &=& f(a_{I}^t) \\
+\\
+a_{F}^t &=& W_{F, X}x^t + W_{F, H}h^{t-1}+W_{F, S}s^{t-1} + W_{F,I}b_{I}^{t-1} + W_{F,F}b_{F}^{t-1} + W_{F,O}b_{O}^{t-1}\\
+b_{F}^t &=& f(a_{F}^t) \\
+\\
+a_{Z}^t &=& W_{Z,X}x_i^t + W_{Z,H} h^{t-1} \\
+b_{Z} &=& f(a_{Z}^t) 
+\end{eqnarray*}
+
+\subsubsection{state cell value}
+\begin{eqnarray*}
+s^t &=& b_{F}^ts^{t-1} + b_{I}^t b_Z^t \\  
+\end{eqnarray*}
+
+\subsubsection{output gate (O)}
+\begin{eqnarray*}
+a_{O}^t &=& W_{O,X}x^t + W_{O,H}h^{t-1} + W_{O,S}s^t + W_{O,I}b_{I}^{t-1} + W_{O,F}b_{F}^{t-1} + W_{O,O}b_{O}^{t-1}\\
+b_{O}^t &=& f(a_{O}) \\
+\end{eqnarray*}
+
+\subsubsection{hidden cells}
+\begin{eqnarray*}
+h^t &=& b_{O}^t f(s^t) \\
+\end{eqnarray*}
+
+
+\subsection{backwards pass}
+
+\subsubsection{Hidden Block Output}
+\begin{eqnarray*}
+\frac{dE}{dh^t} &=& \frac{dE}{ \circ }\frac{ \circ }{dh^t} + \frac{dE}{da_{I}^{t+1}}\frac{da_{I}^{t+1}}{dh^t} + \frac{dE}{da_{F}^{t+1}}\frac{da_{F}^{t+1}}{dh^{t}} + \frac{dE}{da_{Z}^{t+1}}\frac{da_{Z}^{t+1}}{dh^t} + \frac{dE}{da_{O}^{t+1}}\frac{da_{O}^{t+1}}{dh^t} \\
+ &=& \frac{dE}{\circ}\frac{\circ}{dh^t} + \frac{dE}{da_{I}^{t+1}}W_{I,H} + \frac{dE}{da_{F}^{t+1}}W_{F,H} + \frac{dE}{da_{Z}^{t+1}}W_{Z,H} + \frac{dE}{da_{O}^{t+1}}W_{O,H} \\
+\end{eqnarray*}
+
+\subsubsection{Output Gate}
+\begin{eqnarray*}
+\frac{dE}{db_{O}^t} &=& \frac{dE}{dh^t}\frac{dh^t}{db_{O}^t} + \frac{dE}{da_{O}^{t+1}}\frac{da_{O}^{t+1}}{db_{O}^t} + \frac{dE}{da_{I}^{t+1}}\frac{da_{I}^{t+1}}{db_{O}^t}  + \frac{dE}{da_{F}^{t+1}}\frac{da_{F}^{t+1}}{db_{O}^t} \\
+\frac{dE}{db_{O}^t} &=& \frac{dE}{dh^t}f(s^t) + \frac{dE}{da_{O}^{t+1}} W_{O,O} + \frac{dE}{da_{I}^{t+1}} W_{O,I} + \frac{dE}{da_{F}^{t+1}} W_{O,F} \\ 
+\frac{dE}{da_{O}^t} &=& \frac{dE}{db_{O}^t}\frac{db_{O}^t}{da_{O}^t} \\
+&=& \frac{dE}{db_{O}^t}f'(a_{O}^t) \\
+&=& \frac{dE}{dh^t}f(s^t)f'(a_{O}^t) 
+\end{eqnarray*}
+
+\subsubsection{state cells}
+\begin{eqnarray*}
+\frac{dE}{ds^t}&=&\frac{dE}{dh^t}\frac{dh^t}{ds_t} + \frac{dE}{da_{O}^t}\frac{da_{O}^t}{ds^t}+\frac{dE}{ds^{t+1}}\frac{ds^{t+1}}{ds^t}+\frac{dE}{da_{F}^{t+1}}\frac{da_{F}^{t+1}}{ds^t} + \frac{dE}{da_{I}^{t+1}}\frac{da_{I}^{t+1}}{ds^t}\\ \\
+&=& \frac{dE}{dh^t}b_{O}^tf'(s^t)+ \frac{dE}{da_{O}^t}W_{O,S} + \frac{dE}{ds^{t+1}}b_{F}^{t+1} + \frac{dE}{da_{F}^{t+1}}W_{F,S} + \frac{dE}{da_{I}^{t+1}}W_{I,S} \\
+\end{eqnarray*}
+
+\subsubsection{cell activations}
+\begin{eqnarray*}
+\frac{dE}{db_z^t} &=& \frac{dE}{ds^t} \frac{ds^t}{db_z^t} \\
+&=&  \frac{dE}{ds^t}b_{I}^t \\
+\frac{dE}{da_z^t}  &=& \frac{dE}{db_z^t}\frac{db_z^t}{da_z^t} \\
+&=&  \frac{dE}{ds^t} b_{I}^t f'_s(a_z^t)
+\end{eqnarray*}
+
+\subsubsection{Forget Gates}
+\begin{eqnarray*}
+\frac{dE}{db_{F}^t} &=& \frac{dE}{ds^t} \frac{ds^t}{db_{F}^t} \\
+&=& \frac{dE}{ds^t}s^{t-1} \\
+\frac{dE}{da_{F}^t} &=& \frac{dE}{db_{F}^t}\frac{db_{F}^t}{da_{F}^t} \\
+&=& \frac{dE}{db_{F}^t}f'(a_{F}^t) \\
+&=& \frac{dE}{ds^t}f'(a_{F}^t)s^{t-1} 
+\end{eqnarray*}
+
+\subsubsection{In Gates}
+\begin{eqnarray*}
+\frac{dE}{db_{I}^t} &=& \frac{dE}{ds^t} \frac{ds^t}{db_{I}^t} \\
+&=& \frac{dE}{ds^t} b_z^t \\
+\frac{dE}{da_{I}^t} &=& \frac{dE}{db_{I}^t}\frac{db_{I}^t}{da_{I}^t} \\
+&=& \frac{dE}{db_{I}^t}f'(a_{I}^t) \\ 
+&=& \frac{dE}{ds^t} b_z^t f'(a_{I}^t)
+\end{eqnarray*}
+
+\section{HF-LSTM}
+
+\subsection{f1 pass}
+
+\subsubsection{input ($in$), forget ($\phi$), cell}
+\begin{eqnarray*}
+Ra_{I}^t &=& W_{I,X}Rx^t + V_{I,X}x^t + W_{I,H}Rh^{t-1} + V_{I,H}h^{t-1} + W_{I,S}Rs^{t-1} + V_{I,S}s^{t-1}\\
+Rb_{I}^t &=& f'(a_{I}^t)Ra_{I}^t \\
+\\
+Ra_{F}^t &=& W_{F,X}Rx^t + V_{F,X}x^t + W_{F, H}Rh^{t-1} + V_{F, H}h^{t-1} + W_{F, S}Rs^{t-1} + V_{F, S}s^{t-1} \\
+Rb_{F}^t &=& f'(a_{F}^t) Ra_{F}^t \\
+\\
+Ra_{Z}^t &=& W_{Z,X}Rx^t + V_{Z,X}x^t + W_{Z,H} Rh^{t-1} + V_{Z,H} h^{t-1} \\
+Rb_{Z} &=& f'(a_{Z}^t) Ra_{Z}^t 
+\end{eqnarray*}
+
+
+\subsubsection{state cell value}
+\begin{eqnarray*}
+Rs^t &=& Rb_{F}^ts^{t-1} + b_{F}^tRs^{t-1} + Rb_{I}^t b_Z^t + b_{I}^t Rb_Z^t \\  
+\end{eqnarray*}
+
+\subsubsection{output gate (O)}
+\begin{eqnarray*}
+Ra_{O}^t &=& W_{O,X}Rx^t + V_{O,X}x^t + W_{O,H}Rh^{t-1} + V_{O,H}h^{t-1} + W_{O,S}Rs^t + V_{O,S}s^t \\
+Rb_{O}^t &=& f'(a_{O})Ra_{O} \\
+\end{eqnarray*}
+
+\subsubsection{hidden cells}
+\begin{eqnarray*}
+Rh^t &=& Rb_{O}^t f(s^t) + b_{O}^t f'(s^t)Rs^t \\
+\end{eqnarray*}
+
+%\subsubsection{output cells}
+%\begin{eqnarray*}
+%Ra_y^t &=& V_{y,h}b_h^t + W_{y,h}Rb_h^t \\
+%Ry^t &=& f'_y(a_y^t)(Ra_y^t) 
+%\end{eqnarray*}
+
+\subsection{backwards pass}
+For gauss-newton method, take output of f1 pass, $Ry^t$, and push that through the normal backwards pass, rather than $\frac{dE}{dy^t} = d^t - y^t$. Use $\frac{RdE}{d*}$ variables instead of $\frac{dE}{d*}$ 
+
+\subsection{Pseudo-code}
+
+\subsection{Pseudo-code}
+
+\begin{algorithm}
+\caption{Hessian-Free LSTM}
+\begin{algorithmic}[0]
+\Procedure{HF-LSTM}{$a,b$}
+%\State $r\gets a\bmod b$
+\While{$i \leq epochs$}
+\State $grad\gets Full Gradient$
+\State $x \gets selected HF Batch$
+\State $\Delta ws, idxs=conj-grad(GDOTV, grad, w0)$
+\State Select best $\Delta ws$
+\State Backtrack 
+\State update weights
+\State i=i+1
+\EndWhile
+\EndProcedure 
+
+\Procedure{conj-grad}{GDOTV, b, x0, }
+
+\State $r=gdotv(w0)-b$
+\State $p=-r$
+\State $w=w0$
+\State $val=.5(-b+r)^Tw$
+
+\While{$i \leq maxIters$}
+\State $Ap=Afunc(p)$
+\State $pAp = p^TAp$ \Comment{pAp should be positive}
+\State $\alpha = (r^Ty)/pAp$
+\State $w+=\alpha p$
+\State $r_{new} = r + \alpha Ap$
+\State $\beta = (r_{new}^T*r_{new})/(r^Tr)$
+\State $p = -r + \beta p$
+\State $r = r_{new}$
+\State $y = y_{new}$
+
+\State i=i+1;
+\EndWhile
+\EndProcedure
+
+
+\Procedure{gdotv}{$g, w, V$}
+\State $states\gets fwdpass(w)$
+%\State $\delta 's\gets bptt(x, states)$
+\State $Rs \gets f1pass(w)$
+\State $GV \gets bptt(Rs)$
+\EndProcedure
+
+%\State \textbf{return} $b$\Comment{The gcd is b}
+%\EndProcedure
+
+\end{algorithmic}
+\end{algorithm}
+
+\end{document}
+
+
+%% \begin{algorithm}
+%% \caption{Hessian-Free LSTM}
+%% \begin{algorithmic}[0]
+%% \Procedure{HF-LSTM}{$a,b$}
+%% %\State $r\gets a\bmod b$
+%% \For{$i\gets 1,epochs$}
+%% \State $g\gets Full Gradient$
+%% \State $x \gets selected HF Batch$
+%% \Procedure{conj-grad}{$g, x, V, \lambda$}
+%% \State LATER
+%% \EndProcedure
+
+%% \EndFor\label{}
+
+%% \Procedure{gdotv}{$g, x, V$}
+%% \State $states\gets f0pass(x)$
+%% \State $\delta 's\gets bptt(x, states)$
+%% \State $Rs \gets f1pass(x, states)$
+%% \State $GV \gets bptt(Rs)$
+%% \EndProcedure
+
+%% %\State \textbf{return} $b$\Comment{The gcd is b}
+%% \EndProcedure
+
+%% \end{algorithmic}
+%% \end{algorithm}
+%% \end{document}
