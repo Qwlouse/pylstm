@@ -6,82 +6,106 @@ import numpy as np
 
 
 ################## Callback Functions ######################
-def print_error_per_epoch(epoch, net, error):
-    print("Epoch %d:\tTraining error = %0.4f" % (epoch, error))
+def print_error_per_epoch(epoch, net, training_errors, validation_errors):
+    if len(validation_errors) == 0:
+        print("Epoch %d:\tTraining error = %0.4f" % (epoch, training_errors[-1]))
+    else:
+        print("Epoch %d:\tTraining error = %0.4f Validation error = %0.4f" %
+              (epoch, training_errors[-1], validation_errors[-1]))
 
 
 class SaveWeightsPerEpoch(object):
     def __init__(self, filename):
         self.filename = filename
 
-    def __call__(self, epoch, net, error):
+    def __call__(self, epoch, net, training_errors, validation_errors):
         np.save(self.filename, net.param_buffer)
 
 
 ################## Minibatch Iterators ######################
-def Undivided(X, T, M):
-    yield X, T, M
+class Undivided(object):
+    def __init__(self, X, T, M=None):
+        self.X = X
+        self.T = T
+        self.M = M
+
+    def __call__(self):
+        yield self.X, self.T, self.M
 
 
 class Minibatches(object):
-    def __init__(self, batch_size=1, loop=False):
+    def __init__(self, X, T, M=None, batch_size=1, loop=False):
+        self.X = X
+        self.T = T
+        self.M = M
         self.batch_size = batch_size
         self.loop = loop
 
-    def __call__(self, X, T, M=None):
+    def __call__(self):
         i = 0
-        total_batches = X.shape[1]
+        total_batches = self.X.shape[1]
         while i < total_batches:
             j = min(i + self.batch_size, total_batches)
-            x = X[:, i:j, :]
-            t = T[i:j] if isinstance(T, list) else T[:, i:j, :]
-            m = None if M is None else M[:, i:j, :]
+            x = self.X[:, i:j, :]
+            t = self.T[i:j] if isinstance(self.T, list) else self.T[:, i:j, :]
+            m = None if self.M is None else self.M[:, i:j, :]
             yield x, t, m
             i += self.batch_size
             if self.loop and i >= total_batches:
                 i = 0
 
 
-def Online(X, T, M=None):
-    for i in range(X.shape[1]):
-        x = X[:, i:i+1, :]
-        t = T[i:i+1] if isinstance(T, list) else T[:, i:i+1, :]
-        m = None
-        if M is not None:
-            m = M[:, i:i+1, :]
-            for k in range(m.shape[0] - 1, -1, -1):
-                if m[k, 0, 0] != 0:
-                    x = x[:k + 1, :, :]
-                    t = t[:k + 1, :, :] if not isinstance(t, list) else t
-                    m = m[:k + 1, :, :]
-                    break
-        yield x, t, m
+class Online(object):
+    def __init__(self, X, T, M=None):
+        self.X = X
+        self.T = T
+        self.M = M
+
+    def __call__(self):
+        i = 0
+        total_batches = self.X.shape[1]
+        while i < total_batches:
+            x = self.X[:, i:i+1, :]
+            t = self.T[i:i+1] if isinstance(self.T, list) else self.T[:, i:i+1, :]
+            m = None
+            if self.M is not None:
+                m = self.M[:, i:i+1, :]
+                for k in range(m.shape[0] - 1, -1, -1):
+                    if m[k, 0, 0] != 0:
+                        x = x[:k + 1, :, :]
+                        t = t[:k + 1, :, :] if not isinstance(t, list) else t
+                        m = m[:k + 1, :, :]
+                        break
+            yield x, t, m
+            if i >= total_batches:
+                i = 0
 
 
 ################## Success Criteria ######################
 class ValidationErrorRises(object):
-    def __init__(self, X, T, M=None, process_data=Undivided):
-        self.old_val_error = float('inf')
-        self.X = X
-        self.T = T
-        self.M = M
-        self.process_data = process_data
+    def __init__(self):
+        pass
 
     def restart(self):
-        self.old_val_error = float('inf')
+        pass
 
-    def __call__(self, net, train_error):
-        val_errors = []
-        for x, t, m in self.process_data(self.X, self.T, self.M):
-            net.forward_pass(x)
-            val_errors.append(net.calculate_error(t, m))
-        val_error = np.mean(val_errors)
-        print("Validation Error: %0.4f" % val_error)
-        if val_error > self.old_val_error:
+    def __call__(self, epochs_seen, net, training_errors, validation_errors):
+        if epochs_seen > 2 and validation_errors[-1] > validation_errors[-2]:
             print("Validation Error rose! Stopping.")
             return True
-        self.old_val_error = val_error
         return False
+
+
+class MaxEpochsSeen(object):
+    def __init__(self, max_epochs=100):
+        self.max_epochs = max_epochs
+
+    def restart(self):
+        pass
+
+    def __call__(self, epochs_seen, net, training_errors, validation_errors):
+        if epochs_seen >= self.max_epochs:
+            return True
 
 
 ################## Trainer Cores ######################
@@ -219,14 +243,17 @@ class Trainer(object):
         self.stepper = core if core else SGDStep(**kwargs)
         self.success_criteria = []
         self.callbacks = [print_error_per_epoch]
+        self.training_errors = []
+        self.validation_errors = []
+        self.epochs_seen = 0
 
-    def emit_callbacks(self, epoch, train_error):
+    def emit_callbacks(self):
         for cb in self.callbacks:
-            cb(epoch, self.net, train_error)
+            cb(self.epochs_seen, self.net, self.training_errors, self.validation_errors)
 
-    def is_successful(self, train_error):
+    def is_successful(self):
         for sc in self.success_criteria:
-            if sc(self.net, train_error):
+            if sc(self.epochs_seen, self.net, self.training_errors, self.validation_errors):
                 return True
         return False
 
@@ -237,23 +264,33 @@ class Trainer(object):
             except AttributeError:
                 pass
 
-    def train(self, X, T, M=None,
-              max_epochs=100,
-              process_data=Undivided):
+    def train(self, training_data_getter, validation_data_getter=None):
+        # May add a default MaxEpochsSeen here if that feels better to the soul
         self.stepper.start(self.net)
         self.restart_success_criteria()
 
-        for epoch in range(1, max_epochs + 1):
-            errors = []
-            for x, t, m in process_data(X, T, M):
-                errors.append(self.stepper.run(x, t, m))
+        while True:
+            train_errors = []
+            for x, t, m in training_data_getter():
+                train_errors.append(self.stepper.run(x, t, m))
 
-            train_error = np.mean(errors)
-            self.emit_callbacks(epoch, train_error)
+            train_error = np.mean(train_errors)
+            self.training_errors.append(train_error)
 
-            if self.is_successful(train_error):
+            if validation_data_getter is not None:
+                valid_errors = []
+                for x, t, m in validation_data_getter():
+                    valid_errors.append(self.stepper.run(x, t, m))
+
+                valid_error = np.mean(valid_errors)
+                self.validation_errors.append(valid_error)
+
+            self.epochs_seen += 1
+
+            self.emit_callbacks()
+
+            if self.is_successful():
                 return train_error
-
 
 
 def conjgrad(gradient, v, f_hessp, maxiter=20):
