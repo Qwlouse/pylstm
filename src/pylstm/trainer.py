@@ -61,9 +61,9 @@ class Online(object):
 
     def __call__(self):
         i = 0
+        update_progress(0)
         total_batches = self.X.shape[1]
         while i < total_batches:
-            update_progress(i/total_batches)
             x = self.X[:, i:i+1, :]
             t = self.T[i:i+1] if isinstance(self.T, list) else self.T[:, i:i+1, :]
             m = None
@@ -77,6 +77,7 @@ class Online(object):
                         break
             yield x, t, m
             i += 1
+            update_progress(i/total_batches)
 
 
 def update_progress(progress):
@@ -437,13 +438,13 @@ if __name__ == "__main__":
     netb.error_func = MeanSquaredError
     net = netb.build()
     net.param_buffer = rnd.randn(net.get_param_size())
-    X = rnd.randn(7, 5, 3)
-    T = rnd.randn(7, 5, 6)
-    M = np.ones((7, 5, 1))
+    X = rnd.randn(7, 200, 3)
+    T = rnd.randn(7, 200, 6)
+    M = np.ones((7, 200, 1))
     M[6, :, :] = 0
     M[5, 0, :] = 0
 
-    trainer = Trainer(net, MomentumStep(learning_rate=0.1, momentum=0.9))
+    trainer = Trainer(net, SGDStep(learning_rate=0.1))
     trainer.success_criteria.append(ValidationErrorRises())
 
     trainer.train(training_data_getter=Noisy(std=0.05, rnd=rnd, data_iter=Online(X, T, M)),
