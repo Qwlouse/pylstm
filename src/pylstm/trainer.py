@@ -23,7 +23,7 @@ class SaveWeightsPerEpoch(object):
         np.save(self.filename, net.param_buffer)
 
 
-################## Minibatch Iterators ######################
+################## Dataset Iterators ######################
 class Undivided(object):
     def __init__(self, X, T, M=None):
         self.X = X
@@ -97,6 +97,19 @@ def update_progress(progress):
     text = "\rEpoch progress: [{0}] {1}% {2}".format("#"*block + "-"*(barLength-block), round(progress*100, 2), status)
     sys.stdout.write(text)
     sys.stdout.flush()
+
+
+################## Dataset Modifications ######################
+class Noisy(object):
+    def __init__(self, data_iter, std=0.1, rnd=np.random.RandomState()):
+        self.f = data_iter
+        self.rnd = rnd
+        self.std = std
+
+    def __call__(self):
+        for x, t, m in self.f():
+            x_noisy = x + self.rnd.randn(*x.shape) * self.std
+            yield x_noisy, t, m
 
 
 ################## Success Criteria ######################
@@ -310,7 +323,6 @@ class Trainer(object):
             if self.is_successful():
                 return train_error
 
-
 def conjgrad(gradient, v, f_hessp, maxiter=20):
     r = gradient - f_hessp(v)  # residual
     p = r  # current step
@@ -341,7 +353,7 @@ class CgLiteTrainer(object):
 
     def train(self, net, X, T, M=None, epochs=10, minibatch_size=32, mu=1. / 30,
               maxiter=20, success=lambda x: False):
-        mb = Minibatches(1, loop=True)(X, T, M)
+        mb = Minibatches(X, T, M, 1, loop=True)()
         lambda_ = .1
 
         for i in range(epochs):
@@ -416,22 +428,23 @@ class CgLiteTrainer(object):
 if __name__ == "__main__":
     from pylstm.netbuilder import NetworkBuilder
     from pylstm.layers import RegularLayer
-    from pylstm.error_functions import CTC
+    from pylstm.error_functions import CTC, MeanSquaredError
 
     rnd = np.random.RandomState(145)
 
     netb = NetworkBuilder()
     netb.input(3) >> RegularLayer(6, act_func="softmax") >> netb.output
-    netb.error_func = CTC
+    netb.error_func = MeanSquaredError
     net = netb.build()
     net.param_buffer = rnd.randn(net.get_param_size())
     X = rnd.randn(7, 5, 3)
-    T = [np.array([i]*2) for i in range(1, 6)]
+    T = rnd.randn(7, 5, 6)
     M = np.ones((7, 5, 1))
     M[6, :, :] = 0
     M[5, 0, :] = 0
 
-    trainer = Trainer(net, DiagnosticStep())
-    trainer.success_criteria.append(ValidationErrorRises(X, T))
+    trainer = Trainer(net, MomentumStep(learning_rate=0.1, momentum=0.9))
+    trainer.success_criteria.append(ValidationErrorRises())
 
-    trainer.train(X, T, M, max_epochs=50, process_data=Online)
+    trainer.train(training_data_getter=Noisy(std=0.05, rnd=rnd, data_iter=Online(X, T, M)),
+                  validation_data_getter=Online(X, T))
