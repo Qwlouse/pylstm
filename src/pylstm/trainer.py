@@ -22,7 +22,19 @@ class SaveWeightsPerEpoch(object):
         self.filename = filename
 
     def __call__(self, epoch, net, training_errors, validation_errors):
-        np.save(self.filename, net.param_buffer)
+        np.save(self.filename.format(epoch=epoch), net.param_buffer)
+
+
+class SaveBestWeights(object):
+    def __init__(self, filename):
+        self.filename = filename
+
+    def __call__(self, epoch, net, training_errors, validation_errors):
+        e = validation_errors if len(validation_errors) > 0 else training_errors
+        if np.argmin(e) == len(e) - 1:
+            filename = self.filename.format(epoch=epoch)
+            print("Saving weights to {0}...".format(filename))
+            np.save(filename, net.param_buffer)
 
 
 ################## Dataset Iterators ######################
@@ -126,15 +138,16 @@ class Noisy(object):
 
 ################## Success Criteria ######################
 class ValidationErrorRises(object):
-    def __init__(self):
-        pass
+    def __init__(self, delay=1):
+        self.delay = delay
 
     def restart(self):
         pass
 
     def __call__(self, epochs_seen, net, training_errors, validation_errors):
-        if epochs_seen > 2 and validation_errors[-1] > validation_errors[-2]:
-            print("Validation Error rose! Stopping.")
+        best_val_error = np.argmin(validation_errors)
+        if len(validation_errors) > best_val_error + self.delay:
+            print("Validation error did not fall for %d epochs! Stopping.")
             return True
         return False
 
