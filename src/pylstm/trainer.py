@@ -10,7 +10,8 @@ import sys
 ################## Callback Functions ######################
 def print_error_per_epoch(epoch, net, training_errors, validation_errors):
     if len(validation_errors) == 0:
-        print("\nEpoch %d:\tTraining error = %0.4f" % (epoch, training_errors[-1]))
+        print("\nEpoch %d:\tTraining error = %0.4f" % (epoch,
+                                                       training_errors[-1]))
     else:
         print("\nEpoch %d:\tTraining error = %0.4f Validation error = %0.4f" %
               (epoch, training_errors[-1], validation_errors[-1]))
@@ -70,7 +71,8 @@ class Online(object):
         total_batches = self.X.shape[1]
         while i < total_batches:
             x = self.X[:, i:i+1, :]
-            t = self.T[i:i+1] if isinstance(self.T, list) else self.T[:, i:i+1, :]
+            t = self.T[i:i+1] if isinstance(self.T, list) else \
+                self.T[:, i:i+1, :]
             m = None
             if self.M is not None:
                 m = self.M[:, i:i+1, :]
@@ -101,7 +103,10 @@ def update_progress(progress):
         progress = 1
         status = "Done...\r\n"
     block = int(round(barLength*progress))
-    text = "\rProgress: [{0}] {1}% {2}".format("#"*block + "-"*(barLength-block), round(progress*100, 2), status)
+    text = "\rProgress: [{0}{1}] {2}% {3}".format("#" * block,
+                                                  "-" * (barLength-block),
+                                                  round(progress*100, 2),
+                                                  status)
     sys.stdout.write(text)
     sys.stdout.flush()
 
@@ -188,7 +193,8 @@ class SGDStep(object):
         self.net.forward_pass(x)
         error = self.net.calculate_error(t, m)
         self.net.backward_pass(t, m)
-        self.net.param_buffer -= self.learning_rate * self.net.calc_gradient().flatten()
+        self.net.param_buffer -= self.learning_rate * \
+                                 self.net.calc_gradient().flatten()
         return error
 
 
@@ -287,11 +293,13 @@ class Trainer(object):
 
     def emit_callbacks(self):
         for cb in self.callbacks:
-            cb(self.epochs_seen, self.net, self.training_errors, self.validation_errors)
+            cb(self.epochs_seen, self.net,
+               self.training_errors, self.validation_errors)
 
     def is_successful(self):
         for sc in self.success_criteria:
-            if sc(self.epochs_seen, self.net, self.training_errors, self.validation_errors):
+            if sc(self.epochs_seen, self.net,
+                  self.training_errors, self.validation_errors):
                 return True
         return False
 
@@ -364,8 +372,8 @@ class CgLiteTrainer(object):
     def __init__(self):
         pass
 
-    def train(self, net, X, T, M=None, epochs=10, minibatch_size=32, mu=1. / 30,
-              maxiter=20, success=lambda x: False):
+    def train(self, net, X, T, M=None, epochs=10, minibatch_size=32,
+              mu=1. / 30, maxiter=20, success=lambda x: False):
         mb = Minibatches(X, T, M, 1, loop=True)()
         lambda_ = .1
 
@@ -441,7 +449,7 @@ class CgLiteTrainer(object):
 if __name__ == "__main__":
     from pylstm.netbuilder import NetworkBuilder
     from pylstm.layers import RegularLayer
-    from pylstm.error_functions import CTC, MeanSquaredError
+    from pylstm.error_functions import MeanSquaredError
 
     rnd = np.random.RandomState(145)
 
@@ -459,5 +467,6 @@ if __name__ == "__main__":
     trainer = Trainer(net, SGDStep(learning_rate=0.1))
     trainer.success_criteria.append(ValidationErrorRises())
 
-    trainer.train(training_data_getter=Noisy(std=0.05, rnd=rnd, data_iter=Online(X, T, M)),
+    trainer.train(training_data_getter=Noisy(std=0.05, rnd=rnd,
+                                             data_iter=Online(X, T, M)),
                   validation_data_getter=Online(X, T))
