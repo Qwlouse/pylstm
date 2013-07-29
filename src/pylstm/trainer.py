@@ -327,6 +327,7 @@ class Trainer(object):
     def train(self, training_data_getter, validation_data_getter=None):
         # May add a default MaxEpochsSeen here if that feels better to the soul
         self.stepper.start(self.net)
+        self.validation_stepper.start(self.net)
         self.restart_success_criteria()
 
         while True:
