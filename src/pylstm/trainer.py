@@ -3,6 +3,7 @@
 
 from __future__ import division, print_function, unicode_literals
 import numpy as np
+import time
 import sys
 
 
@@ -43,6 +44,7 @@ class Minibatches(object):
 
     def __call__(self):
         i = 0
+        update_progress(0)
         total_batches = self.X.shape[1]
         while i < total_batches:
             j = min(i + self.batch_size, total_batches)
@@ -51,6 +53,7 @@ class Minibatches(object):
             m = None if self.M is None else self.M[:, i:j, :]
             yield x, t, m
             i += self.batch_size
+            update_progress(i/total_batches)
 
 
 class Online(object):
@@ -98,7 +101,7 @@ def update_progress(progress):
         progress = 1
         status = "Done...\r\n"
     block = int(round(barLength*progress))
-    text = "\rEpoch progress: [{0}] {1}% {2}".format("#"*block + "-"*(barLength-block), round(progress*100, 2), status)
+    text = "\rProgress: [{0}] {1}% {2}".format("#"*block + "-"*(barLength-block), round(progress*100, 2), status)
     sys.stdout.write(text)
     sys.stdout.flush()
 
@@ -306,16 +309,22 @@ class Trainer(object):
 
         while True:
             train_errors = []
+            print("\nTraining ...")
+            start = time.time()
             for x, t, m in training_data_getter():
                 train_errors.append(self.stepper.run(x, t, m))
+            print("Wall Time taken: ", time.time() - start)
 
             train_error = np.mean(train_errors)
             self.training_errors.append(train_error)
 
             if validation_data_getter is not None:
                 valid_errors = []
+                print("Validating ...")
+                start = time.time()
                 for x, t, m in validation_data_getter():
                     valid_errors.append(self.stepper.run(x, t, m))
+                print("Wall Time taken: ", time.time() - start)
 
                 valid_error = np.mean(valid_errors)
                 self.validation_errors.append(valid_error)
