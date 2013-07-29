@@ -41,10 +41,12 @@ RnnLayer::FwdState::FwdState(size_t, size_t n_cells, size_t n_batches, size_t ti
 
 RnnLayer::BwdState::BwdState(size_t, size_t n_cells, size_t n_batches, size_t time) :
     Ha(NULL, n_cells, n_batches, time),
-    Hb(NULL, n_cells, n_batches, time)
+    Hb(NULL, n_cells, n_batches, time),
+    tmp(NULL, n_cells, n_batches, time)
 {
 	add_view("Ha", &Ha);
 	add_view("Hb", &Hb);
+	add_view("tmp", &tmp);
 }
 
 ////////////////////// Methods /////////////////////////////////////////////
@@ -59,16 +61,8 @@ void RnnLayer::forward(RnnLayer::Parameters& w, RnnLayer::FwdState& b, Matrix& x
       f->apply(b.Ha.slice(t), y.slice(t));
     }
 }
-void RnnLayer::backward(RnnLayer::Parameters& w, RnnLayer::FwdState&, RnnLayer::BwdState& d, Matrix& y, Matrix& in_deltas, Matrix& out_deltas) {
-    size_t n_slices = y.n_slices;
-    f->apply_deriv(y.slice(n_slices-1), out_deltas.slice(n_slices-1), d.Ha.slice(n_slices-1));
-    for (int t = static_cast<int>(n_slices - 2); t >= 0; --t) {
-        copy(out_deltas.slice(t), d.Hb.slice(t));
-        mult_add(w.HR.T(), d.Ha.slice(t+1), d.Hb.slice(t));
-        f->apply_deriv(y.slice(t), d.Hb.slice(t), d.Ha.slice(t));
-    }
-    mult_add(w.HX.T(), d.Ha.flatten_time(), in_deltas.flatten_time());
-
+void RnnLayer::backward(RnnLayer::Parameters& w, RnnLayer::FwdState&b, RnnLayer::BwdState& d, Matrix& y, Matrix& in_deltas, Matrix& out_deltas) {
+    dampened_backward(w, b, d, y, in_deltas, out_deltas, b, 0., 0.);
 }
 
 void RnnLayer::gradient(RnnLayer::Parameters&, RnnLayer::Parameters& grad, RnnLayer::FwdState& , RnnLayer::BwdState& d, Matrix& y, Matrix& x, Matrix&) {
@@ -98,8 +92,23 @@ void RnnLayer::Rpass(Parameters& w, Parameters& v,  FwdState&, FwdState& Rb, Mat
 
 }
 
-void RnnLayer::dampened_backward(Parameters& w, FwdState& b, BwdState& d, Matrix& y, Matrix& in_deltas, Matrix& out_deltas, FwdState&, double, double)
+void RnnLayer::dampened_backward(Parameters& w, FwdState& b, BwdState& d, Matrix& y, Matrix& in_deltas, Matrix& out_deltas, FwdState& Rb, double lambda, double mu)
 {
-    backward(w, b, d, y, in_deltas, out_deltas);
+    size_t n_slices = y.n_slices;
+    f->apply_deriv(y.slice(n_slices-1), out_deltas.slice(n_slices-1), d.Ha.slice(n_slices-1));
+    // dampening for last timestep
+    f->apply_deriv(y.slice(n_slices-1), Rb.Ha.slice(n_slices-1), d.tmp.slice(n_slices-1));
+    scale_into(d.tmp.slice(n_slices-1), lambda * mu);
+    add_into_b(d.tmp.slice(n_slices-1), d.Ha.slice(n_slices-1));
+    for (int t = static_cast<int>(n_slices - 2); t >= 0; --t) {
+        copy(out_deltas.slice(t), d.Hb.slice(t));
+        mult_add(w.HR.T(), d.Ha.slice(t+1), d.Hb.slice(t));
+        f->apply_deriv(y.slice(t), d.Hb.slice(t), d.Ha.slice(t));
+        // dampening
+        f->apply_deriv(y.slice(t), Rb.Ha.slice(t), d.tmp.slice(t));
+        scale_into(d.tmp.slice(t), lambda * mu);
+        add_into_b(d.tmp.slice(t), d.Ha.slice(t));
+    }
+    mult_add(w.HX.T(), d.Ha.flatten_time(), in_deltas.flatten_time());
 }
 
