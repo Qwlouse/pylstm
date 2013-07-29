@@ -54,14 +54,16 @@ class Minibatches(object):
 
 
 class Online(object):
-    def __init__(self, X, T, M=None):
+    def __init__(self, X, T, M=None, verbose=True):
         self.X = X
         self.T = T
         self.M = M
+        self.verbose = verbose
 
     def __call__(self):
         i = 0
-        update_progress(0)
+        if self.verbose:
+            update_progress(0)
         total_batches = self.X.shape[1]
         while i < total_batches:
             x = self.X[:, i:i+1, :]
@@ -77,7 +79,8 @@ class Online(object):
                         break
             yield x, t, m
             i += 1
-            update_progress(i/total_batches)
+            if self.verbose:
+                update_progress(i/total_batches)
 
 
 def update_progress(progress):
@@ -411,7 +414,7 @@ class CgLiteTrainer(object):
             boost = 3.0 / 2.0
             net.param_buffer = weights
             denom = 0.5 * (np.dot(finalDW, fhess_p(finalDW))) + np.dot(
-                np.squeeze(grad), finalDW)
+                np.squeeze(grad), finalDW) + error
             rho = (lowError - error) / denom
             if rho < 0.25:
                 lambda_ *= boost
