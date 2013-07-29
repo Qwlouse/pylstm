@@ -3,8 +3,8 @@
 
 from __future__ import division, print_function, unicode_literals
 import numpy as np
-import time
 import sys
+import time
 
 
 ################## Callback Functions ######################
@@ -298,6 +298,7 @@ class Trainer(object):
     def __init__(self, net, core=None, **kwargs):
         self.net = net
         self.stepper = core if core else SGDStep(**kwargs)
+        self.validation_stepper = ForwardStep()
         self.success_criteria = []
         self.callbacks = [print_error_per_epoch]
         self.training_errors = []
@@ -344,7 +345,7 @@ class Trainer(object):
                 print("Validating ...")
                 start = time.time()
                 for x, t, m in validation_data_getter():
-                    valid_errors.append(self.stepper.run(x, t, m))
+                    valid_errors.append(self.validation_stepper.run(x, t, m))
                 print("Wall Time taken: ", time.time() - start)
 
                 valid_error = np.mean(valid_errors)
@@ -356,6 +357,7 @@ class Trainer(object):
 
             if self.is_successful():
                 return train_error
+
 
 def conjgrad(gradient, v, f_hessp, maxiter=20):
     r = gradient - f_hessp(v)  # residual

@@ -130,7 +130,7 @@ def CTC(Y, T, M=None):
         deltas = np.zeros((N, batch_size, label_count))
         deltas[:] = neg_inf
         errors = []
-        for b, (y, t, m) in enumerate(Online(Y_log, T, M)):
+        for b, (y, t, m) in enumerate(Online(Y_log, T, M, verbose=False)()):
             t = t[0]
             y = y.reshape(-1, label_count)
             # check required time is met
