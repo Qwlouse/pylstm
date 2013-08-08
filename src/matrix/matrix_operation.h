@@ -76,7 +76,7 @@ inline double one(double) {
 }
 
 inline double rectified_linear(double val) {
-    return std::min(val, 0.0);
+    return std::max(val, 0.0);
 }
 
 inline double reclin_deriv(double val) {
