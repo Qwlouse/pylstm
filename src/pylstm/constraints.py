@@ -30,3 +30,14 @@ class ClipWeights(object):
 
     def __call__(self, view):
         return np.clip(view, self.low, self.high)
+
+
+class MaskWeights(object):
+    """
+    Clamps the masked weights to be zero.
+    """
+    def __init__(self, mask):
+        self.mask = mask
+
+    def __call__(self, view):
+        return view * self.mask

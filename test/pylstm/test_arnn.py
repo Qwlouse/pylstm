@@ -28,7 +28,7 @@ class ArnnTests(unittest.TestCase):
 
     def setUp(self):
         self.input_size = 2
-        self.output_size = 1
+        self.output_size = 3
         self.timesteps = 10
 
         self.batch_size = 4
@@ -36,9 +36,8 @@ class ArnnTests(unittest.TestCase):
         netb.input(self.input_size) >> ArnnLayer(self.output_size) >> netb.output
         self.net = netb.build()
         self.net.param_buffer = np.ones(self.net.get_param_size())*2 #rnd.randn(self.net.get_param_size()) * 0.1
-        self.net.get_param_view_for('ArnnLayer')['Timing'][:] = [3]
+        self.net.get_param_view_for('ArnnLayer')['Timing'][:] = [1, 2, 3]
         self.X = rnd.randn(self.timesteps, self.batch_size, self.input_size)
-        Y = self.net.forward_pass(self.X)
 
 
     def test_deltas_finite_differences(self):
