@@ -18,7 +18,6 @@ public:
         Matrix HX;
         Matrix HR;
         Matrix Timing;
-        Matrix HR_tmp;
         Matrix H_bias;
 
         Parameters(size_t n_inputs, size_t n_cells);

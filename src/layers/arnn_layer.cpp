@@ -23,14 +23,12 @@ ArnnLayer::~ArnnLayer()
 ArnnLayer::Parameters::Parameters(size_t n_inputs, size_t n_cells) :
   HX(NULL, n_cells, n_inputs, 1),
   HR(NULL, n_cells, n_cells, 1),
-  Timing(NULL, n_cells, n_cells, 1),
-  HR_tmp(NULL, n_cells, n_cells, 1),
+  Timing(NULL, n_cells, 1, 1),
   H_bias(NULL, n_cells, 1, 1)
 {
     add_view("HX", &HX);
     add_view("HR", &HR);
     add_view("Timing", &Timing);
-    add_view("HR_tmp", &HR_tmp);
     add_view("H_bias", &H_bias);
 }
 
@@ -55,12 +53,31 @@ ArnnLayer::BwdState::BwdState(size_t, size_t n_cells, size_t n_batches, size_t t
 }
 
 ////////////////////// Helpers /////////////////////////////////////////////
-void calculate_async_matrix(Matrix& W, Matrix& D, Matrix& out, const int t, double diag_value=1.0) {
-    copy(W, out);
+void undo_inactive_nodes(const Matrix& y_old, Matrix y, const Matrix& D, const int t) {
     for (int row = 0; row < D.n_rows; ++row) {
-        for (int col = 0; col < D.n_columns; ++col) {
-            if (fmod(t, D.get(row, col, 0)) != 0) {
-                out.get(row, col, 0) = (row == col ? diag_value : 0.0);
+        for (int col = 0; col < y.n_columns; ++col) {
+            if (fmod(t, D.get(row, 0, 0)) != 0) {
+                y.get(row, col, 0) = y_old.get(row, col, 0);
+            }
+        }
+    }
+}
+
+void set_inactive_nodes_to_zero(Matrix y, const Matrix& D, const int t) {
+    for (int row = 0; row < D.n_rows; ++row) {
+        if (fmod(t, D.get(row, 0, 0)) != 0) {
+            for (int col = 0; col < y.n_columns; ++col) {
+                y.get(row, col, 0) = 0.0;
+            }
+        }
+    }
+}
+
+void copy_activation_of_inactive_nodes(Matrix y_old, const Matrix& y, const Matrix& D, const int t) {
+    for (int row = 0; row < D.n_rows; ++row) {
+        if (fmod(t, D.get(row, 0, 0)) != 0) {
+            for (int col = 0; col < y.n_columns; ++col) {
+                y_old.get(row, col, 0) += y.get(row, col, 0);
             }
         }
     }
@@ -72,40 +89,39 @@ void ArnnLayer::forward(ArnnLayer::Parameters& w, ArnnLayer::FwdState& b, Matrix
     size_t n_slices = x.n_slices;
     mult(w.HX, x.flatten_time(), b.Ha.flatten_time());
     for (int t = 0; t < n_slices; ++t) {
-      if (t) {
-        calculate_async_matrix(w.HR, w.Timing, w.HR_tmp, t);
-        mult_add(w.HR_tmp, y.slice(t-1), b.Ha.slice(t));
-      }
-      add_vector_into(w.H_bias, b.Ha.slice(t));
-      f->apply(b.Ha.slice(t), y.slice(t));
+        if (t) {
+            mult_add(w.HR, y.slice(t-1), b.Ha.slice(t));
+        }
+        add_vector_into(w.H_bias, b.Ha.slice(t));
+        f->apply(b.Ha.slice(t), y.slice(t));
+        if (t) { // undo changes to non-active units
+            undo_inactive_nodes(y.slice(t-1), y.slice(t), w.Timing, t);
+        }
     }
 }
 
 void ArnnLayer::backward(ArnnLayer::Parameters& w, ArnnLayer::FwdState&, ArnnLayer::BwdState& d, Matrix& y, Matrix& in_deltas, Matrix& out_deltas) {
         size_t n_slices = y.n_slices;
     f->apply_deriv(y.slice(n_slices-1), out_deltas.slice(n_slices-1), d.Ha.slice(n_slices-1));
-
     for (int t = static_cast<int>(n_slices - 2); t >= 0; --t) {
         copy(out_deltas.slice(t), d.Hb.slice(t));
-        calculate_async_matrix(w.HR, w.Timing, w.HR_tmp, t+1);
-        mult_add(w.HR_tmp.T(), d.Ha.slice(t+1), d.Hb.slice(t));
+        copy_activation_of_inactive_nodes(d.Hb.slice(t), d.Hb.slice(t+1), w.Timing, t+1);
+        mult_add(w.HR.T(), d.Ha.slice(t+1), d.Hb.slice(t));
         f->apply_deriv(y.slice(t), d.Hb.slice(t), d.Ha.slice(t));
+        set_inactive_nodes_to_zero(d.Ha.slice(t), w.Timing, t);
     }
+
     mult_add(w.HX.T(), d.Ha.flatten_time(), in_deltas.flatten_time());
 }
 
-void ArnnLayer::gradient(ArnnLayer::Parameters& w, ArnnLayer::Parameters& grad, ArnnLayer::FwdState& , ArnnLayer::BwdState& d, Matrix& y, Matrix& x, Matrix&) {
+void ArnnLayer::gradient(ArnnLayer::Parameters&, ArnnLayer::Parameters& grad, ArnnLayer::FwdState& , ArnnLayer::BwdState& d, Matrix& y, Matrix& x, Matrix&) {
     size_t n_slices = x.n_slices;
     mult_add(d.Ha.slice(0), x.slice(0).T(), grad.HX);
     for (int t = 1; t < n_slices; ++t) {
         mult_add(d.Ha.slice(t), x.slice(t).T(), grad.HX);
-        mult(d.Ha.slice(t), y.slice(t-1).T(), grad.HR_tmp);
-        calculate_async_matrix(grad.HR_tmp, w.Timing, grad.HR_tmp, t, 0.0);
-        add_into_b(grad.HR_tmp, grad.HR);
+        mult_add(d.Ha.slice(t), y.slice(t-1).T(), grad.HR);
     }
-    
     squash(d.Ha, grad.H_bias);
-    grad.HR_tmp.set_all_elements_to(0.0);
     grad.Timing.set_all_elements_to(0.0);
 }
 

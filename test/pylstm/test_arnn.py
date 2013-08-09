@@ -28,34 +28,39 @@ class ArnnTests(unittest.TestCase):
 
     def setUp(self):
         self.input_size = 2
-        self.output_size = 3
-        self.timesteps = 11
+        self.output_size = 1
+        self.timesteps = 10
 
-        self.batch_size = 7
+        self.batch_size = 4
         netb = NetworkBuilder()
         netb.input(self.input_size) >> ArnnLayer(self.output_size) >> netb.output
         self.net = netb.build()
         self.net.param_buffer = np.ones(self.net.get_param_size())*2 #rnd.randn(self.net.get_param_size()) * 0.1
-        W = self.net.get_param_view_for('ArnnLayer')
-        #W['HR'][0][np.triu_indices(self.output_size)] = 0.0
-        D = np.array([range(1, self.output_size + 1)] * self.output_size, dtype=np.float64)
-        D[np.triu_indices(self.output_size, 1)] = np.inf
-        W['Timing'][:] = D
+        self.net.get_param_view_for('ArnnLayer')['Timing'][:] = [3]
         self.X = rnd.randn(self.timesteps, self.batch_size, self.input_size)
+        Y = self.net.forward_pass(self.X)
 
 
     def test_deltas_finite_differences(self):
 
         e, grad_calc, grad_approx = check_deltas(self.net, n_batches=self.batch_size,
                                                  n_timesteps=self.timesteps, rnd=rnd)
-        if e > 1e-400:
-            diff = (grad_approx - grad_calc).reshape(self.timesteps, self.batch_size, -1)
-            for t in range(diff.shape[0]):
-                print("======== t=%d =========" % t)
-                print(diff[t])
+
+        grad_approx = grad_approx.reshape(self.timesteps, self.batch_size, -1)
+        grad_calc = grad_calc.reshape(self.timesteps, self.batch_size, -1)
+        diff = (grad_approx - grad_calc)
+        for t in range(diff.shape[0]):
+            print("======== t=%d =========" % t)
+            print("calc")
+            print(grad_calc[t])
+            print("approx")
+            print(grad_approx[t])
+            print("diff")
+            print(diff[t])
+            print(np.sum(diff[t]**2))
         print("Checking Deltas of ArnnLayer with sigmoid = %0.4f" % e)
 
-        self.assertTrue(e < 1e-4)
+        self.assertTrue(e < 1e-6)
 
     def test_gradient_finite_differences(self):
         e, grad_calc, grad_approx = check_gradient(self.net, n_batches=self.batch_size,
