@@ -147,7 +147,8 @@ class ValidationErrorRises(object):
     def __call__(self, epochs_seen, net, training_errors, validation_errors):
         best_val_error = np.argmin(validation_errors)
         if len(validation_errors) > best_val_error + self.delay:
-            print("Validation error did not fall for %d epochs! Stopping.")
+            print("Validation error did not fall for %d epochs! Stopping."
+                  % self.delay)
             return True
         return False
 
