@@ -49,7 +49,7 @@ def MultiClassCrossEntropyError(Y, T, M=None):
 neg_inf = float('-inf')
 
 
-def ctc_calculate_alphas(Y_log, T):
+def _ctc_calculate_alphas(Y_log, T):
     """
     Y_log: log of outputs shape=(time, labels)
     T: target sequence shape=(length, )
@@ -85,7 +85,7 @@ def ctc_calculate_alphas(Y_log, T):
     return alpha
 
 
-def ctc_calculate_betas(Y_log, T):
+def _ctc_calculate_betas(Y_log, T):
     N = Y_log.shape[0]
     Z = 2 * len(T) + 1
 
@@ -110,6 +110,7 @@ def ctc_calculate_betas(Y_log, T):
                 if label != previous_label:
                     beta[t - 1, s] = np.logaddexp(beta[t - 1, s], beta[t, s + 2] + Y_log[t, label])
     return beta
+
 
 def CTC(Y, T, M=None):
     import warnings
@@ -142,8 +143,8 @@ def CTC(Y, T, M=None):
                 previous_label = t[s]
             assert required_time <= y.shape[0]
 
-            alpha = ctc_calculate_alphas(y, t)
-            beta = ctc_calculate_betas(y, t)
+            alpha = _ctc_calculate_alphas(y, t)
+            beta = _ctc_calculate_betas(y, t)
 
             ppix = alpha + beta
             pzx = np.logaddexp.reduce(ppix, axis=1)
