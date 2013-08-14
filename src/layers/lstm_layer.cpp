@@ -17,10 +17,10 @@ LstmLayer::LstmLayer(const ActivationFunction* f):
 
 
 LstmLayer::Parameters::Parameters(size_t n_inputs, size_t n_cells) :
-    IX(NULL, n_cells, n_inputs, 1), IH(NULL, n_cells, n_cells, 1), IS(NULL, 1, n_cells, 1),
-    FX(NULL, n_cells, n_inputs, 1), FH(NULL, n_cells, n_cells, 1), FS(NULL, 1, n_cells, 1),
+    IX(NULL, n_cells, n_inputs, 1), IH(NULL, n_cells, n_cells, 1), IS(NULL, n_cells, 1, 1),
+    FX(NULL, n_cells, n_inputs, 1), FH(NULL, n_cells, n_cells, 1), FS(NULL, n_cells, 1, 1),
     ZX(NULL, n_cells, n_inputs, 1), ZH(NULL, n_cells, n_cells, 1),
-    OX(NULL, n_cells, n_inputs, 1), OH(NULL, n_cells, n_cells, 1), OS(NULL, 1, n_cells, 1),
+    OX(NULL, n_cells, n_inputs, 1), OH(NULL, n_cells, n_cells, 1), OS(NULL, n_cells, 1, 1),
     I_bias(NULL, n_cells, 1, 1), F_bias(NULL, n_cells, 1, 1), Z_bias(NULL, n_cells, 1, 1), O_bias(NULL, n_cells, 1, 1)
 {
 
