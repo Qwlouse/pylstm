@@ -128,41 +128,22 @@ def create_ConstructionLayer(LayerType):
     return ConstructionLayer
 
 
-def sigmoid(x):
-    return 1. / (1 + np.exp(-x))
-
-
-def sigmoid_inv(y):
-    return y * (1 - y)
-
-
-class NpForwardLayer(Layer):  # TODO: bias
-    def get_parameter_size(self, time_length=1, batch_size=1):
-        return self.in_size * self.out_size
-
+class NoopLayer(Layer):
     def create_input_view(self, input_buffer, time_length, batch_size):
-        return super(NpForwardLayer, self).create_input_view(input_buffer,
-                                                             time_length,
-                                                             batch_size).as_array()
+        return super(NoopLayer, self).create_input_view(input_buffer,
+                                                        time_length,
+                                                        batch_size).as_array()
 
     def create_output_view(self, output_buffer, time_length, batch_size):
-        return super(NpForwardLayer, self).create_output_view(output_buffer,
-                                                              time_length,
-                                                              batch_size).as_array()
-
-    def create_param_view(self, param_buffer, time_length=1, batch_size=1):
-        return param_buffer.as_array().reshape(self.in_size, self.out_size)
+        return super(NoopLayer, self).create_output_view(output_buffer,
+                                                         time_length,
+                                                         batch_size).as_array()
 
     def forward(self, param, fwd_state, in_view, out_view):
-        for in_slice, out_slice in zip(in_view, out_view):
-            out_slice[:] = sigmoid(in_slice.dot(param))
+        out_view[:] = in_view
 
     def backward(self, param, fwd_state, bwd_state, out_view, in_deltas, out_deltas):
-        for out_slice, in_slice, y_slice in zip(out_deltas, in_deltas, out_view):
-            in_slice[:] = (sigmoid_inv(y_slice) * out_slice).dot(param.T)
-
-    def gradient(self, param, grad, fwd_state, bwd_state, out_view, in_view, out_deltas):
-        pass
+        in_deltas[:] = out_deltas
 
 
 ################################################################################
@@ -176,5 +157,5 @@ MrnnLayer = create_ConstructionLayer("MrnnLayer")
 RegularLayer = create_ConstructionLayer("RegularLayer")
 ReverseLayer = create_ConstructionLayer("ReverseLayer")
 
-NpFwdLayer = create_ConstructionLayer(NpForwardLayer)
+CopyLayer = create_ConstructionLayer(NoopLayer)
 
