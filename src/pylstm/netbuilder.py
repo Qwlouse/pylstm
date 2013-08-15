@@ -117,6 +117,20 @@ class NetworkBuilder(object):
 
         param_manager.set_dimensions(1, 1)
 
+        architecture = OrderedDict()
+
+        for l in cLayers[:-1]:
+            layer_entry = {
+                'size': l.out_size,
+                'type': l.LayerType,
+                'connects_to': [t.get_name() for t in l.targets],
+            }
+            if l.layer_kwargs:
+                layer_entry['kwargs'] = l.layer_kwargs
+            architecture[l.get_name()] = layer_entry
+
         net = Network(layers, param_manager, fwd_state_manager, in_out_manager,
-                      bwd_state_manager, delta_manager, self.error_func)
+                      bwd_state_manager, delta_manager, self.error_func,
+                      architecture=architecture)
+
         return net

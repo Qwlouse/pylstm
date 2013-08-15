@@ -65,6 +65,30 @@ class Layer(object):
         pass
 
 
+class NoopLayer(Layer):
+    def create_input_view(self, input_buffer, time_length, batch_size):
+        return super(NoopLayer, self).create_input_view(input_buffer,
+                                                        time_length,
+                                                        batch_size).as_array()
+
+    def create_output_view(self, output_buffer, time_length, batch_size):
+        return super(NoopLayer, self).create_output_view(output_buffer,
+                                                         time_length,
+                                                         batch_size).as_array()
+
+    def forward(self, param, fwd_state, in_view, out_view):
+        out_view[:] = in_view
+
+    def backward(self, param, fwd_state, bwd_state, out_view, in_deltas, out_deltas):
+        in_deltas[:] = out_deltas
+
+
+PYTHON_LAYERS = {
+    'DummyLayer': Layer,
+    'CopyLayer': NoopLayer
+}
+
+
 def create_ConstructionLayer(LayerType):
     class ConstructionLayer(object):
         def __init__(self, out_size, name=None, **layer_kwargs):
@@ -78,14 +102,15 @@ def create_ConstructionLayer(LayerType):
             self.traversing = False
 
         def instantiate(self):
-            if isinstance(self.LayerType, basestring):
+            if self.LayerType in PYTHON_LAYERS:
+                return PYTHON_LAYERS[self.LayerType](self.get_input_size(),
+                                                     self.out_size,
+                                                     **self.layer_kwargs)
+            else:
                 return wrapper.create_layer(
                     self.LayerType,
                     self.get_input_size(), self.out_size,
                     **self.layer_kwargs)
-            else:
-                return self.LayerType(self.get_input_size(), self.out_size,
-                                      **self.layer_kwargs)
 
         def get_input_size(self):
             return sum(s.out_size for s in self.sources)
@@ -128,27 +153,12 @@ def create_ConstructionLayer(LayerType):
     return ConstructionLayer
 
 
-class NoopLayer(Layer):
-    def create_input_view(self, input_buffer, time_length, batch_size):
-        return super(NoopLayer, self).create_input_view(input_buffer,
-                                                        time_length,
-                                                        batch_size).as_array()
-
-    def create_output_view(self, output_buffer, time_length, batch_size):
-        return super(NoopLayer, self).create_output_view(output_buffer,
-                                                         time_length,
-                                                         batch_size).as_array()
-
-    def forward(self, param, fwd_state, in_view, out_view):
-        out_view[:] = in_view
-
-    def backward(self, param, fwd_state, bwd_state, out_view, in_deltas, out_deltas):
-        in_deltas[:] = out_deltas
-
-
 ################################################################################
+# python layers
+DummyLayer = create_ConstructionLayer("DummyLayer")
+CopyLayer = create_ConstructionLayer("CopyLayer")
 
-DummyLayer = create_ConstructionLayer(Layer)
+# c++ layers
 LstmLayer = create_ConstructionLayer("LstmLayer")
 Lstm97Layer = create_ConstructionLayer("Lstm97Layer")
 RnnLayer = create_ConstructionLayer("RnnLayer")
@@ -156,6 +166,4 @@ ArnnLayer = create_ConstructionLayer("ArnnLayer")
 MrnnLayer = create_ConstructionLayer("MrnnLayer")
 RegularLayer = create_ConstructionLayer("RegularLayer")
 ReverseLayer = create_ConstructionLayer("ReverseLayer")
-
-CopyLayer = create_ConstructionLayer(NoopLayer)
 
