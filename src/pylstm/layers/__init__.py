@@ -5,8 +5,25 @@ from .construction_layer import create_ConstructionLayer
 from .construction_layer import InvalidArchitectureError
 
 # python layers
-DummyLayer = create_ConstructionLayer("DummyLayer")
-CopyLayer = create_ConstructionLayer("CopyLayer")
+InputLayer = create_ConstructionLayer('BaseLayer')
+OutputLayer = create_ConstructionLayer('BaseLayer')
+
+
+def _create_construction_layers_for_python_layers():
+    """
+    This method will create a ConstructionLayer object for every '...Layer' in
+    python_layers and add it to this modules namespace.
+    """
+    import python_layers
+    PYTHON_LAYERS = {n: v for n, v in python_layers.__dict__.items()
+                     if not n.startswith('_') and n.endswith('Layer')}
+    import sys
+    module = sys.modules[__name__]
+    for name, value in PYTHON_LAYERS.iteritems():
+        setattr(module, name, create_ConstructionLayer(value))
+
+_create_construction_layers_for_python_layers()
+
 
 # c++ layers
 LstmLayer = create_ConstructionLayer("LstmLayer")

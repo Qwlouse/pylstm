@@ -7,7 +7,7 @@ See wrapper/py_layers.pyx for python wrappers around c++ layers.
 from __future__ import division, print_function, unicode_literals
 
 
-class Layer(object):
+class BaseLayer(object):
     """
     The base-class of all layer types defined in Python.
     """
@@ -67,7 +67,7 @@ class Layer(object):
         pass
 
 
-class CopyLayer(Layer):
+class CopyLayer(BaseLayer):
     """
     This is essentially a no-op layer.
     It just copies it's input into it's output.
@@ -88,10 +88,3 @@ class CopyLayer(Layer):
     def backward(self, param, fwd_state, bwd_state, out_view, in_deltas,
                  out_deltas):
         in_deltas[:] = out_deltas
-
-
-
-PYTHON_LAYERS = {
-    'DummyLayer': Layer,
-    'CopyLayer': CopyLayer
-}

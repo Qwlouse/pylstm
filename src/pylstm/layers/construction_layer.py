@@ -1,8 +1,16 @@
 #!/usr/bin/python
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
-from .python_layers import PYTHON_LAYERS
-from ..wrapper import create_layer
+from ..wrapper import create_layer as create_c_layer
+import python_layers
+
+
+def create_layer(name, input_size, output_size, kwargs):
+    if name in python_layers.__dict__:
+        LayerType = python_layers.__dict__[name]
+        return LayerType(input_size, output_size, **kwargs)
+    else:
+        return create_c_layer(name, input_size, output_size, **kwargs)
 
 
 class InvalidArchitectureError(Exception):
@@ -22,15 +30,8 @@ def create_ConstructionLayer(LayerType):
             self.traversing = False
 
         def instantiate(self):
-            if self.LayerType in PYTHON_LAYERS:
-                return PYTHON_LAYERS[self.LayerType](self.get_input_size(),
-                                                     self.out_size,
-                                                     **self.layer_kwargs)
-            else:
-                return create_layer(
-                    self.LayerType,
-                    self.get_input_size(), self.out_size,
-                    **self.layer_kwargs)
+            return create_layer(self.LayerType, self.get_input_size(),
+                                self.out_size, self.layer_kwargs)
 
         def get_input_size(self):
             return sum(s.out_size for s in self.sources)

@@ -3,7 +3,7 @@
 from __future__ import division, print_function, unicode_literals
 from collections import OrderedDict
 from buffer_manager import BufferManager
-from layers import DummyLayer, InvalidArchitectureError
+from layers import InputLayer, OutputLayer, InvalidArchitectureError
 from network import Network
 from pylstm.error_functions import MeanSquaredError
 import numpy as np
@@ -12,12 +12,12 @@ import numpy as np
 class NetworkBuilder(object):
     def __init__(self):
         self.input_layer = None
-        self.output = DummyLayer(0, "Output")
+        self.output = OutputLayer(0, "Output")
         self.error_func = MeanSquaredError
 
     def input(self, size=None):
         if size:
-            self.input_layer = DummyLayer(size, "Input")
+            self.input_layer = InputLayer(size, "Input")
         return self.input_layer
 
     def get_sorted_layers(self):
