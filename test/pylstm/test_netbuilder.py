@@ -3,12 +3,12 @@
 
 import unittest
 from pylstm.netbuilder import NetworkBuilder, InvalidArchitectureError
-from pylstm.layers import create_ConstructionLayer
+from pylstm.layers import create_construction_layer
 
 
 class Foo(): pass
 
-FooLayer = create_ConstructionLayer(Foo)
+FooLayer = create_construction_layer(Foo)
 
 
 #noinspection PyStatementEffect

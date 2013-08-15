@@ -1,12 +1,12 @@
 #!/usr/bin/python
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
-from .construction_layer import create_ConstructionLayer
+from .construction_layer import create_construction_layer
 from .construction_layer import InvalidArchitectureError
 
 # python layers
-InputLayer = create_ConstructionLayer('BaseLayer')
-OutputLayer = create_ConstructionLayer('BaseLayer')
+InputLayer = create_construction_layer('BaseLayer')
+OutputLayer = create_construction_layer('BaseLayer')
 
 
 def _create_construction_layers_for_python_layers():
@@ -20,16 +20,16 @@ def _create_construction_layers_for_python_layers():
     import sys
     module = sys.modules[__name__]
     for name, value in PYTHON_LAYERS.iteritems():
-        setattr(module, name, create_ConstructionLayer(value))
+        setattr(module, name, create_construction_layer(value))
 
 _create_construction_layers_for_python_layers()
 
 
 # c++ layers
-LstmLayer = create_ConstructionLayer("LstmLayer")
-Lstm97Layer = create_ConstructionLayer("Lstm97Layer")
-RnnLayer = create_ConstructionLayer("RnnLayer")
-ArnnLayer = create_ConstructionLayer("ArnnLayer")
-MrnnLayer = create_ConstructionLayer("MrnnLayer")
-RegularLayer = create_ConstructionLayer("RegularLayer")
-ReverseLayer = create_ConstructionLayer("ReverseLayer")
+LstmLayer = create_construction_layer("LstmLayer")
+Lstm97Layer = create_construction_layer("Lstm97Layer")
+RnnLayer = create_construction_layer("RnnLayer")
+ArnnLayer = create_construction_layer("ArnnLayer")
+MrnnLayer = create_construction_layer("MrnnLayer")
+RegularLayer = create_construction_layer("RegularLayer")
+ReverseLayer = create_construction_layer("ReverseLayer")
