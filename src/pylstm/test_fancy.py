@@ -4,6 +4,7 @@
 from __future__ import division, print_function, unicode_literals
 from pylstm.netbuilder import NetworkBuilder
 from pylstm.layers import *
+import numpy as np
 
 
 netb = NetworkBuilder()

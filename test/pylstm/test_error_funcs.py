@@ -5,7 +5,9 @@ from scipy.optimize import approx_fprime
 
 import numpy as np
 import unittest
-from pylstm.error_functions import *
+from pylstm.error_functions import MeanSquaredError, CrossEntropyError, CTC
+from pylstm.error_functions import MultiClassCrossEntropyError
+from pylstm.error_functions import _ctc_calculate_alphas, _ctc_calculate_betas
 
 
 class SimpleErrorFuncsTest(unittest.TestCase):
@@ -60,7 +62,7 @@ class CTCTest(unittest.TestCase):
         self.T = np.array([1, 2])
 
     def test_alpha_values(self):
-        a = ctc_calculate_alphas(np.log(self.Y), self.T)
+        a = _ctc_calculate_alphas(np.log(self.Y), self.T)
         a_expected = np.array(
             [[.1, .08, 0, 0],
              [.7, .08, .048, 0],
@@ -70,7 +72,7 @@ class CTCTest(unittest.TestCase):
         self.assertTrue(np.allclose(np.exp(a), a_expected))
 
     def test_beta_values(self):
-        b = ctc_calculate_betas(np.log(self.Y), self.T)
+        b = _ctc_calculate_betas(np.log(self.Y), self.T)
         b_expected = np.array(
             [[.096, .06, 0, 0],
              [.441, .48, .2, 0],
@@ -81,7 +83,7 @@ class CTCTest(unittest.TestCase):
 
     def test_alpha_values_duplicate_label(self):
         T = np.array([1, 1])
-        a = ctc_calculate_alphas(np.log(self.Y), T)
+        a = _ctc_calculate_alphas(np.log(self.Y), T)
         a_expected = np.array(
             [[.1, .08, 0, 0],
              [.7, .08, .048, 0],
@@ -92,7 +94,7 @@ class CTCTest(unittest.TestCase):
 
     def test_beta_values_duplicate_label(self):
         T = np.array([1, 1])
-        b = ctc_calculate_betas(np.log(self.Y), T)
+        b = _ctc_calculate_betas(np.log(self.Y), T)
         b_expected = np.array(
             [[.003, 0, 0, 0],
              [.219, .03, 0, 0],
@@ -105,8 +107,8 @@ class CTCTest(unittest.TestCase):
     def test_forward_values_multibatch1(self):
         Y = np.hstack((self.Y, self.Y))
         T = np.hstack((self.T, self.T))
-        a = ctc_calculate_alphas(np.log(Y), T)
-        b = ctc_calculate_betas(np.log(Y), T)
+        a = _ctc_calculate_alphas(np.log(Y), T)
+        b = _ctc_calculate_betas(np.log(Y), T)
         a_expected = np.array([[.1, .08, 0, 0], [.7, .08, .048, 0], [0, .56, .192, 0], [0, .07, .284, .1048], [0, 0, .021, .2135]]).reshape(5, 1, 4)
         b_expected = np.array([[.096, .06, 0, 0], [.441, .48, .2, 0], [0, .42, .2, 0], [0, .57, .9, 1], [0, 0, .7, 1]]).reshape(5, 1, 4)
         self.assertTrue(np.allclose(a[:, 0:1, :].T, a_expected))
@@ -127,8 +129,8 @@ class CTCTest(unittest.TestCase):
         self.assertTrue(np.allclose(b[:, 0:1, :].T, b_expected))
 
     def test_pxz_equal_for_all_t(self):
-        a = ctc_calculate_alphas(np.log(self.Y), self.T)
-        b = ctc_calculate_betas(np.log(self.Y), self.T)
+        a = _ctc_calculate_alphas(np.log(self.Y), self.T)
+        b = _ctc_calculate_betas(np.log(self.Y), self.T)
         pxz = np.exp(a + b).T.sum(0)
         self.assertTrue(np.allclose(pxz, pxz.mean()))
 

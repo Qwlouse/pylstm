@@ -8,7 +8,7 @@ from pylstm.layers import create_construction_layer
 
 class Foo(): pass
 
-FooLayer = create_construction_layer(Foo)
+FooLayer = create_construction_layer('Foo')
 
 
 #noinspection PyStatementEffect
@@ -16,7 +16,7 @@ class ConstructionLayerTests(unittest.TestCase):
     def test_constructor(self):
         cl = FooLayer(7)
         self.assertEqual(cl.out_size, 7)
-        self.assertEqual(cl.LayerType, Foo)
+        self.assertEqual(cl.layer_type, 'Foo')
 
     def test_connecting_two_layers(self):
         cl1 = FooLayer(3)

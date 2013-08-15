@@ -122,7 +122,7 @@ class NetworkBuilder(object):
         for l in cLayers[:-1]:
             layer_entry = {
                 'size': l.out_size,
-                'type': l.LayerType,
+                'type': l.layer_type,
                 'connects_to': [t.get_name() for t in l.targets],
             }
             if l.layer_kwargs:
