@@ -24,7 +24,7 @@ class ConstructionLayer(object):
         self.traversing = False
 
     def instantiate(self):
-        return _create_layer(self.layer_type, self.get_input_size(),
+        return instantiate_layer(self.layer_type, self.get_input_size(),
                              self.out_size, self.layer_kwargs)
 
     def get_input_size(self):
@@ -45,6 +45,15 @@ class ConstructionLayer(object):
             for t in target.traverse_targets_tree():
                 yield t
         self.traversing = False
+
+    def collect_all_connected_layers(self):
+        old_size = 0
+        connectom = {self}
+        while old_size < len(connectom):
+            old_size = len(connectom)
+            for l in connectom:
+                connectom = connectom | set(l.targets) | set(l.sources)
+        return connectom
 
     def _add_source(self, other):
         self.sources.append(other)
@@ -73,7 +82,9 @@ def create_construction_layer(layer_type):
     return constructor
 
 
-def _create_layer(name, input_size, output_size, kwargs):
+def instantiate_layer(name, input_size, output_size, kwargs):
+    if name in ['InputLayer', 'OutputLayer']:
+        return python_layers.BaseLayer(input_size, output_size, **kwargs)
     if name in python_layers.__dict__:
         LayerType = python_layers.__dict__[name]
         return LayerType(input_size, output_size, **kwargs)

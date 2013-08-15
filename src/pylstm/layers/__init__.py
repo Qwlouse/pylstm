@@ -5,8 +5,8 @@ from .construction_layer import create_construction_layer
 from .construction_layer import InvalidArchitectureError
 
 # python layers
-InputLayer = create_construction_layer('BaseLayer')
-OutputLayer = create_construction_layer('BaseLayer')
+InputLayer = create_construction_layer('InputLayer')
+OutputLayer = create_construction_layer('OutputLayer')
 
 
 def _create_construction_layers_for_python_layers():
