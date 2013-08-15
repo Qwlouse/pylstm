@@ -88,15 +88,17 @@ cdef class BaseLayer:
 
 def create_layer(name, in_size, out_size, **kwargs):
     l = BaseLayer()
+    name_lower = name.lower()
+
     cdef cm.ActivationFunction* act_fct = <cm.ActivationFunction*> &cm.Sigmoid
 
     unexpected_kwargs = [k for k in kwargs if k not in {'act_func'}]
     expected_kwargs = set()
-    if name.lower() == "lstm97layer":
+    if name_lower == "lstm97layer":
         expected_kwargs = {'full_gradient', 'peephole_connections',
                            'forget_gate', 'output_gate', 'gate_recurrence',
                            'use_bias'}
-    if name.lower() == "regularlayer":
+    if name_lower == "regularlayer":
         expected_kwargs = {'use_bias'}
     unexpected_kwargs = list(set(unexpected_kwargs) - expected_kwargs)
     if unexpected_kwargs:
@@ -104,39 +106,39 @@ def create_layer(name, in_size, out_size, **kwargs):
         warnings.warn("Warning: got unexpected kwargs: %s"%unexpected_kwargs)
 
     if "act_func" in kwargs:
-        af_name = kwargs["act_func"]
-        if af_name.lower() == "sigmoid":
+        af_name = kwargs["act_func"].lower()
+        if af_name == "sigmoid":
             act_fct = <cm.ActivationFunction*> &cm.Sigmoid
-        elif af_name.lower() == "tanh":
+        elif af_name == "tanh":
             act_fct = <cm.ActivationFunction*> &cm.Tanh
-        elif af_name.lower() == "tanhx2":
+        elif af_name == "tanhx2":
             act_fct = <cm.ActivationFunction*> &cm.Tanhx2
-        elif af_name.lower() in ["rectified_linear", "relu"]:
+        elif af_name in ["rectified_linear", "relu"]:
             act_fct = <cm.ActivationFunction*> &cm.RectifiedLinear
-        elif af_name.lower() == "linear":
+        elif af_name == "linear":
             act_fct = <cm.ActivationFunction*> &cm.Linear
-        elif af_name.lower() == "softmax":
+        elif af_name == "softmax":
             act_fct = <cm.ActivationFunction*> &cm.Softmax
-        elif af_name.lower() == "winout":
+        elif af_name == "winout":
             act_fct = <cm.ActivationFunction*> &cm.Winout
 
     cdef cl.Lstm97Layer lstm97
     cdef cl.RegularLayer regular_layer
 
-    if name.lower() == "regularlayer":
+    if name_lower == "regularlayer":
         regular_layer = cl.RegularLayer(act_fct)
         if 'use_bias' in kwargs:
             regular_layer.use_bias = kwargs['use_bias']
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.RegularLayer](in_size, out_size, regular_layer))
-    elif name.lower() == "rnnlayer":
+    elif name_lower == "rnnlayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.RnnLayer](in_size, out_size, cl.RnnLayer(act_fct)))
-    elif name.lower() == "arnnlayer":
+    elif name_lower == "arnnlayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.ArnnLayer](in_size, out_size, cl.ArnnLayer(act_fct)))
-    elif name.lower() == "mrnnlayer":
+    elif name_lower == "mrnnlayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.MrnnLayer](in_size, out_size, cl.MrnnLayer(act_fct)))
-    elif name.lower() == "lstmlayer":
+    elif name_lower == "lstmlayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.LstmLayer](in_size, out_size, cl.LstmLayer(act_fct)))
-    elif name.lower() == "lstm97layer":
+    elif name_lower == "lstm97layer":
         lstm97 = cl.Lstm97Layer(act_fct)
         if 'full_gradient' in kwargs:
             lstm97.full_gradient = kwargs['full_gradient']
@@ -152,7 +154,7 @@ def create_layer(name, in_size, out_size, **kwargs):
             lstm97.use_bias = kwargs['use_bias']
 
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.Lstm97Layer](in_size, out_size, lstm97))
-    elif name.lower() == "reverselayer":
+    elif name_lower == "reverselayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.ReverseLayer](in_size, out_size, cl.ReverseLayer()))
     else :
         raise AttributeError("No layer with name " + name)
