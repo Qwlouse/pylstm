@@ -87,15 +87,36 @@ def create_architecture_from_layers(some_layer):
 
 
 def validate_architecture(architecture):
-    # TODO
     # schema
-    # only 1 input
-    # no sources for input
+    for name, info in architecture.items():
+        assert 'size' in info and isinstance(info['size'], int)
+        assert 'type' in info and isinstance(info['type'], basestring)
+        assert 'targets' in info and isinstance(info['targets'], list)
+
+    # has InputLayer
+    assert 'InputLayer' in architecture
+    assert architecture['InputLayer']['type'] == 'InputLayer'
+
+    # has only one InputLayer
+    inputs_by_type = [l for l in architecture.values()
+                      if l['type'] == 'InputLayer']
+    assert len(inputs_by_type) == 1
+
+    # no sources for InputLayer
+    input_sources = [l for l in architecture.values()
+                     if 'InputLayer' in l['targets']]
+    assert len(input_sources) == 0
+
     # only 1 output
-    # no targets for output
-    # no loops
-    # topologically sorted
-    pass
+    outputs = [l for l in architecture.values() if not l['targets']]
+    assert len(outputs) == 1
+
+    # no loops and topologically sorted
+    seen_names = set()
+    for name, info in reversed(architecture.items()):
+        for t in info['targets']:
+            assert t in seen_names
+        seen_names.add(name)
 
 
 def extend_architecture_info(architecture):
