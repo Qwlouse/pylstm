@@ -3,7 +3,8 @@
 from __future__ import division, print_function, unicode_literals
 from collections import OrderedDict
 from copy import deepcopy
-from buffer_manager import BufferManager
+from buffer_manager import BufferManager, create_param_manager
+from buffer_manager import create_fwd_state_manager, create_bwd_state_manager
 from layers import Input, Output
 from network import Network
 from pylstm.error_functions import MeanSquaredError
@@ -148,43 +149,6 @@ def instantiate_layers_from_architecture(architecture):
         layers[name] = layer
 
     return layers
-
-
-def create_param_manager(layers):
-    param_manager = BufferManager()
-    fwd_state_manager = BufferManager()
-    bwd_state_manager = BufferManager()
-    for name, l in layers.items()[1:-1]:
-        sources = {name: (l.get_parameter_size, l.create_param_view)}
-        param_manager.add(sources, {})
-
-        sources = {name: (l.get_fwd_state_size,
-                          l.create_fwd_state)}
-        fwd_state_manager.add(sources, {})
-
-        sources = {name: (l.get_bwd_state_size,
-                          l.create_bwd_state)}
-        bwd_state_manager.add(sources, {})
-    return param_manager
-
-
-def create_fwd_state_manager(layers):
-    fwd_state_manager = BufferManager()
-    for name, l in layers.items()[1:-1]:
-        sources = {name: (l.get_fwd_state_size,
-                          l.create_fwd_state)}
-        fwd_state_manager.add(sources, {})
-
-    return fwd_state_manager
-
-
-def create_bwd_state_manager(layers):
-    bwd_state_manager = BufferManager()
-    for name, l in layers.items()[1:-1]:
-        sources = {name: (l.get_bwd_state_size,
-                          l.create_bwd_state)}
-        bwd_state_manager.add(sources, {})
-    return bwd_state_manager
 
 
 def get_forward_closure(layer, arch):

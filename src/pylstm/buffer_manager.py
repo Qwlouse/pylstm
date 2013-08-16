@@ -163,3 +163,40 @@ class BufferManager(object):
     def clear_buffer(self):
         self.ensure_initialization()
         self.buffer.set_all_elements_to(0.0)
+
+
+def create_param_manager(layers):
+    param_manager = BufferManager()
+    fwd_state_manager = BufferManager()
+    bwd_state_manager = BufferManager()
+    for name, l in layers.items()[1:-1]:
+        sources = {name: (l.get_parameter_size, l.create_param_view)}
+        param_manager.add(sources, {})
+
+        sources = {name: (l.get_fwd_state_size,
+                          l.create_fwd_state)}
+        fwd_state_manager.add(sources, {})
+
+        sources = {name: (l.get_bwd_state_size,
+                          l.create_bwd_state)}
+        bwd_state_manager.add(sources, {})
+    return param_manager
+
+
+def create_fwd_state_manager(layers):
+    fwd_state_manager = BufferManager()
+    for name, l in layers.items()[1:-1]:
+        sources = {name: (l.get_fwd_state_size,
+                          l.create_fwd_state)}
+        fwd_state_manager.add(sources, {})
+
+    return fwd_state_manager
+
+
+def create_bwd_state_manager(layers):
+    bwd_state_manager = BufferManager()
+    for name, l in layers.items()[1:-1]:
+        sources = {name: (l.get_bwd_state_size,
+                          l.create_bwd_state)}
+        bwd_state_manager.add(sources, {})
+    return bwd_state_manager
