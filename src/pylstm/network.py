@@ -7,7 +7,7 @@ import wrapper as pw
 
 class Network(object):
     def __init__(self, layers, param_manager, fwd_state_manager, in_out_manager,
-                 bwd_state_manager, delta_manager, error_func, architecture):
+                 bwd_state_manager, error_func, architecture):
         self.layers = layers
 
         self.param_manager = param_manager
@@ -20,7 +20,7 @@ class Network(object):
 
         self.in_out_manager = in_out_manager
         self.r_in_out_manager = deepcopy(in_out_manager)
-        self.delta_manager = delta_manager
+        self.delta_manager = deepcopy(in_out_manager)
 
         self.error_func = error_func
 

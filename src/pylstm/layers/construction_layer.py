@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
-from ..wrapper import create_layer as create_c_layer
+from pylstm.wrapper import create_layer as create_c_layer
 import python_layers
 
 __all__ = ['InvalidArchitectureError', 'ConstructionLayer',
