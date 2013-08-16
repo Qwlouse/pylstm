@@ -165,6 +165,40 @@ class BufferManager(object):
         self.buffer.set_all_elements_to(0.0)
 
 
+def get_forward_closure(layer, extended_architecture):
+    """
+    For a given layer return two sorted lists of layer names such that:
+      * the given layer is in the source_set
+      * the sink_set contains all the target layers of the source_set
+      * the source_set contains all the source layers of the sink_set
+    """
+    # grow the two sets
+    source_set = {layer}
+    sink_set = set(extended_architecture[layer]['targets'])
+    growing = True
+    while growing:
+        growing = False
+        new_source_set = {s for l in sink_set
+                          for s in extended_architecture[l]['sources']}
+        new_sink_set = {t for l in source_set
+                        for t in extended_architecture[l]['targets']}
+        if len(new_source_set) > len(source_set) or\
+                len(new_sink_set) > len(sink_set):
+            growing = True
+            source_set = new_source_set
+            sink_set = new_sink_set
+    # turn into sorted lists
+    source_list = sorted([l for l in source_set])
+    sink_list = sorted([l for l in sink_set])
+    # set up connection table
+    connection_table = np.zeros((len(source_list), len(sink_list)))
+    for i, source in enumerate(source_list):
+        for sink in extended_architecture[source]['targets']:
+            connection_table[i, sink_list.index(sink)] = 1
+    # convert to lists of names
+    return source_list, sink_list, connection_table
+
+
 def create_param_manager(layers):
     param_manager = BufferManager()
     fwd_state_manager = BufferManager()
@@ -181,6 +215,21 @@ def create_param_manager(layers):
                           l.create_bwd_state)}
         bwd_state_manager.add(sources, {})
     return param_manager
+
+
+def create_in_out_manager(extended_architecture, layers):
+    in_out_manager = BufferManager()
+
+    for layer in extended_architecture.keys():
+        source_list, sink_list, con_table = get_forward_closure(layer, extended_architecture)
+        assert np.all(con_table == 1), "Sparse Architectures not supported yet"
+        sinks = {n: (layers[n].get_input_buffer_size,
+                     layers[n].create_input_view) for n in sink_list}
+        sources = {n: (layers[n].get_output_buffer_size,
+                       layers[n].create_output_view) for n in source_list}
+
+        in_out_manager.add(sources, sinks, con_table)
+    return in_out_manager
 
 
 def create_fwd_state_manager(layers):
