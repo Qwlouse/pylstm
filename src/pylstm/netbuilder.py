@@ -115,6 +115,18 @@ def create_architecture_from_layers(some_layer):
     return architecture
 
 
+def validate_architecture(architecture):
+    # TODO
+    # schema
+    # only 1 input
+    # no sources for input
+    # only 1 output
+    # no targets for output
+    # no loops
+    # topologically sorted
+    pass
+
+
 def extend_architecture_info(architecture):
     extended_architecture = deepcopy(architecture)  # do not modify original
 
@@ -199,7 +211,7 @@ def create_in_out_manager(ex_arch, layers):
 
 
 def build_network_from_architecture(architecture):
-    #TODO: validate architecture
+    validate_architecture(architecture)
     ex_arch = extend_architecture_info(architecture)
     layers = instantiate_layers_from_architecture(ex_arch)
     param_manager = create_param_manager(layers)
