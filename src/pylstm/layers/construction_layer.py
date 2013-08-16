@@ -86,8 +86,6 @@ def create_construction_layer(layer_type):
 
 
 def instantiate_layer(name, input_size, output_size, kwargs):
-    if name in ['Input', 'Output']:
-        return python_layers.LayerBase(input_size, output_size, **kwargs)
     if name in python_layers.__dict__:
         LayerType = python_layers.__dict__[name]
         return LayerType(input_size, output_size, **kwargs)

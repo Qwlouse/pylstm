@@ -465,13 +465,13 @@ class CgLiteTrainer(object):
 
 if __name__ == "__main__":
     from pylstm.netbuilder import NetworkBuilder
-    from pylstm.layers import RegularLayer
+    from pylstm.layers import ForwardLayer
     from pylstm.error_functions import MeanSquaredError
 
     rnd = np.random.RandomState(145)
 
     netb = NetworkBuilder()
-    netb.input(3) >> RegularLayer(6, act_func="softmax") >> netb.output
+    netb.input(3) >> ForwardLayer(6, act_func="softmax") >> netb.output
     netb.error_func = MeanSquaredError
     net = netb.build()
     net.param_buffer = rnd.randn(net.get_param_size())

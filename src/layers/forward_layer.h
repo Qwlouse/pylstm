@@ -7,14 +7,14 @@
 #include "matrix/matrix_container.h"
 
 
-class RegularLayer {
+class ForwardLayer {
 public:
 	const ActivationFunction* f;
 	bool use_bias;
 
-	RegularLayer();
-	explicit RegularLayer(const ActivationFunction* f);
-	~RegularLayer();
+	ForwardLayer();
+	explicit ForwardLayer(const ActivationFunction* f);
+	~ForwardLayer();
 
 	class Parameters : public ::MatrixContainer {
 	public:

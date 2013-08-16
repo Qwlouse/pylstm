@@ -4,7 +4,7 @@
 
 #include "Config.h"
 #include "Core.h"
-#include "layers/fwd_layer.h"
+#include "layers/forward_layer.h"
 #include "layers/layer.hpp"
 #include "matrix/matrix_operation.h"
 
@@ -14,7 +14,7 @@ TEST(FwdLayerTest, FwdParameterConstruction)
 {
 	Matrix buffer = {{{1, 2, 3, 4, 5, 6, 7, 8}}};
 
-	RegularLayer::Parameters w(3, 2);
+	ForwardLayer::Parameters w(3, 2);
 	w.lay_out(buffer);
 	ASSERT_EQ(8, w.get_size());
 	ASSERT_EQ(w.HX.size, 6);
@@ -31,7 +31,7 @@ TEST(FwdLayerTest, FwdBuffersConstruction)
 {
 	Matrix buffer = {{{1, 2, 3, 4, 5, 6}}};
 
-	RegularLayer::FwdState b(5, 1, 3, 2);
+	ForwardLayer::FwdState b(5, 1, 3, 2);
 	b.lay_out(buffer);
 	ASSERT_EQ(6, b.get_size());
 	ASSERT_EQ(b.Ha.size, 6);
@@ -49,7 +49,7 @@ TEST(FwdLayerTest, fwd_pass)
 	Matrix X(3, n_batches, n_slices);
 
 
-	//Matrix Y = run_fwd<RegularLayer>(X, 4, W);
+	//Matrix Y = run_fwd<ForwardLayer>(X, 4, W);
 	Matrix expected(4, n_batches, n_slices);
 	add_scalar(expected, 0.5);
 	//ASSERT_TRUE(equals(Y, expected));
@@ -57,7 +57,7 @@ TEST(FwdLayerTest, fwd_pass)
 
 TEST(FwdLayerTest, layer_wrapper)
 {
-	Layer<RegularLayer> L(5, 4);
+	Layer<ForwardLayer> L(5, 4);
 
 	Matrix W(1, 1, L.get_weight_size());
 	Matrix X(L.in_size, 3, 2);
@@ -70,7 +70,7 @@ TEST(FwdLayerTest, layer_wrapper)
 
 TEST(FwdLayerTest, layer_wrapper2)
 {
-	Layer<RegularLayer> layer(5, 4, RegularLayer(&Sigmoid));
+	Layer<ForwardLayer> layer(5, 4, ForwardLayer(&Sigmoid));
 
 	Matrix W(1, 1, layer.get_weight_size());
 	Matrix X(layer.in_size, 3, 2);

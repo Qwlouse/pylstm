@@ -94,11 +94,11 @@ def create_layer(name, in_size, out_size, **kwargs):
 
     unexpected_kwargs = [k for k in kwargs if k not in {'act_func'}]
     expected_kwargs = set()
-    if name_lower == "lstm97":
+    if name_lower == "lstm97layer":
         expected_kwargs = {'full_gradient', 'peephole_connections',
                            'forget_gate', 'output_gate', 'gate_recurrence',
                            'use_bias'}
-    if name_lower == "regularlayer":
+    if name_lower == "forwardlayer":
         expected_kwargs = {'use_bias'}
     unexpected_kwargs = list(set(unexpected_kwargs) - expected_kwargs)
     if unexpected_kwargs:
@@ -123,22 +123,22 @@ def create_layer(name, in_size, out_size, **kwargs):
             act_fct = <cm.ActivationFunction*> &cm.Winout
 
     cdef cl.Lstm97Layer lstm97
-    cdef cl.RegularLayer regular_layer
+    cdef cl.ForwardLayer forward_layer
 
-    if name_lower == "regular":
-        regular_layer = cl.RegularLayer(act_fct)
+    if name_lower == "forwardlayer":
+        forward_layer = cl.ForwardLayer(act_fct)
         if 'use_bias' in kwargs:
-            regular_layer.use_bias = kwargs['use_bias']
-        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.RegularLayer](in_size, out_size, regular_layer))
-    elif name_lower == "rnn":
+            forward_layer.use_bias = kwargs['use_bias']
+        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.ForwardLayer](in_size, out_size, forward_layer))
+    elif name_lower == "rnnlayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.RnnLayer](in_size, out_size, cl.RnnLayer(act_fct)))
-    elif name_lower == "arnn":
+    elif name_lower == "arnnlayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.ArnnLayer](in_size, out_size, cl.ArnnLayer(act_fct)))
-    elif name_lower == "mrnn":
+    elif name_lower == "mrnnlayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.MrnnLayer](in_size, out_size, cl.MrnnLayer(act_fct)))
-    elif name_lower == "lstm":
+    elif name_lower == "lstmlayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.LstmLayer](in_size, out_size, cl.LstmLayer(act_fct)))
-    elif name_lower == "lstm97":
+    elif name_lower == "lstm97layer":
         lstm97 = cl.Lstm97Layer(act_fct)
         if 'full_gradient' in kwargs:
             lstm97.full_gradient = kwargs['full_gradient']
@@ -154,7 +154,7 @@ def create_layer(name, in_size, out_size, **kwargs):
             lstm97.use_bias = kwargs['use_bias']
 
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.Lstm97Layer](in_size, out_size, lstm97))
-    elif name_lower == "reverse":
+    elif name_lower == "reverselayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.ReverseLayer](in_size, out_size, cl.ReverseLayer()))
     else :
         raise AttributeError("No layer with name " + name)

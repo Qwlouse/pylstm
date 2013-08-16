@@ -2,7 +2,7 @@
 # coding=utf-8
 
 from __future__ import division, print_function, unicode_literals
-from pylstm import NetworkBuilder, RegularLayer, RnnLayer, LstmLayer, ReverseLayer
+from pylstm import NetworkBuilder, ForwardLayer, RnnLayer, LstmLayer, ReverseLayer
 import numpy as np
 from pylstm.utils import check_gn_pass
 
@@ -36,7 +36,7 @@ nr_timesteps = 4
 
 netb = NetworkBuilder()
 #netb.input(in_size) >> LstmLayer(out_size, act_func='linear') >> netb.output
-netb.input(in_size) >>  RegularLayer(out_size, act_func='linear') >> netb.output
+netb.input(in_size) >>  ForwardLayer(out_size, act_func='linear') >> netb.output
 net = netb.build()
 
 

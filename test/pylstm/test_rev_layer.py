@@ -3,7 +3,7 @@
 
 from __future__ import division, print_function, unicode_literals
 import unittest
-from pylstm.layers import Reverse
+from pylstm.layers import ReverseLayer
 from pylstm.netbuilder import NetworkBuilder
 import numpy as np
 
@@ -14,7 +14,7 @@ class ReverseLayerTest(unittest.TestCase):
         self.batches = 1
         self.time_slices = 5
         netb = NetworkBuilder()
-        netb.input(self.size) >> Reverse() >> netb.output
+        netb.input(self.size) >> ReverseLayer() >> netb.output
         self.net = netb.build()
 
     def test_forward_pass(self):

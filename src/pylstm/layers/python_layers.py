@@ -67,6 +67,9 @@ class LayerBase(object):
         pass
 
 
+InputLayer = LayerBase
+Output = LayerBase
+
 class NoOpLayer(LayerBase):
     """
     This is essentially a no-op layer.

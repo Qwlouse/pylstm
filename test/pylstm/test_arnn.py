@@ -6,7 +6,7 @@ import unittest
 import numpy as np
 import itertools
 from pylstm.netbuilder import NetworkBuilder
-from pylstm.layers import ARNN
+from pylstm.layers import ArnnLayer
 from pylstm.utils import check_gradient, check_deltas, check_rpass
 from pylstm.wrapper import Matrix
 
@@ -33,10 +33,10 @@ class ArnnTests(unittest.TestCase):
 
         self.batch_size = 4
         netb = NetworkBuilder()
-        netb.input(self.input_size) >> ARNN(self.output_size) >> netb.output
+        netb.input(self.input_size) >> ArnnLayer(self.output_size) >> netb.output
         self.net = netb.build()
         self.net.param_buffer = np.ones(self.net.get_param_size())*2 #rnd.randn(self.net.get_param_size()) * 0.1
-        self.net.get_param_view_for('ARNN')['Timing'][:] = [1, 2, 3]
+        self.net.get_param_view_for('ArnnLayer')['Timing'][:] = [1, 2, 3]
         self.X = rnd.randn(self.timesteps, self.batch_size, self.input_size)
 
 
@@ -57,7 +57,7 @@ class ArnnTests(unittest.TestCase):
             print("diff")
             print(diff[t])
             print(np.sum(diff[t]**2))
-        print("Checking Deltas of ARNN with sigmoid = %0.4f" % e)
+        print("Checking Deltas of ArnnLayer with sigmoid = %0.4f" % e)
 
         self.assertTrue(e < 1e-6)
 
@@ -90,7 +90,7 @@ class ArnnTests(unittest.TestCase):
             print(err)
             E += err
 
-        print("Checking Gradient of ARNN with sigmoid = %0.4f" % E)
+        print("Checking Gradient of ArnnLayer with sigmoid = %0.4f" % E)
         self.assertTrue(E < 1e-6)
 
 

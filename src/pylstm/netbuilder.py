@@ -5,7 +5,7 @@ from collections import OrderedDict
 from copy import deepcopy
 from buffer_manager import BufferManager, create_param_manager
 from buffer_manager import create_fwd_state_manager, create_bwd_state_manager
-from layers import Input, Output
+from layers import InputLayer, Output
 from network import Network
 from pylstm.error_functions import MeanSquaredError
 import numpy as np
@@ -20,7 +20,7 @@ class NetworkBuilder(object):
 
     def input(self, size=None):
         if size:
-            self.input_layer = Input(size, "Input")
+            self.input_layer = InputLayer(size, "InputLayer")
         return self.input_layer
 
     def build(self):
@@ -32,17 +32,17 @@ class NetworkBuilder(object):
 def find_input_layer(some_layer):
     all_layers = some_layer.collect_all_connected_layers()
     # find input layer(s)
-    input_layers = [l for l in all_layers if l.layer_type == 'Input']
+    input_layers = [l for l in all_layers if l.layer_type == 'InputLayer']
     assert len(input_layers) == 1, \
-        "Found %d Inputs, but has to be 1." % len(input_layers)
+        "Found %d InputLayers, but has to be 1." % len(input_layers)
 
     input_layer = input_layers[0]
     assert len(input_layer.sources) == 0, \
-        "Input is not allowed to have sources."
+        "InputLayer is not allowed to have sources."
 
     source_layers = [l for l in all_layers if len(l.sources) == 0]
     assert len(source_layers) == 1 and source_layers[0] == input_layer,\
-        "Only the Input is allowed to have empty sources list!"
+        "Only the InputLayer is allowed to have empty sources list!"
 
     return input_layers[0]
 

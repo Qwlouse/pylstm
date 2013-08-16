@@ -2,14 +2,14 @@ from c_matrix cimport Matrix, ActivationFunction, MatrixContainer
 from libcpp.string cimport string
 from libcpp cimport bool
 
-cdef extern from "fwd_layer.h":
-    cppclass RegularLayer:
-        RegularLayer()
-        RegularLayer(ActivationFunction* f)
+cdef extern from "forward_layer.h":
+    cppclass ForwardLayer:
+        ForwardLayer()
+        ForwardLayer(ActivationFunction* f)
         bool use_bias
 
 
-cdef extern from "rev_layer.h":
+cdef extern from "reverse_layer.h":
     cppclass ReverseLayer:
         ReverseLayer()
 

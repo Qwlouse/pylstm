@@ -34,7 +34,7 @@ class Network(object):
 
     @property
     def in_buffer(self):
-        return self.in_out_manager.get_source_view("Input").as_array()
+        return self.in_out_manager.get_source_view("InputLayer").as_array()
 
     @property
     def out_buffer(self):
@@ -73,7 +73,7 @@ class Network(object):
         return self.param_manager.calculate_size()
 
     def get_input_size(self):
-        return self.layers["Input"].get_output_size()
+        return self.layers["InputLayer"].get_output_size()
 
     def get_output_size(self):
         return self.layers["Output"].get_input_size()
@@ -166,7 +166,7 @@ class Network(object):
 
             l.backward(param, fwd_state, bwd_state, out, delta_in, delta_out)
         # read the final delta buffer
-        return self.delta_manager.get_source_view("Input").as_array()
+        return self.delta_manager.get_source_view("InputLayer").as_array()
 
     def backward_pass(self, T, M=None):
         if self.deltas is None:
@@ -211,7 +211,7 @@ class Network(object):
         # inject the input buffer
         self.in_buffer[:] = input_buffer
         # set r input to 0
-        self.r_in_out_manager.get_source_view("Input").as_array()[:] = 0.0
+        self.r_in_out_manager.get_source_view("InputLayer").as_array()[:] = 0.0
         # execute all the intermediate layers
         for n, l in self.layers.items()[1:-1]:
             param = self.param_manager.get_source_view(n)
@@ -253,7 +253,7 @@ class Network(object):
             l.dampened_backward(param, fwd_state, bwd_state, out, delta_in, delta_out, r_fwd_state, lambda_, mu)
 
         # read the final delta buffer
-        return self.delta_manager.get_source_view("Input").as_array()
+        return self.delta_manager.get_source_view("InputLayer").as_array()
 
     def hessian_pass(self, input_buffer, v_buffer, lambda_=0., mu=0.):
         t = input_buffer.shape[0]
