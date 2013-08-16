@@ -94,7 +94,7 @@ def create_layer(name, in_size, out_size, **kwargs):
 
     unexpected_kwargs = [k for k in kwargs if k not in {'act_func'}]
     expected_kwargs = set()
-    if name_lower == "lstm97layer":
+    if name_lower == "lstm97":
         expected_kwargs = {'full_gradient', 'peephole_connections',
                            'forget_gate', 'output_gate', 'gate_recurrence',
                            'use_bias'}
@@ -125,20 +125,20 @@ def create_layer(name, in_size, out_size, **kwargs):
     cdef cl.Lstm97Layer lstm97
     cdef cl.RegularLayer regular_layer
 
-    if name_lower == "regularlayer":
+    if name_lower == "regular":
         regular_layer = cl.RegularLayer(act_fct)
         if 'use_bias' in kwargs:
             regular_layer.use_bias = kwargs['use_bias']
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.RegularLayer](in_size, out_size, regular_layer))
-    elif name_lower == "rnnlayer":
+    elif name_lower == "rnn":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.RnnLayer](in_size, out_size, cl.RnnLayer(act_fct)))
-    elif name_lower == "arnnlayer":
+    elif name_lower == "arnn":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.ArnnLayer](in_size, out_size, cl.ArnnLayer(act_fct)))
-    elif name_lower == "mrnnlayer":
+    elif name_lower == "mrnn":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.MrnnLayer](in_size, out_size, cl.MrnnLayer(act_fct)))
-    elif name_lower == "lstmlayer":
+    elif name_lower == "lstm":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.LstmLayer](in_size, out_size, cl.LstmLayer(act_fct)))
-    elif name_lower == "lstm97layer":
+    elif name_lower == "lstm97":
         lstm97 = cl.Lstm97Layer(act_fct)
         if 'full_gradient' in kwargs:
             lstm97.full_gradient = kwargs['full_gradient']
@@ -154,7 +154,7 @@ def create_layer(name, in_size, out_size, **kwargs):
             lstm97.use_bias = kwargs['use_bias']
 
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.Lstm97Layer](in_size, out_size, lstm97))
-    elif name_lower == "reverselayer":
+    elif name_lower == "reverse":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.ReverseLayer](in_size, out_size, cl.ReverseLayer()))
     else :
         raise AttributeError("No layer with name " + name)

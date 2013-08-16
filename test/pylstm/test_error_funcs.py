@@ -8,6 +8,7 @@ import unittest
 from pylstm.error_functions import MeanSquaredError, CrossEntropyError, CTC
 from pylstm.error_functions import MultiClassCrossEntropyError
 from pylstm.error_functions import _ctc_calculate_alphas, _ctc_calculate_betas
+import warnings
 
 
 class SimpleErrorFuncsTest(unittest.TestCase):
@@ -62,59 +63,69 @@ class CTCTest(unittest.TestCase):
         self.T = np.array([1, 2])
 
     def test_alpha_values(self):
-        a = _ctc_calculate_alphas(np.log(self.Y), self.T)
-        a_expected = np.array(
-            [[.1, .08, 0, 0],
-             [.7, .08, .048, 0],
-             [0, .56, .192, 0],
-             [0, .07, .284, .1048],
-             [0, 0, .021, .2135]]).T
-        self.assertTrue(np.allclose(np.exp(a), a_expected))
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            a = _ctc_calculate_alphas(np.log(self.Y), self.T)
+            a_expected = np.array(
+                [[.1, .08, 0, 0],
+                 [.7, .08, .048, 0],
+                 [0, .56, .192, 0],
+                 [0, .07, .284, .1048],
+                 [0, 0, .021, .2135]]).T
+            self.assertTrue(np.allclose(np.exp(a), a_expected))
 
     def test_beta_values(self):
-        b = _ctc_calculate_betas(np.log(self.Y), self.T)
-        b_expected = np.array(
-            [[.096, .06, 0, 0],
-             [.441, .48, .2, 0],
-             [0, .42, .2, 0],
-             [0, .57, .9, 1],
-             [0, 0, .7, 1]]).T
-        self.assertTrue(np.allclose(np.exp(b), b_expected))
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            b = _ctc_calculate_betas(np.log(self.Y), self.T)
+            b_expected = np.array(
+                [[.096, .06, 0, 0],
+                 [.441, .48, .2, 0],
+                 [0, .42, .2, 0],
+                 [0, .57, .9, 1],
+                 [0, 0, .7, 1]]).T
+            self.assertTrue(np.allclose(np.exp(b), b_expected))
 
     def test_alpha_values_duplicate_label(self):
-        T = np.array([1, 1])
-        a = _ctc_calculate_alphas(np.log(self.Y), T)
-        a_expected = np.array(
-            [[.1, .08, 0, 0],
-             [.7, .08, .048, 0],
-             [0, .56, .192, 0],
-             [0, 0, .168, .036],
-             [0, 0, 0, .1176]]).T
-        self.assertTrue(np.allclose(np.exp(a), a_expected))
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            T = np.array([1, 1])
+            a = _ctc_calculate_alphas(np.log(self.Y), T)
+            a_expected = np.array(
+                [[.1, .08, 0, 0],
+                 [.7, .08, .048, 0],
+                 [0, .56, .192, 0],
+                 [0, 0, .168, .036],
+                 [0, 0, 0, .1176]]).T
+            self.assertTrue(np.allclose(np.exp(a), a_expected))
 
     def test_beta_values_duplicate_label(self):
-        T = np.array([1, 1])
-        b = _ctc_calculate_betas(np.log(self.Y), T)
-        b_expected = np.array(
-            [[.003, 0, 0, 0],
-             [.219, .03, 0, 0],
-             [0, .27, .1, 0],
-             [0, .45, .8, 1],
-             [0, 0, .7, 1]]).T
-        self.assertTrue(np.allclose(np.exp(b), b_expected))
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            T = np.array([1, 1])
+            b = _ctc_calculate_betas(np.log(self.Y), T)
+            b_expected = np.array(
+                [[.003, 0, 0, 0],
+                 [.219, .03, 0, 0],
+                 [0, .27, .1, 0],
+                 [0, .45, .8, 1],
+                 [0, 0, .7, 1]]).T
+            self.assertTrue(np.allclose(np.exp(b), b_expected))
 
     @unittest.skip
     def test_forward_values_multibatch1(self):
-        Y = np.hstack((self.Y, self.Y))
-        T = np.hstack((self.T, self.T))
-        a = _ctc_calculate_alphas(np.log(Y), T)
-        b = _ctc_calculate_betas(np.log(Y), T)
-        a_expected = np.array([[.1, .08, 0, 0], [.7, .08, .048, 0], [0, .56, .192, 0], [0, .07, .284, .1048], [0, 0, .021, .2135]]).reshape(5, 1, 4)
-        b_expected = np.array([[.096, .06, 0, 0], [.441, .48, .2, 0], [0, .42, .2, 0], [0, .57, .9, 1], [0, 0, .7, 1]]).reshape(5, 1, 4)
-        self.assertTrue(np.allclose(a[:, 0:1, :].T, a_expected))
-        self.assertTrue(np.allclose(b[:, 0:1, :].T, b_expected))
-        self.assertTrue(np.allclose(a[:, 1:2, :].T, a_expected))
-        self.assertTrue(np.allclose(b[:, 1:2, :].T, b_expected))
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            Y = np.hstack((self.Y, self.Y))
+            T = np.hstack((self.T, self.T))
+            a = _ctc_calculate_alphas(np.log(Y), T)
+            b = _ctc_calculate_betas(np.log(Y), T)
+            a_expected = np.array([[.1, .08, 0, 0], [.7, .08, .048, 0], [0, .56, .192, 0], [0, .07, .284, .1048], [0, 0, .021, .2135]]).reshape(5, 1, 4)
+            b_expected = np.array([[.096, .06, 0, 0], [.441, .48, .2, 0], [0, .42, .2, 0], [0, .57, .9, 1], [0, 0, .7, 1]]).reshape(5, 1, 4)
+            self.assertTrue(np.allclose(a[:, 0:1, :].T, a_expected))
+            self.assertTrue(np.allclose(b[:, 0:1, :].T, b_expected))
+            self.assertTrue(np.allclose(a[:, 1:2, :].T, a_expected))
+            self.assertTrue(np.allclose(b[:, 1:2, :].T, b_expected))
 
     @unittest.skip
     def test_forward_values_multibatch2(self):
@@ -129,10 +140,12 @@ class CTCTest(unittest.TestCase):
         self.assertTrue(np.allclose(b[:, 0:1, :].T, b_expected))
 
     def test_pxz_equal_for_all_t(self):
-        a = _ctc_calculate_alphas(np.log(self.Y), self.T)
-        b = _ctc_calculate_betas(np.log(self.Y), self.T)
-        pxz = np.exp(a + b).T.sum(0)
-        self.assertTrue(np.allclose(pxz, pxz.mean()))
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            a = _ctc_calculate_alphas(np.log(self.Y), self.T)
+            b = _ctc_calculate_betas(np.log(self.Y), self.T)
+            pxz = np.exp(a + b).T.sum(0)
+            self.assertTrue(np.allclose(pxz, pxz.mean()))
 
     @unittest.skip
     def test_pxz_equal_for_all_t_multibatch(self):

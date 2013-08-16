@@ -5,8 +5,8 @@ from .construction_layer import create_construction_layer
 from .construction_layer import InvalidArchitectureError
 
 # python layers
-InputLayer = create_construction_layer('InputLayer')
-OutputLayer = create_construction_layer('OutputLayer')
+Input = create_construction_layer('Input')
+Output = create_construction_layer('Output')
 
 
 def _create_construction_layers_for_python_layers():
@@ -15,7 +15,7 @@ def _create_construction_layers_for_python_layers():
     python_layers and add it to this modules namespace.
     """
     import python_layers
-    PYTHON_LAYERS = {n: v for n, v in python_layers.__dict__.items()
+    PYTHON_LAYERS = {n[:-5]: v for n, v in python_layers.__dict__.items()
                      if not n.startswith('_') and n.endswith('Layer')}
     import sys
     module = sys.modules[__name__]
@@ -26,10 +26,10 @@ _create_construction_layers_for_python_layers()
 
 
 # c++ layers
-LstmLayer = create_construction_layer("LstmLayer")
-Lstm97Layer = create_construction_layer("Lstm97Layer")
-RnnLayer = create_construction_layer("RnnLayer")
-ArnnLayer = create_construction_layer("ArnnLayer")
-MrnnLayer = create_construction_layer("MrnnLayer")
-RegularLayer = create_construction_layer("RegularLayer")
-ReverseLayer = create_construction_layer("ReverseLayer")
+LSTM = create_construction_layer("LSTM")
+LSTM97 = create_construction_layer("LSTM97")
+RNN = create_construction_layer("RNN")
+ARNN = create_construction_layer("ARNN")
+MRNN = create_construction_layer("MRNN")
+Regular = create_construction_layer("Regular")
+Reverse = create_construction_layer("Reverse")

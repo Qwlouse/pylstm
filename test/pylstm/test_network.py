@@ -6,7 +6,7 @@ import unittest
 import numpy as np
 import itertools
 from pylstm.netbuilder import NetworkBuilder
-from pylstm.layers import LstmLayer, Lstm97Layer, RnnLayer, MrnnLayer, RegularLayer
+from pylstm.layers import LSTM, LSTM97, RNN, MRNN, Regular
 from pylstm.utils import check_gradient, check_deltas, check_rpass
 from pylstm.wrapper import Matrix
 
@@ -29,12 +29,12 @@ class NetworkTests(unittest.TestCase):
     def setUp(self):
         self.input_size = 2
         self.output_size = 3
-        self.layer_types = [RegularLayer, RnnLayer, MrnnLayer, LstmLayer, Lstm97Layer]
+        self.layer_types = [Regular, RNN, MRNN, LSTM, LSTM97]
         self.activation_functions = ["linear", "tanh", "tanhx2", "sigmoid", "softmax"]
         self.X = rnd.randn(2, 7, self.input_size)
 
     def test_lstm_forward_pass_insensitive_to_fwd_state(self):
-        net = self.build_network(LstmLayer, "tanh")
+        net = self.build_network(LSTM, "tanh")
         out1 = net.forward_pass(self.X).copy()
         net.fwd_state_manager.initialize_buffer(Matrix(rnd.randn(
             net.fwd_state_manager.calculate_size())))
@@ -42,11 +42,11 @@ class NetworkTests(unittest.TestCase):
         self.assertTrue(np.allclose(out1, out2))
 
     def test_lstm_backward_pass_insensitive_to_bwd_state(self):
-        net = self.build_network(LstmLayer, "tanh")
+        net = self.build_network(LSTM, "tanh")
         net.clear_internal_state()
         out1 = net.forward_pass(self.X).copy()
         deltas1 = net.backward_pass(np.zeros_like(out1)).copy()
-        bwstate1 = net.get_bwd_state_for('LstmLayer')
+        bwstate1 = net.get_bwd_state_for('LSTM')
         b1 = {}
         for h in bwstate1.keys():
             b1[h] = bwstate1[h].copy()
@@ -55,7 +55,7 @@ class NetworkTests(unittest.TestCase):
             net.bwd_state_manager.calculate_size())))
         out2 = net.forward_pass(self.X).copy()
         deltas2 = net.backward_pass(np.zeros_like(out2)).copy()
-        bwstate2 = net.get_bwd_state_for('LstmLayer')
+        bwstate2 = net.get_bwd_state_for('LSTM')
         b2 = {}
         for h in bwstate2.keys():
             b2[h] = bwstate2[h].copy()

@@ -7,7 +7,7 @@ See wrapper/py_layers.pyx for python wrappers around c++ layers.
 from __future__ import division, print_function, unicode_literals
 
 
-class BaseLayer(object):
+class LayerBase(object):
     """
     The base-class of all layer types defined in Python.
     """
@@ -67,18 +67,18 @@ class BaseLayer(object):
         pass
 
 
-class CopyLayer(BaseLayer):
+class NoOpLayer(LayerBase):
     """
     This is essentially a no-op layer.
     It just copies it's input into it's output.
     """
     def create_input_view(self, input_buffer, time_length, batch_size):
-        return super(CopyLayer, self).create_input_view(input_buffer,
+        return super(NoOpLayer, self).create_input_view(input_buffer,
                                                         time_length,
                                                         batch_size).as_array()
 
     def create_output_view(self, output_buffer, time_length, batch_size):
-        return super(CopyLayer, self).create_output_view(output_buffer,
+        return super(NoOpLayer, self).create_output_view(output_buffer,
                                                          time_length,
                                                          batch_size).as_array()
 

@@ -19,6 +19,7 @@ def MeanSquaredError(Y, T, M=None):
 def CrossEntropyError(Y, T, M=None):
     Y = Y.copy()  # do not modify original Y
     Y[Y < 1e-6] = 1e-6
+    Y[Y > 1 - 1e-6] = 1 - 1e-6
     cee = T * np.log(Y) + (1 - T) * np.log(1 - Y)
     ceed = (T - Y) / (Y * (Y - 1))
     norm = Y.shape[0] * Y.shape[1]

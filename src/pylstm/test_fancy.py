@@ -9,10 +9,10 @@ import numpy as np
 
 netb = NetworkBuilder()
 
-l = ReverseLayer(6)
+l = Reverse(6)
 
-netb.input(4) >> ReverseLayer(4) >> l >> netb.output
-netb.input() >> RegularLayer(2) >> l
+netb.input(4) >> Reverse(4) >> l >> netb.output
+netb.input() >> Regular(2) >> l
 
 net = netb.build()
 

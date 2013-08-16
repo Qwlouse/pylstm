@@ -13,8 +13,9 @@ class InvalidArchitectureError(Exception):
 
 
 class ConstructionLayer(object):
-    def __init__(self, layer_type, out_size, name=None, **layer_kwargs):
-        self.out_size = out_size
+    def __init__(self, layer_type, out_size=None, name=None, **layer_kwargs):
+        self.size_set = out_size is not None
+        self.out_size = 0 if out_size is None else out_size
         self.name = name
         self.targets = []
         self.sources = []
@@ -25,7 +26,7 @@ class ConstructionLayer(object):
 
     def instantiate(self):
         return instantiate_layer(self.layer_type, self.get_input_size(),
-                             self.out_size, self.layer_kwargs)
+                                 self.out_size, self.layer_kwargs)
 
     def get_input_size(self):
         return sum(s.out_size for s in self.sources)
@@ -57,6 +58,8 @@ class ConstructionLayer(object):
 
     def _add_source(self, other):
         self.sources.append(other)
+        if not self.size_set:  # if size was not set, out_size should be in_size
+            self.out_size = self.get_input_size()
 
     def __rshift__(self, other):
         self.targets.append(other)
@@ -83,8 +86,8 @@ def create_construction_layer(layer_type):
 
 
 def instantiate_layer(name, input_size, output_size, kwargs):
-    if name in ['InputLayer', 'OutputLayer']:
-        return python_layers.BaseLayer(input_size, output_size, **kwargs)
+    if name in ['Input', 'Output']:
+        return python_layers.LayerBase(input_size, output_size, **kwargs)
     if name in python_layers.__dict__:
         LayerType = python_layers.__dict__[name]
         return LayerType(input_size, output_size, **kwargs)
