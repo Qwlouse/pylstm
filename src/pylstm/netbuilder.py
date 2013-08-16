@@ -76,7 +76,7 @@ def ensure_unique_names_for_layers(layers):
         if name in layer_map or (name + '_1') in layer_map:
             basename = name
             idx = 2
-            while name in layers:
+            while name in layer_map:
                 name = basename + "_%d" % idx
                 idx += 1
 
