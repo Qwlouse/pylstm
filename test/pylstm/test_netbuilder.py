@@ -2,8 +2,8 @@
 # coding=utf-8
 
 import unittest
-from pylstm.netbuilder import NetworkBuilder, InvalidArchitectureError
-from pylstm.layers import create_construction_layer
+from pylstm.layers import create_construction_layer, InvalidArchitectureError
+from pylstm.netbuilder import NetworkBuilder
 
 
 class Foo(): pass
@@ -82,29 +82,3 @@ class ConstructionLayerTests(unittest.TestCase):
             return
         except:
             self.fail('Wrong Exception')
-
-
-class NetBuilderTests(unittest.TestCase):
-    def setUp(self):
-        self.netb = NetworkBuilder()
-
-    def test_build_with_empty_network_raises(self):
-        self.assertRaises(InvalidArchitectureError, self.netb.build)
-
-#    def test_build_with_in_out_connection_works(self):
-#        self.netb.input(3) >> self.netb.output
-#        self.netb.build()
-
-    def test_topological_sort(self):
-        fl = FooLayer
-        self.netb.input(3) >> fl(2) >> fl(2) >> fl(2) >> self.netb.output
-        self.netb.input() >> fl(2) >> self.netb.output
-        self.netb.input() >> self.netb.output
-        layers = self.netb.get_sorted_layers()
-        current_depth = 0
-        for l in layers:
-            self.assertGreaterEqual(l.get_depth(), current_depth)
-            current_depth = l.get_depth()
-            for s in l.sources:
-                self.assertGreater(l.get_depth(), s.get_depth())
-        self.assertEqual(len(layers), 6)

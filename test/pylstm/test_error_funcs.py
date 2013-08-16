@@ -33,7 +33,7 @@ class SimpleErrorFuncsTest(unittest.TestCase):
         for err in self.error_funcs:
             e1, d1 = err(Y1, T1)
             e2, d2 = err(Y2, T2)
-            self.assertEqual(e1, e2)
+            self.assertAlmostEqual(e1, e2)
 
     def test_deriv_shape(self):
         Y = np.ones((4, 3, 2))
