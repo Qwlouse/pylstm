@@ -6,7 +6,6 @@ from .construction_layer import InvalidArchitectureError
 
 # python layers
 InputLayer = create_construction_layer('InputLayer')
-Output = create_construction_layer('Output')
 NoOpLayer = create_construction_layer('NoOpLayer')
 
 # c++ layers

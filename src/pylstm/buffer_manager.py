@@ -169,7 +169,7 @@ def create_param_manager(layers):
     param_manager = BufferManager()
     fwd_state_manager = BufferManager()
     bwd_state_manager = BufferManager()
-    for name, l in layers.items()[1:-1]:
+    for name, l in layers.items()[1:]:
         sources = {name: (l.get_parameter_size, l.create_param_view)}
         param_manager.add(sources, {})
 
@@ -185,7 +185,7 @@ def create_param_manager(layers):
 
 def create_fwd_state_manager(layers):
     fwd_state_manager = BufferManager()
-    for name, l in layers.items()[1:-1]:
+    for name, l in layers.items()[1:]:
         sources = {name: (l.get_fwd_state_size,
                           l.create_fwd_state)}
         fwd_state_manager.add(sources, {})
@@ -195,7 +195,7 @@ def create_fwd_state_manager(layers):
 
 def create_bwd_state_manager(layers):
     bwd_state_manager = BufferManager()
-    for name, l in layers.items()[1:-1]:
+    for name, l in layers.items()[1:]:
         sources = {name: (l.get_bwd_state_size,
                           l.create_bwd_state)}
         bwd_state_manager.add(sources, {})

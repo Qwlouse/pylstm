@@ -2,10 +2,10 @@
 # coding=utf-8
 
 from __future__ import division, print_function, unicode_literals
-import unittest
-from pylstm.layers import ReverseLayer
-from pylstm.netbuilder import NetworkBuilder
 import numpy as np
+import unittest
+from pylstm.layers import ReverseLayer, InputLayer
+from pylstm.netbuilder import build_net
 
 
 class ReverseLayerTest(unittest.TestCase):
@@ -13,19 +13,22 @@ class ReverseLayerTest(unittest.TestCase):
         self.size = 3
         self.batches = 1
         self.time_slices = 5
-        netb = NetworkBuilder()
-        netb.input(self.size) >> ReverseLayer() >> netb.output
-        self.net = netb.build()
+
+        self.net = build_net(InputLayer(self.size) >> ReverseLayer())
 
     def test_forward_pass(self):
         X = np.arange(self.size * self.batches * self.time_slices).reshape(self.time_slices, self.batches, self.size)
         out = self.net.forward_pass(X)
+        print(X[::-1, :, :])
+        print(out)
         self.assertTrue(np.allclose(X[::-1, :, :], out))
 
     def test_backward_pass(self):
         X = np.arange(self.size * self.batches * self.time_slices).reshape(self.time_slices, self.batches, self.size)
         self.net.forward_pass(X)
         out = self.net.pure_backpass(X)
+        print(X[::-1, :, :])
+        print(out)
         np.testing.assert_array_almost_equal(X[::-1, :, :], out)
 
 

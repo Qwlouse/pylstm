@@ -3,30 +3,12 @@
 from __future__ import division, print_function, unicode_literals
 from collections import OrderedDict
 from copy import deepcopy
+import numpy as np
 from buffer_manager import BufferManager, create_param_manager
 from buffer_manager import create_fwd_state_manager, create_bwd_state_manager
-from layers import InputLayer, Output
 from network import Network
 from pylstm.error_functions import MeanSquaredError
-import numpy as np
 from pylstm.layers.construction_layer import instantiate_layer
-
-
-class NetworkBuilder(object):
-    def __init__(self):
-        self.input_layer = None
-        self.output = Output(0, "Output")
-        self.error_func = MeanSquaredError
-
-    def input(self, size=None):
-        if size:
-            self.input_layer = InputLayer(size, "InputLayer")
-        return self.input_layer
-
-    def build(self):
-        assert self.input_layer is not None
-        arch = create_architecture_from_layers(self.input_layer)
-        return build_network_from_architecture(arch)
 
 
 def find_input_layer(some_layer):
@@ -56,17 +38,10 @@ def get_sorted_layers(input_layer):
 
 
 def ensure_unique_output_layer(layers):
-    output_layers = [l for l in layers if l.layer_type == 'Output']
-    assert len(output_layers) == 1, \
-        "Found %d Outputs, but has to be 1." % len(output_layers)
-
-    output_layer = output_layers[0]
-    assert len(output_layer.targets) == 0, \
-        "Output is not allowed to have targets."
-
-    sink_layers = [l for l in layers if len(l.targets) == 0]
-    assert len(sink_layers) == 1 and sink_layers[0] == output_layer,\
-        "Only the Output is allowed to have empty targets list!"
+    output_layers = [l for l in layers if len(l.targets) == 0]
+    assert len(output_layers) == 1,\
+        "Only one Layer is allowed to have empty targets list! But found %s." %\
+        str(output_layers)
 
 
 def ensure_unique_names_for_layers(layers):
@@ -94,7 +69,7 @@ def ensure_unique_names_for_layers(layers):
 
 def build_architecture_from_layers_list(layers):
     architecture = OrderedDict()
-    for l in layers[:-1]:
+    for l in layers:
         layer_entry = {
             'size': l.out_size,
             'type': l.layer_type,
@@ -129,12 +104,6 @@ def validate_architecture(architecture):
 
 def extend_architecture_info(architecture):
     extended_architecture = deepcopy(architecture)  # do not modify original
-
-    extended_architecture['Output'] = {
-        'size': 0,
-        'type': 'Output',
-        'targets': []
-    }
 
     # add in_size to every layer:
     for n, l in extended_architecture.items():
@@ -198,7 +167,7 @@ def get_forward_closure(layer, arch):
 def create_in_out_manager(ex_arch, layers):
     in_out_manager = BufferManager()
 
-    for layer in ex_arch.keys()[:-1]:
+    for layer in ex_arch.keys():
         source_list, sink_list, con_table = get_forward_closure(layer, ex_arch)
         assert np.all(con_table == 1), "Sparse Architectures not supported yet"
         sinks = {n: (layers[n].get_input_buffer_size,
@@ -227,4 +196,10 @@ def build_network_from_architecture(architecture):
                   bwd_state_manager,
                   error_func=MeanSquaredError,
                   architecture=architecture)
+    return net
+
+
+def build_net(some_layer):
+    arch = create_architecture_from_layers(some_layer)
+    net = build_network_from_architecture(arch)
     return net

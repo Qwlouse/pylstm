@@ -1,12 +1,11 @@
 #!/usr/bin/python
 # coding=utf-8
 
-from netbuilder import NetworkBuilder
-from layers import *
-from error_functions import *
-from trainer import *
+from constraints import *
 from datasets import generate_memo_task, generate_5bit_memory_task
 from datasets import generate_5bit_memory_task
+from error_functions import *
 from initializer import WeightInitializer
-from constraints import *
+from layers import *
 from regularizers import *
+from trainer import *

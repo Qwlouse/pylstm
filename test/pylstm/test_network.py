@@ -2,11 +2,11 @@
 # coding=utf-8
 
 from __future__ import division, print_function, unicode_literals
-import unittest
-import numpy as np
 import itertools
-from pylstm.netbuilder import NetworkBuilder
-from pylstm.layers import LstmLayer, Lstm97Layer, RnnLayer, MrnnLayer, ForwardLayer
+import numpy as np
+import unittest
+from pylstm.layers import LstmLayer, Lstm97Layer, RnnLayer, MrnnLayer, ForwardLayer, InputLayer
+from pylstm.netbuilder import build_net
 from pylstm.utils import check_gradient, check_deltas, check_rpass
 from pylstm.wrapper import Matrix
 
@@ -15,14 +15,10 @@ rnd = np.random.RandomState(213998106)
 
 class NetworkTests(unittest.TestCase):
     def build_network(self, layer_type, activation_function, layers=1):
-        netb = NetworkBuilder()
-
-        prev_layer = netb.input(self.input_size)
+        prev_layer = InputLayer(self.input_size)
         for l in range(layers):
             prev_layer = prev_layer >> layer_type(self.output_size, act_func=activation_function)
-        prev_layer >> netb.output
-
-        net = netb.build()
+        net = build_net(prev_layer)
         net.param_buffer = rnd.randn(net.get_param_size())
         return net
 

@@ -32,13 +32,15 @@ class Network(object):
         self.regularizers = {}
         self.constraints = {}
 
+        self.out_layer = self.layers.keys()[-1]
+
     @property
     def in_buffer(self):
         return self.in_out_manager.get_source_view("InputLayer").as_array()
 
     @property
     def out_buffer(self):
-        return self.in_out_manager.get_sink_view("Output").as_array()
+        return self.in_out_manager.get_source_view(self.out_layer).as_array()
 
     @property
     def param_buffer(self):
@@ -60,8 +62,6 @@ class Network(object):
                 for constraint in view_constraints:
                     params[view][:] = constraint(params[view])
 
-
-
     @property
     def grad_buffer(self):
         return self.grad_manager.buffer.as_array()
@@ -73,10 +73,10 @@ class Network(object):
         return self.param_manager.calculate_size()
 
     def get_input_size(self):
-        return self.layers["InputLayer"].get_output_size()
+        return self.layers["InputLayer"].out_size
 
     def get_output_size(self):
-        return self.layers["Output"].get_input_size()
+        return self.layers[self.out_layer].out_size
 
     def get_param_view_for(self, name):
         return self.param_manager.get_source_view(name)
@@ -124,12 +124,12 @@ class Network(object):
         self.deltas = None
         # determine dimensions and set buffer managers accordingly
         t, b, f = input_buffer.shape
-        assert f == self.layers.values()[0].get_output_size()
+        assert f == self.layers.values()[0].out_size
         self.set_buffer_manager_dimensions(t, b)
         # inject the input buffer
         self.in_buffer[:] = input_buffer
         # execute all the intermediate layers
-        for n, l in self.layers.items()[1:-1]:
+        for n, l in self.layers.items()[1:]:
             param = self.param_manager.get_source_view(n)
             fwd_state = self.fwd_state_manager.get_source_view(n)
 
@@ -152,10 +152,10 @@ class Network(object):
         # clear all delta buffers
         self.delta_manager.clear_buffer()
         # inject delta_buffer
-        out_view = self.delta_manager.get_sink_view("Output").as_array()
+        out_view = self.delta_manager.get_source_view(self.out_layer).as_array()
         out_view[:] = deltas
         # execute all the intermediate layers backwards
-        for n, l in self.layers.items()[-2:0:-1]:
+        for n, l in self.layers.items()[-1:0:-1]:
             param = self.param_manager.get_source_view(n)
             fwd_state = self.fwd_state_manager.get_source_view(n)
             bwd_state = self.bwd_state_manager.get_source_view(n)
@@ -176,7 +176,7 @@ class Network(object):
     def calc_gradient(self):
         self.grad_manager.initialize_buffer(
             pw.Matrix(self.get_param_size()))
-        for n, l in self.layers.items()[-2:0:-1]:
+        for n, l in self.layers.items()[-1:0:-1]:
             param = self.param_manager.get_source_view(n)
             grad = self.grad_manager.get_source_view(n)
             fwd_state = self.fwd_state_manager.get_source_view(n)
@@ -201,7 +201,7 @@ class Network(object):
     def r_forward_pass(self, input_buffer, v_buffer):
         # determine dimensions and set buffer managers accordingly
         t, b, f = input_buffer.shape
-        assert f == self.layers.values()[0].get_output_size()
+        assert f == self.layers.values()[0].out_size
         self.set_buffer_manager_dimensions(t, b)
         # inject the v value
         if isinstance(v_buffer, pw.Matrix):
@@ -213,7 +213,7 @@ class Network(object):
         # set r input to 0
         self.r_in_out_manager.get_source_view("InputLayer").as_array()[:] = 0.0
         # execute all the intermediate layers
-        for n, l in self.layers.items()[1:-1]:
+        for n, l in self.layers.items()[1:]:
             param = self.param_manager.get_source_view(n)
             v = self.v_manager.get_source_view(n)
             fwd_state = self.fwd_state_manager.get_source_view(n)
@@ -226,20 +226,20 @@ class Network(object):
 
             l.Rpass(param, v, fwd_state, r_fwd_state, input_view, out, r_in, r_out)
             # read the output buffer
-        return self.r_in_out_manager.get_sink_view("Output").as_array()
+        return self.r_in_out_manager.get_source_view(self.out_layer).as_array()
 
     def r_backward_pass(self, lambda_, mu):
-        delta_buffer = self.r_in_out_manager.get_sink_view("Output").as_array()
+        delta_buffer = self.r_in_out_manager.get_source_view(self.out_layer).as_array()
         t, b, f = delta_buffer.shape
         # dims should already be set during forward_pass, but in any case...
         self.set_buffer_manager_dimensions(t, b)
         # clear all delta buffers
         self.delta_manager.clear_buffer()
         # inject delta_buffer
-        out_view = self.delta_manager.get_sink_view("Output").as_array()
+        out_view = self.delta_manager.get_source_view(self.out_layer).as_array()
         out_view[:] = delta_buffer
         # execute all the intermediate layers backwards
-        for n, l in self.layers.items()[-2:0:-1]:
+        for n, l in self.layers.items()[-1:0:-1]:
             param = self.param_manager.get_source_view(n)
             fwd_state = self.fwd_state_manager.get_source_view(n)
             bwd_state = self.bwd_state_manager.get_source_view(n)

@@ -3,7 +3,6 @@
 
 import unittest
 from pylstm.layers import create_construction_layer, InvalidArchitectureError
-from pylstm.netbuilder import NetworkBuilder
 
 
 class Foo(): pass

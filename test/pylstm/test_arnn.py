@@ -4,10 +4,9 @@
 from __future__ import division, print_function, unicode_literals
 import unittest
 import numpy as np
-import itertools
-from pylstm.netbuilder import NetworkBuilder
-from pylstm.layers import ArnnLayer
-from pylstm.utils import check_gradient, check_deltas, check_rpass
+from pylstm.netbuilder import build_net
+from pylstm.layers import ArnnLayer, InputLayer
+from pylstm.utils import check_gradient, check_deltas
 from pylstm.wrapper import Matrix
 
 rnd = np.random.RandomState(213998106)
@@ -15,14 +14,11 @@ rnd = np.random.RandomState(213998106)
 
 class ArnnTests(unittest.TestCase):
     def build_network(self, layer_type, activation_function, layers=1):
-        netb = NetworkBuilder()
-
-        prev_layer = netb.input(self.input_size)
+        prev_layer = InputLayer(self.input_size)
         for l in range(layers):
             prev_layer = prev_layer >> layer_type(self.output_size, act_func=activation_function)
-        prev_layer >> netb.output
 
-        net = netb.build()
+        net = build_net(prev_layer)
         net.param_buffer = rnd.randn(net.get_param_size())
         return net
 
@@ -32,19 +28,15 @@ class ArnnTests(unittest.TestCase):
         self.timesteps = 10
 
         self.batch_size = 4
-        netb = NetworkBuilder()
-        netb.input(self.input_size) >> ArnnLayer(self.output_size) >> netb.output
-        self.net = netb.build()
+
+        self.net = build_net(InputLayer(self.input_size) >> ArnnLayer(self.output_size))
         self.net.param_buffer = np.ones(self.net.get_param_size())*2 #rnd.randn(self.net.get_param_size()) * 0.1
         self.net.get_param_view_for('ArnnLayer')['Timing'][:] = [1, 2, 3]
         self.X = rnd.randn(self.timesteps, self.batch_size, self.input_size)
 
-
     def test_deltas_finite_differences(self):
-
         e, grad_calc, grad_approx = check_deltas(self.net, n_batches=self.batch_size,
                                                  n_timesteps=self.timesteps, rnd=rnd)
-
         grad_approx = grad_approx.reshape(self.timesteps, self.batch_size, -1)
         grad_calc = grad_calc.reshape(self.timesteps, self.batch_size, -1)
         diff = (grad_approx - grad_calc)

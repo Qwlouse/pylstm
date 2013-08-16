@@ -15,12 +15,6 @@ class LayerBase(object):
         self.in_size = in_size
         self.out_size = out_size
 
-    def get_output_size(self):
-        return self.out_size
-
-    def get_input_size(self):
-        return self.in_size
-
     def get_input_buffer_size(self, time_length=1, batch_size=1):
         return self.in_size * time_length * batch_size
 
@@ -68,7 +62,7 @@ class LayerBase(object):
 
 
 InputLayer = LayerBase
-Output = LayerBase
+
 
 class NoOpLayer(LayerBase):
     """
