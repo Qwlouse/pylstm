@@ -44,7 +44,8 @@ class ClipWeights(object):
 
 class MaskWeights(object):
     """
-    Clamps the masked weights to be zero.
+    Multiplies the weights with the mask. This can be used to clamp some of
+    the weights to zero.
 
     Should be added to the network via the set_constraints method like so:
     >> net.set_constraints(RnnLayer={'HR': MaskWeights(M)})
@@ -58,11 +59,32 @@ class MaskWeights(object):
         return view * self.mask
 
 
+class FreezeWeights(object):
+    """
+    Prevents the weights from changing at all. So it will remember the first
+    weights it sees and resets them to that every time. This means it should
+    typically be added to the network BEFORE initialization.
+
+    Should be added to the network via the set_constraints method like so:
+    >> net.set_constraints(RnnLayer={'HR': FreezeWeights()})
+    See Network.set_constraints for more information on how to control which
+    weights to affect.
+    """
+    def __init__(self):
+        self.weights = None
+
+    def __call__(self, view):
+        if self.weights is None:
+            self.weights = view
+        return self.weights
+
+
 class NoisyWeights(object):
     """
     Adds a small amount of normal-distributed noise (mean=0, std=std) to all the
-    weights of a network every time they are set, and remove the previous noise
-    before that.
+    weights of a network every time they are set. This means that you get
+    different weights for every batch. So if you want noisy weights per sequence
+    you need to use it together with online training.
 
     Should be added to the network via the set_constraints method like so:
     >> net.set_constraints(RnnLayer={'HR': NoisyWeights()})
@@ -72,11 +94,7 @@ class NoisyWeights(object):
     def __init__(self, std=0.01, seed=None):
         self.rnd = np.random.RandomState(seed)
         self.std = 0.01
-        self.weight_noise = 0
 
     def __call__(self, view):
-        modified_view = view - self.weight_noise
         size = reduce(np.multiply, view.shape)
-        self.weight_noise = self.rnd.randn(size) * self.std
-        modified_view -= self.weight_noise
-        return modified_view
+        return view - self.rnd.randn(size) * self.std
