@@ -2,7 +2,8 @@
 # coding=utf-8
 
 import unittest
-from pylstm.layers import create_construction_layer, InvalidArchitectureError
+from pylstm.structure import InvalidArchitectureError
+from pylstm.structure.layers import create_construction_layer
 
 
 class Foo(): pass

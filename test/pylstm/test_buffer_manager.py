@@ -4,7 +4,7 @@
 from __future__ import division, print_function, unicode_literals
 
 import unittest
-from pylstm.network.buffer_manager import BufferManager
+from pylstm.structure.buffer_manager import BufferManager
 
 
 class BufferManagerTest(unittest.TestCase):

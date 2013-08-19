@@ -3,11 +3,14 @@
 
 from __future__ import division, print_function, unicode_literals
 import unittest
+
 import numpy as np
-from pylstm.construction.netbuilder import build_net
-from pylstm.layers import ArnnLayer, InputLayer
-from pylstm.network.utils import check_gradient, check_deltas
+from pylstm.structure import ArnnLayer, InputLayer
+
+from pylstm.structure.netbuilder import build_net
+from pylstm.utils import check_gradient, check_deltas
 from pylstm.wrapper import Matrix
+
 
 rnd = np.random.RandomState(213998106)
 

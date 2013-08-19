@@ -2,7 +2,7 @@
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 from .construction_layer import create_construction_layer
-from .construction_layer import InvalidArchitectureError
+
 
 # python layers
 InputLayer = create_construction_layer('InputLayer')

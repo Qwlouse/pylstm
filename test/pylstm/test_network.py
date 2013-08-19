@@ -7,9 +7,9 @@ import unittest
 
 import numpy as np
 
-from pylstm.layers import LstmLayer, Lstm97Layer, RnnLayer, MrnnLayer, ForwardLayer, InputLayer
-from pylstm.construction.netbuilder import build_net
-from pylstm.network.utils import check_gradient, check_deltas, check_rpass
+from pylstm.structure import LstmLayer, Lstm97Layer, RnnLayer, MrnnLayer
+from pylstm.structure import build_net, ForwardLayer, InputLayer
+from pylstm.utils import check_gradient, check_deltas, check_rpass
 from pylstm.wrapper import Matrix
 
 

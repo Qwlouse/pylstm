@@ -6,8 +6,7 @@ import unittest
 
 import numpy as np
 
-from pylstm.layers import ReverseLayer, InputLayer
-from pylstm.construction.netbuilder import build_net
+from pylstm.structure import build_net, ReverseLayer, InputLayer
 
 
 class ReverseLayerTest(unittest.TestCase):
