@@ -9,6 +9,11 @@ class RescaleIncomingWeights(object):
     """
     Rescales the incoming weights for every neuron to sum to one (target_sum).
     Ignores Biases.
+
+    Should be added to the network via the set_constraints method like so:
+    >> net.set_constraints(RnnLayer={'HX': RescaleIncomingWeights()})
+    See Network.set_constraints for more information on how to control which
+    weights to affect.
     """
     def __init__(self, target_sum=1.0):
         self.target_sum = target_sum
@@ -22,7 +27,12 @@ class RescaleIncomingWeights(object):
 class ClipWeights(object):
     """
     Clips (limits) the weights to be between low and high.
-    Defaults to min_value=-1 and high=1
+    Defaults to min_value=-1 and high=1.
+
+    Should be added to the network via the set_constraints method like so:
+    >> net.set_constraints(RnnLayer={'HR': ClipWeights()})
+    See Network.set_constraints for more information on how to control which
+    weights to affect.
     """
     def __init__(self, low=-1., high=1.):
         self.low = low
@@ -35,6 +45,11 @@ class ClipWeights(object):
 class MaskWeights(object):
     """
     Clamps the masked weights to be zero.
+
+    Should be added to the network via the set_constraints method like so:
+    >> net.set_constraints(RnnLayer={'HR': MaskWeights(M)})
+    See Network.set_constraints for more information on how to control which
+    weights to affect.
     """
     def __init__(self, mask):
         self.mask = mask
