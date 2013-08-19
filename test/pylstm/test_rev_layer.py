@@ -2,10 +2,12 @@
 # coding=utf-8
 
 from __future__ import division, print_function, unicode_literals
-import numpy as np
 import unittest
+
+import numpy as np
+
 from pylstm.layers import ReverseLayer, InputLayer
-from pylstm.netbuilder import build_net
+from pylstm.construction.netbuilder import build_net
 
 
 class ReverseLayerTest(unittest.TestCase):

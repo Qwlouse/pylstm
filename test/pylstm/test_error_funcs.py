@@ -1,14 +1,15 @@
 #!/usr/bin/python
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
-from scipy.optimize import approx_fprime
-
-import numpy as np
 import unittest
-from pylstm.error_functions import MeanSquaredError, CrossEntropyError, CTC
-from pylstm.error_functions import MultiClassCrossEntropyError
-from pylstm.error_functions import _ctc_calculate_alphas, _ctc_calculate_betas
 import warnings
+
+from scipy.optimize import approx_fprime
+import numpy as np
+
+from pylstm.network.error_functions import MeanSquaredError, CrossEntropyError, CTC
+from pylstm.network.error_functions import MultiClassCrossEntropyError
+from pylstm.network.error_functions import _ctc_calculate_alphas, _ctc_calculate_betas
 
 
 class SimpleErrorFuncsTest(unittest.TestCase):

@@ -2,9 +2,11 @@
 # coding=utf-8
 
 from __future__ import division, print_function, unicode_literals
-from pylstm import NetworkBuilder, ForwardLayer, RnnLayer, LstmLayer, ReverseLayer
+
 import numpy as np
-from pylstm.utils import check_gn_pass
+
+from pylstm import NetworkBuilder, ForwardLayer
+from pylstm.network.utils import check_gn_pass
 
 
 def estimate_jacobian(net, X=None, nr_timesteps=4, nr_batches=5, rnd=np.random.RandomState()):

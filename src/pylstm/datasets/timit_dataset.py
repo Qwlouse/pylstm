@@ -4,7 +4,7 @@
 from __future__ import division, print_function, unicode_literals
 import os
 import numpy as np
-import MFCC
+from pylstm.datasets import MFCC
 
 TIMIT_DIR = '.'
 

@@ -2,12 +2,15 @@
 # coding=utf-8
 
 from __future__ import division, print_function, unicode_literals
+
 import mlizard
-from netbuilder import NetworkBuilder
+import matplotlib.pyplot as plt
+
+from pylstm.construction.netbuilder import NetworkBuilder
 from layers import LstmLayer, FwdLayer
 from datasets import generate_memo_task
-from trainer import SgdTrainer
-import matplotlib.pyplot as plt
+from training import SgdTrainer
+
 conf = """
 # Control the randomness or comment out to leave it to
 seed=290882

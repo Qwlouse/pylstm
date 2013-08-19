@@ -3,7 +3,7 @@
 
 from __future__ import division, print_function, unicode_literals
 import numpy as np
-import wrapper
+from .. import wrapper
 
 
 class BufferHub(object):

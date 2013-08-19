@@ -2,7 +2,7 @@
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 import numpy as np
-from trainer import Online
+from ..training.data_iterators import Online
 
 
 def MeanSquaredError(Y, T, M=None):

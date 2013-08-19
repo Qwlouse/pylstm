@@ -1,8 +1,20 @@
 #!/usr/bin/python
 # coding=utf-8
-
 from __future__ import division, print_function, unicode_literals
+import numpy as np
 from random import shuffle
+
+
+def binarize_sequence(seq, alphabet=None):
+    if alphabet is None:
+        alphabet = np.lib.arraysetops.unique(seq)
+    else:
+        alphabet = np.array(alphabet)
+    result = np.zeros((len(seq), len(alphabet)))
+    for i, s in enumerate(seq):
+        index = np.where(alphabet == s)[0][0]
+        result[i, index] = 1
+    return result
 
 
 def get_mean_masked(X, M):
