@@ -302,7 +302,7 @@ class Network(object):
         self._flatten_view_references(constraints, self.constraints)
 
     def _flatten_view_references(self, references, flattened):
-        allowed_layers = self.layers.keys()[1:-1]
+        allowed_layers = self.layers.keys()[1:]
         for layer_name, ref in references.items():
             assert layer_name in allowed_layers, "Unknown Layer '%s'.\n" \
                                                  "Possible layers are: %s" % \

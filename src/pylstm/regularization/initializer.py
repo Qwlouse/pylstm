@@ -1,97 +1,121 @@
 #!/usr/bin/python
 # coding=utf-8
-
 from __future__ import division, print_function, unicode_literals
-from collections import OrderedDict
 import numpy as np
-import sys
-sys.path.append('.')
-sys.path.append('..')
 
 
-class WeightInitializer(object):
-    """
-    Neural Network Weight Initializer
-    Usage:
-    wi = WeightInitializer(network)
-    wi.add_init({'RnnLayer': {'HR': 'gaussian', 'H_bias': ['uniform', 0, 1]},
-                'LstmLayer': {'FH': 'uniform'}})
-    wi.initialize()
-    
-    Supported initializations: 'zeros', 'constant', 'gaussian', 'uniform'.
-    You can specify value for constant as ['constant', value]
-    You can specify mean and variance for gaussian as ['gaussian', mean, variance].
-    You can specify lower and upper bound for uniform as ['uniform', lowb, upb].
-    You can use set_default() to set the initialization for all params which are not added by you.
-    """
-                
-    def __init__(self, net, seed = 42):
-        self.network = net
-        self.seed = seed
-        self.init_set = OrderedDict()
-        self.default_init = 'zeros'
-        for layer_name in net.layers:
-            if layer_name.lower() != 'input' and layer_name.lower() != 'output':
-                self.init_set[layer_name] = OrderedDict()
-                for param_name in net.get_param_view_for(layer_name):
-                    self.init_set[layer_name][param_name] = 'default'
+class Gaussian(object):
+    def __init__(self, mean=0.0, std=1.0):
+        self.mean = mean
+        self.std = std
 
-    def set_seed(self, seed):
-        self.seed = seed
+    def __call__(self, layer_name, view_name,  shape, seed=None):
+        rnd = np.random.RandomState(seed)
+        size = reduce(np.multiply, shape)
+        return rnd.randn(size).reshape(*shape) * self.std + self.mean
 
-    def add_init(self, layer_init_dict):
-        for layer_name in layer_init_dict:
-            if layer_name in self.init_set:
-                for param_name in layer_init_dict[layer_name]:
-                    if param_name in self.init_set[layer_name]:
-                        self.init_set[layer_name][param_name] = layer_init_dict[layer_name][param_name]
+
+class Uniform(object):
+    def __init__(self, low=-0.1, high=0.1):
+        self.low = low
+        self.high = high
+
+    def __call__(self, layer_name, view_name, shape, seed=None):
+        rnd = np.random.RandomState(seed)
+        size = reduce(np.multiply, shape)
+        v = ((self.high - self.low) * rnd.rand(size).reshape(*shape)) + self.low
+        return v
+
+
+def _flatten_initializers(net, initializers):
+    all_layers = net.layers.keys()[1:]
+    flattened = {l: {} for l in all_layers}
+    default = initializers['default'] if 'default' in initializers else 0
+
+    # assert only valid layers are specified
+    for layer_name in initializers:
+        assert layer_name == 'default' or layer_name in all_layers, \
+            "Unknown Layer '%s'.\nPossible layers are: %s" % \
+            (layer_name, ", ".join(all_layers))
+
+    for layer_name in all_layers:
+        flattened_layer = flattened[layer_name]
+        param_view = net.param_manager.get_source_view(layer_name)
+        if layer_name not in initializers:
+            for view_name in param_view.keys():
+                flattened_layer[view_name] = default
+        else:
+            layer_initializers = initializers[layer_name]
+            if isinstance(layer_initializers, dict):
+                # assert only valid views are specified
+                for view_name in layer_initializers:
+                    assert view_name == 'default' or view_name in param_view, \
+                        "Unknown view '%s' for '%s'.\nPossible views are: %s"\
+                        % (view_name, layer_name, ", ".join(param_view.keys()))
+
+                layer_default = layer_initializers['default'] \
+                    if 'default' in layer_initializers else default
+                for view_name in param_view.keys():
+                    if view_name not in layer_initializers:
+                        flattened_layer[view_name] = layer_default
                     else:
-                        raise KeyError("Parameter " + param_name + " does not exist in layer " + layer_name)   
+                        flattened_layer[view_name] = layer_initializers[view_name]
             else:
-                raise KeyError("Layer " + layer_name + " does not exist.")
-    
-    def initialize(self):
-        rnd = np.random.RandomState(self.seed)
-        for layer_name in self.init_set:
-            for param_name in self.init_set[layer_name]:
-                self.initialize_param(rnd, layer_name, param_name, self.init_set[layer_name][param_name])
-                
-    def initialize_param(self, rnd, layer_name, param_name, param_init):
+                for view_name in param_view:
+                    flattened_layer[view_name] = layer_initializers
 
-        if param_init == 'default':
-            init_type = self.default_init[0] if (type(self.default_init) is list) else self.default_init
-        else:
-            init_type = param_init[0] if (type(param_init) is list) else param_init
-        param_shape = self.network.get_param_view_for(layer_name)[param_name].shape
-        param_size  = self.network.get_param_view_for(layer_name)[param_name].size
-        if init_type.lower() == 'zeros':
-            self.network.get_param_view_for(layer_name)[param_name][:] = 0
-        elif init_type.lower() == 'constant':
-            if type(param_init) is list:
-                constant = param_init[1]
+    return flattened
+
+
+def initialize(net, init_dict=(), seed=None, **kwargs):
+    """
+    This will initialize the network as specified and in the future(TM)
+    return a serialized initialization specification.
+    You can specify a seed to make the initialization reproducible.
+
+    Example Usage:
+        # you can set initializers in two equivalent ways:
+        1) by passing a dictionary:
+        >> initialize({'RegularLayer': Uniform(), 'LstmLayer': Gaussian()})
+
+        2) by using keyword arguments:
+        >> initialize(RegularLayer=Uniform(), LstmLayer=Uniform())
+
+        (you should not combine the two. If you do, however, then the keyword
+         arguments take precedence)
+
+        An initializer can either be a callable that takes
+        (layer_name, view_name,  shape, seed) or something that converts to a
+        numpy array. So for example:
+        >> initialize(net,
+                      LstmLayer=1,
+                      RnnLayer=[1, 1, 1, 1, 1],
+                      ForwardLayer=lambda ln, vn, s, seed: 1)
+
+        You can specify a default initializer. If you don't a default=0 is
+        assumed.
+        >> initialize(net, default=Gaussian())
+
+        To target only some of the weights of a layer can pass in a dict:
+        >> initialize(net, LstmLayer={'HX': Gaussian(std=0.1),
+                                      'IX': 0,
+                                      'default': Uniform(-.1, .1)})
+        The use of 'default' targets all unspecified views of the layer.
+    """
+    inits = dict(init_dict)
+    inits.update(kwargs)
+    initializers = _flatten_initializers(net, inits)
+
+    rnd = np.random.RandomState(seed)
+    for layer_name, layer in net.layers.items()[1:]:
+        views = net.get_param_view_for(layer_name)
+        layer_initializers = initializers[layer_name]
+        for view_name, view in views.items():
+            view_initializer = layer_initializers[view_name]
+            if callable(view_initializer):
+                view[:] = view_initializer(layer_name, view_name, view.shape,
+                                           seed=rnd.randint(0, 1e9))
             else:
-                constant = 0
-            self.network.get_param_view_for(layer_name)[param_name][:] = constant
-            
-        elif init_type.lower() == 'gaussian':
-            if type(param_init) is list:
-                mu = param_init[1]
-                sigma = param_init[2]
-            else:
-                mu    = 0
-                sigma = 0.1
-            self.network.get_param_view_for(layer_name)[param_name][:] = (rnd.randn(param_size).reshape(param_shape) * sigma) + mu
-            
-        elif init_type.lower() == 'uniform':
-            if type(param_init) is list:
-                lowb = param_init[1]
-                upb  = param_init[2]
-            else:
-                lowb = -0.1
-                upb  =  0.1
-            self.network.get_param_view_for(layer_name)[param_name][:] = ((upb - lowb) * rnd.rand(param_size).reshape(param_shape)) + lowb
-        else:
-            raise NotImplementedError(init_type.lower())
-        
-    def set_default(self, default_init):
-        self.default_init = default_init
+                view[:] = np.array(view_initializer)
+    return 'not_implemented_yet'
+
