@@ -27,6 +27,33 @@ class Uniform(object):
         return v
 
 
+class CopyFromNetwork(object):
+    def __init__(self, net, default=0):
+        self.net = net
+        self.default = default
+
+    def __call__(self, layer_name, view_name, shape, seed=None):
+        if layer_name in self.net.layers:
+            layer_view = self.net.get_param_view_for(layer_name)
+            if view_name in layer_view:
+                view = layer_view[view_name]
+                if view.shape == shape:
+                    return view
+                else:
+                    print('CopyFromNetwork: Shape mismatch %s != %s in view %s '
+                          'of %s.' % (view.shape, shape, view_name, layer_name))
+            else:
+                print('CopyFromNetwork: View %s not found in layer %s.' %
+                      (view_name, layer_name))
+        else:
+            print('CopyFromNetwork: Layer %s not found.' % layer_name)
+
+        if callable(self.default):
+            return self.default(layer_name, view_name, shape, seed)
+        else:
+            return self.default
+
+
 def _flatten_initializers(net, initializers):
     all_layers = net.layers.keys()[1:]
     flattened = {l: {} for l in all_layers}
@@ -113,9 +140,19 @@ def initialize(net, init_dict=(), seed=None, **kwargs):
         for view_name, view in views.items():
             view_initializer = layer_initializers[view_name]
             if callable(view_initializer):
-                view[:] = view_initializer(layer_name, view_name, view.shape,
+                view[:] = view_initializer(layer_name,
+                                           view_name,
+                                           view.shape,
                                            seed=rnd.randint(0, 1e9))
+
             else:
                 view[:] = np.array(view_initializer)
+
+    # TODO: implement serialization of initializer
+    # it might be difficult to serialize custom initializers or lambda functions
+
+    # TODO: move defaults to flattened initializers so that CopyFromNet can
+    # raise exception and we can then fallback to defaults
+
     return 'not_implemented_yet'
 
