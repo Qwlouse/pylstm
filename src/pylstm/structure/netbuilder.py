@@ -64,16 +64,17 @@ def ensure_unique_names_for_layers(layers):
 
 
 def build_architecture_from_layers_list(layers):
-    architecture = OrderedDict()
+    architecture = []
     for l in layers:
         layer_entry = {
+            'name': l.get_name(),
             'size': l.out_size,
             'type': l.layer_type,
             'targets': [t.get_name() for t in l.targets],
         }
         if l.layer_kwargs:
             layer_entry['kwargs'] = l.layer_kwargs
-        architecture[l.get_name()] = layer_entry
+        architecture.append(layer_entry)
     return architecture
 
 
@@ -88,39 +89,45 @@ def create_architecture_from_layers(some_layer):
 
 def validate_architecture(architecture):
     # schema
-    for name, info in architecture.items():
-        assert 'size' in info and isinstance(info['size'], int)
-        assert 'type' in info and isinstance(info['type'], basestring)
-        assert 'targets' in info and isinstance(info['targets'], list)
+    for layer in architecture:
+        assert 'name' in layer and isinstance(layer['name'], basestring)
+        assert 'size' in layer and isinstance(layer['size'], int)
+        assert 'type' in layer and isinstance(layer['type'], basestring)
+        assert 'targets' in layer and isinstance(layer['targets'], list)
+
+    # unique names
+    layerdict = {l['name']: l for l in architecture}
+    assert len(layerdict) == len(architecture)
 
     # has InputLayer
-    assert 'InputLayer' in architecture
-    assert architecture['InputLayer']['type'] == 'InputLayer'
+    assert 'InputLayer' in layerdict
+    assert layerdict['InputLayer']['type'] == 'InputLayer'
 
     # has only one InputLayer
-    inputs_by_type = [l for l in architecture.values()
+    inputs_by_type = [l for l in architecture
                       if l['type'] == 'InputLayer']
     assert len(inputs_by_type) == 1
 
     # no sources for InputLayer
-    input_sources = [l for l in architecture.values()
+    input_sources = [l for l in architecture
                      if 'InputLayer' in l['targets']]
     assert len(input_sources) == 0
 
     # only 1 output
-    outputs = [l for l in architecture.values() if not l['targets']]
+    outputs = [l for l in architecture if not l['targets']]
     assert len(outputs) == 1
 
     # no loops and topologically sorted
     seen_names = set()
-    for name, info in reversed(architecture.items()):
-        for t in info['targets']:
+    for layer in reversed(architecture):
+        for t in layer['targets']:
             assert t in seen_names
-        seen_names.add(name)
+        seen_names.add(layer['name'])
 
 
 def extend_architecture_info(architecture):
-    extended_architecture = deepcopy(architecture)  # do not modify original
+    # do not modify original
+    extended_architecture = {l['name']: deepcopy(l) for l in architecture}
 
     for n, l in extended_architecture.items():
         l['in_size'] = 0
