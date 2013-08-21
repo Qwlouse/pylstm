@@ -97,4 +97,4 @@ class NoisyWeights(object):
 
     def __call__(self, view):
         size = reduce(np.multiply, view.shape)
-        return view - self.rnd.randn(size) * self.std
+        return (view.flatten() - self.rnd.randn(size) * self.std).reshape(*view.shape)
