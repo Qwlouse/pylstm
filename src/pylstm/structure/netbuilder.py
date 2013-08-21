@@ -127,7 +127,9 @@ def validate_architecture(architecture):
 
 def extend_architecture_info(architecture):
     # do not modify original
-    extended_architecture = {l['name']: deepcopy(l) for l in architecture}
+    extended_architecture = OrderedDict()
+    for l in architecture:
+        extended_architecture[l['name']] = deepcopy(l)
 
     for n, l in extended_architecture.items():
         l['in_size'] = 0
