@@ -92,8 +92,9 @@ class NoisyWeights(object):
     weights to affect.
     """
     def __init__(self, std=0.01, seed=None):
+        self.seed = seed
         self.rnd = np.random.RandomState(seed)
-        self.std = 0.01
+        self.std = std
 
     def __call__(self, view):
         size = reduce(np.multiply, view.shape)

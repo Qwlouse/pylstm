@@ -53,6 +53,43 @@ class CopyFromNetwork(object):
         else:
             return self.default
 
+class InSparse(object):
+    def __init__(self, init, connections=15):
+        self.init = init
+        self.connections = connections
+
+    def __call__(self, layer_name, view_name,  shape, seed=None):
+        res = self.init(layer_name, view_name,  shape, seed)
+        if shape[1] == 1:  # Just one input: probably bias => ignore
+            return res
+        assert shape[0] == 1  # weights don't have a time axis
+        assert shape[1] >= self.connections
+        rnd = np.random.RandomState(seed)
+        M = np.zeros(shape)
+        M[0, :self.connections, :] = 1.
+        for i in range(shape[2]):
+            rnd.shuffle(M[0, :, i])
+        return res * M
+
+
+class OutSparse(object):
+    def __init__(self, init, connections=15):
+        self.init = init
+        self.connections = connections
+
+    def __call__(self, layer_name, view_name,  shape, seed=None):
+        res = self.init(layer_name, view_name,  shape, seed)
+        if shape[1] == 1:  # Just one input: probably bias => ignore
+            return res
+        assert shape[0] == 1  # weights don't have a time axis
+        assert shape[2] >= self.connections
+        rnd = np.random.RandomState(seed)
+        M = np.zeros(shape)
+        M[0, :, :self.connections] = 1.
+        for i in range(shape[1]):
+            rnd.shuffle(M[0, i, :])
+        return res * M
+
 
 def _flatten_initializers(net, initializers):
     all_layers = net.layers.keys()[1:]
