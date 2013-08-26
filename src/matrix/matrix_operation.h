@@ -157,6 +157,7 @@ void scale_into(Matrix a, d_type alpha);
 /////Elementwise multiplication and add, with squash to size of out (out is smaller than a and b)
 //void dot_add_squash(MatrixView2DCPU a, MatrixView2DCPU b, MatrixView2DCPU out, d_type const scale = 1.0);
 
+void clip_elements(Matrix a, const d_type min = -1.0, const d_type max = 1.0);
 
 
 

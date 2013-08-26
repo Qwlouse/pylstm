@@ -36,6 +36,7 @@ cdef extern from "lstm_layer.h":
     cppclass LstmLayer:
         LstmLayer()
         LstmLayer(ActivationFunction* f)
+        double delta_range
 
 
 cdef extern from "lstm97_layer.h":

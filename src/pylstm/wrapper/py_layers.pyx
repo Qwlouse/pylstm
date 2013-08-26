@@ -98,6 +98,8 @@ def create_layer(name, in_size, out_size, **kwargs):
         expected_kwargs = {'full_gradient', 'peephole_connections',
                            'forget_gate', 'output_gate', 'gate_recurrence',
                            'use_bias'}
+    if name_lower == "lstmlayer":
+        expected_kwargs = {'delta_range'}
     if name_lower == "forwardlayer":
         expected_kwargs = {'use_bias'}
     unexpected_kwargs = list(set(unexpected_kwargs) - expected_kwargs)
@@ -123,6 +125,7 @@ def create_layer(name, in_size, out_size, **kwargs):
             act_fct = <cm.ActivationFunction*> &cm.Winout
 
     cdef cl.Lstm97Layer lstm97
+    cdef cl.LstmLayer lstm_layer
     cdef cl.ForwardLayer forward_layer
 
     if name_lower == "forwardlayer":
@@ -137,7 +140,10 @@ def create_layer(name, in_size, out_size, **kwargs):
     elif name_lower == "mrnnlayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.MrnnLayer](in_size, out_size, cl.MrnnLayer(act_fct)))
     elif name_lower == "lstmlayer":
-        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.LstmLayer](in_size, out_size, cl.LstmLayer(act_fct)))
+        lstm_layer = cl.LstmLayer(act_fct)
+        if 'delta_range' in kwargs:
+            lstm_layer.delta_range = kwargs['delta_range']
+        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.LstmLayer](in_size, out_size, lstm_layer))
     elif name_lower == "lstm97layer":
         lstm97 = cl.Lstm97Layer(act_fct)
         if 'full_gradient' in kwargs:

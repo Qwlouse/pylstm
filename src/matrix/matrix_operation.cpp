@@ -396,6 +396,25 @@ void add(Matrix a, Matrix b, Matrix out) {
     }
 }
 
+
+
+void clip_elements(Matrix a, const d_type min, const d_type max) {
+    for (auto it = a.begin(); it != a.end(); ++it) {
+	    if (*it < min) {
+	        *it = min;
+	    } else if (*it > max) {
+	        *it = max;
+	    }
+	}
+}
+
+
+
+
+
+
+
+
 /*
 
 

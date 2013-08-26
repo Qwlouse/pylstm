@@ -1,5 +1,6 @@
 #include "lstm_layer.h"
 
+#include <cmath>
 #include <iostream>
 #include <vector>
 
@@ -8,11 +9,13 @@
 
 
 LstmLayer::LstmLayer():
-	f(&Tanhx2)
+	f(&Tanhx2),
+	delta_range(INFINITY)
 { }
 
 LstmLayer::LstmLayer(const ActivationFunction* f):
-	f(f)
+	f(f),
+	delta_range(INFINITY)
 { }
 
 
@@ -334,6 +337,15 @@ void LstmLayer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Matri
       // \f$\frac{dE}{da_F} = \frac{dE}{db_F} * f'(a_F)\f$
       apply_sigmoid_deriv(b.Fb.slice(t), d.tmp1.slice(t));
       dot(d.Fb.slice(t), d.tmp1.slice(t), d.Fa.slice(t));
+
+      //////////////////////// Alex Graves Delta Clipping ///////////////////////////
+      if (delta_range < INFINITY) {
+          clip_elements(d.Ia.slice(t), -delta_range, delta_range);
+          clip_elements(d.Oa.slice(t), -delta_range, delta_range);
+          clip_elements(d.Za.slice(t), -delta_range, delta_range);
+          clip_elements(d.Fa.slice(t), -delta_range, delta_range);
+      }
+      //////////////////////////////////////////////////////////////////////////
 
       //dE/dx
       mult_add(w.IX.T(), d.Ia.slice(t), in_deltas.slice(t));
