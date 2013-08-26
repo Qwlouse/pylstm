@@ -194,7 +194,7 @@ class Network(object):
                     view_param = param[view]
                     view_grad = grad[view]
                     for view_regularizer in view_regularizers:
-                        view_grad += view_regularizer(view_param)
+                        view_grad[:] = view_regularizer(view_param, view_grad)
 
         return self.grad_manager.buffer.as_array()
 

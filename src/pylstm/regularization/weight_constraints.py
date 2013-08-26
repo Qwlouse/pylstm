@@ -27,7 +27,7 @@ class RescaleIncomingWeights(object):
 class ClipWeights(object):
     """
     Clips (limits) the weights to be between low and high.
-    Defaults to min_value=-1 and high=1.
+    Defaults to low=-1 and high=1.
 
     Should be added to the network via the set_constraints method like so:
     >> net.set_constraints(RnnLayer={'HR': ClipWeights()})
