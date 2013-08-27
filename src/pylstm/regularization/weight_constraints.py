@@ -23,6 +23,9 @@ class RescaleIncomingWeights(object):
             return view
         return view / view.sum(1) * self.target_sum
 
+    def __repr__(self):
+        return "<RescaleIncomingWeights %0.4f>" % self.target_sum
+
 
 class ClipWeights(object):
     """
@@ -41,6 +44,9 @@ class ClipWeights(object):
     def __call__(self, view):
         return np.clip(view, self.low, self.high)
 
+    def __repr__(self):
+        return "<ClipWeights [%0.4f; %0.4f]>" % (self.low, self.high)
+
 
 class MaskWeights(object):
     """
@@ -57,6 +63,9 @@ class MaskWeights(object):
 
     def __call__(self, view):
         return view * self.mask
+
+    def __repr__(self):
+        return "<MaskWeights>"
 
 
 class FreezeWeights(object):
@@ -77,6 +86,9 @@ class FreezeWeights(object):
         if self.weights is None:
             self.weights = view
         return self.weights
+
+    def __repr__(self):
+        return "<FreezeWeights>"
 
 
 class NoisyWeights(object):
@@ -99,3 +111,9 @@ class NoisyWeights(object):
     def __call__(self, view):
         size = reduce(np.multiply, view.shape)
         return (view.flatten() - self.rnd.randn(size) * self.std).reshape(*view.shape)
+
+    def __repr__(self):
+        if self.seed is None:
+            return "<NoisyWeights std=%0.4f>" % self.std
+        else:
+            return "<NoisyWeights std=%0.4f seed=%d>" % (self.std, self.seed)
