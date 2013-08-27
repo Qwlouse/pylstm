@@ -56,16 +56,18 @@ class Network(object):
             self.param_manager.initialize_buffer(buffer_view)
         else:
             self.param_manager.initialize_buffer(pw.Matrix(buffer_view))
-        ## ensure constraints
+        self.enforce_constraints()
+
+    @property
+    def grad_buffer(self):
+        return self.grad_manager.buffer.as_array()
+
+    def enforce_constraints(self):
         for layer_name, layer_constraints in self.constraints.items():
             params = self.get_param_view_for(layer_name)
             for view, view_constraints in layer_constraints.items():
                 for constraint in view_constraints:
                     params[view][:] = constraint(params[view])
-
-    @property
-    def grad_buffer(self):
-        return self.grad_manager.buffer.as_array()
 
     def get_param_size(self):
         """
@@ -262,32 +264,9 @@ class Network(object):
         self.r_backward_pass(lambda_, mu)
         return self.calc_gradient()
 
-    def _assert_wellformed(self, initializers):
-        if not isinstance(initializers, dict):
-            return
-
-        all_layers = self.layers.keys()[1:]
-        # assert only valid layers are specified
-        for layer_name in initializers:
-            assert layer_name == 'default' or layer_name in all_layers, \
-                "Unknown Layer '%s'.\nPossible layers are: %s" % \
-                (layer_name, ", ".join(all_layers))
-
-        # assert only valid views are specified
-        for layer_name, layer_initializers in initializers.items():
-            if layer_name == 'default':
-                continue
-            param_view = self.get_param_view_for(layer_name)
-            if isinstance(layer_initializers, dict):
-                for view_name in layer_initializers:
-                    assert view_name == 'default' or view_name in param_view, \
-                        "Unknown view '%s' for '%s'.\nPossible views are: %s"\
-                        % (view_name, layer_name, ", ".join(param_view.keys()))
-
     def initialize(self, init_dict=None, seed=None, **kwargs):
         """
-        This will initialize the network as specified and in the future(TM)
-        return a serialized initialization specification.
+        This will initialize the network as specified.
         You can specify a seed to make the initialization reproducible.
 
         Example Usage:
@@ -319,13 +298,8 @@ class Network(object):
                                           'default': Uniform(-.1, .1)})
             The use of 'default' targets all unspecified views of the layer.
         """
-        initializers = dict() if init_dict is None else init_dict
-        if kwargs:
-            if not isinstance(initializers, dict):
-                raise TypeError('if kwargs are specified,'
-                                ' init_dict must be empty!')
-            initializers.update(kwargs)
-        self._assert_wellformed(initializers)
+        initializers = _update_references_with_dict(init_dict, kwargs)
+        self._assert_view_reference_wellformed(initializers)
         rnd = np.random.RandomState(seed)
 
         for layer_name, layer in self.layers.items()[1:]:
@@ -367,63 +341,84 @@ class Network(object):
         To target only some of the weights of a layer can pass in a dict:
         >> net.set_regularizers(LstmLayer={'HX': L2(0.5),
                                            'IX': None,
-                                           'other': L1(0.5)})
-        The use of 'other' sets all previously unset views of the layer.
+                                           'default': L1(0.5)})
+        The use of 'defaut' acts as a default for all unset views of the layer.
         Passing None as a Regularizer is a way of specifying that this view
-        should not be regularized. This is useful in combination with 'other'.
+        should not be regularized. This is useful in combination with 'default'.
 
         """
-        regularizers = dict(reg_dict)
-        regularizers.update(kwargs)
-        self._flatten_view_references(regularizers, self.regularizers)
+        regularizers = _update_references_with_dict(reg_dict, kwargs)
+        self.regularizers = self._flatten_view_references(regularizers)
+        _prune_view_references(self.regularizers)
+        _ensure_all_references_are_lists(self.regularizers)
 
     def set_constraints(self, constraint_dict=(), **kwargs):
-        constraints = dict(constraint_dict)
-        constraints.update(kwargs)
-        self._flatten_view_references(constraints, self.constraints)
+        constraints = _update_references_with_dict(constraint_dict, kwargs)
+        self.constraints = self._flatten_view_references(constraints)
+        _prune_view_references(self.regularizers)
+        _ensure_all_references_are_lists(self.constraints)
 
-    def _flatten_view_references(self, references, flattened):
-        allowed_layers = self.layers.keys()[1:]
-        for layer_name, ref in references.items():
-            assert layer_name in allowed_layers, "Unknown Layer '%s'.\n" \
-                                                 "Possible layers are: %s" % \
-                                                 (layer_name,
-                                                 ", ".join(allowed_layers))
-            if layer_name not in flattened:
-                flattened[layer_name] = {}
-            layer_references = flattened[layer_name]
-            param_view = self.param_manager.get_source_view(layer_name)
-            if isinstance(ref, dict):
-                if 'other' in ref and ref['other'] is not None:
-                    for view in param_view:
-                        if view not in layer_references:
-                            layer_references[view] = ensure_list(ref['other'])
+    def _assert_view_reference_wellformed(self, reference):
+        if not isinstance(reference, dict):
+            return
 
-                for view_name, r in ref.items():
-                    if view_name == 'other':
-                        continue
-                    assert view_name in param_view, \
+        all_layers = self.layers.keys()[1:]
+        # assert only valid layers are specified
+        for layer_name in reference:
+            assert layer_name == 'default' or layer_name in all_layers, \
+                "Unknown Layer '%s'.\nPossible layers are: %s" % \
+                (layer_name, ", ".join(all_layers))
+
+        # assert only valid views are specified
+        for layer_name, layer_initializers in reference.items():
+            if layer_name == 'default':
+                continue
+            param_view = self.get_param_view_for(layer_name)
+            if isinstance(layer_initializers, dict):
+                for view_name in layer_initializers:
+                    assert view_name == 'default' or view_name in param_view, \
                         "Unknown view '%s' for '%s'.\nPossible views are: %s"\
                         % (view_name, layer_name, ", ".join(param_view.keys()))
-                    layer_references[view_name] = ensure_list(r)
-            else:
-                for view in param_view:
-                    layer_references[view] = ensure_list(ref)
+
+    def _flatten_view_references(self, references, default=None):
+        self._assert_view_reference_wellformed(references)
+        flattened = dict()
+        for layer_name, layer in self.layers.items()[1:]:
+            flattened[layer_name] = dict()
+            views = self.get_param_view_for(layer_name)
+            for view_name, view in views.items():
+                flattened[layer_name][view_name] = \
+                    _get_default_aware(references, layer_name, view_name,
+                                       default=default)
+        return flattened
 
 
-def ensure_list(a):
-    if isinstance(a, list):
-        return a
-    elif a is None:
-        return []
-    else:
-        return [a]
-
-
-def _get_default_aware(values, layer_name, view_name):
+def _prune_view_references(references, prune_value=None):
     """
-    This function retrieves values from an incomplete view dictionary that might
-    make use of 'default'. These are used for initialize, set_regularizers, and
+    Delete all view references that point to prune_value, and also delete
+    now empty layer references.
+    """
+    for lname, l in references.items():
+        for vname in list(l.keys()):
+            if l[vname] == prune_value:
+                del l[vname]
+
+    for lname in list(references.keys()):
+        if not references[lname]:
+            del references[lname]
+
+
+def _ensure_all_references_are_lists(refs):
+    for lname, l in refs.items():
+        for vname, v in l.items():
+            if not isinstance(l[vname], list):
+                l[vname] = [l[vname]]
+
+
+def _get_default_aware(values, layer_name, view_name, default=0):
+    """
+    This function retrieves values from view reference dictionary that
+    makes use of 'default'. These are used for initialize, set_regularizers, and
     set_constraints.
     """
     if not isinstance(values, dict):
@@ -442,4 +437,20 @@ def _get_default_aware(values, layer_name, view_name):
     if 'default' in values:
         return values['default']
 
-    return 0
+    return default
+
+
+def _update_references_with_dict(refs, ref_dict):
+    if refs is None:
+        references = dict()
+    elif isinstance(refs, dict):
+        references = refs
+    else:
+        references = {'default': refs}
+
+    if set(references.keys()) & set(ref_dict.keys()):
+        raise TypeError('Overwriting references is evil!')
+
+    references.update(ref_dict)
+
+    return references
