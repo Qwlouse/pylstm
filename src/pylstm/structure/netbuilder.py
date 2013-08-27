@@ -48,15 +48,17 @@ def ensure_unique_names_for_layers(layers):
         if name in layer_map or (name + '_1') in layer_map:
             basename = name
             idx = 2
+            name = basename + "_%d" % idx
             while name in layer_map:
-                name = basename + "_%d" % idx
                 idx += 1
+                name = basename + "_%d" % idx
 
             # rename original conflicting layer
-            conflicting_layer = layer_map[basename]
-            conflicting_layer.name = basename + '_1'
-            del layer_map[basename]
-            layer_map[conflicting_layer.name] = conflicting_layer
+            if basename in layer_map:
+                conflicting_layer = layer_map[basename]
+                conflicting_layer.name = basename + '_1'
+                del layer_map[basename]
+                layer_map[conflicting_layer.name] = conflicting_layer
 
         l.name = name
         layer_map[name] = l
