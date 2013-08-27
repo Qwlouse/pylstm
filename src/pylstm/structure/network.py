@@ -2,6 +2,7 @@
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 from copy import deepcopy
+import numpy as np
 from .. import wrapper as pw
 
 
@@ -256,12 +257,92 @@ class Network(object):
         return self.delta_manager.get_source_view("InputLayer").as_array()
 
     def hessian_pass(self, input_buffer, v_buffer, lambda_=0., mu=0.):
-        t = input_buffer.shape[0]
-        b = input_buffer.shape[1]
         self.forward_pass(input_buffer)
         self.r_forward_pass(input_buffer, v_buffer)
         self.r_backward_pass(lambda_, mu)
         return self.calc_gradient()
+
+    def _assert_wellformed(self, initializers):
+        if not isinstance(initializers, dict):
+            return
+
+        all_layers = self.layers.keys()[1:]
+        # assert only valid layers are specified
+        for layer_name in initializers:
+            assert layer_name == 'default' or layer_name in all_layers, \
+                "Unknown Layer '%s'.\nPossible layers are: %s" % \
+                (layer_name, ", ".join(all_layers))
+
+        # assert only valid views are specified
+        for layer_name, layer_initializers in initializers.items():
+            if layer_name == 'default':
+                continue
+            param_view = self.get_param_view_for(layer_name)
+            if isinstance(layer_initializers, dict):
+                for view_name in layer_initializers:
+                    assert view_name == 'default' or view_name in param_view, \
+                        "Unknown view '%s' for '%s'.\nPossible views are: %s"\
+                        % (view_name, layer_name, ", ".join(param_view.keys()))
+
+    def initialize(self, init_dict=None, seed=None, **kwargs):
+        """
+        This will initialize the network as specified and in the future(TM)
+        return a serialized initialization specification.
+        You can specify a seed to make the initialization reproducible.
+
+        Example Usage:
+            # you can set initializers in two equivalent ways:
+            1) by passing a dictionary:
+            >> initialize(net, {'RegularLayer': Uniform(), 'LstmLayer': Gaussian()})
+
+            2) by using keyword arguments:
+            >> initialize(net, RegularLayer=Uniform(), LstmLayer=Uniform())
+
+            (you should not combine the two. If you do, however, then the keyword
+             arguments take precedence)
+
+            An initializer can either be a callable that takes
+            (layer_name, view_name,  shape, seed) or something that converts to a
+            numpy array. So for example:
+            >> initialize(net,
+                          LstmLayer=1,
+                          RnnLayer=[1, 1, 1, 1, 1],
+                          ForwardLayer=lambda ln, vn, s, seed: 1)
+
+            You can specify a default initializer. If you don't a default=0 is
+            assumed.
+            >> initialize(net, default=Gaussian())
+
+            To target only some of the weights of a layer can pass in a dict:
+            >> initialize(net, LstmLayer={'HX': Gaussian(std=0.1),
+                                          'IX': 0,
+                                          'default': Uniform(-.1, .1)})
+            The use of 'default' targets all unspecified views of the layer.
+        """
+        initializers = dict() if init_dict is None else init_dict
+        if kwargs:
+            if not isinstance(initializers, dict):
+                raise TypeError('if kwargs are specified,'
+                                ' init_dict must be empty!')
+            initializers.update(kwargs)
+        self._assert_wellformed(initializers)
+        rnd = np.random.RandomState(seed)
+
+        for layer_name, layer in self.layers.items()[1:]:
+            views = self.get_param_view_for(layer_name)
+            for view_name, view in views.items():
+                view_initializer = _get_default_aware(initializers,
+                                                      layer_name,
+                                                      view_name)
+                if callable(view_initializer):
+                    view[:] = view_initializer(layer_name,
+                                               view_name,
+                                               view.shape,
+                                               seed=rnd.randint(0, 1e9))
+                else:
+                    view[:] = np.array(view_initializer)
+
+        # TODO: implement serialization of initializer
 
     def set_regularizers(self, reg_dict=(), **kwargs):
         """
@@ -339,4 +420,26 @@ def ensure_list(a):
         return [a]
 
 
+def _get_default_aware(values, layer_name, view_name):
+    """
+    This function retrieves values from an incomplete view dictionary that might
+    make use of 'default'. These are used for initialize, set_regularizers, and
+    set_constraints.
+    """
+    if not isinstance(values, dict):
+        return values
 
+    if layer_name in values:
+        layer_values = values[layer_name]
+        if not isinstance(layer_values, dict):
+            return layer_values
+
+        if view_name in layer_values:
+            return layer_values[view_name]
+        elif 'default' in layer_values:
+            return layer_values['default']
+
+    if 'default' in values:
+        return values['default']
+
+    return 0
