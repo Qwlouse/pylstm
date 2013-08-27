@@ -315,7 +315,7 @@ class Network(object):
                                                       view_name)
                 view[:] = evaluate_initializer(view_initializer, layer_name,
                                                view_name, view.shape,
-                                               seed=rnd.randint(1e-9))
+                                               seed=rnd.randint(1e9))
 
         self.enforce_constraints()
         # TODO: implement serialization of initializer
