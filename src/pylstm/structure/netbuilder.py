@@ -101,6 +101,9 @@ def validate_architecture(architecture):
     layerdict = {l['name']: l for l in architecture}
     assert len(layerdict) == len(architecture)
 
+    # no layer is called 'default'
+    assert 'default' not in layerdict, "'default' is an invalid layer name"
+
     # has InputLayer
     assert 'InputLayer' in layerdict
     assert layerdict['InputLayer']['type'] == 'InputLayer'

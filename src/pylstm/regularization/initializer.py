@@ -53,6 +53,7 @@ class CopyFromNetwork(object):
         else:
             return self.default
 
+
 class InSparse(object):
     def __init__(self, init, connections=15):
         self.init = init
@@ -91,44 +92,49 @@ class OutSparse(object):
         return res * M
 
 
-def _flatten_initializers(net, initializers):
+def assert_wellformed(net, initializers):
     all_layers = net.layers.keys()[1:]
-    flattened = {l: {} for l in all_layers}
-    default = initializers['default'] if 'default' in initializers else 0
-
     # assert only valid layers are specified
     for layer_name in initializers:
         assert layer_name == 'default' or layer_name in all_layers, \
             "Unknown Layer '%s'.\nPossible layers are: %s" % \
             (layer_name, ", ".join(all_layers))
 
-    for layer_name in all_layers:
-        flattened_layer = flattened[layer_name]
-        param_view = net.param_manager.get_source_view(layer_name)
-        if layer_name not in initializers:
-            for view_name in param_view.keys():
-                flattened_layer[view_name] = default
-        else:
-            layer_initializers = initializers[layer_name]
-            if isinstance(layer_initializers, dict):
-                # assert only valid views are specified
-                for view_name in layer_initializers:
-                    assert view_name == 'default' or view_name in param_view, \
-                        "Unknown view '%s' for '%s'.\nPossible views are: %s"\
-                        % (view_name, layer_name, ", ".join(param_view.keys()))
+    # assert only valid views are specified
+    for layer_name, layer_initializers in initializers.items():
+        if layer_name == 'default':
+            continue
+        param_view = net.get_param_view_for(layer_name)
+        if isinstance(layer_initializers, dict):
+            for view_name in layer_initializers:
+                assert view_name == 'default' or view_name in param_view, \
+                    "Unknown view '%s' for '%s'.\nPossible views are: %s"\
+                    % (view_name, layer_name, ", ".join(param_view.keys()))
 
-                layer_default = layer_initializers['default'] \
-                    if 'default' in layer_initializers else default
-                for view_name in param_view.keys():
-                    if view_name not in layer_initializers:
-                        flattened_layer[view_name] = layer_default
-                    else:
-                        flattened_layer[view_name] = layer_initializers[view_name]
-            else:
-                for view_name in param_view:
-                    flattened_layer[view_name] = layer_initializers
 
-    return flattened
+def _get_default_aware(values, layer_name, view_name):
+    """
+    This function retrieves values from an incomplete view dictionary that might
+    make use of 'default'. These are used for initialize, set_regularizers, and
+    set_constraints.
+    """
+    if not isinstance(values, dict):
+        return values
+
+    if layer_name in values:
+        layer_values = values[layer_name]
+        if not isinstance(layer_values, dict):
+            return layer_values
+
+        if view_name in layer_values:
+            return layer_values[view_name]
+        elif 'default' in layer_values:
+            return layer_values['default']
+
+    if 'default' in values:
+        return values['default']
+
+    return 0
 
 
 def initialize(net, init_dict=(), seed=None, **kwargs):
@@ -140,10 +146,10 @@ def initialize(net, init_dict=(), seed=None, **kwargs):
     Example Usage:
         # you can set initializers in two equivalent ways:
         1) by passing a dictionary:
-        >> initialize({'RegularLayer': Uniform(), 'LstmLayer': Gaussian()})
+        >> initialize(net, {'RegularLayer': Uniform(), 'LstmLayer': Gaussian()})
 
         2) by using keyword arguments:
-        >> initialize(RegularLayer=Uniform(), LstmLayer=Uniform())
+        >> initialize(net, RegularLayer=Uniform(), LstmLayer=Uniform())
 
         (you should not combine the two. If you do, however, then the keyword
          arguments take precedence)
@@ -166,30 +172,28 @@ def initialize(net, init_dict=(), seed=None, **kwargs):
                                       'default': Uniform(-.1, .1)})
         The use of 'default' targets all unspecified views of the layer.
     """
-    inits = dict(init_dict)
-    inits.update(kwargs)
-    initializers = _flatten_initializers(net, inits)
+    initializers = dict(init_dict)
+    initializers.update(kwargs)
+    assert_wellformed(net, initializers)
 
     rnd = np.random.RandomState(seed)
+
     for layer_name, layer in net.layers.items()[1:]:
         views = net.get_param_view_for(layer_name)
-        layer_initializers = initializers[layer_name]
         for view_name, view in views.items():
-            view_initializer = layer_initializers[view_name]
+            view_initializer = _get_default_aware(initializers,
+                                                  layer_name,
+                                                  view_name)
             if callable(view_initializer):
                 view[:] = view_initializer(layer_name,
                                            view_name,
                                            view.shape,
                                            seed=rnd.randint(0, 1e9))
-
             else:
                 view[:] = np.array(view_initializer)
 
     # TODO: implement serialization of initializer
     # it might be difficult to serialize custom initializers or lambda functions
-
-    # TODO: move defaults to flattened initializers so that CopyFromNet can
-    # raise exception and we can then fallback to defaults
 
     return 'not_implemented_yet'
 
