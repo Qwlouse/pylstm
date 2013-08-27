@@ -18,6 +18,9 @@ class L1(object):
         
     def __call__(self, view, grad):
         return grad + self.reg_coeff*np.sign(view)
+
+    def __repr__(self):
+        return "<L1 %0.4f>" % self.reg_coeff
         
 
 class L2(object):
@@ -34,19 +37,26 @@ class L2(object):
     def __call__(self, view, grad):
         return grad + self.reg_coeff*view
 
+    def __repr__(self):
+        return "<L2 %0.4f>" % self.reg_coeff
 
-class GradientClipping(object):
+
+class ClipGradient(object):
     """
     Clips (limits) the gradient to be between low and high.
     Defaults to low=-1 and high=1.
 
-    >> net.set_regularizers(RnnLayer=GradientClipping(-2, 2))
+    >> net.set_regularizers(RnnLayer=ClipGradient(-2, 2))
     See Network.set_regularizers for more information on how to control which
     weights to affect.
     """
     def __init__(self, low=-1, high=None):
-        self.low, self.high = sorted([low,  high if high is not None else -low])
+        high = high if high is not None else -low
+        self.low, self.high = sorted([low,  high])
 
     def __call__(self, view, grad):
         return np.clip(grad, self.low, self.high)
+
+    def __repr__(self):
+        return "<ClipGradient [%0.4f; %0.4f]>" % (self.low, self.high)
 
