@@ -36,6 +36,9 @@ class Network(object):
 
         self.out_layer = self.layers.keys()[-1]
 
+    def is_initialized(self):
+        return self.param_manager.buffer is not None
+
     @property
     def in_buffer(self):
         return self.in_out_manager.get_source_view("InputLayer").as_array()
@@ -46,7 +49,8 @@ class Network(object):
 
     @property
     def param_buffer(self):
-        return self.param_manager.buffer.as_array().flatten()
+        if self.is_initialized():
+            return self.param_manager.buffer.as_array().flatten()
 
     @param_buffer.setter
     def param_buffer(self, buffer_view):
@@ -313,6 +317,7 @@ class Network(object):
                                                view_name, view.shape,
                                                seed=rnd.randint(1e-9))
 
+        self.enforce_constraints()
         # TODO: implement serialization of initializer
 
     def set_regularizers(self, reg_dict=(), **kwargs):
@@ -350,10 +355,12 @@ class Network(object):
         _ensure_all_references_are_lists(self.regularizers)
 
     def set_constraints(self, constraint_dict=(), **kwargs):
+        assert self.is_initialized()
         constraints = _update_references_with_dict(constraint_dict, kwargs)
         self.constraints = self._flatten_view_references(constraints)
         _prune_view_references(self.regularizers)
         _ensure_all_references_are_lists(self.constraints)
+        self.enforce_constraints()
 
     def _assert_view_reference_wellformed(self, reference):
         if not isinstance(reference, dict):
