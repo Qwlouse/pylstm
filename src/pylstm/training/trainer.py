@@ -13,7 +13,7 @@ class Trainer(object):
         self.net = net
         self.stepper = core if core else SGDStep(**kwargs)
         self.validation_stepper = ForwardStep()
-        self.success_criteria = []
+        self.stopping_criteria = []
         self.callbacks = [print_error_per_epoch]
         self.training_errors = []
         self.validation_errors = []
@@ -24,15 +24,15 @@ class Trainer(object):
             cb(self.epochs_seen, self.net,
                self.training_errors, self.validation_errors)
 
-    def is_successful(self):
-        for sc in self.success_criteria:
+    def should_stop(self):
+        for sc in self.stopping_criteria:
             if sc(self.epochs_seen, self.net,
                   self.training_errors, self.validation_errors):
                 return True
         return False
 
-    def restart_success_criteria(self):
-        for sc in self.success_criteria:
+    def restart_stopping_criteria(self):
+        for sc in self.stopping_criteria:
             try:
                 sc.restart()
             except AttributeError:
@@ -42,7 +42,7 @@ class Trainer(object):
         # May add a default MaxEpochsSeen here if that feels better to the soul
         self.stepper.start(self.net)
         self.validation_stepper.start(self.net)
-        self.restart_success_criteria()
+        self.restart_stopping_criteria()
 
         while True:
             train_errors = []
@@ -70,5 +70,5 @@ class Trainer(object):
 
             self.emit_callbacks()
 
-            if self.is_successful():
+            if self.should_stop():
                 return train_error
