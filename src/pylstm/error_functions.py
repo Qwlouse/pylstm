@@ -7,10 +7,9 @@ from .training.data_iterators import Online
 
 def MeanSquaredError(Y, T, M=None):
     diff = Y - T
-    norm = Y.shape[0] * Y.shape[1]
+    norm = Y.shape[1]  # normalize by number of Batches
     if M is not None:
         diff *= M
-        norm = M.sum()
     error = 0.5 * np.sum(diff ** 2) / norm
     deltas = diff / norm
     return error, deltas
@@ -22,11 +21,10 @@ def CrossEntropyError(Y, T, M=None):
     Y[Y > 1 - 1e-6] = 1 - 1e-6
     cee = T * np.log(Y) + (1 - T) * np.log(1 - Y)
     ceed = (T - Y) / (Y * (Y - 1))
-    norm = Y.shape[0] * Y.shape[1]
+    norm = Y.shape[1]  # normalize by number of Batches
     if M is not None:
         cee *= M
         ceed *= M
-        norm = M.sum()
     error = - np.sum(cee) / norm
     deltas = ceed / norm
     return error, deltas
@@ -37,11 +35,10 @@ def MultiClassCrossEntropyError(Y, T, M=None):
     Y[Y < 1e-6] = 1e-6
     cee = T * np.log(Y)
     quot = T / Y
-    norm = Y.shape[0] * Y.shape[1]
+    norm = Y.shape[1]  # normalize by number of Batches
     if M is not None:
         cee *= M
         quot *= M
-        norm = M.sum()
     error = - np.sum(cee) / norm
     deltas = - quot / norm
     return error, deltas
