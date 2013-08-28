@@ -4,7 +4,7 @@ from __future__ import division, print_function, unicode_literals
 from copy import deepcopy
 import numpy as np
 from .. import wrapper as pw
-from pylstm.regularization.initializer import evaluate_initializer
+from pylstm.regularization.initializer import _evaluate_initializer
 
 
 class Network(object):
@@ -313,7 +313,7 @@ class Network(object):
                 view_initializer = _get_default_aware(initializers,
                                                       layer_name,
                                                       view_name)
-                view[:] = evaluate_initializer(view_initializer, layer_name,
+                view[:] = _evaluate_initializer(view_initializer, layer_name,
                                                view_name, view.shape,
                                                seed=rnd.randint(1e9))
 
