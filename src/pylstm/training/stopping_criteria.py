@@ -13,6 +13,8 @@ class ValidationErrorRises(object):
         pass
 
     def __call__(self, epochs_seen, net, training_errors, validation_errors):
+        assert len(validation_errors), "You need to specify a validation set " \
+                                       "if you want to use ValidationErrorRises"
         best_val_error = np.argmin(validation_errors)
         if len(validation_errors) > best_val_error + self.delay:
             print("Validation error did not fall for %d epochs! Stopping."
