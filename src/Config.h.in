@@ -20,15 +20,5 @@
   TypeName(const TypeName&);               \
   void operator=(const TypeName&);
 
-// ========================== Configuring Logging ==============================
-// Enable logging at all?
-#cmakedefine LOGGING_ENABLED
-
-// The Log-level to be used. 0 = None, 6 = Trace
-#define LOG_LEVEL @LOG_LEVEL@
-
-// Which kind of logging to be used LOGGING_CERR or LOGGING_LOG4CXX
-#define LOGGING_LOG4CXX
-
 // ========================== Configure Asserts ================================
 #cmakedefine ASSERTS_ENABLED

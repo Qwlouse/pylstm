@@ -9,4 +9,3 @@
 #include "Config.h"
 #include "core/Assert.h"
 #include "core/Exceptions.h"
-#include "core/Logging.h"

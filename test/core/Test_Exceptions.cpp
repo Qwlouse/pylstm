@@ -9,8 +9,6 @@
 
 #include "Core.h"
 
-int dummy = (core::setUpLogging(), 1);
-
 
 using std::string;
 using namespace core;

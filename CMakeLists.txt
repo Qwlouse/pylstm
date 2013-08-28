@@ -60,14 +60,6 @@ IF (OPEN_BLAS)
 ENDIF (OPEN_BLAS)
 
 
-# Enable Logging (requires Log4cxx)
-OPTION(LOGGING_ENABLED "Enable logging support (requires Log4cxx)" ON)
-IF (LOGGING_ENABLED)
-    FIND_PACKAGE(Log4cxx REQUIRED)
-ENDIF(LOGGING_ENABLED)
-SET(LOG_LEVEL 5 CACHE INTEGER "Compile-time log level (0 = NONE - 6 = TRACE)")
-
-
 # Enable Asserts
 OPTION(ASSERTS_ENABLED "Enable asserts" ON)
 
@@ -78,7 +70,7 @@ IF (UNIT_TESTS)
 ENDIF(UNIT_TESTS)
 
 # Build the Documentation using Doxygen
-OPTION(DOCUMENTATION "Build the Documentation using Doxygen" ON)
+OPTION(DOCUMENTATION "Build the Documentation using Doxygen" OFF)
 IF (DOCUMENTATION)
     INCLUDE(UseLATEX)
     FIND_PACKAGE(Doxygen)
