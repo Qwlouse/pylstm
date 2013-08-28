@@ -34,7 +34,7 @@ class ForwardStep(object):
         return self.net.calculate_error(t, m)
 
 
-class SGDStep(object):
+class SgdStep(object):
     def __init__(self, learning_rate=0.1):
         self.learning_rate = learning_rate
         self.net = None

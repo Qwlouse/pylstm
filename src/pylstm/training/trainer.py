@@ -5,13 +5,13 @@ from __future__ import division, print_function, unicode_literals
 import numpy as np
 import time
 from .callbacks import print_error_per_epoch
-from .train_steps import SGDStep, ForwardStep
+from .train_steps import SgdStep, ForwardStep
 
 
 class Trainer(object):
     def __init__(self, net, core=None, **kwargs):
         self.net = net
-        self.stepper = core if core else SGDStep(**kwargs)
+        self.stepper = core if core else SgdStep(**kwargs)
         self.validation_stepper = ForwardStep()
         self.stopping_criteria = []
         self.callbacks = [print_error_per_epoch]
