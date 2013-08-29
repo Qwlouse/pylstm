@@ -49,15 +49,23 @@ OPTION(MATLAB_BLAS "Use Matlab BLAS Libraries (requires Matlab)" ON)
 IF (MATLAB_BLAS)
     FIND_PACKAGE(Matlab2 REQUIRED)
     SET(BLAS_LIBRARIES ${MATLAB_LIBRARIES})
-    SET(BLAS_INCLUDE_PATH ${MATLAB_EXTERN_INCLUDE_PATH})
+    INCLUDE_DIRECTORIES(${MATLAB_EXTERN_INCLUDE_PATH})
 ENDIF (MATLAB_BLAS)
 
-OPTION(OPEN_BLAS "Use OpenBLAS Libraries (requires OpenBlas)" OFF)
-IF (OPEN_BLAS)
-    # TODO: this doesn't work so far
-    SET(BLAS_LIBRARIES openblas)
-    SET(BLAS_INCLUDE_PATH )
-ENDIF (OPEN_BLAS)
+OPTION(USE_OPENBLAS "Use OpenBlas if possible" ON)
+
+
+IF (NOT MATLAB_BLAS)
+    IF (USE_OPENBLAS)
+        FIND_PACKAGE(OpenBlas)
+    ENDIF (USE_OPENBLAS)
+
+    IF (OPENBLAS_FOUND)
+        SET(BLAS_LIBRARIES ${OPENBLAS})
+    ELSE (OPENBLAS_FOUND)
+        FIND_PACKAGE(BLAS REQUIRED)
+    ENDIF (OPENBLAS_FOUND)
+ENDIF (NOT MATLAB_BLAS)
 
 
 # Enable Asserts
@@ -92,12 +100,6 @@ IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
    ADD_DEFINITIONS(-I/usr/lib/c++/v1/ -libstd=libc++ -std=c++11)
    MESSAGE("USING CLANG")
 ENDIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-
-#==============================================================================
-# BLAS
-#==============================================================================
-INCLUDE_DIRECTORIES(${BLAS_INCLUDE_PATH})
-
 
 #==============================================================================
 # Config header

@@ -55,7 +55,6 @@ Exception::~Exception() throw()
 
 const char* Exception::what() const throw()
 {
-
     char const * diagInfo = NULL;
     try {
         (void) ::boost::exception_detail::diagnostic_information_impl(this, 0, false);

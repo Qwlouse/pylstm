@@ -4,16 +4,10 @@
 #include <iostream>
 
 #include "Core.h"
+#include "cblas.h"
+
 
 using namespace std;
-
-static d_type double_one = 1.0;
-static d_type double_zero = 0.0;
-//static d_type double_min_one = -1.0;
-static char NO_TRANS = 'N';
-//static char TRANS = 'T';
-static ptrdiff_t diff_one = 1;
-static ptrdiff_t diff_zero = 0;
 
 bool equals(Matrix a, Matrix b) {
 	if (a.n_rows != b.n_rows || a.n_columns != b.n_columns || a.n_slices != b.n_slices) {
@@ -29,9 +23,8 @@ bool equals(Matrix a, Matrix b) {
 }
 
 void add_into_b(Matrix a, Matrix b) {
-	long int n = a.size;
 	if (a.state == b.state && a.stride == 0 && b.stride == 0) {
-        daxpy(&n, &double_one, a.get_data(), &diff_one, b.get_data(), &diff_one);
+        cblas_daxpy(static_cast<int>(a.size), 1.0, a.get_data(), 1, b.get_data(), 1);
     } else {
         Matrix::iterator ita = a.begin();
         Matrix::iterator ita_end = a.end();
@@ -55,8 +48,7 @@ void add_vector_into(Matrix vec, Matrix mat) {
 
 void add_scalar(Matrix a, d_type b) {
 	if (a.stride == 0) {
-        long int n = a.size;
-	    daxpy(&n, &double_one, &b, &diff_zero, a.get_data(), &diff_one);
+	    cblas_daxpy(static_cast<int>(a.size), 1.0, &b, 0, a.get_data(), 1);
 	} else {
 	    for (auto it = a.begin(); it != a.end(); ++it) {
 	        *it += b;
@@ -72,16 +64,16 @@ void dot(Matrix a, Matrix b, Matrix out) {
 
 	ASSERT(a.state == NORMAL && b.state == NORMAL && out.state == NORMAL);
 
-	fill(out.begin(), out.end(), 0.0);
-
 	if (a.size == b.size && a.stride == 0 && b.stride == 0 && out.stride == 0) {
-		long int n = a.size;
-		dgbmv(&NO_TRANS, &n, &n, &diff_zero, &diff_zero, &double_one,
-				a.get_data(), &diff_one,
-				b.get_data(), &diff_one,
-				&double_one,
-				out.get_data(), &diff_one);
+		int n = static_cast<int>(a.size);
+		cblas_dgbmv(CblasColMajor, CblasNoTrans, n, n, 0, 0, 1.0,
+				a.get_data(), 1,
+				b.get_data(), 1,
+				0.0,
+				out.get_data(), 1);
 	} else {
+
+	    fill(out.begin(), out.end(), 0.0);
 	    auto a_end = a.end();
 	    auto b_end = b.end();
 
@@ -110,12 +102,12 @@ void dot_add(Matrix a, Matrix b, Matrix out) {
 	ASSERT(a.size % b.size == 0);
 
 	if (a.state == NORMAL && b.state == NORMAL && out.state == NORMAL && a.size == b.size && a.stride == 0 && b.stride == 0 && out.stride == 0) {
-		long int n = a.size;
-		dgbmv(&NO_TRANS, &n, &n, &diff_zero, &diff_zero, &double_one,
-				a.get_data(), &diff_one,
-				b.get_data(), &diff_one,
-				&double_one,
-				out.get_data(), &diff_one);
+		int n = static_cast<int>(a.size);
+		cblas_dgbmv(CblasColMajor, CblasNoTrans, n, n, 0, 0, 1.0,
+				a.get_data(), 1,
+				b.get_data(), 1,
+				1.0,
+				out.get_data(), 1);
 	} else {
 		auto a_end = a.end();
         auto b_end = b.end();
@@ -129,8 +121,8 @@ void dot_add(Matrix a, Matrix b, Matrix out) {
 }
 
 void mult(Matrix a, Matrix b, Matrix out, d_type scale) {
-    char a_state = (a.state == NORMAL) ? 'N' : 'T';
-    char b_state = (b.state == NORMAL) ? 'N' : 'T';
+    enum CBLAS_TRANSPOSE a_state = (a.state == NORMAL) ? CblasNoTrans : CblasTrans;
+    enum CBLAS_TRANSPOSE b_state = (b.state == NORMAL) ? CblasNoTrans : CblasTrans;
     ASSERT(out.state == NORMAL);
     ASSERT(a.n_slices == 1);
     ASSERT(b.n_slices == 1);
@@ -139,24 +131,24 @@ void mult(Matrix a, Matrix b, Matrix out, d_type scale) {
     ASSERT(out.n_rows == a.n_rows);
     ASSERT(out.n_columns == b.n_columns);
 
-    ptrdiff_t M = a.n_rows;
-    ptrdiff_t N = b.n_columns;
-    ptrdiff_t K = a.n_columns;
+    int M = static_cast<int>(a.n_rows);
+    int N = static_cast<int>(b.n_columns);
+    int K = static_cast<int>(a.n_columns);
 
     // the size of the first dimension of the matrices, as laid out in memory;
     // meaning the memory distance between the start of each row/column,
     // depending on the memory structure
-    ptrdiff_t a_stride = a.state == NORMAL ? a.n_rows+a.stride : a.n_columns+a.stride;
-    ptrdiff_t b_stride = b.state == NORMAL ? b.n_rows+b.stride : b.n_columns+b.stride;
-    ptrdiff_t out_stride = out.n_rows+out.stride;
+    int a_stride = static_cast<int>(a.state == NORMAL ? a.n_rows+a.stride : a.n_columns+a.stride);
+    int b_stride = static_cast<int>(b.state == NORMAL ? b.n_rows+b.stride : b.n_columns+b.stride);
+    int out_stride = static_cast<int>(out.n_rows+out.stride);
 
-    dgemm(&a_state, &b_state, &M, &N, &K, &scale, a.get_data(),
-	    &a_stride, b.get_data(), &b_stride, &double_zero, out.get_data(), &out_stride);
+    cblas_dgemm(CblasColMajor, a_state, b_state, M, N, K, scale, a.get_data(),
+	    a_stride, b.get_data(), b_stride, 0.0, out.get_data(), out_stride);
 }
 
 void mult_add(Matrix a, Matrix b, Matrix out, d_type scale) {
-	char a_state = (a.state == NORMAL) ? 'N' : 'T';
-    char b_state = (b.state == NORMAL) ? 'N' : 'T';
+	enum CBLAS_TRANSPOSE a_state = (a.state == NORMAL) ? CblasNoTrans : CblasTrans;
+    enum CBLAS_TRANSPOSE b_state = (b.state == NORMAL) ? CblasNoTrans : CblasTrans;
     ASSERT(out.state == NORMAL);
     ASSERT(a.n_slices == 1);
     ASSERT(b.n_slices == 1);
@@ -165,19 +157,19 @@ void mult_add(Matrix a, Matrix b, Matrix out, d_type scale) {
     ASSERT(out.n_rows == a.n_rows);
     ASSERT(out.n_columns == b.n_columns);
 
-    ptrdiff_t M = a.n_rows;
-    ptrdiff_t N = b.n_columns;
-    ptrdiff_t K = a.n_columns;
+    int M = static_cast<int>(a.n_rows);
+    int N = static_cast<int>(b.n_columns);
+    int K = static_cast<int>(a.n_columns);
 
     // the size of the first dimension of the matrices, as laid out in memory;
     // meaning the memory distance between the start of each row/column,
     // depending on the memory structure
-    ptrdiff_t a_stride = a.state == NORMAL ? a.n_rows+a.stride : a.n_columns+a.stride;
-    ptrdiff_t b_stride = b.state == NORMAL ? b.n_rows+b.stride : b.n_columns+b.stride;
-    ptrdiff_t out_stride = out.n_rows+out.stride;
+    int a_stride = static_cast<int>(a.state == NORMAL ? a.n_rows+a.stride : a.n_columns+a.stride);
+    int b_stride = static_cast<int>(b.state == NORMAL ? b.n_rows+b.stride : b.n_columns+b.stride);
+    int out_stride = static_cast<int>(out.n_rows+out.stride);
 
-	dgemm(&a_state, &b_state, &M, &N, &K, &scale, a.get_data(),
-	      &a_stride, b.get_data(), &b_stride, &double_one, out.get_data(), &out_stride);
+	cblas_dgemm(CblasColMajor, a_state, b_state, M, N, K, scale, a.get_data(),
+	      a_stride, b.get_data(), b_stride, 1.0, out.get_data(), out_stride);
 }
 
 
@@ -306,8 +298,7 @@ void apply_tanhx2_deriv(Matrix a, Matrix out) {
 void copy(Matrix a, Matrix b) {
     ASSERT(a.size == b.size);
     if (a.stride == 0 && b.stride == 0) {
-        ptrdiff_t ridiculous(a.size);
-        dcopy(&ridiculous, a.get_data(), &diff_one, b.get_data(), &diff_one);
+        cblas_dcopy(static_cast<int>(a.size), a.get_data(), 1, b.get_data(), 1);
     } else {
         for (auto ita = a.begin(), itb = b.begin(); ita != a.end(); ++ita, ++itb) {
             *itb = *ita;
@@ -372,8 +363,7 @@ void dot_squash(Matrix a, Matrix b, Matrix out, d_type scale) {
 ///scale matrix by a scalar
 void scale_into(Matrix a, d_type alpha) {
     if (a.stride == 0) {
-        long int len(a.size);
-        dscal(&len, &alpha, a.get_data(), &diff_one);
+        cblas_dscal(static_cast<int>(a.size), alpha, a.get_data(), 1);
     } else {
         for (d_type& v : a) {
             v *= alpha;
