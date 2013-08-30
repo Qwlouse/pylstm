@@ -102,13 +102,15 @@ class RPropStep(object):
     Improving the Rprop Learning Algorithm. Igel and Husken (2000).
     Rprop - Description and Implementation Details. Reidmiller (1994).
     """
-    def __init__(self, eta_minus=0.5, eta_plus=1.2, delta_0=0.1, delta_min=1e-6, delta_max=50):
+    def __init__(self, eta_minus=0.5, eta_plus=1.2, delta_0=0.1, delta_min=1e-6, delta_max=50,
+                 backtracking=True):
         self.eta_plus = eta_plus
         self.eta_minus = eta_minus
         self.delta = delta_0
         self.delta_min = delta_min
         self.delta_max = delta_max
         self.initialized = False
+        self.backtracking = backtracking
 
     def start(self, net):
         self.net = net
@@ -132,8 +134,11 @@ class RPropStep(object):
         self.delta = np.clip(self.delta, self.delta_min, self.delta_max)
 
         # Calculate the update
-        update = (-np.sign(grad) * self.delta * (sign_flip >= 0)) + \
-                 (-self.last_update * (sign_flip < 0))
+        if self.backtracking:
+            update = (-np.sign(grad) * self.delta * (sign_flip >= 0)) + \
+                     (-self.last_update * (sign_flip < 0))
+        else:
+            update = -np.sign(grad) * self.delta
 
         # Update
         self.net.param_buffer += update
