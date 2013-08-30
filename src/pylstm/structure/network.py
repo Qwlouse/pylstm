@@ -320,7 +320,7 @@ class Network(object):
         self.enforce_constraints()
         # TODO: implement serialization of initializer
 
-    def set_regularizers(self, reg_dict=(), **kwargs):
+    def set_regularizers(self, reg_dict=None, **kwargs):
         """
         Set weight regularizers for layers and even individual views of a layer.
         A regularizer has to be callable(function or object) with a single
@@ -354,11 +354,11 @@ class Network(object):
         _prune_view_references(self.regularizers)
         _ensure_all_references_are_lists(self.regularizers)
 
-    def set_constraints(self, constraint_dict=(), **kwargs):
+    def set_constraints(self, constraint_dict=None, **kwargs):
         assert self.is_initialized()
         constraints = _update_references_with_dict(constraint_dict, kwargs)
         self.constraints = self._flatten_view_references(constraints)
-        _prune_view_references(self.regularizers)
+        _prune_view_references(self.constraints)
         _ensure_all_references_are_lists(self.constraints)
         self.enforce_constraints()
 
@@ -397,14 +397,14 @@ class Network(object):
         return flattened
 
 
-def _prune_view_references(references, prune_value=None):
+def _prune_view_references(references):
     """
     Delete all view references that point to prune_value, and also delete
     now empty layer references.
     """
     for lname, l in references.items():
         for vname in list(l.keys()):
-            if l[vname] == prune_value:
+            if not l[vname]:
                 del l[vname]
 
     for lname in list(references.keys()):
@@ -412,10 +412,12 @@ def _prune_view_references(references, prune_value=None):
             del references[lname]
 
 
-def _ensure_all_references_are_lists(refs):
-    for lname, l in refs.items():
+def _ensure_all_references_are_lists(references):
+    for lname, l in references.items():
         for vname, v in l.items():
-            if not isinstance(l[vname], list):
+            if l[vname] is None:
+                l[vname] = []
+            elif not isinstance(l[vname], list):
                 l[vname] = [l[vname]]
 
 
@@ -453,7 +455,8 @@ def _update_references_with_dict(refs, ref_dict):
         references = {'default': refs}
 
     if set(references.keys()) & set(ref_dict.keys()):
-        raise TypeError('Overwriting references is evil!')
+        raise TypeError('Conflicting values for %s!' %
+                        sorted(set(references.keys()) & set(ref_dict.keys())))
 
     references.update(ref_dict)
 
