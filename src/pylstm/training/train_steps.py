@@ -113,6 +113,7 @@ class RPropStep(object):
     def start(self, net):
         self.net = net
         self.last_grad_sign = 0
+        self.last_update = 0
         self.initialized = True
 
     def run(self, x, t, m):
@@ -123,11 +124,19 @@ class RPropStep(object):
 
         grad_sign = np.sign(grad)
         sign_flip = grad_sign * self.last_grad_sign
+
+        # Calculate the delta
         self.delta = (self.eta_plus * self.delta) * (sign_flip > 0) + \
                      (self.eta_minus * self.delta) * (sign_flip < 0) + \
-                     self.delta * (sign_flip == 0)
-
+                      self.delta * (sign_flip == 0)
         self.delta = np.clip(self.delta, self.delta_min, self.delta_max)
-        self.net.param_buffer += -np.sign(grad)*self.delta
 
-        self.last_grad_sign = grad_sign.copy()
+        # Calculate the update
+        update = (-np.sign(grad) * self.delta * (sign_flip >= 0)) + \
+                 (-self.last_update * (sign_flip < 0))
+
+        # Update
+        self.net.param_buffer += update
+
+        self.last_grad_sign = grad_sign.copy() * (sign_flip >= 0)
+        self.last_update = update.copy()
