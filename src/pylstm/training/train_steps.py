@@ -97,14 +97,23 @@ class NesterovStep(object):
 
 
 class RPropStep(object):
-    def __init__(self, learning_rate=0.1):
-        self.learning_rate = learning_rate
-        self.net = None
+    """
+    References:
+    Improving the Rprop Learning Algorithm. Igel and Husken (2000).
+    Rprop - Description and Implementation Details. Reidmiller (1994).
+    """
+    def __init__(self, eta_minus=0.5, eta_plus=1.2, delta_0=0.1, delta_min=1e-6, delta_max=50):
+        self.eta_plus = eta_plus
+        self.eta_minus = eta_minus
+        self.delta = delta_0
+        self.delta_min = delta_min
+        self.delta_max = delta_max
         self.initialized = False
 
     def start(self, net):
         self.net = net
-        self.initialized = False
+        self.last_grad_sign = 0
+        self.initialized = True
 
     def run(self, x, t, m):
         self.net.forward_pass(x)
@@ -112,22 +121,13 @@ class RPropStep(object):
         self.net.backward_pass(t, m)
         grad = self.net.calc_gradient()
 
-        #calculate grad sign
-        grad_sign = (grad > 0.0)
+        grad_sign = np.sign(grad)
+        sign_flip = grad_sign * self.last_grad_sign
+        self.delta = (self.eta_plus * self.delta) * (sign_flip > 0) + \
+                     (self.eta_minus * self.delta) * (sign_flip < 0) + \
+                     self.delta * (sign_flip == 0)
 
-        if not self.initialized:
-            self.last_grad_sign = grad_sign
-            self.stepsize = np.ones_like(grad_sign)
-            self.initialized = True
-            return error
-
-        increase = (grad_sign == self.last_grad_sign)
-        self.stepsize = (
-            self.stepsize * (increase * 1.01 + (increase == False) * .99))
-
-        grad[:] = self.stepsize * grad_sign + -self.stepsize * (
-            grad_sign == False)
-
-        self.net.param_buffer -= grad * self.learning_rate
+        self.delta = np.clip(self.delta, self.delta_min, self.delta_max)
+        self.net.param_buffer += -np.sign(grad)*self.delta
 
         self.last_grad_sign = grad_sign.copy()
