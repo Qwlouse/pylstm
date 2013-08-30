@@ -101,9 +101,13 @@ class RPropStep(object):
     References:
     Improving the Rprop Learning Algorithm. Igel and Husken (2000).
     Rprop - Description and Implementation Details. Reidmiller (1994).
+
+    Rprop default is Rprop+ which includes backtracking (even when error drops and gradient changes sign)
+    Rprop- can be obtained by setting backtracking = False
+    iRprop+ can be obtained by setting backtracking = True but backtrack_on_error_drop = False
     """
     def __init__(self, eta_minus=0.5, eta_plus=1.2, delta_0=0.1, delta_min=1e-6, delta_max=50,
-                 backtracking=True):
+                 backtracking=True, backtrack_on_error_drop=True):
         self.eta_plus = eta_plus
         self.eta_minus = eta_minus
         self.delta = delta_0
@@ -111,11 +115,13 @@ class RPropStep(object):
         self.delta_max = delta_max
         self.initialized = False
         self.backtracking = backtracking
+        self.backtrack_on_error_drop = backtrack_on_error_drop
 
     def start(self, net):
         self.net = net
         self.last_grad_sign = 0
         self.last_update = 0
+        self.last_error = np.Inf
         self.initialized = True
 
     def run(self, x, t, m):
@@ -135,8 +141,12 @@ class RPropStep(object):
 
         # Calculate the update
         if self.backtracking:
-            update = (-np.sign(grad) * self.delta * (sign_flip >= 0)) + \
-                     (-self.last_update * (sign_flip < 0))
+            if self.backtrack_on_error_drop:
+                update = (-np.sign(grad) * self.delta * (sign_flip >= 0)) + \
+                         (-self.last_update * (sign_flip < 0))
+            else:
+                update = (-np.sign(grad) * self.delta * (sign_flip >= 0)) + \
+                         (-self.last_update * (sign_flip < 0) * (error > self.last_error))
         else:
             update = -np.sign(grad) * self.delta
 
@@ -148,3 +158,4 @@ class RPropStep(object):
         else:
             self.last_grad_sign = grad_sign.copy()
         self.last_update = update.copy()
+        self.last_error = error
