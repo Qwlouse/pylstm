@@ -143,5 +143,8 @@ class RPropStep(object):
         # Update
         self.net.param_buffer += update
 
-        self.last_grad_sign = grad_sign.copy() * (sign_flip >= 0)
+        if self.backtracking:
+            self.last_grad_sign = grad_sign.copy() * (sign_flip >= 0)
+        else:
+            self.last_grad_sign = grad_sign.copy()
         self.last_update = update.copy()
