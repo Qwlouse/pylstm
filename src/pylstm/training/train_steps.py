@@ -96,7 +96,7 @@ class NesterovStep(object):
         return error
 
 
-class RPropStep(object):
+class RPropStep2(object):
     """
     References:
     Improving the Rprop Learning Algorithm. Igel and Husken (2000).
@@ -151,7 +151,7 @@ class RPropStep(object):
             update = -np.sign(grad) * self.delta
 
         # Update
-        self.net.param_buffer += update
+        self.net.param_buffer += update.flatten()
 
         if self.backtracking:
             self.last_grad_sign = grad_sign.copy() * (sign_flip >= 0)
@@ -159,3 +159,5 @@ class RPropStep(object):
             self.last_grad_sign = grad_sign.copy()
         self.last_update = update.copy()
         self.last_error = error
+        return error
+
