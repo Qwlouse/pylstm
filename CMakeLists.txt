@@ -45,17 +45,17 @@ SET(CMAKE_MODULE_PATH "${PY_LSTM_PATH}/cmake")
 # Options settings (including optional packages)
 #==============================================================================
 
-OPTION(MATLAB_BLAS "Use Matlab BLAS Libraries (requires Matlab)" ON)
-IF (MATLAB_BLAS)
+OPTION(USE_MATLAB_BLAS "Use Matlab BLAS Libraries (requires Matlab)" ON)
+IF (USE_MATLAB_BLAS)
     FIND_PACKAGE(Matlab2 REQUIRED)
     SET(BLAS_LIBRARIES ${MATLAB_LIBRARIES})
     INCLUDE_DIRECTORIES(${MATLAB_EXTERN_INCLUDE_PATH})
-ENDIF (MATLAB_BLAS)
+ENDIF (USE_MATLAB_BLAS)
 
 OPTION(USE_OPENBLAS "Use OpenBlas if possible" ON)
 
 
-IF (NOT MATLAB_BLAS)
+IF (NOT USE_MATLAB_BLAS)
     IF (USE_OPENBLAS)
         FIND_PACKAGE(OpenBlas)
     ENDIF (USE_OPENBLAS)
@@ -66,7 +66,7 @@ IF (NOT MATLAB_BLAS)
         ENABLE_LANGUAGE(Fortran)
         FIND_PACKAGE(BLAS REQUIRED)
     ENDIF (OPENBLAS_FOUND)
-ENDIF (NOT MATLAB_BLAS)
+ENDIF (NOT USE_MATLAB_BLAS)
 
 
 # Enable Asserts

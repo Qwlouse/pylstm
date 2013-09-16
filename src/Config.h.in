@@ -22,3 +22,6 @@
 
 // ========================== Configure Asserts ================================
 #cmakedefine ASSERTS_ENABLED
+
+// ========================== Configure CBLAS ==================================
+#cmakedefine USE_MATLAB_BLAS

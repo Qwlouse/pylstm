@@ -4,7 +4,7 @@
 #include <iostream>
 
 #include "Core.h"
-#include "cblas.h"
+#include "cblas_wrapper.h"
 
 
 using namespace std;
