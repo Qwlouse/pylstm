@@ -6,26 +6,41 @@ import sys
 
 
 class Undivided(object):
-    def __init__(self, X, T, M=None):
+    def __init__(self, X, T, M=None, shuffle=True):
         self.X = X
         self.T = T
         self.M = M
+        self.shuffle = shuffle
 
     def __call__(self):
+        total_batches = self.X.shape[1]
+        if self.shuffle:
+            indices = np.arange(total_batches)
+            np.random.shuffle(indices)
+            self.X = self.X[:, indices, :]
+            self.T = self.T[:, indices, :]
+            self.M = self.M[:, indices, :]
         yield self.X, self.T, self.M
 
 
 class Minibatches(object):
-    def __init__(self, X, T, M=None, batch_size=1):
+    def __init__(self, X, T, M=None, shuffle=True, batch_size=1):
         self.X = X
         self.T = T
         self.M = M
+        self.shuffle = shuffle
         self.batch_size = batch_size
 
     def __call__(self):
         i = 0
         _update_progress(0)
         total_batches = self.X.shape[1]
+        if self.shuffle:
+            indices = np.arange(total_batches)
+            np.random.shuffle(indices)
+            self.X = self.X[:, indices, :]
+            self.T = self.T[:, indices, :]
+            self.M = self.M[:, indices, :]
         while i < total_batches:
             j = min(i + self.batch_size, total_batches)
             x = self.X[:, i:j, :]
@@ -37,10 +52,11 @@ class Minibatches(object):
 
 
 class Online(object):
-    def __init__(self, X, T, M=None, verbose=True):
+    def __init__(self, X, T, M=None, shuffle=True, verbose=True):
         self.X = X
         self.T = T
         self.M = M
+        self.shuffle = shuffle
         self.verbose = verbose
 
     def __call__(self):
@@ -48,6 +64,12 @@ class Online(object):
         if self.verbose:
             _update_progress(0)
         total_batches = self.X.shape[1]
+        if self.shuffle:
+            indices = np.arange(total_batches)
+            np.random.shuffle(indices)
+            self.X = self.X[:, indices, :]
+            self.T = self.T[:, indices, :]
+            self.M = self.M[:, indices, :]
         while i < total_batches:
             x = self.X[:, i:i+1, :]
             t = self.T[i:i+1] if isinstance(self.T, list) else \
