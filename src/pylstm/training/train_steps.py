@@ -96,7 +96,7 @@ class NesterovStep(object):
         return error
 
 
-class RPropStep2(object):
+class RPropStep(object):
     """
     References:
     Improving the Rprop Learning Algorithm. Igel and Husken (2000).
