@@ -18,7 +18,7 @@ struct NullDeleter
 
 Matrix::Matrix() :
 	offset(0),
-	data(NULL),
+	data(),
 	stride(0),
 	state(NORMAL),
 	n_rows(0),

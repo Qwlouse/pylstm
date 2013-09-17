@@ -67,7 +67,7 @@ public:
 	void print_me();
 
 	// iterator
-	class iterator {
+	class iterator : public std::iterator<std::forward_iterator_tag, Matrix> {
 	private:
 	    d_type* ptr;
 	    size_t i;
