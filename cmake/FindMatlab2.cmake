@@ -1,4 +1,4 @@
-# Find module for MATLAB
+#  Find module for MATLAB
 ###############################################################################
 # This module defines:
 # - MATLAB_EXTERN_INCLUDE_PATH
@@ -32,7 +32,7 @@ endif(_QUIET_FINDING)
 IF(OperatingSystem MATCHES "Mac OS X")
     find_path(MATLAB_EXTERN_INCLUDE_PATH
     NAMES blas.h mex.h mat.h
-    PATH_SUFFIXES MATLAB_R2011a.app/extern/include/ MATLAB_R2011b.app/extern/include/ MATLAB_R2012a.app/extern/include/ MATLAB_R2012b.app/extern/include/
+    PATH_SUFFIXES MATLAB_R2011a.app/extern/include/ MATLAB_R2011b.app/extern/include/ MATLAB_R2012a.app/extern/include/ MATLAB_R2012b.app/extern/include/ MATLAB_R2013a.app/extern/include/
     PATHS /Applications 
     )
 ENDIF(OperatingSystem MATCHES "Mac OS X")
@@ -52,7 +52,7 @@ ENDIF(OperatingSystem MATCHES "Linux")
 IF(OperatingSystem MATCHES "Mac OS X")
 FIND_LIBRARY(MATLAB_LIBRARIES
     NAMES mwblas
-    PATH_SUFFIXES MATLAB_R2011a.app/bin/maci64 MATLAB_R2011b.app/bin/maci64 MATLAB_R2012a.app/bin/maci64 MATLAB_R2012b.app/bin/maci64
+    PATH_SUFFIXES MATLAB_R2011a.app/bin/maci64 MATLAB_R2011b.app/bin/maci64 MATLAB_R2012a.app/bin/maci64 MATLAB_R2012b.app/bin/maci64 MATLAB_R2013a.app/bin/maci64
     PATHS /Applications 
     )
 
