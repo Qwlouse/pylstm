@@ -8,7 +8,7 @@ from .data_iterators import Minibatches
 
 def conjgrad(gradient, v, f_hessp, maxiter=20):
     r = gradient - f_hessp(v)  # residual
-    p = r  # current step
+    p = -r  # current step
     rsold = r.T.dot(r)
     allvecs = [v.copy()]
     for i in range(maxiter):
@@ -19,11 +19,11 @@ def conjgrad(gradient, v, f_hessp, maxiter=20):
         alpha = rsold / curv
         v += alpha * p
         allvecs.append(v.copy())
-        r = r - alpha * Ap   # updated residual
+        r = r + alpha * Ap   # updated residual
         rsnew = r.T.dot(r)
         if np.sqrt(rsnew) < 1e-10:
             break  # found solution
-        p = r + rsnew / rsold * p
+        p = -r + rsnew / rsold * p
 
         rsold = rsnew
 
