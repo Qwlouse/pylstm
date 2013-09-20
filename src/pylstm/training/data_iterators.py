@@ -60,23 +60,19 @@ class Online(object):
         self.verbose = verbose
 
     def __call__(self):
-        i = 0
         if self.verbose:
             _update_progress(0)
         total_batches = self.X.shape[1]
+        indices = np.arange(total_batches)
         if self.shuffle:
-            indices = np.arange(total_batches)
             np.random.shuffle(indices)
-            self.X = self.X[:, indices, :]
-            self.T = self.T[:, indices, :]
-            self.M = self.M[:, indices, :]
-        while i < total_batches:
-            x = self.X[:, i:i+1, :]
-            t = self.T[i:i+1] if isinstance(self.T, list) else \
-                self.T[:, i:i+1, :]
+        for i, idx in enumerate(indices):
+            x = self.X[:, idx:idx+1, :]
+            t = self.T[idx:idx+1] if isinstance(self.T, list) else \
+                self.T[:, idx:idx+1, :]
             m = None
             if self.M is not None:
-                m = self.M[:, i:i+1, :]
+                m = self.M[:, idx:idx+1, :]
                 for k in range(m.shape[0] - 1, -1, -1):
                     if m[k, 0, 0] != 0:
                         x = x[:k + 1, :, :]
@@ -84,7 +80,6 @@ class Online(object):
                         m = m[:k + 1, :, :]
                         break
             yield x, t, m
-            i += 1
             if self.verbose:
                 _update_progress(i/total_batches)
 
