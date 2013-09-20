@@ -28,6 +28,8 @@ class Network(object):
 
         self.architecture = architecture
 
+        self.T = None
+        self.M = None
         self.error = None
         self.deltas = None
 
@@ -128,6 +130,8 @@ class Network(object):
         self.delta_manager.set_dimensions(t, b)
 
     def forward_pass(self, input_buffer):
+        self.T = None
+        self.M = None
         self.error = None
         self.deltas = None
         # determine dimensions and set buffer managers accordingly
@@ -150,6 +154,8 @@ class Network(object):
 
     def calculate_error(self, T, M=None):
         if self.error is None:
+            self.T = T
+            self.M = M
             self.error, self.deltas = self.error_func(self.out_buffer, T, M)
         return self.error
 
@@ -178,6 +184,8 @@ class Network(object):
 
     def backward_pass(self, T, M=None):
         if self.deltas is None:
+            self.T = T
+            self.M = M
             self.error, self.deltas = self.error_func(self.out_buffer, T, M)
         return self.pure_backpass(self.deltas)
 
