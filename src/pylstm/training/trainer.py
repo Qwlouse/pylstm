@@ -27,6 +27,7 @@ class Trainer(object):
         )
 
     def emit_monitoring_batchwise(self, update_nr):
+        self.monitoring_arguments['epoch'] = self.epochs_seen
         for mon in self.monitor.values():
             timescale, interval = get_monitor_params(mon)
             if timescale == 'update':
@@ -35,6 +36,7 @@ class Trainer(object):
                 mon(**self.monitoring_arguments)
 
     def emit_monitoring_epochwise(self):
+        self.monitoring_arguments['epoch'] = self.epochs_seen
         for mon in self.monitor.values():
             timescale, interval = get_monitor_params(mon)
             if timescale == 'epoch':
