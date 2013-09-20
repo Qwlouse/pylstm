@@ -19,7 +19,7 @@ class Undivided(object):
             np.random.shuffle(indices)
             self.X = self.X[:, indices, :]
             self.T = self.T[:, indices, :]
-            self.M = self.M[:, indices, :]
+            self.M = None if self.M is None else self.M[:, indices, :]
         yield self.X, self.T, self.M
 
 
@@ -40,7 +40,7 @@ class Minibatches(object):
             np.random.shuffle(indices)
             self.X = self.X[:, indices, :]
             self.T = self.T[:, indices, :]
-            self.M = self.M[:, indices, :]
+            self.M = None if self.M is None else self.M[:, indices, :]
         while i < total_batches:
             j = min(i + self.batch_size, total_batches)
             x = self.X[:, i:j, :]
@@ -69,7 +69,7 @@ class Online(object):
             np.random.shuffle(indices)
             self.X = self.X[:, indices, :]
             self.T = self.T[:, indices, :]
-            self.M = self.M[:, indices, :]
+            self.M = None if self.M is None else self.M[:, indices, :]
         while i < total_batches:
             x = self.X[:, i:i+1, :]
             t = self.T[i:i+1] if isinstance(self.T, list) else \
