@@ -4,7 +4,7 @@
 from __future__ import division, print_function, unicode_literals
 import numpy as np
 import time
-from .callbacks import print_error_per_epoch
+from .monitoring import print_error_per_epoch
 from .train_steps import SgdStep, ForwardStep
 
 
@@ -18,24 +18,29 @@ class Trainer(object):
         self.validation_errors = []
         self.monitor = dict()
         self.epochs_seen = 0
+        self.monitoring_arguments = dict(
+            epoch=self.epochs_seen,
+            net=self.net,
+            stepper=self.stepper,
+            training_errors=self.training_errors,
+            validation_errors=self.validation_errors
+        )
 
     def emit_monitoring_batchwise(self, update_nr):
         for mon in self.monitor.values():
-            per_epoch, interval = get_monitor_params(mon)
-            if per_epoch:
+            timescale, interval = get_monitor_params(mon)
+            if timescale == 'update':
                 continue
             if update_nr % interval == 0:
-                mon(self.epochs_seen, self.net, self.stepper,
-                    self.training_errors, self.validation_errors)
+                mon(**self.monitoring_arguments)
 
     def emit_monitoring_epochwise(self):
         for mon in self.monitor.values():
-            per_epoch, interval = get_monitor_params(mon)
-            if not per_epoch:
+            timescale, interval = get_monitor_params(mon)
+            if timescale == 'epoch':
                 continue
             if self.epochs_seen % interval == 0:
-                mon(self.epochs_seen, self.net, self.stepper,
-                    self.training_errors, self.validation_errors)
+                mon(**self.monitoring_arguments)
 
     def should_stop(self):
         for sc in self.stopping_criteria:
@@ -88,6 +93,6 @@ class Trainer(object):
 
 
 def get_monitor_params(monitor):
-    per_epoch = monitor.per_epoch if hasattr(monitor, 'per_epoch') else True
+    timescale = monitor.timescale if hasattr(monitor, 'timescale') else 'epoch'
     interval = monitor.interval if hasattr(monitor, 'interval') else 1
-    return per_epoch, interval
+    return timescale, interval
