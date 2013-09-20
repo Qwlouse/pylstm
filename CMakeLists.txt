@@ -98,8 +98,15 @@ ELSEIF(CMAKE_COMPILER_IS_GNUCXX)
 ENDIF(DEFINED MSVC)
 
 IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-   ADD_DEFINITIONS(-I/usr/lib/c++/v1/ -libstd=libc++ -std=c++11)
-   MESSAGE("USING CLANG")
+    IF ("${OperatingSystem}" STREQUAL "Mac OS X")
+   		# by Juxi for Mac (10.8)
+		set( CMAKE_CXX_FLAGS "-std=c++11 -stdlib=libc++" )
+    	set( CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++" )
+	ELSE ("${OperatingSystem}" STREQUAL "Mac OS X")
+		ADD_DEFINITIONS(-I/usr/lib/c++/v1/ -libstd=libc++ -std=c++11)
+	ENDIF ("${OperatingSystem}" STREQUAL "Mac OS X")
+	
+    MESSAGE("--> We are using CLANG - Flags were set accordingly!")
 ENDIF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 
 #==============================================================================
