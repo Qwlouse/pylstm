@@ -123,3 +123,27 @@ class Noisy(object):
         for x, t, m in self.f():
             x_noisy = x + self.rnd.randn(*x.shape) * self.std
             yield x_noisy, t, m
+
+
+class FrameDrop(object):
+    """
+    Retains only a fraction of time frames of the time fraction.
+    Thus, the lengths of sequences are changed.
+    Uses a fixed seed by default to keep reproducibility
+
+    NOTE: Designed for use with the Online iterator only.
+    If you use it with other iterators, keep in mind that the dropped frames
+    will be the same ones for each sequence in your batches.
+    """
+    def __init__(self, data_iter, keep_fraction=0.9, rnd=np.random.RandomState(42)):
+        self.data_iter = data_iter
+        self.fraction = keep_fraction
+        self.rnd = rnd
+
+    def __call__(self):
+        for x, t, m in self.data_iter():
+            mask = np.random.random_sample(x.shape[0]) < self.fraction
+            x_drop = x[mask, :, :]
+            t_drop = t[mask, :, :]
+            m_drop = m[mask, :, :]
+            yield x_drop, t_drop, m_drop
