@@ -113,33 +113,6 @@ class CTCTest(unittest.TestCase):
                  [0, 0, .7, 1]]).T
             self.assertTrue(np.allclose(np.exp(b), b_expected))
 
-    @unittest.skip
-    def test_forward_values_multibatch1(self):
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            Y = np.hstack((self.Y, self.Y))
-            T = np.hstack((self.T, self.T))
-            a = _ctc_calculate_alphas(np.log(Y), T)
-            b = _ctc_calculate_betas(np.log(Y), T)
-            a_expected = np.array([[.1, .08, 0, 0], [.7, .08, .048, 0], [0, .56, .192, 0], [0, .07, .284, .1048], [0, 0, .021, .2135]]).reshape(5, 1, 4)
-            b_expected = np.array([[.096, .06, 0, 0], [.441, .48, .2, 0], [0, .42, .2, 0], [0, .57, .9, 1], [0, 0, .7, 1]]).reshape(5, 1, 4)
-            self.assertTrue(np.allclose(a[:, 0:1, :].T, a_expected))
-            self.assertTrue(np.allclose(b[:, 0:1, :].T, b_expected))
-            self.assertTrue(np.allclose(a[:, 1:2, :].T, a_expected))
-            self.assertTrue(np.allclose(b[:, 1:2, :].T, b_expected))
-
-    @unittest.skip
-    def test_forward_values_multibatch2(self):
-        Y = np.hstack((self.Y, self.Y))
-        Y[:, 1, :] = 1
-        Y /= Y.sum(2).reshape(4, 2, 1)  # normalize to get prob distr
-        T = np.hstack((self.T, self.T))
-        a, b, d = CTC(Y, T)
-        a_expected = np.array([[.1, .08, 0, 0], [.7, .08, .048, 0], [0, .56, .192, 0], [0, .07, .284, .1048], [0, 0, .021, .2135]]).reshape(5, 1, 4)
-        b_expected = np.array([[.096, .06, 0, 0], [.441, .48, .2, 0], [0, .42, .2, 0], [0, .57, .9, 1], [0, 0, .7, 1]]).reshape(5, 1, 4)
-        self.assertTrue(np.allclose(a[:, 0:1, :].T, a_expected))
-        self.assertTrue(np.allclose(b[:, 0:1, :].T, b_expected))
-
     def test_pxz_equal_for_all_t(self):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -147,18 +120,6 @@ class CTCTest(unittest.TestCase):
             b = _ctc_calculate_betas(np.log(self.Y), self.T)
             pxz = np.exp(a + b).T.sum(0)
             self.assertTrue(np.allclose(pxz, pxz.mean()))
-
-    @unittest.skip
-    def test_pxz_equal_for_all_t_multibatch(self):
-        #Y = np.hstack((self.Y, self.Y))
-        Y = np.abs(np.random.randn(4, 2, 3))
-        Y /= Y.sum(2).reshape(4, 2, 1)  # normalize to get prob distr
-        T = np.hstack((self.T, self.T))
-        a, b, d = CTC(Y, T)
-        pxz = (a * b).sum(2)
-
-        self.assertTrue(np.allclose(pxz[:,0], pxz[:,0].mean()))
-        self.assertTrue(np.allclose(pxz[:,1], pxz[:,1].mean()))
 
     def test_finite_diff(self):
         # finite differences testing
@@ -171,37 +132,3 @@ class CTCTest(unittest.TestCase):
         print("delta_approx\n", delta_approx.reshape(4, 1, 3).T)
 
         self.assertLess(np.sum((delta_approx.reshape(4, 1, 3) - d) ** 2), 1e-4)
-
-    def test_finite_diff_multibatch(self):
-        batches = 7
-        input_time_size = 9
-        labels = 2
-        label_seq_length = 4
-        Y = np.abs(np.random.randn(input_time_size, batches, labels + 1))
-        Y /= Y.sum(2).reshape(input_time_size, batches, 1)  # normalize to get prob distr
-        # T = np.vstack([np.arange(1, labels + 1)] * batches).T  # no repeated numbers for now
-        # T = T.reshape(labels, batches, 1)
-        T = np.random.randint(1, labels + 1, (label_seq_length, batches))
-        T = [t for t in T.swapaxes(0,1)]
-
-        # finite differences testing
-        def f(X):
-            return CTC(X.reshape(input_time_size, batches, labels + 1), T)[0]
-
-        delta_approx = approx_fprime(Y.copy().flatten(), f, 1e-5)
-
-        e, d = CTC(Y, T)
-        #print("pzx\n", (a*b).sum(2))
-
-        print("approx\n", delta_approx.reshape(input_time_size, batches, labels + 1).T)
-        print("calculated\n", d.T)
-        print("diff\n", (delta_approx.reshape(input_time_size, batches, labels + 1) - d).T)
-
-        e1, d1 = CTC(Y[:, 0:1, :], T[0:1])
-        e2, d2 = CTC(Y[:, 1:2, :], T[1:2])
-        d_correct = np.hstack((d1, d2))
-        print("delta calculated individually:\n", d_correct.T)
-        self.assertLess(np.sum((d.flatten() - delta_approx) ** 2), 1e-4)
-
-
-
