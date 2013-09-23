@@ -161,3 +161,29 @@ class RPropStep(object):
         self.last_error = error
         return error
 
+
+class RmsPropStep(object):
+    def __init__(self, step_rate, decay=0.9, momentum=0.0,
+                 step_adapt=False, step_rate_min=0, step_rate_max=np.inf):
+        self.step_rate = step_rate
+        self.decay = decay
+        self.momentum = momentum
+        self.step_adapt = step_adapt
+        self.step_rate_min = step_rate_min
+        self.step_rate_max = step_rate_max
+
+    def start(self, net):
+        self.net = net
+        self.scaling_factor = np.zeros(net.get_param_size())
+
+    def run(self, x, t, m):
+        self.net.forward_pass(x)
+        error = self.net.calculate_error(t, m)
+        self.net.backward_pass(t, m)
+        grad = self.net.calc_gradient()
+
+        self.scaling_factor = (1 - self.decay) * grad**2 + self.decay * self.scaling_factor
+        update = (self.step_rate / self.scaling_factor) * grad
+        self.net.param_buffer += update.flatten()
+
+        return error
