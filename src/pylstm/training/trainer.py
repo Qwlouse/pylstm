@@ -30,7 +30,7 @@ class Trainer(object):
         self.monitoring_arguments['epoch'] = self.epochs_seen
         for mon in self.monitor.values():
             timescale, interval = get_monitor_params(mon)
-            if timescale == 'update':
+            if timescale == 'epoch':
                 continue
             if update_nr % interval == 0:
                 mon(**self.monitoring_arguments)
@@ -39,7 +39,7 @@ class Trainer(object):
         self.monitoring_arguments['epoch'] = self.epochs_seen
         for mon in self.monitor.values():
             timescale, interval = get_monitor_params(mon)
-            if timescale == 'epoch':
+            if timescale == 'update':
                 continue
             if self.epochs_seen % interval == 0:
                 mon(**self.monitoring_arguments)
@@ -66,7 +66,8 @@ class Trainer(object):
 
         while True:
             train_errors = []
-            print("\nTraining ...")
+            print('\n\n', 15*'- ', " Epoch ", (self.epochs_seen + 1), 15*' -')
+            print("Training ...")
             start = time.time()
             for i, (x, t, m) in enumerate(training_data_getter()):
                 train_errors.append(self.stepper.run(x, t, m))
