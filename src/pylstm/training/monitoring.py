@@ -61,3 +61,29 @@ class SaveBestWeights(object):
             filename = self.filename.format(epoch=epoch)
             print("Saving weights to {0}...".format(filename))
             np.save(filename, net.param_buffer)
+
+
+class MonitorClassificationError(object):
+    """
+    Monitor the classification error assuming one-hot encoding of targets.
+    """
+    def __init__(self, X, T, M=None, name="", timescale='epoch', interval=1):
+        self.timescale = timescale
+        self.interval = interval
+        self.X = X
+        self.T = T
+        self.M = M
+        self.name = name
+        self.log = dict()
+        self.log['classification_error'] = []
+
+    def __call__(self, epoch, net, training_errors, validation_errors, **_):
+        print("\nEvaluating classification error for channel: ", self.name)
+        Y = net.forward_pass(self.X)
+        Y_win = Y.argmax(2).reshape(self.T.shape[0], self.T.shape[1], 1)
+        T_win = self.T.argmax(2).reshape(self.T.shape[0], self.T.shape[1], 1)
+        total_errors = np.sum((Y_win != T_win) * self.M)
+        total = np.sum(self.M)
+        error_fraction = total_errors / total
+        self.log['classification_error'].append(error_fraction)
+        print(self.name, ":\tClassificiation Error = ", error_fraction)
