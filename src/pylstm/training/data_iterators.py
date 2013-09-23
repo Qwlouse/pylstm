@@ -82,6 +82,8 @@ class Online(object):
             yield x, t, m
             if self.verbose:
                 _update_progress(i/total_batches)
+        _update_progress(1)
+
 
 
 def _update_progress(progress):
