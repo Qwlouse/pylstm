@@ -2,9 +2,9 @@
 # coding=utf-8
 
 from __future__ import division, print_function, unicode_literals
-import numpy as np
+from collections import OrderedDict
 import time
-from .monitoring import print_error_per_epoch
+import numpy as np
 from .train_steps import SgdStep, ForwardStep
 
 
@@ -16,7 +16,7 @@ class Trainer(object):
         self.stopping_criteria = []
         self.training_errors = []
         self.validation_errors = []
-        self.monitor = dict()
+        self.monitor = OrderedDict()
         self.epochs_seen = 0
         self.monitoring_arguments = dict(
             epoch=self.epochs_seen,
