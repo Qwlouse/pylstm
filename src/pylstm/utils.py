@@ -116,3 +116,18 @@ def check_gn_pass(net, X=None, v=None, r=1e-7, nr_timesteps=3, nr_batches=5,
     calc = net.hessian_pass(X, v).flatten()
     estimated = G.dot(v).flatten()
     return np.sum((calc - estimated) ** 2), calc, estimated
+
+
+def construct_period_mask(periods):
+    """
+    Construct a mask for the recurrent matrix of an ArnnLayer, to ensure that
+    connections only go to units of higher frequency, but not back.
+    """
+    unique_ps = sorted(set(periods))
+    D = np.zeros((len(periods), len(periods)), dtype=np.float64)
+    offset = 0
+    for p in unique_ps:
+        group_size = periods.count(p)
+        D[offset:, offset:offset + group_size] = 1.0
+        offset += group_size
+    return D
