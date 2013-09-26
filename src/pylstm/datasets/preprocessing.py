@@ -6,6 +6,12 @@ from random import shuffle
 
 
 def binarize_sequence(seq, alphabet=None):
+    """
+    Binarize a sequence given as a list or a 1d array. Returns a 2d one-hot
+    representation of that sequence.
+    You can specify the alphabet for binarization yourself. Otherwise it will be
+    the symbols from the passed in sequence.
+    """
     if alphabet is None:
         alphabet = np.lib.arraysetops.unique(seq)
     else:
@@ -18,6 +24,13 @@ def binarize_sequence(seq, alphabet=None):
 
 
 def binarize_array(A, alphabet=None):
+    """
+    Binarize a batch of sequences given as a 2d or 3d array. Dimensions have to
+    be (time, seq_nr[, 1]). Returns a 3d one-hot representation of all those
+    sequences.
+    You can specify the alphabet for binarization yourself. Otherwise it will be
+    the symbols from the passed in sequences.
+    """
     if A.shape == 3:
         assert A.shape[2] == 1
         A = A[:, :, 0]
