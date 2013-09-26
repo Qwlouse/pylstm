@@ -67,23 +67,28 @@ class MonitorClassificationError(object):
     """
     Monitor the classification error assuming one-hot encoding of targets.
     """
-    def __init__(self, X, T, M=None, name="", timescale='epoch', interval=1):
+    def __init__(self, data_iter, name="", timescale='epoch', interval=1):
         self.timescale = timescale
         self.interval = interval
-        self.X = X
-        self.T = T
-        self.M = M
+        self.data_iter = data_iter
         self.name = name
         self.log = dict()
         self.log['classification_error'] = []
 
-    def __call__(self, epoch, net, training_errors, validation_errors, **_):
-        print("\nEvaluating classification error for channel: ", self.name)
-        Y = net.forward_pass(self.X)
-        Y_win = Y.argmax(2).reshape(self.T.shape[0], self.T.shape[1], 1)
-        T_win = self.T.argmax(2).reshape(self.T.shape[0], self.T.shape[1], 1)
-        total_errors = np.sum((Y_win != T_win) * self.M)
-        total = np.sum(self.M)
+    def __call__(self, net, **_):
+        total_errors = 0
+        total = 0
+        for x, t, m in self.data_iter():
+            y = net.forward_pass(x)
+            y_win = y.argmax(2)
+            t_win = t.argmax(2)
+            if m is not None:
+                total_errors += np.sum((y_win != t_win) * m[:, :, 0])
+                total += np.sum(m)
+            else:
+                total_errors += np.sum((y_win != t_win))
+                total += t.shape[0] * t.shape[1]
         error_fraction = total_errors / total
         self.log['classification_error'].append(error_fraction)
-        print(self.name, ":\tClassificiation Error = ", error_fraction)
+        print(self.name, ":\tClassificiation Error = %0.2f\t (%d / %d)" %
+                         (error_fraction, total_errors, total))
