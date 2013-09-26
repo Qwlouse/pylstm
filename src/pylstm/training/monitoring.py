@@ -40,8 +40,11 @@ class SaveWeights(object):
         self.interval = interval
         self.filename = filename
 
-    def __call__(self, epoch, net, **_):
-        np.save(self.filename.format(epoch=epoch), net.param_buffer)
+    def __call__(self, net, **_):
+        np.save(self.filename, net.param_buffer)
+
+    def load_weights(self):
+        return np.load(self.filename)
 
 
 class SaveBestWeights(object):
@@ -55,12 +58,14 @@ class SaveBestWeights(object):
         self.interval = 1
         self.filename = filename
 
-    def __call__(self, epoch, net, training_errors, validation_errors, **_):
+    def __call__(self, net, training_errors, validation_errors, **_):
         e = validation_errors if len(validation_errors) > 0 else training_errors
         if np.argmin(e) == len(e) - 1:
-            filename = self.filename.format(epoch=epoch)
-            print("Saving weights to {0}...".format(filename))
-            np.save(filename, net.param_buffer)
+            print("Saving weights to {0}...".format(self.filename))
+            np.save(self.filename, net.param_buffer)
+
+    def load_weights(self):
+        return np.load(self.filename)
 
 
 class MonitorClassificationError(object):
