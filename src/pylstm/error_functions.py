@@ -6,6 +6,7 @@ from .training.data_iterators import Online
 
 
 def MeanSquaredError(Y, T, M=None):
+    assert Y.shape == T.shape, "Shape mismatch Y%s != T%s" % (Y.shape, T.shape)
     diff = Y - T
     norm = Y.shape[1]  # normalize by number of sequences
     if M is not None:
@@ -16,6 +17,7 @@ def MeanSquaredError(Y, T, M=None):
 
 
 def CrossEntropyError(Y, T, M=None):
+    assert Y.shape == T.shape, "Shape mismatch Y%s != T%s" % (Y.shape, T.shape)
     Y = Y.copy()  # do not modify original Y
     Y[Y < 1e-6] = 1e-6
     Y[Y > 1 - 1e-6] = 1 - 1e-6
@@ -31,6 +33,7 @@ def CrossEntropyError(Y, T, M=None):
 
 
 def MultiClassCrossEntropyError(Y, T, M=None):
+    assert Y.shape == T.shape, "Shape mismatch Y%s != T%s" % (Y.shape, T.shape)
     Y = Y.copy()  # do not modify original Y
     Y[Y < 1e-6] = 1e-6
     cee = T * np.log(Y)
