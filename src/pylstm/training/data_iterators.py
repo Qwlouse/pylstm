@@ -81,9 +81,7 @@ class Online(object):
                         break
             yield x, t, m
             if self.verbose:
-                _update_progress(i/total_batches)
-        _update_progress(1)
-
+                _update_progress((i+1)/total_batches)
 
 
 def _update_progress(progress):
