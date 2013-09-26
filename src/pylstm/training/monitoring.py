@@ -97,3 +97,55 @@ class MonitorClassificationError(object):
         self.log['classification_error'].append(error_fraction)
         print(self.name, ":\tClassificiation Error = %0.2f\t (%d / %d)" %
                          (error_fraction, total_errors, total))
+
+
+class PlotErrors(object):
+    """
+    Open a window and plot the training and validation errors while training.
+    """
+    def __init__(self, timescale='epoch', interval=1):
+        self.timescale = timescale
+        self.interval = interval
+        import matplotlib.pyplot as plt
+        self.plt = plt
+        self.plt.ion()
+        self.fig, self.ax = self.plt.subplots()
+        self.ax.set_title('Training Progress')
+        self.ax.set_xlabel('Epochs')
+        self.ax.set_ylabel('Error')
+        self.t_line = None
+        self.v_line = None
+        self.v_dot = None
+        self.plt.show()
+
+    def _get_min_err(self, errors):
+        min_epoch = np.argmin(errors)
+        return min_epoch, errors[min_epoch]
+
+    def __call__(self, training_errors, validation_errors, **_):
+        if self.v_line is None and validation_errors:
+                self.v_line, = self.ax.plot(validation_errors, 'b-',
+                                            label='Validation Error')
+
+        if self.t_line is None:
+            if training_errors:
+                self.t_line, = self.ax.plot(training_errors, 'g-',
+                                            label='Training Error')
+                min_ep, min_err = self._get_min_err(validation_errors)
+                self.v_dot, = self.ax.plot([min_ep], min_err, 'bo')
+            self.ax.legend()
+            self.fig.canvas.draw()
+            return
+
+        self.t_line.set_ydata(training_errors)
+        self.t_line.set_xdata(range(len(training_errors)))
+        if self.v_line is not None:
+            self.v_line.set_ydata(validation_errors)
+            self.v_line.set_xdata(range(len(validation_errors)))
+            min_ep, min_err = self._get_min_err(validation_errors)
+            self.v_dot.set_ydata([min_err])
+            self.v_dot.set_xdata([min_ep])
+        self.ax.relim()
+        self.ax.autoscale_view()
+        self.fig.canvas.draw()
+
