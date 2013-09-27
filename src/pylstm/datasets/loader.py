@@ -46,10 +46,18 @@ def read_data(candidates):
     return X, T, M
 
 
-def load_dataset(base_path, restriction=''):
-    candidates = [os.path.join(base_path, p) for p in os.listdir(base_path)]
-    if restriction:
-        candidates = get_files_containing(candidates, restriction)
+def load_dataset(dataset_path, subset=''):
+    """
+    Tries to load a dataset from the given path. It will look for the filenames
+    to populate a dictionary with 'train', 'val' and 'test' sets. Each set
+    consisting of an 'X', 'T' and possibly 'M' matrix.
+    You can restrict the matching filesnames by passing a subset string.
+    In case of ambiguity it will load the file with the shortest filename.
+    """
+    candidates = [os.path.join(dataset_path, p)
+                  for p in os.listdir(dataset_path)]
+    if subset:
+        candidates = get_files_containing(candidates, subset)
 
     train_files = get_files_containing(candidates, 'train', True)
     val_files = get_files_containing(candidates, 'val', True)
