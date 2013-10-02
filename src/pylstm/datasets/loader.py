@@ -42,7 +42,7 @@ def read_data(candidates):
     if M_candidates:
         M = load_data(M_candidates)
     else:
-        M = np.ones(T.shape[0], T.shape[1], 1)
+        M = np.ones((T.shape[0], T.shape[1], 1))
     return X, T, M
 
 
