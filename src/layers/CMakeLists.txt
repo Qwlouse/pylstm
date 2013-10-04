@@ -7,6 +7,7 @@ ADD_LIBRARY(layers SHARED
             mrnn_layer.cpp
             rnn_layer.cpp
             arnn_layer.cpp
+            ctc.cpp
             )
 
 TARGET_LINK_LIBRARIES(layers ${BLAS_LIBRARIES} core matrix)

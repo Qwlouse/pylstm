@@ -1,5 +1,6 @@
 from c_matrix cimport Matrix, ActivationFunction, MatrixContainer
 from libcpp.string cimport string
+from libcpp.vector cimport vector
 from libcpp cimport bool
 
 cdef extern from "forward_layer.h":
@@ -85,3 +86,10 @@ cdef extern from "layer.hpp":
 
     cppclass Layer[L]:
         Layer(size_t in_size, size_t out_size, L)
+
+
+cdef extern from "ctc.h":
+    void ctc_betas(Matrix Y_log, vector[int] T, Matrix beta)
+    void ctc_alphas(Matrix Y_log, vector[int] T, Matrix alpha)
+
+    double ctc(Matrix Y, vector[int] T, Matrix deltas)

@@ -3,6 +3,8 @@
 cimport c_layers as cl
 cimport c_matrix as cm
 from cython.operator cimport dereference as deref
+from libcpp.vector cimport vector
+
 from py_matrix cimport Matrix
 from py_matrix_container cimport create_MatrixContainer, MatrixContainer
 
@@ -85,6 +87,29 @@ cdef class BaseLayer:
         return self.layer.out_size
 
 
+def ctcpp_alpha(Y, T):
+    t, b, f = Y.shape
+    assert b == 1, "No multibatch support in ctcpp for now"
+    Z =  2 * len(T) + 1
+    alpha = Matrix(t, 1, Z)
+    cl.ctc_alphas(Matrix(Y).c_obj, T, alpha.c_obj)
+    return alpha.as_array()
+
+def ctcpp_beta(Y, T):
+    t, b, f = Y.shape
+    assert b == 1, "No multibatch support in ctcpp for now"
+    Z =  2 * len(T) + 1
+    beta = Matrix(t, 1, Z)
+    cl.ctc_betas(Matrix(Y).c_obj, T, beta.c_obj)
+    return beta.as_array()
+
+def ctcpp(Y, T):
+    t, b, f = Y.shape
+    assert b == 1, "No multibatch support in ctcpp for now"
+    deltas = Matrix(t, b, f)
+    deltas.c_obj.set_all_elements_to(float('-inf'))
+    error = cl.ctc(Matrix(Y).c_obj, T, deltas.c_obj)
+    return error, deltas
 
 def create_layer(name, in_size, out_size, **kwargs):
     l = BaseLayer()
