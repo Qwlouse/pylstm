@@ -43,10 +43,11 @@ class SgdStep(object):
         self.net = net
 
     def run(self, x, t, m):
+        learning_rate = self.learning_rate if isinstance(self.learning_rate, (int, float)) else self.learning_rate()
         self.net.forward_pass(x)
         error = self.net.calculate_error(t, m)
         self.net.backward_pass(t, m)
-        self.net.param_buffer -= self.learning_rate * \
+        self.net.param_buffer -= learning_rate * \
                                  self.net.calc_gradient().flatten()
         return error
 
@@ -63,11 +64,13 @@ class MomentumStep(object):
         self.velocity = np.zeros(net.get_param_size())
 
     def run(self, x, t, m):
-        self.velocity *= self.momentum
+        learning_rate = self.learning_rate if isinstance(self.learning_rate, (int, float)) else self.learning_rate()
+        momentum = self.momentum if isinstance(self.momentum, (int, float)) else self.momentum()
+        self.velocity *= momentum
         self.net.forward_pass(x)
         error = self.net.calculate_error(t, m)
         self.net.backward_pass(t, m)
-        dv = self.learning_rate * self.net.calc_gradient().flatten()
+        dv = learning_rate * self.net.calc_gradient().flatten()
         self.velocity -= dv
         self.net.param_buffer += self.velocity
         return error
@@ -85,12 +88,14 @@ class NesterovStep(object):
         self.velocity = np.zeros(net.get_param_size())
 
     def run(self, x, t, m):
-        self.velocity *= self.momentum
+        learning_rate = self.learning_rate if isinstance(self.learning_rate, (int, float)) else self.learning_rate()
+        momentum = self.momentum if isinstance(self.momentum, (int, float)) else self.momentum()
+        self.velocity *= momentum
         self.net.param_buffer += self.velocity
         self.net.forward_pass(x)
         error = self.net.calculate_error(t, m)
         self.net.backward_pass(t, m)
-        dv = self.learning_rate * self.net.calc_gradient().flatten()
+        dv = learning_rate * self.net.calc_gradient().flatten()
         self.velocity -= dv
         self.net.param_buffer -= dv
         return error
