@@ -95,7 +95,7 @@ class MonitorClassificationError(object):
                 total += t.shape[0] * t.shape[1]
         error_fraction = total_errors / total
         self.log['classification_error'].append(error_fraction)
-        print(self.name, ":\tClassificiation Error = %0.2f\t (%d / %d)" %
+        print(self.name, ":\tClassification Error = %0.2f\t (%d / %d)" %
                          (error_fraction, total_errors, total))
 
 
