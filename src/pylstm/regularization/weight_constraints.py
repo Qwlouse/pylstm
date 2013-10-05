@@ -26,6 +26,28 @@ class RescaleIncomingWeights(object):
     def __repr__(self):
         return "<RescaleIncomingWeights %0.4f>" % self.target_sum
 
+class LimitIncomingWeightsSquared(object):
+    """
+    Limits the squares of incoming weights for every neuron to sum to one (target_sum).
+    Ignores Biases.
+
+    Should be added to the network via the set_constraints method like so:
+    >> net.set_constraints(RnnLayer={'HX': LimitIncomingWeightsSquared()})
+    See Network.set_constraints for more information on how to control which
+    weights to affect.
+    """
+    def __init__(self, target_sum=1.0):
+        self.target_sum = target_sum
+
+    def __call__(self, view):
+        if view.shape[1] == 1:  # Just one input: probably bias => ignore
+            return view
+        sums = (view*view).sum(1)
+        sums = (sums < self.target_sum) + (sums/self.target_sum)*(sums >= self.target_sum)
+        return view / np.sqrt(sums)
+
+    def __repr__(self):
+        return "<RescaleIncomingWeights %0.4f>" % self.target_sum
 
 class ClipWeights(object):
     """
