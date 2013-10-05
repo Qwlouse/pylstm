@@ -25,7 +25,7 @@ class Gaussian(object):
 
 class Uniform(object):
     """
-    Initializes the weights randomlay according to a uniform distribution over
+    Initializes the weights randomly according to a uniform distribution over
     the interval [low; high].
     """
     def __init__(self, low=-0.1, high=0.1):
@@ -37,6 +37,35 @@ class Uniform(object):
         size = reduce(np.multiply, shape)
         v = ((self.high - self.low) * rnd.rand(size).reshape(*shape)) + self.low
         return v
+
+class DenseSqrtFanIn(object):
+    """
+    Initializes the weights randomly according to a uniform distribution over
+    the interval [-1/sqrt(n), 1/sqrt(n)] where n is the number of inputs to each neuron.
+    """
+    def __init__(self, scale=1.0):
+        self.scale = scale
+
+    def __call__(self, layer_name, view_name,  shape, seed=None):
+        rnd = np.random.RandomState(seed)
+        size = reduce(np.multiply, shape)
+        return self.scale * (2*rnd.rand(size).reshape(*shape) - 1) / np.sqrt(shape[1])
+
+
+class DenseSqrtFanInOut(object):
+    """
+    Initializes the weights randomly according to a uniform distribution over
+    the interval [-1/sqrt(n1+n2), 1/sqrt(n1+n2)] where n1 is the number of inputs to each neuron
+    and n2 is the number of neurons in the current layer.
+    Use scaling = 4*sqrt(6) (used by default) for sigmoid units and sqrt(6) for tanh units.
+    """
+    def __init__(self, scale=4*np.sqrt(6)):
+        self.scale = scale
+
+    def __call__(self, layer_name, view_name,  shape, seed=None):
+        rnd = np.random.RandomState(seed)
+        size = reduce(np.multiply, shape)
+        return self.scale * (2*rnd.rand(size).reshape(*shape) - 1) / np.sqrt(shape[1] + shape[2])
 
 
 class CopyFromNetwork(object):
