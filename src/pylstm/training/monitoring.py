@@ -98,6 +98,41 @@ class MonitorClassificationError(object):
         print(self.name, ":\tClassification Error = %0.2f\t (%d / %d)" %
                          (error_fraction, total_errors, total))
 
+class MonitorPooledClassificationError(object):
+    """
+        Monitor the classification error assuming one-hot encoding of targets
+        with pooled targets with an odd pool size.
+        """
+    def __init__(self, data_iter, pool_size, name="", timescale='epoch', interval=1):
+        self.timescale = timescale
+        self.interval = interval
+        self.data_iter = data_iter
+        self.pool_size = pool_size
+        self.name = name
+        self.log = dict()
+        self.log['classification_error'] = []
+    
+    def __call__(self, net, **_):
+        total_errors = 0
+        total = 0
+        for x, t, m in self.data_iter():
+            relevant_from = (t.shape[2] / self.pool_size) * (self.pool_size // 2)
+            relevant_to = relevant_from + (t.shape[2] / self.pool_size)
+            t = t[:, :, relevant_from: relevant_to]
+            y = net.forward_pass(x)
+            y_win = y.argmax(2)
+            t_win = t.argmax(2)
+            if m is not None:
+                total_errors += np.sum((y_win != t_win) * m[:, :, 0])
+                total += np.sum(m)
+            else:
+                total_errors += np.sum((y_win != t_win))
+                total += t.shape[0] * t.shape[1]
+        error_fraction = total_errors / total
+        self.log['classification_error'].append(error_fraction)
+        print(self.name, ":\tClassification Error = %0.2f\t (%d / %d)" %
+              (error_fraction, total_errors, total))
+
 
 class PlotErrors(object):
     """

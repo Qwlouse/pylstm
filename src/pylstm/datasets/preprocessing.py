@@ -111,5 +111,17 @@ def shuffle_data(X, T, M):
     M_s = M[:, shuffling, :]
     return X_s, T_s, M_s, shuffling
 
+def mid_pool_outputs(T, size=3):
+    """
+        Make pools of size=size (must be odd) such that targets of equal frames
+        before and after are also available while training.
+        """
+    T_pooled = np.zeros((T.shape[0], T.shape[1], size*T.shape[2]))
+    T = np.concatenate((np.zeros((size//2, T.shape[1], T.shape[2])), T, np.zeros((size//2, T.shape[1], T.shape[2]))), axis=0)
+    for t in range(T.shape[0]-(size-1)):
+        T_frame = T[t:t+size, :, :]
+        T_pooled[t, :, :] = T_frame.reshape(1, size, T.shape[1], T.shape[2]).swapaxes(1, 2).reshape(1, T.shape[1], size*T.shape[2])
+    return T_pooled
+
 
 
