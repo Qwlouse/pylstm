@@ -95,8 +95,9 @@ class MonitorClassificationError(object):
                 total += t.shape[0] * t.shape[1]
         error_fraction = total_errors / total
         self.log['classification_error'].append(error_fraction)
-        print(self.name, ":\tClassification Error = %0.2f\t (%d / %d)" %
+        print(self.name, ":\tClassification Error = %0.4f\t (%d / %d)" %
                          (error_fraction, total_errors, total))
+
 
 class MonitorPooledClassificationError(object):
     """
@@ -130,8 +131,62 @@ class MonitorPooledClassificationError(object):
                 total += t.shape[0] * t.shape[1]
         error_fraction = total_errors / total
         self.log['classification_error'].append(error_fraction)
-        print(self.name, ":\tClassification Error = %0.2f\t (%d / %d)" %
+        print(self.name, ":\tClassification Error = %0.4f\t (%d / %d)" %
               (error_fraction, total_errors, total))
+
+
+class MonitorPhonemeError(object):
+    """
+    Monitor the classification error assuming one-hot encoding of targets.
+    """
+    def __init__(self, data_iter, name="", timescale='epoch', interval=1):
+        self.timescale = timescale
+        self.interval = interval
+        self.data_iter = data_iter
+        self.name = name
+        self.log = dict()
+        self.log['phoneme_error'] = []
+
+    def __call__(self, net, **_):
+        total_errors = 0
+        total_length = 0
+        for x, t, m in self.data_iter():
+            y = net.forward_pass(x)
+            lab = ctc_best_path_decoding(y)
+            total_errors += levenshtein(lab, t[0])
+            total_length += len(t[0])
+        print(self.name, ':\tPhoneme Error = %0.4f\t (%d / %d)' %
+                         (total_errors/total_length, total_errors, total_length))
+
+
+def ctc_best_path_decoding(Y):
+    assert Y.shape[1] == 1
+    Y_win = Y.argmax(2).reshape(Y.shape[0])
+    t = []
+    blank = True
+    for y in Y_win:
+        if blank is True and y != 0:
+            t.append(y)
+            blank = False
+        elif blank is False:
+            if y == 0:
+                blank = True
+            elif y != t[-1]:
+                t.append(y)
+    return t
+
+
+def levenshtein(seq1, seq2):
+    oneago = None
+    thisrow = range(1, len(seq2) + 1) + [0]
+    for x in xrange(len(seq1)):
+        twoago, oneago, thisrow = oneago, thisrow, [0] * len(seq2) + [x + 1]
+        for y in xrange(len(seq2)):
+            delcost = oneago[y] + 1
+            addcost = thisrow[y - 1] + 1
+            subcost = oneago[y - 1] + (seq1[x] != seq2[y])
+            thisrow[y] = min(delcost, addcost, subcost)
+    return thisrow[len(seq2) - 1]
 
 
 class PlotErrors(object):
