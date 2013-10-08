@@ -130,15 +130,19 @@ class FrameDrop(object):
     If you use it with other iterators, keep in mind that the dropped frames
     will be the same ones for each sequence in your batches.
     """
-    def __init__(self, data_iter, keep_fraction=0.9, rnd=np.random.RandomState(42)):
+    def __init__(self, data_iter, keep_fraction=0.9, rnd=np.random.RandomState(42), drop_targets=True):
         self.data_iter = data_iter
         self.fraction = keep_fraction
         self.rnd = rnd
+        self.drop_targets = drop_targets
 
     def __call__(self):
         for x, t, m in self.data_iter():
             mask = np.random.random_sample(x.shape[0]) < self.fraction
             x_drop = x[mask, :, :]
-            t_drop = t[mask, :, :]
+            if self.drop_targets:
+                t_drop = t[mask, :, :]
+            else:
+                t_drop = t
             m_drop = m[mask, :, :]
             yield x_drop, t_drop, m_drop
