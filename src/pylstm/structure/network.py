@@ -317,6 +317,8 @@ class Network(object):
 
         for layer_name, layer in self.layers.items()[1:]:
             views = self.get_param_view_for(layer_name)
+            if views is None:
+                continue
             for view_name, view in views.items():
                 view_initializer = _get_default_aware(initializers,
                                                       layer_name,
