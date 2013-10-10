@@ -45,13 +45,14 @@ void ctc_alphas(Matrix Y_log, std::vector<int> T, Matrix alpha) {
     int N = static_cast<int>(Y_log.n_slices);
     int S = static_cast<int>(T.size());
     int Z = static_cast<int>(alpha.n_rows);
+    int label_count = static_cast<int>(Y_log.n_rows);
     ASSERT(alpha.n_rows == Z);
     ASSERT(alpha.n_columns == 1);
     ASSERT(alpha.n_slices = N);
 
     alpha.set_all_elements_to(ninf);
     alpha.get(0, 0, 0) = Y_log.get(0, 0, 0);
-    alpha.get(1, 0, 0) = Y_log.get(T[0], 0, 0);
+    alpha.get(1, 0, 0) = Y_log.get(T[0]+1, 0, 0);
 
     for (int t = 1; t < N; ++t) {
         int start = std::max(-1, 2 * (S - N + t) + 1);
@@ -65,13 +66,15 @@ void ctc_alphas(Matrix Y_log, std::vector<int> T, Matrix alpha) {
         }
         int previous_label = -1;
         if (start > 0) {
-            previous_label = static_cast<int>(T[start / 2 - 1]);
+            previous_label = static_cast<int>(T[start / 2 - 1] + 1);
+            ASSERT(previous_label < label_count);
         }
         for (int s = std::max(1, start); s < Z; s += 2) { // loop the odd ones (labels)
             double& current_alpha = alpha.get(s, 0, t);
             logaddexp(current_alpha, alpha.get(s, 0, t-1));
             logaddexp(current_alpha, alpha.get(s-1, 0, t-1));
-            int label = static_cast<int>(T[s / 2]);
+            int label = static_cast<int>(T[s / 2] + 1);
+            ASSERT(label < label_count);
             if ((s > 1) && (label != previous_label)) {
                 logaddexp(current_alpha, alpha.get(s-2, 0, t-1));
             }
@@ -103,18 +106,18 @@ void ctc_betas(Matrix Y_log, std::vector<int> T, Matrix beta) {
             double& current_beta = beta.get(s, 0, t - 1);
             logaddexp(current_beta, beta.get(s, 0, t) + Y_log.get(0, 0, t));
             if (s < Z - 1) {
-                int label = T[(s + 1) / 2];
+                int label = T[(s + 1) / 2] + 1;
                 logaddexp(current_beta, beta.get(s+1, 0, t) + Y_log.get(label, 0, t));
             }
         }
         for (int s = 1; s < stop; s += 2) { // loop the odd ones (labels)
             double& current_beta = beta.get(s, 0, t - 1);
-            int label = T[s / 2];
+            int label = T[s / 2] + 1;
             logaddexp(current_beta, beta.get(s, 0, t) + Y_log.get(label, 0, t));
             logaddexp(current_beta, beta.get(s+1, 0, t) + Y_log.get(0, 0, t));
 
             if (s < Z - 2) {
-                int next_label = T[(s + 2) / 2];
+                int next_label = T[(s + 2) / 2] + 1;
                 if (label != next_label) {
                     logaddexp(current_beta, beta.get(s+2, 0, t) + Y_log.get(next_label, 0, t));
                 }
@@ -145,7 +148,7 @@ double ctc(Matrix Y, std::vector<int> T, Matrix deltas) {
     int required_time = S;
     int previous_label = -1;
     for (int s = 0; s < S; ++s) {
-        int label = T[s];
+        int label = T[s] + 1;
         required_time += label == previous_label;
         previous_label = label;
     }
@@ -179,7 +182,7 @@ double ctc(Matrix Y, std::vector<int> T, Matrix deltas) {
         }
         // calculate deltas for the odd ones (labels)
         for (int s = 1; s < Z; s += 2) {
-            int label = T[s / 2];
+            int label = T[s / 2] + 1;
             logaddexp(deltas.get(label, 0, t), beta.get(s, 0, t));
         }
         // normalize all the labels
