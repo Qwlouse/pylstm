@@ -59,7 +59,7 @@ class CTCTest(unittest.TestCase):
                            [.8, .1, .1],
                            [.3, .3, .4],
                            [.7, .1, .2]]).reshape(4, 1, 3)
-        self.T = [1, 2]
+        self.T = [0, 1]
 
     def test_alpha_values(self):
         a = ctcpp_alpha(np.log(self.Y), self.T)
@@ -82,7 +82,7 @@ class CTCTest(unittest.TestCase):
         self.assertTrue(np.allclose(np.exp(b), b_expected.reshape(4, 1, 5)))
 
     def test_alpha_values_duplicate_label(self):
-        T = [1, 1]
+        T = [0, 0]
         a = ctcpp_alpha(np.log(self.Y), T)
         a_expected = np.array(
             [[.1, .08, 0, 0],
@@ -93,7 +93,7 @@ class CTCTest(unittest.TestCase):
         self.assertTrue(np.allclose(np.exp(a), a_expected.reshape(4, 1, 5)))
 
     def test_beta_values_duplicate_label(self):
-        T = [1, 1]
+        T = [0, 0]
         b = ctcpp_beta(np.log(self.Y), T)
         b_expected = np.array(
             [[.003, 0, 0, 0],

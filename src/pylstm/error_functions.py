@@ -61,7 +61,6 @@ def CTC(Y, T, M=None):
     return np.mean(errors), -deltas / batch_size
 
 
-
 def ctc_best_path_decoding(Y):
     assert Y.shape[1] == 1
     Y_win = Y.argmax(2).reshape(Y.shape[0])
@@ -69,11 +68,11 @@ def ctc_best_path_decoding(Y):
     blank = True
     for y in Y_win:
         if blank is True and y != 0:
-            t.append(y)
+            t.append(y - 1)
             blank = False
         elif blank is False:
             if y == 0:
                 blank = True
-            elif y != t[-1]:
-                t.append(y)
+            elif y - 1 != t[-1]:
+                t.append(y - 1)
     return t
