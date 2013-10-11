@@ -72,12 +72,12 @@ class NoOpLayer(LayerBase):
     def create_input_view(self, input_buffer, time_length, batch_size):
         return super(NoOpLayer, self).create_input_view(input_buffer,
                                                         time_length,
-                                                        batch_size).as_array()
+                                                        batch_size)
 
     def create_output_view(self, output_buffer, time_length, batch_size):
         return super(NoOpLayer, self).create_output_view(output_buffer,
                                                          time_length,
-                                                         batch_size).as_array()
+                                                         batch_size)
 
     def forward(self, param, fwd_state, in_view, out_view):
         out_view[:] = in_view

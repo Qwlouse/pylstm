@@ -155,8 +155,10 @@ class MonitorPhonemeError(object):
             lab = ctc_best_path_decoding(y)
             total_errors += levenshtein(lab, t[0])
             total_length += len(t[0])
+        error_fraction = total_errors / total_length
+        self.log['phoneme_error'].append(error_fraction)
         print(self.name, ':\tPhoneme Error = %0.4f\t (%d / %d)' %
-                         (total_errors/total_length, total_errors, total_length))
+                         (error_fraction, total_errors, total_length))
 
 
 def ctc_best_path_decoding(Y):
