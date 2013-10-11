@@ -80,8 +80,8 @@ class NoOpLayer(LayerBase):
                                                          batch_size)
 
     def forward(self, param, fwd_state, in_view, out_view):
-        out_view[:] = in_view
+        out_view.as_array()[:] = in_view.as_array()
 
     def backward(self, param, fwd_state, bwd_state, out_view, in_deltas,
                  out_deltas):
-        in_deltas[:] = out_deltas
+        in_deltas.as_array()[:] = out_deltas.as_array()
