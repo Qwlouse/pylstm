@@ -177,6 +177,7 @@ def ctc_best_path_decoding(Y):
                 t.append(y - 1)
     return t
 
+
 def levenshtein(seq1, seq2):
     oneago = None
     thisrow = range(1, len(seq2) + 1) + [0]
