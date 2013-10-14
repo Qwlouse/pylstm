@@ -16,7 +16,8 @@ phonemes = ['aa', 'ae', 'ah', 'ao', 'aw', 'ax', 'ax-h', 'axr', 'ay', 'b', 'bcl',
             'w', 'y', 'z', 'zh']
 silence_label = phonemes.index('h#')
 
-reduced_phonemes = {
+reduce_phonemes = {p: p for p in phonemes if p != 'q'}  # discard q
+reduce_phonemes.update({
     'ae': 'aa',
     'ax': 'ah', 'ax-h': 'ah',
     'axr': 'er',
@@ -29,8 +30,7 @@ reduced_phonemes = {
     'zh': 'sh',
     'pcl': 'h#', 'tcl': 'h#', 'kcl': 'h#', 'bcl': 'h#', 'dcl': 'h#', 'gcl': 'h#', 'pau': 'h#', 'epi': 'h#',
     'ux': 'uw'
-    # discard q
-}
+})
 
 
 class TimitSample(object):
