@@ -168,15 +168,14 @@ def ctc_best_path_decoding(Y):
     blank = True
     for y in Y_win:
         if blank is True and y != 0:
-            t.append(y)
+            t.append(y - 1)
             blank = False
         elif blank is False:
             if y == 0:
                 blank = True
-            elif y != t[-1]:
-                t.append(y)
+            elif y - 1 != t[-1]:
+                t.append(y - 1)
     return t
-
 
 def levenshtein(seq1, seq2):
     oneago = None
