@@ -26,6 +26,7 @@ class RescaleIncomingWeights(object):
     def __repr__(self):
         return "<RescaleIncomingWeights %0.4f>" % self.target_sum
 
+
 class LimitIncomingWeightsSquared(object):
     """
     Limits the squares of incoming weights for every neuron to sum to one (target_sum).
@@ -48,6 +49,7 @@ class LimitIncomingWeightsSquared(object):
 
     def __repr__(self):
         return "<RescaleIncomingWeights %0.4f>" % self.target_sum
+
 
 class ClipWeights(object):
     """
@@ -129,10 +131,14 @@ class NoisyWeights(object):
         self.seed = seed
         self.rnd = np.random.RandomState(seed)
         self.std = std
+        self.noise = None
 
     def __call__(self, view):
-        size = reduce(np.multiply, view.shape)
-        return (view.flatten() - self.rnd.randn(size) * self.std).reshape(*view.shape)
+        if self.noise is None:
+            self.noise = np.zeros_like(view)
+        old_noise = self.noise
+        self.noise = self.rnd.randn(*view.shape) * self.std
+        return view - old_noise + self.noise
 
     def __repr__(self):
         if self.seed is None:
