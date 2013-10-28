@@ -222,7 +222,7 @@ def create_in_out_manager(extended_architecture, layers):
 
     for layer in extended_architecture.keys():
         source_list, sink_list, con_table = get_forward_closure(layer, extended_architecture)
-        assert np.all(con_table == 1), "Sparse Architectures not supported yet"
+        assert np.all(con_table == 1), "%s: Sparse Architectures not supported yet"%layer
         sinks = {n: (layers[n].get_input_buffer_size,
                      layers[n].create_input_view) for n in sink_list}
         sources = {n: (layers[n].get_output_buffer_size,
