@@ -41,12 +41,15 @@ class TimitSample(object):
         sample = cls(f[0], f[1], f[2][0], f[2][1:], f[3])
         return sample
 
-    def __init__(self, usage, dialect, sex, speaker_id, sentence_id):
+    def __init__(self, usage, dialect, sex, speaker_id, sentence_id,
+                 start=None, stop=None):
         self.usage = usage
         self.dialect = dialect
         self.sex = sex
         self.speaker_id = speaker_id
         self.sentence_id = sentence_id
+        self.start = start
+        self.stop = stop
 
     def _get_path(self, fileending, basedir):
         if not fileending.startswith('.'):
@@ -67,7 +70,8 @@ class TimitSample(object):
             content = f.readlines()
             wordlist = [c.strip().split(' ', 2) for c in content]
             return [(int(start), int(stop), word)
-                    for start, stop, word in wordlist]
+                    for start, stop, word in wordlist
+                    if int(start) >= self.start and int(stop) <= self.stop]
 
     def get_phonemes(self, basedir=TIMIT_DIR):
         filename = self._get_path('phn', basedir)
@@ -75,7 +79,8 @@ class TimitSample(object):
             content = f.readlines()
             phoneme_list = [c.strip().split(' ', 2) for c in content]
             return [(int(start), int(stop), phoneme, phonemes.index(phoneme))
-                    for start, stop, phoneme in phoneme_list]
+                    for start, stop, phoneme in phoneme_list
+                    if int(start) >= self.start and int(stop) <= self.stop]
 
     def get_audio_data(self, basedir=TIMIT_DIR):
         import scikits.audiolab as al
@@ -84,16 +89,17 @@ class TimitSample(object):
                                 self.sentence_id + '.wav')
         f = al.Sndfile(filename, 'r')
         data = f.read_frames(f.nframes, dtype=np.float64)
-        return data
+        return data[self.start:self.stop]
 
     def get_labels(self, frame_size=400, frame_shift=160, basedir=TIMIT_DIR):
         phonemes = self.get_phonemes(basedir)
-        p_extended = [silence_label] * (phonemes[0][0])
-        for a in phonemes:
-            p_extended += [a[3]] * (int(a[1]) - int(a[0]))
+        begin = self.start if self.start else 0
+        p_extended = [silence_label] * (phonemes[0][0] - begin)
+        for p in phonemes:
+            p_extended += [p[3]] * (int(p[1]) - int(p[0]))
         end = phonemes[-1][1]
-        windows = zip(range(0, end - frame_size + 1, frame_shift),
-                      range(frame_size, end + 1, frame_shift))
+        windows = zip(range(0, end - begin - frame_size + 1, frame_shift),
+                      range(frame_size, end - begin + 1, frame_shift))
         labels = [np.bincount(p_extended[f[0]:f[1]]).argmax() for f in windows]
         return np.array(labels)
 
