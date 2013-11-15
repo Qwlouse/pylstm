@@ -1,5 +1,14 @@
 #!/usr/bin/python
 # coding=utf-8
+"""
+Data iterators take the data X, the targets T and optionally the mask M and
+provide a unified way of iterating through them. They can divide the data into
+Minibatches, single samples or leave it as one block, and they can shuffle it.
+
+There are also modificators which can be stacked with a data iterator and which
+modify or augment the data.
+"""
+
 from __future__ import division, print_function, unicode_literals
 import numpy as np
 import sys
