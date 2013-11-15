@@ -15,6 +15,16 @@ import sys
 
 
 class Undivided(object):
+    """
+     Iterates through the data in one block (only one iteration). But it can
+     shuffle the data.
+     :param X: Data: Batch of sequences. shape = (time, sample, feature)
+     :param T: Targets: Batch of sequences[shape = (time, sample, targets)]
+                        or list of labels
+     :param M: Masks: Batch of sequences. shape = (time, sample, 1).
+                      Can be None(default).
+     :param shuffle: if this is true(default) then the data will be shuffled.
+    """
     def __init__(self, X, T, M=None, shuffle=True):
         self.X = X
         self.T = T
@@ -22,13 +32,18 @@ class Undivided(object):
         self.shuffle = shuffle
 
     def __call__(self):
-        total_batches = self.X.shape[1]
         if self.shuffle:
-            indices = np.arange(total_batches)
-            np.random.shuffle(indices)
+            batch_size = self.X.shape[1]
+            indices = np.arange(batch_size)
+            np.random.rnd.shuffle(indices)
             self.X = self.X[:, indices, :]
-            self.T = self.T[:, indices, :]
-            self.M = None if self.M is None else self.M[:, indices, :]
+            if isinstance(self.T, list):
+                shuffled_T = [self.T[i] for i in indices]
+                self.T = shuffled_T
+            else:
+                self.T = self.T[:, indices, :]
+            if self.M is not None:
+                self.M = self.M[:, indices, :]
         yield self.X, self.T, self.M
 
 
