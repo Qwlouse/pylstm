@@ -39,29 +39,30 @@ class Undivided(object):
 
 
 class Minibatches(object):
-    def __init__(self, X, T, M=None, shuffle=True, batch_size=1):
+    def __init__(self, X, T, M=None, batch_size=1, shuffle=True, verbose=True):
         self.X = X
         self.T = T
         self.M = M
-        self.shuffle = shuffle
         self.batch_size = batch_size
+        self.shuffle = shuffle
+        self.verbose = verbose
 
     def __call__(self):
-        i = 0
-        _update_progress(0)
+        if self.verbose:
+            _update_progress(0)
         total_batches = self.X.shape[1]
 
         X, T, M, _ = shuffle_data(self.X, self.T, self.M) if self.shuffle else \
                      self.X, self.T, self.M, None
 
-        while i < total_batches:
+        for i in range(0, total_batches, self.batch_size):
             j = min(i + self.batch_size, total_batches)
             x = X[:, i:j, :]
             t = T[i:j] if isinstance(T, list) else T[:, i:j, :]
             m = None if M is None else M[:, i:j, :]
             yield x, t, m
-            i += self.batch_size
-            _update_progress(i/total_batches)
+            if self.verbose:
+                _update_progress(i/total_batches)
 
 
 class Online(object):
