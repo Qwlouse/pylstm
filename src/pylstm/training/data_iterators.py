@@ -12,6 +12,7 @@ modify or augment the data.
 from __future__ import division, print_function, unicode_literals
 import numpy as np
 import sys
+from pylstm import shuffle_data
 
 
 class Undivided(object):
@@ -32,19 +33,9 @@ class Undivided(object):
         self.shuffle = shuffle
 
     def __call__(self):
-        if self.shuffle:
-            batch_size = self.X.shape[1]
-            indices = np.arange(batch_size)
-            np.random.rnd.shuffle(indices)
-            self.X = self.X[:, indices, :]
-            if isinstance(self.T, list):
-                shuffled_T = [self.T[i] for i in indices]
-                self.T = shuffled_T
-            else:
-                self.T = self.T[:, indices, :]
-            if self.M is not None:
-                self.M = self.M[:, indices, :]
-        yield self.X, self.T, self.M
+        X, T, M, _ = shuffle_data(self.X, self.T, self.M) if self.shuffle else \
+                     self.X, self.T, self.M, None
+        yield X, T, M
 
 
 class Minibatches(object):
@@ -59,17 +50,15 @@ class Minibatches(object):
         i = 0
         _update_progress(0)
         total_batches = self.X.shape[1]
-        if self.shuffle:
-            indices = np.arange(total_batches)
-            np.random.shuffle(indices)
-            self.X = self.X[:, indices, :]
-            self.T = self.T[:, indices, :]
-            self.M = None if self.M is None else self.M[:, indices, :]
+
+        X, T, M, _ = shuffle_data(self.X, self.T, self.M) if self.shuffle else \
+                     self.X, self.T, self.M, None
+
         while i < total_batches:
             j = min(i + self.batch_size, total_batches)
-            x = self.X[:, i:j, :]
-            t = self.T[i:j] if isinstance(self.T, list) else self.T[:, i:j, :]
-            m = None if self.M is None else self.M[:, i:j, :]
+            x = X[:, i:j, :]
+            t = T[i:j] if isinstance(T, list) else T[:, i:j, :]
+            m = None if M is None else M[:, i:j, :]
             yield x, t, m
             i += self.batch_size
             _update_progress(i/total_batches)
