@@ -220,6 +220,16 @@ void Matrix::print_me() {
   }
 }
 
+bool Matrix::overlaps_with(const Matrix& other) {
+    if (data != other.data) {
+        return false;
+    } else {
+        double* this_max = get_data() + get_offset(n_rows, n_columns, n_slices);
+        double* other_max = other.get_data() + other.get_offset(other.n_rows, other.n_columns, other.n_slices);
+
+        return (this_max < other.get_data() || other_max < get_data());
+    }
+}
 
 // iterator implementation
 
