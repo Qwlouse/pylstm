@@ -298,8 +298,19 @@ void apply_tanhx2_deriv(Matrix a, Matrix out) {
 void copy(Matrix a, Matrix b) {
     ASSERT(a.size <= b.size);
     if (a.stride == 0 && b.stride == 0 && a.state == b.state) {
+        // check for overlap!
+        ASSERT(a.get_data() > b.get_data() || a.get_data() + a.size < b.get_data());
         cblas_dcopy(static_cast<int>(a.size), a.get_data(), 1, b.get_data(), 1);
     } else {
+        // check for overlap!
+        // note that this is a conservative check:
+        // It is possible that the copy will work even with overlapping memory
+        // regions. But making sure that it does is much more complicated.
+        // So we just check that they don't touch.
+        size_t a_max = a.get_data() + a.get_offset(a.n_rows, a.n_columns, a.n_slices);
+        size_t b_max = b.get_data() + b.get_offset(b.n_rows, b.n_columns, b.n_slices);
+        ASSERT(a_max < b.get_data() || b_max < a.get_data())
+
         for (auto ita = a.begin(), itb = b.begin(); ita != a.end(); ++ita, ++itb) {
             *itb = *ita;
         }
