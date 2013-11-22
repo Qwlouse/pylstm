@@ -28,8 +28,8 @@ class Network(object):
 
         self.architecture = architecture
 
-        self.T = None
-        self.M = None
+        self.targets = None
+        self.mask = None
         self.error = None
         self.deltas = None
 
@@ -174,9 +174,9 @@ class Network(object):
 
     def clear_internal_state(self):
         if self.fwd_state_manager.buffer:
-            self.fwd_state_manager.buffer.as_array()[:] = 0.
+            self.fwd_state_manager.clear_buffer()
         if self.bwd_state_manager.buffer:
-            self.bwd_state_manager.buffer.as_array()[:] = 0.
+            self.bwd_state_manager.clear_buffer()
 
     def __getitem__(self, item):
         """
@@ -193,11 +193,13 @@ class Network(object):
         self.r_in_out_manager.set_dimensions(t + 1, b)
         self.delta_manager.set_dimensions(t + 1, b)
 
-    def forward_pass(self, input_buffer):
-        self.T = None
-        self.M = None
+    def forward_pass(self, input_buffer, reset=True):
+        self.targets = None
+        self.mask = None
         self.error = None
         self.deltas = None
+        if reset:
+            self.clear_internal_state()
         # determine dimensions and set buffer managers accordingly
         t, b, f = input_buffer.shape
         assert f == self.layers.values()[0].out_size
@@ -218,8 +220,8 @@ class Network(object):
 
     def calculate_error(self, T, M=None):
         if self.error is None:
-            self.T = T
-            self.M = M
+            self.targets = T
+            self.mask = M
             self.error, self.deltas = self.error_func(self.out_buffer, T, M)
         return self.error
 
@@ -247,8 +249,8 @@ class Network(object):
 
     def backward_pass(self, T, M=None):
         if self.deltas is None:
-            self.T = T
-            self.M = M
+            self.targets = T
+            self.mask = M
             self.error, self.deltas = self.error_func(self.out_buffer, T, M)
         return self.pure_backpass(self.deltas)
 
