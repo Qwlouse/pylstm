@@ -71,7 +71,7 @@ cdef extern from "matrix_operation.h":
 
 
 cdef extern from "matrix_container.h":
-    ctypedef map MatrixContainerSlice
+    ctypedef map[string, Matrix] MatrixContainerSlice
 
     cppclass MatrixContainer:
         MatrixContainer()
