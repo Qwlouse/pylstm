@@ -2,6 +2,14 @@
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 from py_matrix cimport Matrix
+cimport c_matrix as cm
+
+cdef class MatrixContainerSlice:
+    def __cinit__(self):
+        self.this_ptr = NULL
+
+    def __dealloc__(self):
+        del self.this_ptr
 
 
 cdef class MatrixContainer:
@@ -48,4 +56,9 @@ cdef class MatrixContainer:
     def values(self):
         return [self[n] for n in self.keys()]
 
+    def slice(self, start, stop):
+        return create_MatrixContainerSlice(self.this_ptr.slice(start, stop))
 
+    def set_values(self, MatrixContainerSlice mc_slice, int start=0):
+        cdef cm.MatrixContainerSlice* ms = mc_slice.this_ptr
+        self.this_ptr.set_values(ms, start)
