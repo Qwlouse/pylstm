@@ -54,9 +54,9 @@ void RnnLayer::forward(RnnLayer::Parameters& w, RnnLayer::FwdState& b, Matrix& x
     size_t n_slices = x.n_slices;
     mult(w.HX, x.slice(1,x.n_slices).flatten_time(), b.Ha.slice(1,b.Ha.n_slices).flatten_time());
     for (int t = 1; t < n_slices; ++t) {
-      mult_add(w.HR, y.slice(t-1), b.Ha.slice(t));
-      add_vector_into(w.H_bias, b.Ha.slice(t));
-      f->apply(b.Ha.slice(t), y.slice(t));
+        mult_add(w.HR, y.slice(t-1), b.Ha.slice(t));
+        add_vector_into(w.H_bias, b.Ha.slice(t));
+        f->apply(b.Ha.slice(t), y.slice(t));
     }
 }
 void RnnLayer::backward(RnnLayer::Parameters& w, RnnLayer::FwdState&b, RnnLayer::BwdState& d, Matrix& y, Matrix& in_deltas, Matrix& out_deltas) {
@@ -65,13 +65,12 @@ void RnnLayer::backward(RnnLayer::Parameters& w, RnnLayer::FwdState&b, RnnLayer:
 
 void RnnLayer::gradient(RnnLayer::Parameters&, RnnLayer::Parameters& grad, RnnLayer::FwdState& , RnnLayer::BwdState& d, Matrix& y, Matrix& x, Matrix&) {
     size_t n_slices = x.n_slices;
-    mult_add(d.Ha.slice(0), x.slice(0).T(), grad.HX);
     for (int t = 1; t < n_slices; ++t) {
         mult_add(d.Ha.slice(t), x.slice(t).T(), grad.HX);
         mult_add(d.Ha.slice(t), y.slice(t-1).T(), grad.HR);
     }
     
-    squash(d.Ha, grad.H_bias);
+    squash(d.Ha.slice(1, n_slices), grad.H_bias);
 }
 
 void RnnLayer::Rpass(Parameters& w, Parameters& v,  FwdState&, FwdState& Rb, Matrix& x, Matrix& y, Matrix& Rx, Matrix& Ry)
