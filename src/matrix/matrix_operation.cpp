@@ -296,8 +296,10 @@ void apply_tanhx2_deriv(Matrix a, Matrix out) {
 
 ///Copy the data of one matrix into another
 void copy(Matrix a, Matrix b) {
-    ASSERT(a.size == b.size);
-    if (a.stride == 0 && b.stride == 0) {
+    ASSERT(a.size <= b.size);
+    ASSERT(!(a.overlaps_with(b)));
+    if (a.stride == 0 && b.stride == 0 && a.state == b.state) {
+        // check for overlap!
         cblas_dcopy(static_cast<int>(a.size), a.get_data(), 1, b.get_data(), 1);
     } else {
         for (auto ita = a.begin(), itb = b.begin(); ita != a.end(); ++ita, ++itb) {

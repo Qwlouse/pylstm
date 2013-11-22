@@ -2,6 +2,7 @@
 
 #include <cxxabi.h>
 #include "Core.h"
+#include "matrix/matrix_operation.h"
 
 bool MatrixContainer::contains(const std::string& name) {
     return views.count(name) >= 1;
@@ -53,4 +54,21 @@ void MatrixContainer::lay_out(Matrix& buffer) {
 void MatrixContainer::add_view(const std::string& name, Matrix* view) {
     views[name] = view;
     size += view->size;
+}
+
+MatrixContainerSlice* MatrixContainer::slice(size_t start, size_t stop) {
+    MatrixContainerSlice* sliced = new MatrixContainerSlice();
+    for(std::map<std::string,Matrix*>::iterator iter = views.begin(); iter != views.end(); ++iter)
+    {
+        (*sliced)[iter->first] = iter->second->slice(start, stop);
+    }
+    return sliced;
+}
+
+void MatrixContainer::set_values(MatrixContainerSlice* slice, size_t start) {
+    for(std::map<std::string, Matrix*>::iterator iter = views.begin(); iter != views.end(); ++iter)
+    {
+        Matrix* target = iter->second;
+        copy((*slice)[iter->first], target->slice(start, target->n_slices));
+    }
 }
