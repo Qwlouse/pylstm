@@ -20,13 +20,13 @@ def check_gradient(net, X=None, T=None, n_timesteps=3, n_batches=5,
     ######### calculate gradient ##########
     net.forward_pass(X)
     net.backward_pass(T)
-    grad_calc = net.calc_gradient().squeeze()
+    grad_calc = net.calc_gradient().squeeze().copy()
 
     ######### estimate gradient ##########
     def f(W):
         net.param_buffer = W
         net.forward_pass(X)
-        return net.calculate_error(T)
+        return net.calculate_error(T).copy()
 
     grad_approx = approx_fprime(weights.copy(), f, 1e-7)
     return np.sum((grad_approx - grad_calc) ** 2) / n_batches, grad_calc, grad_approx

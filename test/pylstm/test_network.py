@@ -6,6 +6,7 @@ import itertools
 import unittest
 
 import numpy as np
+from pylstm import Gaussian
 
 from pylstm.structure import LstmLayer, Lstm97Layer, RnnLayer, MrnnLayer
 from pylstm.structure import build_net, ForwardLayer, InputLayer
@@ -22,7 +23,7 @@ class NetworkTests(unittest.TestCase):
         for l in range(layers):
             prev_layer = prev_layer >> layer_type(self.output_size, act_func=activation_function)
         net = build_net(prev_layer)
-        net.param_buffer = rnd.randn(net.get_param_size())
+        net.initialize(Gaussian(std=0.1))
         return net
 
     def setUp(self):
