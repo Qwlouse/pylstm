@@ -56,18 +56,19 @@ void MatrixContainer::add_view(const std::string& name, Matrix* view) {
     size += view->size;
 }
 
-MatrixContainerSlice MatrixContainer::slice(size_t start, size_t stop) {
-    MatrixContainerSlice sliced;
+MatrixContainerSlice* MatrixContainer::slice(size_t start, size_t stop) {
+    MatrixContainerSlice* sliced = new MatrixContainerSlice();
     for(std::map<std::string,Matrix*>::iterator iter = views.begin(); iter != views.end(); ++iter)
     {
-        sliced[iter->first] = iter->second->slice(start, stop);
+        (*sliced)[iter->first] = iter->second->slice(start, stop);
     }
     return sliced;
 }
 
-void MatrixContainer::set_values(MatrixContainerSlice& slice, size_t start) {
+void MatrixContainer::set_values(MatrixContainerSlice* slice, size_t start) {
     for(std::map<std::string, Matrix*>::iterator iter = views.begin(); iter != views.end(); ++iter)
     {
-        copy(slice[iter->first], iter->second->slice(start));
+        Matrix* target = iter->second;
+        copy((*slice)[iter->first], target->slice(start, target->n_slices));
     }
 }
