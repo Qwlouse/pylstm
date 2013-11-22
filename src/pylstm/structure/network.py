@@ -43,14 +43,67 @@ class Network(object):
 
     @property
     def in_buffer(self):
-        return self.in_out_manager.get_source_view("InputLayer").as_array()
+        """
+        Access to the input buffer of the network, i.e. the data that gets
+        passed to the lowest layers. (Note: This hides the context slices.)
+        :return: input buffer
+        :rtype: np.ndarray
+        """
+        return self.in_out_manager.get_source_view("InputLayer").as_array(
+        )[1:, :, :]  # remove context slice
 
     @property
     def out_buffer(self):
-        return self.in_out_manager.get_source_view(self.out_layer).as_array()
+        """
+        Access to the output buffer of the network, i.e. the outputs of the
+        topmost layer. (Note: This hides the context slices.)
+        :return: output buffer
+        :rtype: np.ndarray
+        """
+        return self.in_out_manager.get_source_view(self.out_layer).as_array(
+        )[1:, :, :]  # remove context slice
+
+    @property
+    def out_delta_buffer(self):
+        """
+        Access to the delta buffer associated with the outputs of the topmost
+        layer. (Note: This hides the context slices.)
+        :return: output delta buffer
+        :rtype: np.ndarray
+        """
+        return self.delta_manager.get_source_view(self.out_layer).as_array(
+        )[1:, :, :]  # remove context slice
+
+    @property
+    def in_delta_buffer(self):
+        """
+        Access to the delta buffer associated with the inputs of the lowest
+        layer. (Note: This hides the context slices.)
+        :return: input delta buffer
+        :rtype: np.ndarray
+        """
+        return self.delta_manager.get_source_view("InputLayer").as_array(
+        )[1:, :, :]  # remove context slice
+
+    @property
+    def r_out_buffer(self):
+        """
+        Access to the output buffer of the R-forward pass.
+        (Note: This hides the context slices.)
+        :return: R-output buffer
+        :rtype: np.ndarray
+        """
+        return self.r_in_out_manager.get_source_view(self.out_layer).as_array(
+        )[1:, :, :]  # remove context slice
 
     @property
     def param_buffer(self):
+        """
+        Access to the parameter buffer of the network.
+        This contains all the weight in one big flat array.
+        :return: parameter buffer
+        :rtype: np.ndarray
+        """
         if self.is_initialized():
             return self.param_manager.buffer.as_array().flatten()
 
@@ -67,6 +120,12 @@ class Network(object):
 
     @property
     def grad_buffer(self):
+        """
+        Access to the gradient buffer, that contains the gradients for all the
+        weight as calculated by the calc_grad method.
+        :return: gradient buffer
+        :rtype: np.ndarray
+        """
         return self.grad_manager.buffer.as_array()
 
     def enforce_constraints(self):
@@ -98,16 +157,20 @@ class Network(object):
         return self.bwd_state_manager.get_source_view(name)
 
     def get_input_view_for(self, name):
-        return self.in_out_manager.get_sink_view(name).as_array()
+        return self.in_out_manager.get_sink_view(name).as_array(
+        )[1:, :, :]  # remove context slice
 
     def get_output_view_for(self, name):
-        return self.in_out_manager.get_source_view(name).as_array()
+        return self.in_out_manager.get_source_view(name).as_array(
+        )[1:, :, :]  # remove context slice
 
     def get_in_deltas_view_for(self, name):
-        return self.delta_manager.get_sink_view(name).as_array()
+        return self.delta_manager.get_sink_view(name).as_array(
+        )[1:, :, :]  # remove context slice
 
     def get_out_deltas_view_for(self, name):
-        return self.delta_manager.get_source_view(name).as_array()
+        return self.delta_manager.get_source_view(name).as_array(
+        )[1:, :, :]  # remove context slice
 
     def clear_internal_state(self):
         if self.fwd_state_manager.buffer:
@@ -122,12 +185,13 @@ class Network(object):
         return self.layers[item]
 
     def set_buffer_manager_dimensions(self, t, b):
-        self.fwd_state_manager.set_dimensions(t, b)
-        self.r_fwd_state_manager.set_dimensions(t, b)
-        self.bwd_state_manager.set_dimensions(t, b)
-        self.in_out_manager.set_dimensions(t, b)
-        self.r_in_out_manager.set_dimensions(t, b)
-        self.delta_manager.set_dimensions(t, b)
+        # add one to the time dimension for context slice
+        self.fwd_state_manager.set_dimensions(t + 1, b)
+        self.r_fwd_state_manager.set_dimensions(t + 1, b)
+        self.bwd_state_manager.set_dimensions(t + 1, b)
+        self.in_out_manager.set_dimensions(t + 1, b)
+        self.r_in_out_manager.set_dimensions(t + 1, b)
+        self.delta_manager.set_dimensions(t + 1, b)
 
     def forward_pass(self, input_buffer):
         self.T = None
@@ -166,8 +230,7 @@ class Network(object):
         # clear all delta buffers
         self.delta_manager.clear_buffer()
         # inject delta_buffer
-        out_view = self.delta_manager.get_source_view(self.out_layer).as_array()
-        out_view[:] = deltas
+        self.out_delta_buffer[:] = deltas
         # execute all the intermediate layers backwards
         for n, l in self.layers.items()[-1:0:-1]:
             param = self.param_manager.get_source_view(n)
@@ -180,7 +243,7 @@ class Network(object):
 
             l.backward(param, fwd_state, bwd_state, out, delta_in, delta_out)
         # read the final delta buffer
-        return self.delta_manager.get_source_view("InputLayer").as_array()
+        return self.in_delta_buffer
 
     def backward_pass(self, T, M=None):
         if self.deltas is None:
@@ -202,7 +265,8 @@ class Network(object):
             input_view = self.in_out_manager.get_sink_view(n)
             delta_out = self.delta_manager.get_source_view(n)
 
-            l.gradient(param, grad, fwd_state, bwd_state, out, input_view, delta_out)
+            l.gradient(param, grad, fwd_state, bwd_state, out, input_view,
+                       delta_out)
 
             if n in self.regularizers:
                 regularizer = self.regularizers[n]
@@ -212,7 +276,7 @@ class Network(object):
                     for view_regularizer in view_regularizers:
                         view_grad[:] = view_regularizer(view_param, view_grad)
 
-        return self.grad_manager.buffer.as_array()
+        return self.grad_buffer
 
     def r_forward_pass(self, input_buffer, v_buffer):
         # determine dimensions and set buffer managers accordingly
@@ -240,20 +304,20 @@ class Network(object):
             r_out = self.r_in_out_manager.get_source_view(n)
             input_view = self.in_out_manager.get_sink_view(n)
 
-            l.Rpass(param, v, fwd_state, r_fwd_state, input_view, out, r_in, r_out)
-            # read the output buffer
-        return self.r_in_out_manager.get_source_view(self.out_layer).as_array()
+            l.Rpass(param, v, fwd_state, r_fwd_state, input_view, out, r_in,
+                    r_out)
+        # read the output buffer
+        return self.r_out_buffer
 
     def r_backward_pass(self, lambda_, mu):
-        delta_buffer = self.r_in_out_manager.get_source_view(self.out_layer).as_array()
+        delta_buffer = self.r_out_buffer
         t, b, f = delta_buffer.shape
         # dims should already be set during forward_pass, but in any case...
         self.set_buffer_manager_dimensions(t, b)
         # clear all delta buffers
         self.delta_manager.clear_buffer()
         # inject delta_buffer
-        out_view = self.delta_manager.get_source_view(self.out_layer).as_array()
-        out_view[:] = delta_buffer
+        self.out_delta_buffer[:] = delta_buffer
         # execute all the intermediate layers backwards
         for n, l in self.layers.items()[-1:0:-1]:
             param = self.param_manager.get_source_view(n)
@@ -266,10 +330,11 @@ class Network(object):
             delta_out = self.delta_manager.get_source_view(n)
 
             #l.backward(param, fwd_state, bwd_state, out, delta_in, delta_out)
-            l.dampened_backward(param, fwd_state, bwd_state, out, delta_in, delta_out, r_fwd_state, lambda_, mu)
+            l.dampened_backward(param, fwd_state, bwd_state, out, delta_in,
+                                delta_out, r_fwd_state, lambda_, mu)
 
         # read the final delta buffer
-        return self.delta_manager.get_source_view("InputLayer").as_array()
+        return self.in_delta_buffer
 
     def hessian_pass(self, input_buffer, v_buffer, lambda_=0., mu=0.):
         self.forward_pass(input_buffer)
@@ -285,17 +350,18 @@ class Network(object):
         Example Usage:
             # you can set initializers in two equivalent ways:
             1) by passing a dictionary:
-            >> initialize(net, {'RegularLayer': Uniform(), 'LstmLayer': Gaussian()})
+            >> initialize(net, {'RegularLayer': Uniform(),
+                                'LstmLayer': Gaussian()})
 
             2) by using keyword arguments:
             >> initialize(net, RegularLayer=Uniform(), LstmLayer=Uniform())
 
-            (you should not combine the two. If you do, however, then the keyword
-             arguments take precedence)
+            (you should not combine the two. If you do, however, then the
+             keyword arguments take precedence)
 
             An initializer can either be a callable that takes
-            (layer_name, view_name,  shape, seed) or something that converts to a
-            numpy array. So for example:
+            (layer_name, view_name,  shape, seed) or something that converts to
+            a numpy array. So for example:
             >> initialize(net,
                           LstmLayer=1,
                           RnnLayer=[1, 1, 1, 1, 1],
@@ -324,8 +390,8 @@ class Network(object):
                                                       layer_name,
                                                       view_name)
                 view[:] = _evaluate_initializer(view_initializer, layer_name,
-                                               view_name, view.shape,
-                                               seed=rnd.randint(1e9))
+                                                view_name, view.shape,
+                                                seed=rnd.randint(1e9))
 
         self.enforce_constraints()
         # TODO: implement serialization of initializer
