@@ -124,7 +124,7 @@ void MrnnLayer::Rpass(Parameters& w, Parameters& v,  FwdState& b, FwdState& Rb, 
     mult(    v.FX,  x.slice(1,x.n_slices).flatten_time(),  Rb.F1.slice(1,Rb.F1.n_slices).flatten_time());
     mult_add(w.FX, Rx.slice(1,Rx.n_slices).flatten_time(), Rb.F1.slice(1,Rb.F1.n_slices).flatten_time());
 
-    for (int t = 0; t < n_slices; ++t) {
+    for (int t = 1; t < n_slices; ++t) {
       mult(    v.FH,  y.slice(t-1), Rb.F2.slice(t));
       mult_add(w.FH, Ry.slice(t-1), Rb.F2.slice(t));
       
