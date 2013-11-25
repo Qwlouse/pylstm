@@ -19,11 +19,11 @@ def MeanSquaredError(Y, T, M=None):
 
 
 def MeanSquaredError_class(Y, T, M=None):
-    t, batch_size, f = Y.shape
+    _, batch_size, nr_outputs = Y.shape
     assert isinstance(T, list)
     assert len(T) == batch_size
     classes = np.max(T)
-    assert f >= classes
+    assert nr_outputs >= classes
     diff = Y.copy()
     for b in range(batch_size):
         diff[:, b, T[b]] -= 1
@@ -48,6 +48,35 @@ def CrossEntropyError(Y, T, M=None):
     if M is not None:
         cee *= M
         ceed *= M
+    error = - np.sum(cee) / norm
+    deltas = ceed / norm
+    return error, deltas
+
+
+def CrossEntropyError_class(Y, T, M=None):
+    _, batch_size, nr_outputs = Y.shape
+    assert isinstance(T, list)
+    assert len(T) == batch_size
+    classes = np.max(T)
+    assert nr_outputs >= classes
+    y_m = Y.copy()  # do not modify original Y
+    y_m[y_m < 1e-6] = 1e-6
+    y_m[y_m > 1 - 1e-6] = 1 - 1e-6
+    cee = np.log(1 - y_m)
+    ceed = 1. / (y_m - 1)
+
+    for b in range(batch_size):
+        cee[:, b, T[b]] = np.log(y_m)
+        ceed[:, b, T[b]] = 1. / y_m
+    norm = y_m.shape[1]  # normalize by number of sequences
+    if M is None:
+        # only inject error at end of sequence
+        cee[:-1, :, :] = 0
+        ceed[:-1, :, :] = 0
+    else:
+        cee *= M
+        ceed *= M
+
     error = - np.sum(cee) / norm
     deltas = ceed / norm
     return error, deltas
