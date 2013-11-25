@@ -2,6 +2,7 @@
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 import numpy as np
+from pylstm.utils import get_sequence_lengths
 from .training.data_iterators import Online
 from .wrapper import ctcpp
 
@@ -15,6 +16,25 @@ def MeanSquaredError(Y, T, M=None):
     error = 0.5 * np.sum(diff ** 2) / norm
     deltas = diff / norm
     return error, deltas
+
+
+def MeanSquaredError_class(Y, T, M=None):
+    t, batch_size, f = Y.shape
+    assert isinstance(T, list)
+    assert len(T) == batch_size
+    classes = np.max(T)
+    assert f >= classes
+    diff = Y.copy()
+    for b in range(batch_size):
+        diff[:, b, T[b]] -= 1
+    norm = Y.shape[1]  # normalize by number of sequences
+    if M is None:
+        # only inject error at end of sequence
+        diff[:-1, :, :] = 0
+    else:
+        diff *= M
+    error = 0.5 * np.sum(diff ** 2) / norm
+    return error, diff/norm
 
 
 def CrossEntropyError(Y, T, M=None):
