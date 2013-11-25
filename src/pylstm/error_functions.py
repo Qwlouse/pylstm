@@ -22,7 +22,7 @@ def MeanSquaredError_class(Y, T, M=None):
     _, batch_size, nr_outputs = Y.shape
     assert isinstance(T, list)
     assert len(T) == batch_size
-    classes = np.max(T)
+    classes = np.max(T) + 1  # assume 0 based indexing
     assert nr_outputs >= classes
     diff = Y.copy()
     for b in range(batch_size):
@@ -57,7 +57,7 @@ def CrossEntropyError_class(Y, T, M=None):
     _, batch_size, nr_outputs = Y.shape
     assert isinstance(T, list)
     assert len(T) == batch_size
-    classes = np.max(T)
+    classes = np.max(T) + 1  # assume 0 based indexing
     assert nr_outputs >= classes
     y_m = Y.copy()  # do not modify original Y
     y_m[y_m < 1e-6] = 1e-6
@@ -66,8 +66,8 @@ def CrossEntropyError_class(Y, T, M=None):
     ceed = 1. / (y_m - 1)
 
     for b in range(batch_size):
-        cee[:, b, T[b]] = np.log(y_m)
-        ceed[:, b, T[b]] = 1. / y_m
+        cee[:, b, T[b]] = np.log(y_m[:, b, T[b]])
+        ceed[:, b, T[b]] = 1. / y_m[:, b, T[b]]
     norm = y_m.shape[1]  # normalize by number of sequences
     if M is None:
         # only inject error at end of sequence
@@ -77,7 +77,7 @@ def CrossEntropyError_class(Y, T, M=None):
         cee *= M
         ceed *= M
 
-    error = - np.sum(cee) / norm
+    error = np.sum(cee) / norm
     deltas = ceed / norm
     return error, deltas
 

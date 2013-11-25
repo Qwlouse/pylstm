@@ -6,8 +6,9 @@ import unittest
 from scipy.optimize import approx_fprime
 import numpy as np
 
-from pylstm.error_functions import MeanSquaredError, CrossEntropyError, CTC
-from pylstm.error_functions import MultiClassCrossEntropyError
+from pylstm.error_functions import (
+    MeanSquaredError, CrossEntropyError, CTC, MultiClassCrossEntropyError,
+    MeanSquaredError_class, CrossEntropyError_class)
 from pylstm.wrapper import ctcpp_alpha, ctcpp_beta
 
 
@@ -48,6 +49,48 @@ class SimpleErrorFuncsTest(unittest.TestCase):
         for err in self.error_funcs:
             def f(X):
                 return err(X.reshape(*T.shape), T)[0]
+            delta_approx = approx_fprime(Y.flatten().copy(), f, 1e-7)
+            delta_calc = err(Y, T)[1].flatten()
+            np.testing.assert_array_almost_equal(delta_approx, delta_calc)
+
+
+class ClassificationErrorFuncsTest(unittest.TestCase):
+    def setUp(self):
+        # error functions under test
+        self.error_funcs = [MeanSquaredError_class,
+                            CrossEntropyError_class]
+
+    def test_evaluate_returns_scalar(self):
+        Y = np.ones((4, 3, 2))
+        T = [0, 1, 0]
+        for err in self.error_funcs:
+            e, d = err(Y, T)
+            self.assertIsInstance(e, float)
+
+    def test_evaluate_is_batch_normalized(self):
+        Y1 = np.ones((4, 1, 2))
+        T1 = [0]
+        Y2 = np.ones((4, 10, 2))
+        T2 = [0]*10
+        for err in self.error_funcs:
+            e1, d1 = err(Y1, T1)
+            e2, d2 = err(Y2, T2)
+            self.assertAlmostEqual(e1, e2)
+
+    def test_deriv_shape(self):
+        Y = np.ones((4, 3, 2))
+        T = [0, 1, 0]
+        for err in self.error_funcs:
+            e, d = err(Y, T)
+            self.assertEqual(d.shape, Y.shape)
+
+    def test_finite_differences(self):
+        Y = np.zeros((4, 3, 2)) + 0.5
+        T = [0, 1, 0]
+        for err in self.error_funcs:
+            print(err)
+            def f(X):
+                return err(X.reshape(*Y.shape), T)[0]
             delta_approx = approx_fprime(Y.flatten().copy(), f, 1e-7)
             delta_calc = err(Y, T)[1].flatten()
             np.testing.assert_array_almost_equal(delta_approx, delta_calc)
