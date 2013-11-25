@@ -131,3 +131,14 @@ def construct_period_mask(periods):
         D[offset:, offset:offset + group_size] = 1.0
         offset += group_size
     return D
+
+
+def get_sequence_lengths(M):
+    """
+    Given a mask M it returns a list of the lengths of all sequences. Note: this
+    assumes, that the mask has only values 0 and 1. It returns for each sequence
+    the last index such that the mask is 1 there.
+    :param M: mask of 0s and 1s with shape=(t, b, 1)
+    :return: array of sequence lengths with shape=(b,)
+    """
+    return M.shape[0] - M[::-1, :, 0].argmax(axis=0)
