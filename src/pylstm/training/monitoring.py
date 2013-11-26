@@ -86,7 +86,11 @@ class MonitorClassificationError(object):
         for x, t, m in self.data_iter():
             y = net.forward_pass(x)
             y_win = y.argmax(2)
-            t_win = t.argmax(2)
+            if isinstance(t, np.ndarray) and len(t.shape) == 3:
+                t_win = t.argmax(2)
+            else:
+                t_win = t
+
             if m is not None:
                 total_errors += np.sum((y_win != t_win) * m[:, :, 0])
                 total += np.sum(m)

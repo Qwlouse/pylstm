@@ -55,7 +55,7 @@ def CrossEntropyError(Y, T, M=None):
 
 def CrossEntropyError_class(Y, T, M=None):
     _, batch_size, nr_outputs = Y.shape
-    assert isinstance(T, list)
+    #assert isinstance(T, list)
     assert len(T) == batch_size
     classes = np.max(T) + 1  # assume 0 based indexing
     assert nr_outputs >= classes
@@ -77,8 +77,8 @@ def CrossEntropyError_class(Y, T, M=None):
         cee *= M
         ceed *= M
 
-    error = np.sum(cee) / norm
-    deltas = ceed / norm
+    error = -np.sum(cee) / norm
+    deltas = -ceed / norm
     return error, deltas
 
 

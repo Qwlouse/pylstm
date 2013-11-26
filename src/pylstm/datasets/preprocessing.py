@@ -117,6 +117,8 @@ def shuffle_data(X, T, M=None, rnd=np.random.RandomState()):
     X_s = X[:, indices, :]
     if isinstance(T, list):
         T_s = [T[i] for i in indices]
+    elif len(T.shape) < 3:
+        T_s = T[indices]
     else:
         T_s = T[:, indices, :]
     if M is not None:

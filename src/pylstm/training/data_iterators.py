@@ -58,7 +58,7 @@ class Minibatches(object):
         for i in range(0, total_batches, self.batch_size):
             j = min(i + self.batch_size, total_batches)
             x = X[:, i:j, :]
-            t = T[i:j] if isinstance(T, list) else T[:, i:j, :]
+            t = T[i:j] if isinstance(T, list) or len(T.shape) < 3 else T[:, i:j, :]
             m = None if M is None else M[:, i:j, :]
             yield x, t, m
             if self.verbose:
@@ -82,7 +82,7 @@ class Online(object):
             np.random.shuffle(indices)
         for i, idx in enumerate(indices):
             x = self.X[:, idx:idx+1, :]
-            t = self.T[idx:idx+1] if isinstance(self.T, list) else \
+            t = self.T[idx:idx+1] if isinstance(self.T, list) or len(self.T.shape) < 3 else \
                 self.T[:, idx:idx+1, :]
             m = None
             if self.M is not None:
@@ -90,7 +90,7 @@ class Online(object):
                 for k in range(m.shape[0] - 1, -1, -1):
                     if m[k, 0, 0] != 0:
                         x = x[:k + 1, :, :]
-                        t = t[:k + 1, :, :] if not isinstance(t, list) else t
+                        t = t[:k + 1, :, :] if not (isinstance(self.T, list) or len(self.T.shape) < 3) else t
                         m = m[:k + 1, :, :]
                         break
             yield x, t, m
