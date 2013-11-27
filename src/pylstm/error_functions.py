@@ -8,41 +8,45 @@ from .wrapper import ctcpp
 
 
 def _NotImplemented(Y, T, M):
-    raise NotImplementedError('This combination is not implemented yet')
+    raise NotImplementedError('This combination is not implemented yet!')
+
+
+def _IllegalCombination(Y, T, M):
+    raise RuntimeError('Illegal combination of targets and error function!')
 
 
 def _FramewiseMSE(Y, T, M):
     diff = Y - T
-    norm = Y.shape[1]  # normalize by number of sequences
     if M is not None:
         diff *= M
+    norm = Y.shape[1]  # normalize by number of sequences
     error = 0.5 * np.sum(diff ** 2) / norm
-    deltas = diff / norm
-    return error, deltas
+    return error, (diff / norm)
 
 
 def _SequencewiseBinarizingMSE(Y, T, M):
     diff = Y.copy()
     for b in range(Y.shape[1]):
         diff[:, b, T[b]] -= 1
-    if M is None:
-        diff[:-1, :, :] = 0   # only inject error at end of sequence
-    else:
+    if M is not None:
         diff *= M
     norm = Y.shape[1]  # normalize by number of sequences
     error = 0.5 * np.sum(diff ** 2) / norm
-    return error, diff/norm
+    return error, (diff / norm)
+
+MSE_implementations = {
+    ('F', False): _FramewiseMSE,
+    ('F', True): _NotImplemented,
+    ('L', False): _IllegalCombination,
+    ('L', True): _IllegalCombination,
+    ('C', False): _FramewiseMSE,  # should work smoothly through broadcasting
+    ('C', True): _SequencewiseBinarizingMSE
+}
 
 
 def MeanSquaredError(Y, T, M=None):
     assert T.validate_for_output_shape(*Y.shape)
-    return {('F', False): _FramewiseMSE,
-            ('F', True): _NotImplemented,
-            ('L', False): _NotImplemented,
-            ('L', True): _NotImplemented,
-            ('C', False): _NotImplemented,
-            ('C', True): _SequencewiseBinarizingMSE
-            }[T.targets_type](Y, T, M)
+    return MSE_implementations[T.targets_type](Y, T, M)
 
 
 def CrossEntropyError(Y, T, M=None):
