@@ -47,7 +47,7 @@ MSE_implementations = {
 
 def MeanSquaredError(Y, T, M=None):
     assert T.validate_for_output_shape(*Y.shape)
-    return MSE_implementations[T.targets_type](Y, T, M)
+    return MSE_implementations[T.targets_type](Y, T.data, M)
 
 
 ################################################################################
@@ -90,7 +90,7 @@ def CrossEntropyError(Y, T, M=None):
     y_m = Y.copy()  # do not modify original Y
     y_m[y_m < 1e-6] = 1e-6
     y_m[y_m > 1 - 1e-6] = 1 - 1e-6
-    return CEE_implementations[T.targets_type](y_m, T, M)
+    return CEE_implementations[T.targets_type](y_m, T.data, M)
 
 
 ################################################################################
@@ -119,7 +119,7 @@ def MultiClassCrossEntropyError(Y, T, M=None):
     assert T.validate_for_output_shape(*Y.shape)
     y_m = Y.copy()  # do not modify original Y
     y_m[y_m < 1e-6] = 1e-6
-    return MCCEE_implementations[T.targets_type](y_m, T, M)
+    return MCCEE_implementations[T.targets_type](y_m, T.data, M)
 
 
 ################################################################################
@@ -130,7 +130,7 @@ def _LabelingBinarizingCTC(Y, T, M):
     deltas[:] = float('-inf')
     errors = np.zeros(batch_size)
     for b, (y, t, m) in enumerate(Online(Y, T, M, verbose=False)()):
-        err, delt = ctcpp(y, list(t[0]))
+        err, delt = ctcpp(y, list(t.data[0]))
         errors[b] = err
         deltas[:, b:b+1, :] = delt.as_array()
 
@@ -141,7 +141,7 @@ CTC_implementations = {
     ('F', False): _illegal_combination,
     ('F', True): _illegal_combination,
     ('L', False): _not_implemented,
-    ('L', True): _not_implemented,
+    ('L', True): _LabelingBinarizingCTC,
     ('C', False): _illegal_combination,
     ('C', True): _illegal_combination
 }

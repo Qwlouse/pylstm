@@ -5,6 +5,7 @@ from copy import deepcopy
 import numpy as np
 from .. import wrapper as pw
 from pylstm.regularization.initializer import _evaluate_initializer
+from targets import create_targets_object
 
 
 class Network(object):
@@ -154,9 +155,10 @@ class Network(object):
 
     def calculate_error(self, T, M=None):
         if self.error is None:
-            self.T = T
+            self.T = create_targets_object(T)
             self.M = M
-            self.error, self.deltas = self.error_func(self.out_buffer, T, M)
+            self.error, self.deltas = self.error_func(self.out_buffer,
+                                                      self.T, M)
         return self.error
 
     def pure_backpass(self, deltas):
@@ -184,9 +186,10 @@ class Network(object):
 
     def backward_pass(self, T, M=None):
         if self.deltas is None:
-            self.T = T
+            self.T = create_targets_object(T)
             self.M = M
-            self.error, self.deltas = self.error_func(self.out_buffer, T, M)
+            self.error, self.deltas = self.error_func(self.out_buffer,
+                                                      self.T, M)
         return self.pure_backpass(self.deltas)
 
     def calc_gradient(self):
