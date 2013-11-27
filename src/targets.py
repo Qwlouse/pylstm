@@ -22,6 +22,9 @@ def create_targets_object(T):
         
 
 class Targets(object):
+    def __init__(self, targets_type):
+        self.targets_type = targets_type
+
     def __getitem__(self, item):
         raise NotImplementedError()
 
@@ -34,6 +37,7 @@ class Targets(object):
 
 class FramewiseTargets(Targets):
     def __init__(self, T, binarize_to=None):
+        super(FramewiseTargets, self).__init__(('F', binarize_to is not None))
         dim = len(T.shape)
         assert dim == 3 or (binarize_to and dim == 2)
         self.binarize_to = binarize_to
@@ -55,6 +59,7 @@ class FramewiseTargets(Targets):
 
 class LabelingTargets(Targets):
     def __init__(self, L, binarize_to=None):
+        super(LabelingTargets, self).__init__(('L', binarize_to is not None))
         self.L = L
         self.binarize_to = binarize_to
 
@@ -73,6 +78,8 @@ class LabelingTargets(Targets):
 
 class SequencewiseTargets(Targets):
     def __init__(self, C, binarize_to=None):
+        super(SequencewiseTargets, self).__init__(('C',
+                                                   binarize_to is not None))
         dim = len(C.shape)
         assert dim == 2 or (binarize_to and dim == 1)
         self.binarize_to = binarize_to

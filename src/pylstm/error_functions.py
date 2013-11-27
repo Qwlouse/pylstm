@@ -7,8 +7,11 @@ from .training.data_iterators import Online
 from .wrapper import ctcpp
 
 
-def MeanSquaredError(Y, T, M=None):
-    assert Y.shape == T.shape, "Shape mismatch Y%s != T%s" % (Y.shape, T.shape)
+def _NotImplemented(Y, T, M):
+    raise NotImplementedError('This combination is not implemented yet')
+
+
+def _FramewiseMSE(Y, T, M):
     diff = Y - T
     norm = Y.shape[1]  # normalize by number of sequences
     if M is not None:
@@ -18,23 +21,28 @@ def MeanSquaredError(Y, T, M=None):
     return error, deltas
 
 
-def MeanSquaredError_class(Y, T, M=None):
-    _, batch_size, nr_outputs = Y.shape
-    assert isinstance(T, list)
-    assert len(T) == batch_size
-    classes = np.max(T) + 1  # assume 0 based indexing
-    assert nr_outputs >= classes
+def _SequencewiseBinarizingMSE(Y, T, M):
     diff = Y.copy()
-    for b in range(batch_size):
+    for b in range(Y.shape[1]):
         diff[:, b, T[b]] -= 1
-    norm = Y.shape[1]  # normalize by number of sequences
     if M is None:
-        # only inject error at end of sequence
-        diff[:-1, :, :] = 0
+        diff[:-1, :, :] = 0   # only inject error at end of sequence
     else:
         diff *= M
+    norm = Y.shape[1]  # normalize by number of sequences
     error = 0.5 * np.sum(diff ** 2) / norm
     return error, diff/norm
+
+
+def MeanSquaredError(Y, T, M=None):
+    assert T.validate_for_output_shape(*Y.shape)
+    return {('F', False): _FramewiseMSE,
+            ('F', True): _NotImplemented,
+            ('L', False): _NotImplemented,
+            ('L', True): _NotImplemented,
+            ('C', False): _NotImplemented,
+            ('C', True): _SequencewiseBinarizingMSE
+            }[T.targets_type](Y, T, M)
 
 
 def CrossEntropyError(Y, T, M=None):
