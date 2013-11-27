@@ -33,9 +33,11 @@ class Targets(object):
 
 
 class FramewiseTargets(Targets):
-    def __init__(self, T):
-        assert len(T.shape) == 3
-        self.T = T
+    def __init__(self, T, binarize_to=None):
+        dim = len(T.shape)
+        assert dim == 3 or (binarize_to and dim == 2)
+        self.binarize_to = binarize_to
+        self.T = T.reshape(T.shape[0], T.shape[1], -1)
 
     def __getitem__(self, item):
         return FramewiseTargets(self.T[:, item, :])
@@ -44,24 +46,17 @@ class FramewiseTargets(Targets):
         return FramewiseTargets(self.T[:end, :, :])
 
     def validate_for_output_shape(self, timesteps, batchsize, out_size):
-        return self.T.shape == (timesteps, batchsize, out_size)
-
-
-class FramewiseClassificationTargets(FramewiseTargets):
-    def __init__(self, T, nr_classes):
-        assert len(T.shape) == 2 or T.shape[2] == 1
-        T = T.reshape(T.shape[0], T.shape[1], 1)
-        super(FramewiseClassificationTargets, self).__init__(T)
-        self.nr_classes = nr_classes
-
-    def validate_for_output_shape(self, timesteps, batchsize, out_size):
-        return self.T.shape == (timesteps, batchsize, 1) and \
-            self.nr_classes == out_size
+        if self.binarize_to:
+            return self.T.shape == (timesteps, batchsize, 1) and \
+                self.binarize_to == out_size
+        else:
+            return self.T.shape == (timesteps, batchsize, out_size)
 
 
 class LabelingTargets(Targets):
-    def __init__(self, L):
+    def __init__(self, L, binarize_to=None):
         self.L = L
+        self.binarize_to = binarize_to
 
     def __getitem__(self, item):
         if isinstance(item, slice) or isinstance(item, int):
@@ -77,9 +72,11 @@ class LabelingTargets(Targets):
         
 
 class SequencewiseTargets(Targets):
-    def __init__(self, C):
-        assert len(C.shape) == 2
-        self.C = C
+    def __init__(self, C, binarize_to=None):
+        dim = len(C.shape)
+        assert dim == 2 or (binarize_to and dim == 1)
+        self.binarize_to = binarize_to
+        self.C = C.reshape(C.shape[0], -1)
 
     def __getitem__(self, item):
         return SequencewiseTargets(self.C[item])
@@ -88,15 +85,8 @@ class SequencewiseTargets(Targets):
         return self
 
     def validate_for_output_shape(self, timesteps, batchsize, out_size):
-        return self.C.shape == (batchsize, out_size)
-
-
-class SequencewiseClassificationTargets(SequencewiseTargets):
-    def __init__(self, C, nr_classes):
-        assert len(C.shape) == 1 or C.shape[1] == 1
-        C = C.reshape(C.shape[0], 1)
-        super(SequencewiseClassificationTargets, self).__init__(C)
-        self.nr_classes = nr_classes
-
-    def validate_for_output_shape(self, timesteps, batchsize, out_size):
-        return self.C.shape == (batchsize, 1) and self.nr_classes == out_size
+        if self.binarize_to:
+            return self.C.shape == (batchsize, 1) and \
+                self.binarize_to == out_size
+        else:
+            return self.C.shape == (batchsize, out_size)
