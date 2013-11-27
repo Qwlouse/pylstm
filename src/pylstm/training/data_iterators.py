@@ -13,6 +13,7 @@ from __future__ import division, print_function, unicode_literals
 import numpy as np
 import sys
 from pylstm import shuffle_data
+from targets import create_targets_object
 
 
 class Undivided(object):
@@ -28,7 +29,7 @@ class Undivided(object):
     """
     def __init__(self, X, T, M=None, shuffle=True):
         self.X = X
-        self.T = T
+        self.T = create_targets_object(T)
         self.M = M
         self.shuffle = shuffle
 
@@ -41,7 +42,7 @@ class Undivided(object):
 class Minibatches(object):
     def __init__(self, X, T, M=None, batch_size=1, shuffle=True, verbose=True):
         self.X = X
-        self.T = T
+        self.T = create_targets_object(T)
         self.M = M
         self.batch_size = batch_size
         self.shuffle = shuffle
@@ -58,7 +59,7 @@ class Minibatches(object):
         for i in range(0, total_batches, self.batch_size):
             j = min(i + self.batch_size, total_batches)
             x = X[:, i:j, :]
-            t = T[i:j] if isinstance(T, list) or len(T.shape) < 3 else T[:, i:j, :]
+            t = T[i:j]
             m = None if M is None else M[:, i:j, :]
             yield x, t, m
             if self.verbose:
@@ -68,7 +69,7 @@ class Minibatches(object):
 class Online(object):
     def __init__(self, X, T, M=None, shuffle=True, verbose=True):
         self.X = X
-        self.T = T
+        self.T = create_targets_object(T)
         self.M = M
         self.shuffle = shuffle
         self.verbose = verbose
@@ -82,15 +83,14 @@ class Online(object):
             np.random.shuffle(indices)
         for i, idx in enumerate(indices):
             x = self.X[:, idx:idx+1, :]
-            t = self.T[idx:idx+1] if isinstance(self.T, list) or len(self.T.shape) < 3 else \
-                self.T[:, idx:idx+1, :]
+            t = self.T[idx:idx+1]
             m = None
             if self.M is not None:
                 m = self.M[:, idx:idx+1, :]
                 for k in range(m.shape[0] - 1, -1, -1):
                     if m[k, 0, 0] != 0:
                         x = x[:k + 1, :, :]
-                        t = t[:k + 1, :, :] if not (isinstance(self.T, list) or len(self.T.shape) < 3) else t
+                        t = t.crop_time(k + 1)
                         m = m[:k + 1, :, :]
                         break
             yield x, t, m

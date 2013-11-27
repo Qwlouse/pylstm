@@ -3,6 +3,7 @@
 from __future__ import division, print_function, unicode_literals
 import numpy as np
 from random import shuffle
+from targets import create_targets_object
 
 
 def binarize_sequence(seq, alphabet=None):
@@ -112,20 +113,15 @@ def shuffle_data(X, T, M=None, rnd=np.random.RandomState()):
     :param rnd:
     :return:
     """
+    T = create_targets_object(T)
     indices = np.arange(X.shape[1])
     rnd.shuffle(indices)
     X_s = X[:, indices, :]
-    if isinstance(T, list):
-        T_s = [T[i] for i in indices]
-    elif len(T.shape) < 3:
-        T_s = T[indices]
-    else:
-        T_s = T[:, indices, :]
-    if M is not None:
-        M = M[:, indices, :]
+    T_s = T[indices]
+    M_s = M[:, indices, :] if M is not None else None
 
-    M_s = M[:, indices, :]
     return X_s, T_s, M_s, indices
+
 
 def mid_pool_outputs(T, size=3):
     """
