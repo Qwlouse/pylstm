@@ -15,6 +15,8 @@ def _IllegalCombination(Y, T, M):
     raise RuntimeError('Illegal combination of targets and error function!')
 
 
+################################################################################
+
 def _FramewiseMSE(Y, T, M):
     diff = Y - T
     if M is not None:
@@ -49,78 +51,109 @@ def MeanSquaredError(Y, T, M=None):
     return MSE_implementations[T.targets_type](Y, T, M)
 
 
-def CrossEntropyError(Y, T, M=None):
-    assert Y.shape == T.shape, "Shape mismatch Y%s != T%s" % (Y.shape, T.shape)
-    Y = Y.copy()  # do not modify original Y
-    Y[Y < 1e-6] = 1e-6
-    Y[Y > 1 - 1e-6] = 1 - 1e-6
-    cee = T * np.log(Y) + (1 - T) * np.log(1 - Y)
-    ceed = (T - Y) / (Y * (Y - 1))
-    norm = Y.shape[1]  # normalize by number of sequences
+################################################################################
+
+def _FramewiseCEE(y_m, T, M):
+    cee = T * np.log(y_m) + (1 - T) * np.log(1 - y_m)
+    ceed = (T - y_m) / (y_m * (y_m - 1))
     if M is not None:
         cee *= M
         ceed *= M
-    error = - np.sum(cee) / norm
-    deltas = ceed / norm
-    return error, deltas
+    norm = y_m.shape[1]  # normalize by number of sequences
+    return (-np.sum(cee) / norm), (ceed / norm)
 
 
-def CrossEntropyError_class(Y, T, M=None):
-    _, batch_size, nr_outputs = Y.shape
-    #assert isinstance(T, list)
-    assert len(T) == batch_size
-    classes = np.max(T) + 1  # assume 0 based indexing
-    assert nr_outputs >= classes
-    y_m = Y.copy()  # do not modify original Y
-    y_m[y_m < 1e-6] = 1e-6
-    y_m[y_m > 1 - 1e-6] = 1 - 1e-6
+def _SequencewiseBinarizingCEE(y_m, T, M):
     cee = np.log(1 - y_m)
     ceed = 1. / (y_m - 1)
-
-    for b in range(batch_size):
+    for b in range(y_m.shape[1]):
         cee[:, b, T[b]] = np.log(y_m[:, b, T[b]])
         ceed[:, b, T[b]] = 1. / y_m[:, b, T[b]]
     norm = y_m.shape[1]  # normalize by number of sequences
-    if M is None:
-        # only inject error at end of sequence
-        cee[:-1, :, :] = 0
-        ceed[:-1, :, :] = 0
-    else:
+    if M is not None:
         cee *= M
         ceed *= M
-
-    error = -np.sum(cee) / norm
-    deltas = -ceed / norm
-    return error, deltas
+    return (-np.sum(cee) / norm), (-ceed / norm)
 
 
-def MultiClassCrossEntropyError(Y, T, M=None):
-    assert Y.shape == T.shape, "Shape mismatch Y%s != T%s" % (Y.shape, T.shape)
-    Y = Y.copy()  # do not modify original Y
-    Y[Y < 1e-6] = 1e-6
+CEE_implementations = {
+    ('F', False): _FramewiseCEE,
+    ('F', True): _NotImplemented,
+    ('L', False): _IllegalCombination,
+    ('L', True): _IllegalCombination,
+    ('C', False): _NotImplemented,
+    ('C', True): _SequencewiseBinarizingCEE
+}
+
+
+def CrossEntropyError(Y, T, M=None):
+    assert T.validate_for_output_shape(*Y.shape)
+    y_m = Y.copy()  # do not modify original Y
+    y_m[y_m < 1e-6] = 1e-6
+    y_m[y_m > 1 - 1e-6] = 1 - 1e-6
+    return CEE_implementations[T.targets_type](y_m, T, M)
+
+
+################################################################################
+
+def _FramewiseMCCEE(Y, T, M):
     cee = T * np.log(Y)
     quot = T / Y
     norm = Y.shape[1]  # normalize by number of sequences
     if M is not None:
         cee *= M
         quot *= M
-    error = - np.sum(cee) / norm
-    deltas = - quot / norm
-    return error, deltas
+    return (- np.sum(cee) / norm), (- quot / norm)
 
 
-def CTC(Y, T, M=None):
-    N, batch_size, label_count = Y.shape
-    deltas = np.zeros((N, batch_size, label_count))
+MCCEE_implementations = {
+    ('F', False): _FramewiseMCCEE,
+    ('F', True): _NotImplemented,
+    ('L', False): _IllegalCombination,
+    ('L', True): _IllegalCombination,
+    ('C', False): _NotImplemented,
+    ('C', True): _NotImplemented
+}
+
+
+def MultiClassCrossEntropyError(Y, T, M=None):
+    assert T.validate_for_output_shape(*Y.shape)
+    y_m = Y.copy()  # do not modify original Y
+    y_m[y_m < 1e-6] = 1e-6
+    return MCCEE_implementations[T.targets_type](y_m, T, M)
+
+
+################################################################################
+
+def _LabelingBinarizingCTC(Y, T, M):
+    time_size, batch_size, label_count = Y.shape
+    deltas = np.zeros((time_size, batch_size, label_count))
     deltas[:] = float('-inf')
-    errors = []
+    errors = np.zeros(batch_size)
     for b, (y, t, m) in enumerate(Online(Y, T, M, verbose=False)()):
         err, delt = ctcpp(y, list(t[0]))
-        errors.append(err)
+        errors[b] = err
         deltas[:, b:b+1, :] = delt.as_array()
 
     return np.mean(errors), -deltas / batch_size
 
+
+CTC_implementations = {
+    ('F', False): _IllegalCombination,
+    ('F', True): _IllegalCombination,
+    ('L', False): _NotImplemented,
+    ('L', True): _NotImplemented,
+    ('C', False): _IllegalCombination,
+    ('C', True): _IllegalCombination
+}
+
+
+def CTC(Y, T, M=None):
+    assert T.validate_for_output_shape(*Y.shape)
+    return CTC_implementations[T.targets_type](Y, T, M)
+
+
+################################################################################
 
 def ctc_best_path_decoding(Y):
     assert Y.shape[1] == 1
