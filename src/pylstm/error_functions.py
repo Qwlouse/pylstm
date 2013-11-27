@@ -87,9 +87,7 @@ CEE_implementations = {
 
 def CrossEntropyError(Y, T, M=None):
     assert T.validate_for_output_shape(*Y.shape)
-    y_m = Y.copy()  # do not modify original Y
-    y_m[y_m < 1e-6] = 1e-6
-    y_m[y_m > 1 - 1e-6] = 1 - 1e-6
+    y_m = np.clip(Y, 1e-6, 1.0-1e-6)  # do not modify original Y
     return CEE_implementations[T.targets_type](y_m, T.data, M)
 
 
@@ -117,8 +115,7 @@ MCCEE_implementations = {
 
 def MultiClassCrossEntropyError(Y, T, M=None):
     assert T.validate_for_output_shape(*Y.shape)
-    y_m = Y.copy()  # do not modify original Y
-    y_m[y_m < 1e-6] = 1e-6
+    y_m = np.clip(Y, 1e-6, 1.0)  # do not modify original Y
     return MCCEE_implementations[T.targets_type](y_m, T.data, M)
 
 
