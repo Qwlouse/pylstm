@@ -2,16 +2,15 @@
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 import numpy as np
-from pylstm.utils import get_sequence_lengths
 from .training.data_iterators import Online
 from .wrapper import ctcpp
 
 
-def _NotImplemented(Y, T, M):
+def _not_implemented(*_):
     raise NotImplementedError('This combination is not implemented yet!')
 
 
-def _IllegalCombination(Y, T, M):
+def _illegal_combination(*_):
     raise RuntimeError('Illegal combination of targets and error function!')
 
 
@@ -38,9 +37,9 @@ def _SequencewiseBinarizingMSE(Y, T, M):
 
 MSE_implementations = {
     ('F', False): _FramewiseMSE,
-    ('F', True): _NotImplemented,
-    ('L', False): _IllegalCombination,
-    ('L', True): _IllegalCombination,
+    ('F', True): _not_implemented,
+    ('L', False): _illegal_combination,
+    ('L', True): _illegal_combination,
     ('C', False): _FramewiseMSE,  # should work smoothly through broadcasting
     ('C', True): _SequencewiseBinarizingMSE
 }
@@ -78,10 +77,10 @@ def _SequencewiseBinarizingCEE(y_m, T, M):
 
 CEE_implementations = {
     ('F', False): _FramewiseCEE,
-    ('F', True): _NotImplemented,
-    ('L', False): _IllegalCombination,
-    ('L', True): _IllegalCombination,
-    ('C', False): _NotImplemented,
+    ('F', True): _not_implemented,
+    ('L', False): _illegal_combination,
+    ('L', True): _illegal_combination,
+    ('C', False): _not_implemented,
     ('C', True): _SequencewiseBinarizingCEE
 }
 
@@ -108,11 +107,11 @@ def _FramewiseMCCEE(Y, T, M):
 
 MCCEE_implementations = {
     ('F', False): _FramewiseMCCEE,
-    ('F', True): _NotImplemented,
-    ('L', False): _IllegalCombination,
-    ('L', True): _IllegalCombination,
-    ('C', False): _NotImplemented,
-    ('C', True): _NotImplemented
+    ('F', True): _not_implemented,
+    ('L', False): _illegal_combination,
+    ('L', True): _illegal_combination,
+    ('C', False): _not_implemented,
+    ('C', True): _not_implemented
 }
 
 
@@ -139,12 +138,12 @@ def _LabelingBinarizingCTC(Y, T, M):
 
 
 CTC_implementations = {
-    ('F', False): _IllegalCombination,
-    ('F', True): _IllegalCombination,
-    ('L', False): _NotImplemented,
-    ('L', True): _NotImplemented,
-    ('C', False): _IllegalCombination,
-    ('C', True): _IllegalCombination
+    ('F', False): _illegal_combination,
+    ('F', True): _illegal_combination,
+    ('L', False): _not_implemented,
+    ('L', True): _not_implemented,
+    ('C', False): _illegal_combination,
+    ('C', True): _illegal_combination
 }
 
 
