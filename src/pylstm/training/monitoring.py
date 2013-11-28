@@ -86,10 +86,10 @@ class MonitorClassificationError(object):
         for x, t, m in self.data_iter():
             y = net.forward_pass(x)
             y_win = y.argmax(2)
-            if isinstance(t, np.ndarray) and len(t.shape) == 3:
-                t_win = t.argmax(2)
+            if t.binarize_to is not None:
+                t_win = t.data
             else:
-                t_win = t
+                t_win = t.data.argmax(2)
 
             if m is not None:
                 total_errors += np.sum((y_win != t_win) * m[:, :, 0])
@@ -157,8 +157,8 @@ class MonitorPhonemeError(object):
         for x, t, m in self.data_iter():
             y = net.forward_pass(x)
             lab = ctc_best_path_decoding(y)
-            total_errors += levenshtein(lab, t[0])
-            total_length += len(t[0])
+            total_errors += levenshtein(lab, t.data[0])
+            total_length += len(t.data[0])
         error_fraction = total_errors / total_length
         self.log['phoneme_error'].append(error_fraction)
         print(self.name, ':\tPhoneme Error = %0.4f\t (%d / %d)' %
