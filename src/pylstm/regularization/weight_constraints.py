@@ -3,6 +3,7 @@
 
 from __future__ import division, print_function, unicode_literals
 import numpy as np
+from pylstm import get_random_state_for
 
 
 class RescaleIncomingWeights(object):
@@ -129,7 +130,7 @@ class NoisyWeights(object):
     """
     def __init__(self, std=0.01, seed=None):
         self.seed = seed
-        self.rnd = np.random.RandomState(seed)
+        self.rnd = get_random_state_for('weight_constraints', seed)
         self.std = std
         self.noise = None
 

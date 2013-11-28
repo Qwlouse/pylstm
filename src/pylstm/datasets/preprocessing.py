@@ -2,6 +2,7 @@
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 import numpy as np
+from pylstm.random import get_random_state_for
 from pylstm.targets import create_targets_object
 
 
@@ -103,15 +104,15 @@ def normalize_data(X_train, M_train, X_test, M_test):
     return means, stds
 
 
-def shuffle_data(X, T, M=None, rnd=np.random.RandomState()):
+def shuffle_data(X, T, M=None, seed=None):
     """
     Shuffles the samples of the data.
     :param X:
     :param T:
     :param M:
-    :param rnd:
     :return:
     """
+    rnd = get_random_state_for('preprocessing', seed)
     T = create_targets_object(T)
     indices = np.arange(X.shape[1])
     rnd.shuffle(indices)

@@ -161,7 +161,7 @@ def instantiate_layers_from_architecture(architecture):
     return layers
 
 
-def build_network_from_architecture(architecture):
+def build_network_from_architecture(architecture, seed=None):
     validate_architecture(architecture)
     ex_arch = extend_architecture_info(architecture)
     layers = instantiate_layers_from_architecture(ex_arch)
@@ -177,11 +177,12 @@ def build_network_from_architecture(architecture):
                   in_out_manager,
                   bwd_state_manager,
                   error_func=MeanSquaredError,
-                  architecture=architecture)
+                  architecture=architecture,
+                  seed=seed)
     return net
 
 
-def build_net(some_layer):
+def build_net(some_layer, seed):
     arch = create_architecture_from_layers(some_layer)
-    net = build_network_from_architecture(arch)
+    net = build_network_from_architecture(arch, seed=seed)
     return net

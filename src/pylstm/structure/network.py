@@ -2,15 +2,15 @@
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 from copy import deepcopy
-import numpy as np
 from .. import wrapper as pw
+from pylstm.random import get_seeder_for, reseeding_deepcopy, SeedGenerator
 from pylstm.regularization.initializer import _evaluate_initializer
 from pylstm.targets import create_targets_object
 
 
 class Network(object):
     def __init__(self, layers, param_manager, fwd_state_manager, in_out_manager,
-                 bwd_state_manager, error_func, architecture):
+                 bwd_state_manager, error_func, architecture, seed=None):
         self.layers = layers
 
         self.param_manager = param_manager
@@ -38,6 +38,7 @@ class Network(object):
         self.constraints = {}
 
         self.out_layer = self.layers.keys()[-1]
+        self.seed, self.seeder = get_seeder_for('network', seed)
 
     def is_initialized(self):
         return self.param_manager.buffer is not None
@@ -316,7 +317,10 @@ class Network(object):
         """
         initializers = _update_references_with_dict(init_dict, kwargs)
         self._assert_view_reference_wellformed(initializers)
-        rnd = np.random.RandomState(seed)
+
+        if seed is None:
+            seed = self.seeder.get_seed('initialize')
+        seeder = SeedGenerator(seed)
 
         for layer_name, layer in self.layers.items()[1:]:
             views = self.get_param_view_for(layer_name)
@@ -325,15 +329,14 @@ class Network(object):
             for view_name, view in views.items():
                 view_initializer = _get_default_aware(initializers,
                                                       layer_name,
-                                                      view_name)
+                                                      view_name, seeder)
                 view[:] = _evaluate_initializer(view_initializer, layer_name,
-                                               view_name, view.shape,
-                                               seed=rnd.randint(1e9))
+                                                view_name, view.shape)
 
         self.enforce_constraints()
         # TODO: implement serialization of initializer
 
-    def set_regularizers(self, reg_dict=None, **kwargs):
+    def set_regularizers(self, reg_dict=None, seed=None, **kwargs):
         """
         Set weight regularizers for layers and even individual views of a layer.
         A regularizer has to be callable(function or object) with a single
@@ -362,15 +365,21 @@ class Network(object):
         should not be regularized. This is useful in combination with 'default'.
 
         """
+        if seed is None:
+            seed = self.seeder.get_seed('set_constraints')
+        seeder = SeedGenerator(seed)
         regularizers = _update_references_with_dict(reg_dict, kwargs)
-        self.regularizers = self._flatten_view_references(regularizers)
+        self.regularizers = self._flatten_view_references(regularizers, seeder)
         _prune_view_references(self.regularizers)
         _ensure_all_references_are_lists(self.regularizers)
 
-    def set_constraints(self, constraint_dict=None, **kwargs):
+    def set_constraints(self, constraint_dict=None, seed=None, **kwargs):
+        if seed is None:
+            seed = self.seeder.get_seed('set_constraints')
+        seeder = SeedGenerator(seed)
         assert self.is_initialized()
         constraints = _update_references_with_dict(constraint_dict, kwargs)
-        self.constraints = self._flatten_view_references(constraints)
+        self.constraints = self._flatten_view_references(constraints, seeder)
         _prune_view_references(self.constraints)
         _ensure_all_references_are_lists(self.constraints)
         self.enforce_constraints()
@@ -397,7 +406,7 @@ class Network(object):
                         "Unknown view '%s' for '%s'.\nPossible views are: %s"\
                         % (view_name, layer_name, ", ".join(param_view.keys()))
 
-    def _flatten_view_references(self, references, default=None):
+    def _flatten_view_references(self, references, seeder, default=None):
         self._assert_view_reference_wellformed(references)
         flattened = dict()
         for layer_name, layer in self.layers.items()[1:]:
@@ -406,7 +415,7 @@ class Network(object):
             for view_name, view in views.items():
                 flattened[layer_name][view_name] = \
                     _get_default_aware(references, layer_name, view_name,
-                                       default=default)
+                                       seeder, default=default)
         return flattened
 
 
@@ -434,7 +443,7 @@ def _ensure_all_references_are_lists(references):
                 l[vname] = [l[vname]]
 
 
-def _get_default_aware(values, layer_name, view_name, default=0):
+def _get_default_aware(values, layer_name, view_name, seeder, default=0):
     """
     This function retrieves values from view reference dictionary that
     makes use of 'default'. These are used for initialize, set_regularizers, and
@@ -443,20 +452,22 @@ def _get_default_aware(values, layer_name, view_name, default=0):
     if not isinstance(values, dict):
         return values
 
+    seed = seeder.get_seed(layer_name + '.' + view_name)
+
     if layer_name in values:
         layer_values = values[layer_name]
         if not isinstance(layer_values, dict):
-            return deepcopy(layer_values)
+            return reseeding_deepcopy(layer_values, seed)
 
         if view_name in layer_values:
-            return deepcopy(layer_values[view_name])
+            return reseeding_deepcopy(layer_values[view_name], seed)
         elif 'default' in layer_values:
-            return deepcopy(layer_values['default'])
+            return reseeding_deepcopy(layer_values['default'], seed)
 
     if 'default' in values:
-        return deepcopy(values['default'])
+        return reseeding_deepcopy(values['default'], seed)
 
-    return deepcopy(default)
+    return reseeding_deepcopy(default, seed)
 
 
 def _update_references_with_dict(refs, ref_dict):
