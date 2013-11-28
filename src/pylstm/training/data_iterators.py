@@ -10,10 +10,12 @@ modify or augment the data.
 """
 
 from __future__ import division, print_function, unicode_literals
-import numpy as np
 import sys
+
+import numpy as np
+
 from pylstm import shuffle_data
-from targets import create_targets_object
+from pylstm.targets import create_targets_object
 
 
 class Undivided(object):

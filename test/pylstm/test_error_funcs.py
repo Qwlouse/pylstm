@@ -9,7 +9,7 @@ import numpy as np
 from pylstm.error_functions import (
     MeanSquaredError, CrossEntropyError, CTC, MultiClassCrossEntropyError)
 from pylstm.wrapper import ctcpp_alpha, ctcpp_beta
-from targets import SequencewiseTargets, LabelingTargets, create_targets_object
+from pylstm.targets import SequencewiseTargets, LabelingTargets, create_targets_object
 
 
 class SimpleErrorFuncsTest(unittest.TestCase):

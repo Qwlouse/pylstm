@@ -2,8 +2,7 @@
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 import numpy as np
-from random import shuffle
-from targets import create_targets_object
+from pylstm.targets import create_targets_object
 
 
 def binarize_sequence(seq, alphabet=None):

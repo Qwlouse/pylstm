@@ -5,7 +5,7 @@ from copy import deepcopy
 import numpy as np
 from .. import wrapper as pw
 from pylstm.regularization.initializer import _evaluate_initializer
-from targets import create_targets_object
+from pylstm.targets import create_targets_object
 
 
 class Network(object):

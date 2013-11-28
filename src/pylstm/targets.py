@@ -81,7 +81,6 @@ class LabelingTargets(Targets):
     def validate_for_output_shape(self, timesteps, batchsize, out_size):
         return len(self.data) == batchsize
 
-        
 
 class SequencewiseTargets(Targets):
     def __init__(self, C, binarize_to=None):
