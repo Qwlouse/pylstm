@@ -5,25 +5,53 @@ from __future__ import division, print_function, unicode_literals
 from copy import deepcopy
 import numpy as np
 
-SEED_RANGE = 0, 1000000000
-
 
 class SeedGenerator(object):
-    def __init__(self, seed):
+    def __init__(self, seed, seed_range=(0, 1000000000)):
         self.seed = seed
+        self.seed_range = seed_range
         self.categories = None
+        self.rnd = None
         self.reset()
 
     def reset(self, initializer=None):
         self.categories = dict()
         if initializer is not None:
             self.seed = initializer
+        self.rnd = self._get_or_create_random_state_for_category("self")
 
     def get_seed(self, category):
+        rnd = self._get_or_create_random_state_for_category(category)
+        return rnd.randint(*self.seed_range)
+
+    def get_seeder(self, category, seed=None):
+        if seed is None:
+            seed = self.get_seed(category)
+
+        return SeedGenerator(seed)
+
+    def _get_or_create_random_state_for_category(self, category):
         if category not in self.categories:
-            self.categories[category] = np.random.RandomState(
-                abs(hash(str(self.seed) + '$' + str(category))))
-        return self.categories[category].randint(*SEED_RANGE)
+            rnd = np.random.RandomState(abs(hash(str(self.seed) + '$' +
+                                                 str(category))))
+            self.categories[category] = rnd
+        return self.categories[category]
+
+
+class Seedable(object):
+    def __init__(self, seed=None):
+        self.seeder = None
+        self.set_seed(seed)
+
+    def set_seed(self, seed):
+        self.seeder = get_seeder_for('initializers', seed=seed)
+
+
+def reseeding_deepcopy(values, seed):
+    r = deepcopy(values)
+    if isinstance(r, Seedable):
+        r.set_seed(seed)
+    return r
 
 
 ### used categories:
@@ -32,49 +60,13 @@ class SeedGenerator(object):
 # * initializers
 # * weight_constraints
 # - network
-GLOBAL_SEEDER = SeedGenerator(np.random.randint(*SEED_RANGE))
+GLOBAL_SEEDER = SeedGenerator(np.random.randint(0, 1000000000))
+
+set_global_seed = GLOBAL_SEEDER.reset
+
+get_seeder_for = GLOBAL_SEEDER.get_seeder
 
 
-def set_global_seed(seed):
-    GLOBAL_SEEDER.reset(seed)
 
-
-def get_next_seed_for(category, seed=None):
-    if seed is not None:
-        return seed
-
-    return GLOBAL_SEEDER.get_seed(category)
-
-
-def get_random_state_for(category, seed=None):
-    if seed is None:
-        seed = get_next_seed_for(category)
-
-    return np.random.RandomState(hash(seed))
-
-
-def get_seeder_for(category, seed=None):
-    if seed is None:
-        seed = get_next_seed_for(category)
-
-    return seed, SeedGenerator(seed)
-
-
-class Seedable(object):
-    def __init__(self, seed=None):
-        self.seed = None
-        self.rnd = None
-        self.set_seed(seed)
-
-    def set_seed(self, seed):
-        self.seed = get_next_seed_for('initializers', seed=seed)
-        self.rnd = get_random_state_for('initializers', self.seed)
-
-
-def reseeding_deepcopy(values, seed):
-    r = deepcopy(values)
-    if isinstance(r, Seedable):
-        r.set_seed(seed)
-    return r
 
 

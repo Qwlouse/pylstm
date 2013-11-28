@@ -2,7 +2,7 @@
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 import numpy as np
-from pylstm.random import get_random_state_for
+from pylstm.random import get_seeder_for
 from pylstm.targets import create_targets_object
 
 
@@ -112,10 +112,10 @@ def shuffle_data(X, T, M=None, seed=None):
     :param M:
     :return:
     """
-    rnd = get_random_state_for('preprocessing', seed)
+    seeder = get_seeder_for('preprocessing', seed)
     T = create_targets_object(T)
     indices = np.arange(X.shape[1])
-    rnd.shuffle(indices)
+    seeder.rnd.shuffle(indices)
     X_s = X[:, indices, :]
     T_s = T[indices]
     M_s = M[:, indices, :] if M is not None else None

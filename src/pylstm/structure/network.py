@@ -38,7 +38,7 @@ class Network(object):
         self.constraints = {}
 
         self.out_layer = self.layers.keys()[-1]
-        self.seed, self.seeder = get_seeder_for('network', seed)
+        self.seeder = get_seeder_for('network', seed)
 
     def is_initialized(self):
         return self.param_manager.buffer is not None

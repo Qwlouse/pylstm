@@ -3,7 +3,7 @@
 from __future__ import division, print_function, unicode_literals
 import numpy as np
 from pylstm import get_random_state_for
-from pylstm.random import get_next_seed_for, Seedable
+from pylstm.random import Seedable
 
 
 class InitializationFailedError(Exception):
@@ -23,7 +23,7 @@ class Gaussian(Seedable):
 
     def __call__(self, layer_name, view_name,  shape):
         size = reduce(np.multiply, shape)
-        return self.rnd.randn(size).reshape(*shape) * self.std + self.mean
+        return self.seeder.rnd.randn(size).reshape(*shape) * self.std + self.mean
 
 
 class Uniform(Seedable):
@@ -39,7 +39,7 @@ class Uniform(Seedable):
 
     def __call__(self, layer_name, view_name, shape):
         size = reduce(np.multiply, shape)
-        v = ((self.high - self.low) * self.rnd.rand(size).reshape(*shape)) +\
+        v = ((self.high - self.low) * self.seeder.rnd.rand(size).reshape(*shape)) +\
             self.low
         return v
 
@@ -56,7 +56,7 @@ class DenseSqrtFanIn(Seedable):
 
     def __call__(self, layer_name, view_name,  shape):
         size = reduce(np.multiply, shape)
-        return self.scale * (2 * self.rnd.rand(size).reshape(*shape) - 1) /\
+        return self.scale * (2 * self.seeder.rnd.rand(size).reshape(*shape) - 1) /\
             np.sqrt(shape[1])
 
 
@@ -74,7 +74,7 @@ class DenseSqrtFanInOut(Seedable):
 
     def __call__(self, layer_name, view_name,  shape):
         size = reduce(np.multiply, shape)
-        return self.scale * (2 * self.rnd.rand(size).reshape(*shape) - 1) /\
+        return self.scale * (2 * self.seeder.rnd.rand(size).reshape(*shape) - 1) /\
             np.sqrt(shape[1] + shape[2])
 
 
@@ -167,7 +167,7 @@ class SparseInputs(Seedable):
         M = np.zeros(shape)
         M[0, :self.connections, :] = 1.
         for i in range(shape[2]):
-            self.rnd.shuffle(M[0, :, i])
+            self.seeder.rnd.shuffle(M[0, :, i])
         return res * M
 
 
@@ -196,7 +196,7 @@ class SparseOutputs(Seedable):
         M = np.zeros(shape)
         M[0, :, :self.connections] = 1.
         for i in range(shape[1]):
-            self.rnd.shuffle(M[0, i, :])
+            self.seeder.rnd.shuffle(M[0, i, :])
         return res * M
 
 
