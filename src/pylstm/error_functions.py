@@ -28,7 +28,7 @@ def _FramewiseMSE(Y, T, M):
 def _SequencewiseBinarizingMSE(Y, T, M):
     diff = Y.copy()
     for b in range(Y.shape[1]):
-        diff[:, b, T[b]] -= 1
+        diff[:, b, T[b, 0]] -= 1
     if M is not None:
         diff *= M
     norm = Y.shape[1]  # normalize by number of sequences
@@ -66,8 +66,8 @@ def _SequencewiseBinarizingCEE(y_m, T, M):
     cee = np.log(1 - y_m)
     ceed = 1. / (y_m - 1)
     for b in range(y_m.shape[1]):
-        cee[:, b, T[b]] = np.log(y_m[:, b, T[b]])
-        ceed[:, b, T[b]] = 1. / y_m[:, b, T[b]]
+        cee[:, b, T[b, 0]] = np.log(y_m[:, b, T[b, 0]])
+        ceed[:, b, T[b, 0]] = 1. / y_m[:, b, T[b, 0]]
     norm = y_m.shape[1]  # normalize by number of sequences
     if M is not None:
         cee *= M
