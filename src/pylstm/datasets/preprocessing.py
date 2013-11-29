@@ -112,10 +112,9 @@ def shuffle_data(X, T, M=None, seed=None):
     :param M:
     :return:
     """
-    rnd = global_rnd['preprocessing']
     T = create_targets_object(T)
     indices = np.arange(X.shape[1])
-    rnd.shuffle(indices)
+    global_rnd['preprocessing'].shuffle(indices)
     X_s = X[:, indices, :]
     T_s = T[indices]
     M_s = M[:, indices, :] if M is not None else None
