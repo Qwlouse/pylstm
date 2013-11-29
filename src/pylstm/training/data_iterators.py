@@ -14,7 +14,7 @@ import sys
 
 import numpy as np
 
-from pylstm import shuffle_data
+from pylstm import shuffle_data, global_rnd
 from pylstm.targets import create_targets_object
 
 
@@ -48,6 +48,7 @@ class Minibatches(object):
         self.M = M
         self.batch_size = batch_size
         self.shuffle = shuffle
+        self.rnd = global_rnd['data_iterators'].get_new_random_state()
         self.verbose = verbose
 
     def __call__(self):
@@ -55,8 +56,11 @@ class Minibatches(object):
             _update_progress(0)
         total_batches = self.X.shape[1]
 
-        X, T, M, _ = shuffle_data(self.X, self.T, self.M) if self.shuffle else \
-                     self.X, self.T, self.M, None
+        if self.shuffle:
+            X, T, M, _ = shuffle_data(self.X, self.T, self.M,
+                                      seed=self.rnd.generate_seed())
+        else:
+            X, T, M = self.X, self.T, self.M
 
         for i in range(0, total_batches, self.batch_size):
             j = min(i + self.batch_size, total_batches)
@@ -74,6 +78,7 @@ class Online(object):
         self.T = create_targets_object(T)
         self.M = M
         self.shuffle = shuffle
+        self.rnd = global_rnd['data_iterators'].get_new_random_state()
         self.verbose = verbose
 
     def __call__(self):
@@ -82,7 +87,7 @@ class Online(object):
         total_batches = self.X.shape[1]
         indices = np.arange(total_batches)
         if self.shuffle:
-            np.random.shuffle(indices)
+            self.rnd.shuffle(indices)
         for i, idx in enumerate(indices):
             x = self.X[:, idx:idx+1, :]
             t = self.T[idx:idx+1]
