@@ -9,3 +9,4 @@ from .training import *
 from .targets import (
     create_targets_object, FramewiseTargets, LabelingTargets,
     SequencewiseTargets)
+from .randomness import global_rnd, set_global_seed

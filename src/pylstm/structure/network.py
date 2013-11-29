@@ -3,7 +3,7 @@
 from __future__ import division, print_function, unicode_literals
 from copy import deepcopy
 from .. import wrapper as pw
-from pylstm.random import reseeding_deepcopy, GLOBAL_RND
+from pylstm.randomness import reseeding_deepcopy, global_rnd
 from pylstm.regularization.initializer import _evaluate_initializer
 from pylstm.targets import create_targets_object
 
@@ -38,7 +38,7 @@ class Network(object):
         self.constraints = {}
 
         self.out_layer = self.layers.keys()[-1]
-        self.rnd = GLOBAL_RND['network'].get_new_random_state(seed)
+        self.rnd = global_rnd['network'].get_new_random_state(seed)
 
     def is_initialized(self):
         return self.param_manager.buffer is not None

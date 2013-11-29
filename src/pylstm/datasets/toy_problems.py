@@ -6,7 +6,7 @@ import random
 import numpy as np
 import itertools
 from .preprocessing import binarize_sequence
-from pylstm.random import GLOBAL_RND
+from pylstm.randomness import global_rnd
 
 
 def generate_memo_task(pattern_length, alphabet_size, batch_size, length,
@@ -79,7 +79,7 @@ def generate_math_task(T0, batch_size, operation=np.add, input_binary=False,
     the given binary operation on u1(n1) and u1(n2). An additional difficulty
     is that the length of input sequences varies randomly.
     """
-    rnd = GLOBAL_RND['datasets'].get_new_random_state(seed)
+    rnd = global_rnd['datasets'].get_new_random_state(seed)
     Ti = rnd.randint(T0, 1.1 * T0, batch_size)
     n1 = rnd.randint(1, 0.1 * T0, batch_size)
     n2 = rnd.randint(0.1 * T0 + 1, 0.5 * T0, batch_size)
@@ -115,7 +115,7 @@ def generate_xor_task(T0, batch_size, seed=None):
 def generate_temporal_order_task(length, batch_size,
                                  symbol_occurences=((.1, .2), (.5, .6)),
                                  seed=None):
-    rnd = GLOBAL_RND['datasets'].get_new_random_state(seed)
+    rnd = global_rnd['datasets'].get_new_random_state(seed)
     X = np.zeros((length, batch_size, 6))
     T = np.zeros((length, batch_size, 2 ** len(symbol_occurences)))
     M = np.zeros((length, batch_size, 1))
@@ -155,7 +155,7 @@ def generate_3_symbol_temporal_order_task(length, batch_size,
 
 
 def generate_random_permutation_task(length, batch_size, seed=None):
-    rnd = GLOBAL_RND['datasets'].get_new_random_state(seed)
+    rnd = global_rnd['datasets'].get_new_random_state(seed)
 
     outputs = []
     for b in range(batch_size):

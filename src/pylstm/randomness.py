@@ -65,9 +65,9 @@ def reseeding_deepcopy(values, seed):
 # * initializers
 # * weight_constraints
 # - network
-GLOBAL_RND = HierarchicalRandomState(np.random.randint(0, 1000000000))
+global_rnd = HierarchicalRandomState(np.random.randint(0, 1000000000))
 
-set_global_seed = GLOBAL_RND.set_seed
+set_global_seed = global_rnd.set_seed
 
 
 

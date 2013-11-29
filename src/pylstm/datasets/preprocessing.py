@@ -2,7 +2,7 @@
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 import numpy as np
-from pylstm.random import GLOBAL_RND
+from pylstm.randomness import global_rnd
 from pylstm.targets import create_targets_object
 
 
@@ -112,7 +112,7 @@ def shuffle_data(X, T, M=None, seed=None):
     :param M:
     :return:
     """
-    rnd = GLOBAL_RND['preprocessing']
+    rnd = global_rnd['preprocessing']
     T = create_targets_object(T)
     indices = np.arange(X.shape[1])
     rnd.shuffle(indices)
