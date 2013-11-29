@@ -6,50 +6,55 @@ from copy import deepcopy
 import numpy as np
 
 
-class SeedGenerator(object):
-    def __init__(self, seed, seed_range=(0, 1000000000)):
-        self.seed = seed
-        self.seed_range = seed_range
-        self.categories = None
-        self.rnd = None
-        self.reset()
-
-    def reset(self, seed=None):
-        self.categories = dict()
-        if seed is not None:
-            self.seed = seed
-        self.rnd = self._get_or_create_random_state_for_category("self")
-
-    def get_seed(self, category):
-        rnd = self._get_or_create_random_state_for_category(category)
-        return rnd.randint(*self.seed_range)
-
-    def get_seeder(self, category, seed=None):
+class HierarchicalRandomState(np.random.RandomState):
+    def __init__(self, seed=None, seed_range=(0, 1000000000)):
         if seed is None:
-            seed = self.get_seed(category)
+            seed = np.random.randint(seed_range)
+        super(HierarchicalRandomState, self).__init__(seed)
+        self._seed = seed
+        self._default_seed_range = seed_range
+        self.categories = dict()
 
-        return SeedGenerator(seed)
+    def seed(self, seed=None):
+        super(HierarchicalRandomState, self).seed(seed)
+        self.categories = dict()
 
-    def _get_or_create_random_state_for_category(self, category):
-        if category not in self.categories:
-            rnd = np.random.RandomState(abs(hash(str(self.seed) + '$' +
-                                                 str(category))))
-            self.categories[category] = rnd
-        return self.categories[category]
+    def get_seed(self):
+        return self._seed
+
+    def set_seed(self, seed):
+        self.seed(seed)
+
+    def generate_seed(self, seed_range=None):
+        if seed_range is None:
+            seed_range = self._default_seed_range
+        return self.randint(*seed_range)
+
+    def get_new_random_state(self, seed=None):
+        if seed is None:
+            seed = self.generate_seed()
+
+        return HierarchicalRandomState(seed)
+
+    def __getitem__(self, item):
+        if item not in self.categories:
+            seed = abs(hash(str(self.seed) + '$' + str(item)))
+            self.categories[item] = HierarchicalRandomState(seed)
+        return self.categories[item]
 
 
 class Seedable(object):
     def __init__(self, seed=None):
-        self.seeder = None
-        self.set_seed(seed)
+        self.rnd = None
+        self.set_seed = HierarchicalRandomState(seed)
 
     def set_seed(self, seed):
-        self.seeder = get_seeder_for('initializers', seed=seed)
+        self.rnd.set_seed(seed)
 
 
 def reseeding_deepcopy(values, seed):
     r = deepcopy(values)
-    if isinstance(r, Seedable):
+    if isinstance(r, HierarchicalRandomState):
         r.set_seed(seed)
     return r
 
@@ -60,12 +65,9 @@ def reseeding_deepcopy(values, seed):
 # * initializers
 # * weight_constraints
 # - network
-GLOBAL_SEEDER = SeedGenerator(np.random.randint(0, 1000000000))
+GLOBAL_RND = HierarchicalRandomState(np.random.randint(0, 1000000000))
 
-set_global_seed = GLOBAL_SEEDER.reset
-
-get_seeder_for = GLOBAL_SEEDER.get_seeder
-
+set_global_seed = GLOBAL_RND.set_seed
 
 
 

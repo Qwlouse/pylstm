@@ -6,7 +6,7 @@ import random
 import numpy as np
 import itertools
 from .preprocessing import binarize_sequence
-from pylstm.random import get_seeder_for
+from pylstm.random import GLOBAL_RND
 
 
 def generate_memo_task(pattern_length, alphabet_size, batch_size, length,
@@ -79,11 +79,11 @@ def generate_math_task(T0, batch_size, operation=np.add, input_binary=False,
     the given binary operation on u1(n1) and u1(n2). An additional difficulty
     is that the length of input sequences varies randomly.
     """
-    seeder = get_seeder_for('datasets', seed)
-    Ti = seeder.rnd.randint(T0, 1.1 * T0, batch_size)
-    n1 = seeder.rnd.randint(1, 0.1 * T0, batch_size)
-    n2 = seeder.rnd.randint(0.1 * T0 + 1, 0.5 * T0, batch_size)
-    u1 = seeder.rnd.random_sample((T0*1.1, batch_size))
+    rnd = GLOBAL_RND['datasets'].get_new_random_state(seed)
+    Ti = rnd.randint(T0, 1.1 * T0, batch_size)
+    n1 = rnd.randint(1, 0.1 * T0, batch_size)
+    n2 = rnd.randint(0.1 * T0 + 1, 0.5 * T0, batch_size)
+    u1 = rnd.random_sample((T0*1.1, batch_size))
     if input_binary:
         u1 = np.round(u1)
     u2 = np.zeros_like(u1)
@@ -115,22 +115,22 @@ def generate_xor_task(T0, batch_size, seed=None):
 def generate_temporal_order_task(length, batch_size,
                                  symbol_occurences=((.1, .2), (.5, .6)),
                                  seed=None):
-    seeder = get_seeder_for('datasets', seed)
+    rnd = GLOBAL_RND['datasets'].get_new_random_state(seed)
     X = np.zeros((length, batch_size, 6))
     T = np.zeros((length, batch_size, 2 ** len(symbol_occurences)))
     M = np.zeros((length, batch_size, 1))
     # distractor pattern
     for t in range(length):
         for b in range(batch_size):
-            X[t, b, seeder.rnd.randint(0, 4)] = 1.
+            X[t, b, rnd.randint(0, 4)] = 1.
 
     # the symbols
     for b in range(batch_size):
         out = 0
         for T_range in symbol_occurences:
-            Ti = seeder.rnd.randint(length*T_range[0], length*T_range[1])
+            Ti = rnd.randint(length*T_range[0], length*T_range[1])
             X[Ti, b, :] = 0
-            A_or_B = seeder.rnd.randint(0, 2)
+            A_or_B = rnd.randint(0, 2)
             X[Ti, b, A_or_B + 4] = 1.
             out *= 2
             out += A_or_B
@@ -155,11 +155,12 @@ def generate_3_symbol_temporal_order_task(length, batch_size,
 
 
 def generate_random_permutation_task(length, batch_size, seed=None):
-    seeder = get_seeder_for('datasets', seed)
+    rnd = GLOBAL_RND['datasets'].get_new_random_state(seed)
+
     outputs = []
     for b in range(batch_size):
-        seq = seeder.rnd.randint(2, 100, length)
-        seq[0] = seeder.rnd.randint(0, 2)
+        seq = rnd.randint(2, 100, length)
+        seq[0] = rnd.randint(0, 2)
         outputs.append(binarize_sequence(seq, range(100)))
 
     X = np.array(outputs).swapaxes(0, 1)

@@ -182,7 +182,7 @@ def build_network_from_architecture(architecture, seed=None):
     return net
 
 
-def build_net(some_layer, seed):
+def build_net(some_layer, seed=None):
     arch = create_architecture_from_layers(some_layer)
     net = build_network_from_architecture(arch, seed=seed)
     return net
