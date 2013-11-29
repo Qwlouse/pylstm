@@ -14,10 +14,10 @@ class SeedGenerator(object):
         self.rnd = None
         self.reset()
 
-    def reset(self, initializer=None):
+    def reset(self, seed=None):
         self.categories = dict()
-        if initializer is not None:
-            self.seed = initializer
+        if seed is not None:
+            self.seed = seed
         self.rnd = self._get_or_create_random_state_for_category("self")
 
     def get_seed(self, category):
