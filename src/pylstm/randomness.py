@@ -9,7 +9,7 @@ import numpy as np
 class HierarchicalRandomState(np.random.RandomState):
     def __init__(self, seed=None, seed_range=(0, 1000000000)):
         if seed is None:
-            seed = np.random.randint(seed_range)
+            seed = np.random.randint(*seed_range)
         super(HierarchicalRandomState, self).__init__(seed)
         self._seed = seed
         self._default_seed_range = seed_range
@@ -45,11 +45,12 @@ class HierarchicalRandomState(np.random.RandomState):
 
 class Seedable(object):
     def __init__(self, seed=None):
-        self.rnd = None
-        self.set_seed = HierarchicalRandomState(seed)
+        self.rnd = HierarchicalRandomState(seed)
+        self.seed = self.rnd.get_seed()
 
     def set_seed(self, seed):
         self.rnd.set_seed(seed)
+        self.seed = seed
 
 
 def reseeding_deepcopy(values, seed):
