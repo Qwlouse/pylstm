@@ -271,3 +271,41 @@ class PlotErrors(object):
         self.fig.canvas.draw()
 
 
+class PlotMonitors(object):
+    """
+    Open a window and plot the log entries of the given monitors.
+    """
+    def __init__(self, monitors, timescale='epoch', interval=1):
+        self.timescale = timescale
+        self.interval = interval
+        self.monitors = monitors
+        import matplotlib.pyplot as plt
+        self.plt = plt
+        self.plt.ion()
+        self.fig, self.ax = self.plt.subplots()
+        self.ax.set_title('Plotting Monitors')
+        self.ax.set_xlabel('Epochs')
+        self.ax.set_ylabel('Error')
+        self.line_dict = dict()
+        self.plt.show()
+
+    def __call__(self, **_):
+
+        for m in self.monitors:
+            for k in m.log:
+                n = m.name + '.' + k
+                if n not in self.line_dict and m.log[k]:
+                        self.line_dict[n], = self.ax.plot(m.log[k], '-', label=n)
+
+            self.ax.legend()
+            self.fig.canvas.draw()
+
+        for m in self.monitors:
+            for k in m.log:
+                n = m.name + '.' + k
+                self.line_dict[n].set_ydata(m.log[k])
+                self.line_dict[n].set_xdata(range(len(m.log[k])))
+
+        self.ax.relim()
+        self.ax.autoscale_view()
+        self.fig.canvas.draw()
