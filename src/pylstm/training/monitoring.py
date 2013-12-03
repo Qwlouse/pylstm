@@ -68,6 +68,31 @@ class SaveBestWeights(object):
         return np.load(self.filename)
 
 
+class MonitorError(object):
+    """
+    Monitor the given error.
+    """
+    def __init__(self, data_iter, error, name="", timescale='epoch', interval=1):
+        self.timescale = timescale
+        self.interval = interval
+        self.data_iter = data_iter
+        self.error_func = error
+        self.name = name
+        self.log = dict()
+        self.log['error'] = []
+
+    def __call__(self, net, **_):
+        errors = []
+        for x, t, m in self.data_iter():
+            y = net.forward_pass(x)
+            error, _ = self.error_func(y, t, m)
+            errors.append(error)
+
+        mean_error = np.mean(errors)
+        self.log['error'].append(mean_error)
+        print(self.name, "= %0.4f" % mean_error)
+
+
 class MonitorClassificationError(object):
     """
     Monitor the classification error assuming one-hot encoding of targets.
@@ -244,4 +269,5 @@ class PlotErrors(object):
         self.ax.relim()
         self.ax.autoscale_view()
         self.fig.canvas.draw()
+
 
