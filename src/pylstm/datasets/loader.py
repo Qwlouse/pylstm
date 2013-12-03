@@ -6,6 +6,7 @@ from __future__ import division, print_function, unicode_literals
 import os
 import numpy as np
 import cPickle
+from pylstm import SequencewiseTargets
 
 
 def get_files_containing(file_list, search_string, ignore_case=False):
@@ -83,3 +84,21 @@ def transform_ds_to_nsp(ds):
                        ds[use][0][1:, :, :],
                        None)
     return ds_nsp
+
+
+def transform_ds_to_seq_classification(ds):
+    """
+    Takes a dataset dictionary like the one returned from load_dataset
+    and transforms it into a sequence classification task.
+    """
+    classes = list(np.lib.arraysetops.unique(ds['train'][1]))
+    ds_seq_class = {}
+    for use in ds:
+        if ds[use] is None:
+            continue
+        T = np.array([classes.index(t) for t in ds[use][1].flatten()])
+        ds_seq_class[use] = (ds[use][0],
+                             SequencewiseTargets(T, binarize_to=len(classes)),
+                             ds[use][2])
+
+    return ds_seq_class, len(classes)
