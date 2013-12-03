@@ -68,3 +68,18 @@ def load_dataset(dataset_path, subset='', targets='T'):
     ds['test'] = read_data(test_files, targets) if test_files else None
     ds['val'] = read_data(val_files, targets) if val_files else None
     return ds
+
+
+def transform_ds_to_nsp(ds):
+    """
+    Takes a dataset dictionary like the one returned from load_dataset
+    and transforms it into a next-step-prediction task.
+    """
+    ds_nsp = {}
+    for use in ds:
+        if ds[use] is None:
+            continue
+        ds_nsp[use] = (ds[use][0][:-1, :, :],
+                       ds[use][0][1:, :, :],
+                       None)
+    return ds_nsp
