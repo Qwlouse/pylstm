@@ -2,7 +2,7 @@
 # coding=utf-8
 
 from __future__ import division, print_function, unicode_literals
-from copy import deepcopy
+from copy import deepcopy, copy
 import numpy as np
 
 
@@ -59,6 +59,12 @@ def reseeding_deepcopy(values, seed):
         r.set_seed(seed)
     return r
 
+
+def reseeding_copy(values, seed):
+    r = copy(values)
+    if isinstance(r, HierarchicalRandomState):
+        r.set_seed(seed)
+    return r
 
 ### used categories:
 # - preprocessing

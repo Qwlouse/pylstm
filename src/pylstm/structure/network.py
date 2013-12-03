@@ -3,7 +3,7 @@
 from __future__ import division, print_function, unicode_literals
 from copy import deepcopy
 from .. import wrapper as pw
-from pylstm.randomness import reseeding_deepcopy, global_rnd
+from pylstm.randomness import global_rnd, reseeding_copy
 from pylstm.regularization.initializer import _evaluate_initializer
 from pylstm.targets import create_targets_object
 
@@ -449,17 +449,17 @@ def _get_default_aware(values, layer_name, view_name, rnd, default=0):
     if layer_name in values:
         layer_values = values[layer_name]
         if not isinstance(layer_values, dict):
-            return reseeding_deepcopy(layer_values, seed)
+            return reseeding_copy(layer_values, seed)
 
         if view_name in layer_values:
-            return reseeding_deepcopy(layer_values[view_name], seed)
+            return reseeding_copy(layer_values[view_name], seed)
         elif 'default' in layer_values:
-            return reseeding_deepcopy(layer_values['default'], seed)
+            return reseeding_copy(layer_values['default'], seed)
 
     if 'default' in values:
-        return reseeding_deepcopy(values['default'], seed)
+        return reseeding_copy(values['default'], seed)
 
-    return reseeding_deepcopy(default, seed)
+    return reseeding_copy(default, seed)
 
 
 def _update_references_with_dict(refs, ref_dict):
