@@ -6,7 +6,7 @@ from __future__ import division, print_function, unicode_literals
 import os
 import numpy as np
 import cPickle
-from pylstm import SequencewiseTargets
+from pylstm.targets import SequencewiseTargets
 
 
 def get_files_containing(file_list, search_string, ignore_case=False):
