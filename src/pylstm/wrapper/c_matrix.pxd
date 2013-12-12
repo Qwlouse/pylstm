@@ -46,6 +46,7 @@ cdef extern from "matrix_operation.h":
     ActivationFunction RectifiedLinear
     SoftmaxLayerActivation Softmax
     WinoutActivation Winout
+    ActivationFunction TanhScaled
 
 
 
