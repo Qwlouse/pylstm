@@ -82,7 +82,7 @@ def transform_ds_to_nsp(ds):
             continue
         ds_nsp[use] = (ds[use][0][:-1, :, :],
                        ds[use][0][1:, :, :],
-                       None)
+                       ds[use][2][:-1, :, :])
     return ds_nsp
 
 
