@@ -58,7 +58,8 @@ class ClassificationErrorFuncsTest(unittest.TestCase):
     def setUp(self):
         # error functions under test
         self.error_funcs = [MeanSquaredError,
-                            CrossEntropyError]
+                            CrossEntropyError,
+                            MultiClassCrossEntropyError]
 
     def test_evaluate_returns_scalar(self):
         Y = np.ones((4, 3, 2))

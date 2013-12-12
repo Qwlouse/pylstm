@@ -93,10 +93,24 @@ def CrossEntropyError(Y, T, M=None):
 
 ################################################################################
 
-def _FramewiseMCCEE(Y, T, M):
-    cee = T * np.log(Y)
-    quot = T / Y
-    norm = Y.shape[1]  # normalize by number of sequences
+def _FramewiseMCCEE(y_m, T, M):
+    cee = T * np.log(y_m)
+    quot = T / y_m
+    norm = y_m.shape[1]  # normalize by number of sequences
+    if M is not None:
+        cee *= M
+        quot *= M
+    return (- np.sum(cee) / norm), (- quot / norm)
+
+
+def _SequencewiseBinarizingMCCEE(y_m, T, M):
+    cee = np.zeros_like(y_m)
+    quot = np.zeros_like(y_m)
+    for b in range(y_m.shape[1]):
+        cee[:, b, T[b, 0]] = np.log(y_m[:, b, T[b, 0]])
+        quot[:, b, T[b, 0]] = 1.0 / y_m[:, b, T[b, 0]]
+
+    norm = y_m.shape[1]  # normalize by number of sequences
     if M is not None:
         cee *= M
         quot *= M
@@ -109,7 +123,7 @@ MCCEE_implementations = {
     ('L', False): _illegal_combination,
     ('L', True): _illegal_combination,
     ('C', False): _not_implemented,
-    ('C', True): _not_implemented
+    ('C', True): _SequencewiseBinarizingMCCEE
 }
 
 
