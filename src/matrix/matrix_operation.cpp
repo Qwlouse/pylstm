@@ -294,7 +294,7 @@ void apply_tanhx2_deriv(Matrix a, Matrix out) {
     transform(a.begin(), a.end(), out.begin(), tanhx2_deriv);
 }
 
-///Apply tanh * 2to all units
+///Apply 1.7 * (tanh(2/3 x) to all units
 void apply_tanh_scaled(Matrix a, Matrix out) {
   transform(a.begin(), a.end(), out.begin(), tanh_scaled);
 }

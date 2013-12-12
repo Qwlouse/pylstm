@@ -142,7 +142,10 @@ void apply_tanhx2(Matrix a, Matrix out);
 
 void apply_tanhx2_deriv(Matrix a, Matrix out);
 
+//Apply scaled tanh to all elements of a
+void apply_tanh_scaled(Matrix a, Matrix out);
 
+void apply_tanh_scaled_deriv(Matrix a, Matrix out);
 
 ///squash
 void squash(Matrix a, Matrix out);
