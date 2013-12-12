@@ -34,6 +34,9 @@ class Targets(object):
     def validate_for_output_shape(self, timesteps, batchsize, out_size):
         raise NotImplementedError()
 
+    def __str__(self):
+        return "<%s-Targets>" % self.targets_type
+
 
 class FramewiseTargets(Targets):
     def __init__(self, T, binarize_to=None):
@@ -58,6 +61,9 @@ class FramewiseTargets(Targets):
         else:
             return self.data.shape == (timesteps, batchsize, out_size)
 
+    def __str__(self):
+        return "<FramewiseTargets dim=%s>" % self.data.shape
+
 
 class LabelingTargets(Targets):
     def __init__(self, L, binarize_to=None):
@@ -81,6 +87,9 @@ class LabelingTargets(Targets):
     def validate_for_output_shape(self, timesteps, batchsize, out_size):
         return len(self.data) == batchsize
 
+    def __str__(self):
+        return "<LabelingTargets len=%d>" % len(self.data)
+
 
 class SequencewiseTargets(Targets):
     def __init__(self, C, binarize_to=None):
@@ -103,3 +112,6 @@ class SequencewiseTargets(Targets):
                 self.binarize_to == out_size
         else:
             return self.data.shape == (batchsize, out_size)
+
+    def __str__(self):
+        return "<SequencewiseTargets dim=%s>" % self.data.shape
