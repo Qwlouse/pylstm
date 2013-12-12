@@ -148,6 +148,9 @@ def create_layer(name, in_size, out_size, **kwargs):
             act_fct = <cm.ActivationFunction*> &cm.Softmax
         elif af_name == "winout":
             act_fct = <cm.ActivationFunction*> &cm.Winout
+        elif af_name == "tanhscaled":
+            act_fct = <cm.ActivationFunction*> &cm.TanhScaled
+
 
     cdef cl.Lstm97Layer lstm97
     cdef cl.LstmLayer lstm_layer
