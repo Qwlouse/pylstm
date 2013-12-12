@@ -103,13 +103,27 @@ def normalize_data(X_train, M_train, X_test, M_test):
     return means, stds
 
 
-def shuffle_data(X, T, M):
-    shuffling = range(X.shape[1])
-    shuffle(shuffling)
-    X_s = X[:, shuffling, :]
-    T_s = T[:, shuffling, :]
-    M_s = M[:, shuffling, :]
-    return X_s, T_s, M_s, shuffling
+def shuffle_data(X, T, M=None, rnd=np.random.RandomState()):
+    """
+    Shuffles the samples of the data.
+    :param X:
+    :param T:
+    :param M:
+    :param rnd:
+    :return:
+    """
+    indices = np.arange(X.shape[1])
+    rnd.shuffle(indices)
+    X_s = X[:, indices, :]
+    if isinstance(T, list):
+        T_s = [T[i] for i in indices]
+    else:
+        T_s = T[:, indices, :]
+    if M is not None:
+        M = M[:, indices, :]
+
+    M_s = M[:, indices, :]
+    return X_s, T_s, M_s, indices
 
 def mid_pool_outputs(T, size=3):
     """

@@ -443,17 +443,17 @@ def _get_default_aware(values, layer_name, view_name, default=0):
     if layer_name in values:
         layer_values = values[layer_name]
         if not isinstance(layer_values, dict):
-            return layer_values
+            return deepcopy(layer_values)
 
         if view_name in layer_values:
-            return layer_values[view_name]
+            return deepcopy(layer_values[view_name])
         elif 'default' in layer_values:
-            return layer_values['default']
+            return deepcopy(layer_values['default'])
 
     if 'default' in values:
-        return values['default']
+        return deepcopy(values['default'])
 
-    return default
+    return deepcopy(default)
 
 
 def _update_references_with_dict(refs, ref_dict):

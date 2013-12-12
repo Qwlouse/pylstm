@@ -1,11 +1,31 @@
 #!/usr/bin/python
 # coding=utf-8
+"""
+Data iterators take the data X, the targets T and optionally the mask M and
+provide a unified way of iterating through them. They can divide the data into
+Minibatches, single samples or leave it as one block, and they can shuffle it.
+
+There are also modificators which can be stacked with a data iterator and which
+modify or augment the data.
+"""
+
 from __future__ import division, print_function, unicode_literals
 import numpy as np
 import sys
+from pylstm import shuffle_data
 
 
 class Undivided(object):
+    """
+     Iterates through the data in one block (only one iteration). But it can
+     shuffle the data.
+     :param X: Data: Batch of sequences. shape = (time, sample, feature)
+     :param T: Targets: Batch of sequences[shape = (time, sample, targets)]
+                        or list of labels
+     :param M: Masks: Batch of sequences. shape = (time, sample, 1).
+                      Can be None(default).
+     :param shuffle: if this is true(default) then the data will be shuffled.
+    """
     def __init__(self, X, T, M=None, shuffle=True):
         self.X = X
         self.T = T
@@ -13,42 +33,36 @@ class Undivided(object):
         self.shuffle = shuffle
 
     def __call__(self):
-        total_batches = self.X.shape[1]
-        if self.shuffle:
-            indices = np.arange(total_batches)
-            np.random.shuffle(indices)
-            self.X = self.X[:, indices, :]
-            self.T = self.T[:, indices, :]
-            self.M = None if self.M is None else self.M[:, indices, :]
-        yield self.X, self.T, self.M
+        X, T, M, _ = shuffle_data(self.X, self.T, self.M) if self.shuffle else \
+                     self.X, self.T, self.M, None
+        yield X, T, M
 
 
 class Minibatches(object):
-    def __init__(self, X, T, M=None, shuffle=True, batch_size=1):
+    def __init__(self, X, T, M=None, batch_size=1, shuffle=True, verbose=True):
         self.X = X
         self.T = T
         self.M = M
-        self.shuffle = shuffle
         self.batch_size = batch_size
+        self.shuffle = shuffle
+        self.verbose = verbose
 
     def __call__(self):
-        i = 0
-        _update_progress(0)
+        if self.verbose:
+            _update_progress(0)
         total_batches = self.X.shape[1]
-        if self.shuffle:
-            indices = np.arange(total_batches)
-            np.random.shuffle(indices)
-            self.X = self.X[:, indices, :]
-            self.T = self.T[:, indices, :]
-            self.M = None if self.M is None else self.M[:, indices, :]
-        while i < total_batches:
+
+        X, T, M, _ = shuffle_data(self.X, self.T, self.M) if self.shuffle else \
+                     self.X, self.T, self.M, None
+
+        for i in range(0, total_batches, self.batch_size):
             j = min(i + self.batch_size, total_batches)
-            x = self.X[:, i:j, :]
-            t = self.T[i:j] if isinstance(self.T, list) else self.T[:, i:j, :]
-            m = None if self.M is None else self.M[:, i:j, :]
+            x = X[:, i:j, :]
+            t = T[i:j] if isinstance(T, list) else T[:, i:j, :]
+            m = None if M is None else M[:, i:j, :]
             yield x, t, m
-            i += self.batch_size
-            _update_progress(i/total_batches)
+            if self.verbose:
+                _update_progress(i/total_batches)
 
 
 class Online(object):

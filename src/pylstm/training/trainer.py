@@ -18,31 +18,36 @@ class Trainer(object):
         self.validation_errors = []
         self.monitor = OrderedDict()
         self.epochs_seen = 0
-        self.monitoring_arguments = dict(
+
+    def emit_monitoring_batchwise(self, update_nr):
+        monitoring_arguments = dict(
             epoch=self.epochs_seen,
             net=self.net,
             stepper=self.stepper,
             training_errors=self.training_errors,
             validation_errors=self.validation_errors
         )
-
-    def emit_monitoring_batchwise(self, update_nr):
-        self.monitoring_arguments['epoch'] = self.epochs_seen
         for mon in self.monitor.values():
             timescale, interval = get_monitor_params(mon)
             if timescale == 'epoch':
                 continue
             if update_nr % interval == 0:
-                mon(**self.monitoring_arguments)
+                mon(**monitoring_arguments)
 
     def emit_monitoring_epochwise(self):
-        self.monitoring_arguments['epoch'] = self.epochs_seen
+        monitoring_arguments = dict(
+            epoch=self.epochs_seen,
+            net=self.net,
+            stepper=self.stepper,
+            training_errors=self.training_errors,
+            validation_errors=self.validation_errors
+        )
         for mon in self.monitor.values():
             timescale, interval = get_monitor_params(mon)
             if timescale == 'update':
                 continue
             if self.epochs_seen % interval == 0:
-                mon(**self.monitoring_arguments)
+                mon(**monitoring_arguments)
 
     def should_stop(self):
         for sc in self.stopping_criteria:

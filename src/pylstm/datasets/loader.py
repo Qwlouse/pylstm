@@ -35,9 +35,9 @@ def load_data(files):
     return None
 
 
-def read_data(candidates):
+def read_data(candidates, targets='T'):
     X = load_data(get_files_containing(candidates, 'X'))
-    T = load_data(get_files_containing(candidates, 'T'))
+    T = load_data(get_files_containing(candidates, targets))
     M_candidates = get_files_containing(candidates, 'M')
     if M_candidates:
         M = load_data(M_candidates)
@@ -46,7 +46,7 @@ def read_data(candidates):
     return X, T, M
 
 
-def load_dataset(dataset_path, subset=''):
+def load_dataset(dataset_path, subset='', targets='T'):
     """
     Tries to load a dataset from the given path. It will look for the filenames
     to populate a dictionary with 'train', 'val' and 'test' sets. Each set
@@ -64,7 +64,7 @@ def load_dataset(dataset_path, subset=''):
     test_files = get_files_containing(candidates, 'test', True)
 
     ds = dict()
-    ds['train'] = read_data(train_files)
-    ds['test'] = read_data(test_files) if test_files else None
-    ds['val'] = read_data(val_files) if val_files else None
+    ds['train'] = read_data(train_files, targets)
+    ds['test'] = read_data(test_files, targets) if test_files else None
+    ds['val'] = read_data(val_files, targets) if val_files else None
     return ds
