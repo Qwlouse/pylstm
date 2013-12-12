@@ -62,7 +62,7 @@ class FramewiseTargets(Targets):
             return self.data.shape == (timesteps, batchsize, out_size)
 
     def __str__(self):
-        return "<FramewiseTargets dim=%s>" % self.data.shape
+        return "<FramewiseTargets dim=%s>" % str(self.data.shape)
 
 
 class LabelingTargets(Targets):
@@ -114,4 +114,4 @@ class SequencewiseTargets(Targets):
             return self.data.shape == (batchsize, out_size)
 
     def __str__(self):
-        return "<SequencewiseTargets dim=%s>" % self.data.shape
+        return "<SequencewiseTargets dim=%s>" % str(self.data.shape)
