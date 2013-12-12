@@ -53,19 +53,24 @@ class SaveBestWeights(object):
     is no validation error) is at it's minimum and if so, save the weights to
     the specified file.
     """
-    def __init__(self, filename):
+    def __init__(self, filename=None):
         self.timescale = 'epoch'
         self.interval = 1
         self.filename = filename
+        self.weights = None
 
     def __call__(self, net, training_errors, validation_errors, **_):
         e = validation_errors if len(validation_errors) > 0 else training_errors
         if np.argmin(e) == len(e) - 1:
-            print("Saving weights to {0}...".format(self.filename))
-            np.save(self.filename, net.param_buffer)
+            if self.filename is not None:
+                print("Saving weights to {0}...".format(self.filename))
+                np.save(self.filename, net.param_buffer)
+            else:
+                print("Caching weights")
+                self.weights = net.param_buffer.copy()
 
     def load_weights(self):
-        return np.load(self.filename)
+        return np.load(self.filename) if self.filename is not None else self.weights
 
 
 class MonitorClassificationError(object):
