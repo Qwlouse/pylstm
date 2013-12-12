@@ -294,6 +294,16 @@ void apply_tanhx2_deriv(Matrix a, Matrix out) {
     transform(a.begin(), a.end(), out.begin(), tanhx2_deriv);
 }
 
+///Apply tanh * 2to all units
+void apply_tanh_scaled(Matrix a, Matrix out) {
+  transform(a.begin(), a.end(), out.begin(), tanh_scaled);
+}
+
+void apply_tanh_scaled_deriv(Matrix a, Matrix out) {
+  transform(a.begin(), a.end(), out.begin(), tanh_scaled_deriv);
+}
+
+
 ///Copy the data of one matrix into another
 void copy(Matrix a, Matrix b) {
     ASSERT(a.size == b.size);

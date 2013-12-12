@@ -65,6 +65,14 @@ inline double tanhx2_deriv(double val) {
     return 2.0 - 0.5 * val * val;
 }
 
+inline double tanh_scaled(double val) {
+  return 1.7159*tanh(0.66666667*val);
+}
+
+inline double tanh_scaled_deriv(double val) {
+  return 1.14393333333*(1 - (val * val));
+}
+
 inline double identity(double val) {
     return val;
 }
