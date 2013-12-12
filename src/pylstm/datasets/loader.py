@@ -102,3 +102,20 @@ def transform_ds_to_seq_classification(ds):
                              ds[use][2])
 
     return ds_seq_class, len(classes)
+
+
+def mask_features(ds, feature_mask):
+    """
+    Can be used to remove some features from a dataset.
+    :param ds: dataset dictionary
+    :param feature_mask: binary mask with shape = (# features, )
+    :return: new ds dictionary
+    """
+    masked_ds = {}
+    for usage in ds:
+        if ds[usage] is None:
+            continue
+        X, T, M = ds[usage]
+        X = X[:, :, feature_mask == 1]
+        masked_ds[usage] = X, T, M
+    return masked_ds
