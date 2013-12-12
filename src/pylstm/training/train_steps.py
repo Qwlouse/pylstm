@@ -3,6 +3,7 @@
 
 from __future__ import division, print_function, unicode_literals
 import numpy as np
+from pylstm.targets import Targets
 
 
 class DiagnosticStep(object):
@@ -14,11 +15,11 @@ class DiagnosticStep(object):
 
     def run(self, x, t, m):
         print("DiagnosticStep: x.shape=", x.shape)
-        if isinstance(t, list):
-            print("DiagnosticStep: len(t)=", len(t))
+        if isinstance(t, Targets):
+            print("DiagnosticStep: t=", t)
         else:
             print("DiagnosticStep: t.shape=", t.shape)
-        print("DiagnosticStep: m=", m)
+        print("DiagnosticStep: m.shape=", m.shape if m is not None else None)
         return 15
 
 
