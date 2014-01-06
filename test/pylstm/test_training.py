@@ -49,6 +49,6 @@ class TrainingTests(unittest.TestCase):
         for step in steps:
             trainer = Trainer(net, step)
             trainer.stopping_criteria.append(MaxEpochsSeen(max_epochs=1))
-            trainer.train(Minibatches(self.X, self.T, verbose=False), verbose=False)
+            trainer.train(Minibatches(self.X, self.T, batch_size=4, verbose=False), verbose=False)
 
         # This test passes as long as training succeeds

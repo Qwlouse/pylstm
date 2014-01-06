@@ -190,6 +190,6 @@ class RmsPropStep(object):
 
         self.scaling_factor = (1 - self.decay) * grad**2 + self.decay * self.scaling_factor
         update = (self.step_rate / self.scaling_factor) * grad
-        self.net.param_buffer += update.flatten()
+        #self.net.param_buffer += update.flatten()
 
         return error
