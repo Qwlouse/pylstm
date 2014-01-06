@@ -169,7 +169,7 @@ class RPropStep(object):
 
 
 class RmsPropStep(object):
-    def __init__(self, step_rate, decay=0.9, momentum=0.0,
+    def __init__(self, step_rate=0.1, decay=0.9, momentum=0.0,
                  step_adapt=False, step_rate_min=0, step_rate_max=np.inf):
         self.step_rate = step_rate
         self.decay = decay
