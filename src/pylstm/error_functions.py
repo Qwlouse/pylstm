@@ -46,7 +46,7 @@ MSE_implementations = {
 
 
 def MeanSquaredError(Y, T, M=None):
-    assert T.validate_for_output_shape(*Y.shape)
+    T.validate_for_output_shape(*Y.shape)
     return MSE_implementations[T.targets_type](Y, T.data, M)
 
 
@@ -86,7 +86,7 @@ CEE_implementations = {
 
 
 def CrossEntropyError(Y, T, M=None):
-    assert T.validate_for_output_shape(*Y.shape)
+    T.validate_for_output_shape(*Y.shape)
     y_m = np.clip(Y, 1e-6, 1.0-1e-6)  # do not modify original Y
     return CEE_implementations[T.targets_type](y_m, T.data, M)
 
@@ -128,7 +128,7 @@ MCCEE_implementations = {
 
 
 def MultiClassCrossEntropyError(Y, T, M=None):
-    assert T.validate_for_output_shape(*Y.shape)
+    T.validate_for_output_shape(*Y.shape)
     y_m = np.clip(Y, 1e-6, 1.0)  # do not modify original Y
     return MCCEE_implementations[T.targets_type](y_m, T.data, M)
 
@@ -159,7 +159,7 @@ CTC_implementations = {
 
 
 def CTC(Y, T, M=None):
-    assert T.validate_for_output_shape(*Y.shape)
+    T.validate_for_output_shape(*Y.shape)
     return CTC_implementations[T.targets_type](Y, T, M)
 
 
