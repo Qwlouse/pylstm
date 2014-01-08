@@ -205,7 +205,7 @@ void Matrix::set_all_elements_to(d_type value) {
 		v = value;
 }
 
-void Matrix::print_me() {
+void Matrix::print_me() const {
   cout << "Matrix 3D: " << n_rows << " x " << n_columns << " x " << n_slices << " # " << offset << '\n';
 
   cout << "=====================================\n";
@@ -220,18 +220,17 @@ void Matrix::print_me() {
   }
 }
 
-bool Matrix::overlaps_with(const Matrix& other) {
+bool Matrix::overlaps_with(const Matrix& other) const {
     if (data != other.data) {
         return false;
     } else {
-        double* this_max = get_data() +
-                           get_offset(n_rows - 1, n_columns - 1, n_slices - 1);
-        double* other_max = other.get_data() +
-                            other.get_offset(other.n_rows - 1,
-                                             other.n_columns - 1,
-                                             other.n_slices - 1);
+        double* this_end = get_end();
+        double* other_end = other.get_end();
+        double* this_start = get_data();
+        double* other_start = other.get_data();
 
-        return (this_max < other.get_data() || other_max < get_data());
+        return (this_start <= other_start && other_start <= this_end) ||
+               (this_start <= other_end && other_end <= this_end);
     }
 }
 

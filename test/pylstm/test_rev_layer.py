@@ -21,8 +21,6 @@ class ReverseLayerTest(unittest.TestCase):
         X = np.arange(self.size * self.batches * self.time_slices).reshape(
             self.time_slices, self.batches, self.size)
         out = self.net.forward_pass(X)
-        print(X[::-1, :, :])
-        print(out)
         self.assertTrue(np.allclose(X[::-1, :, :], out))
 
     def test_backward_pass(self):
@@ -30,8 +28,6 @@ class ReverseLayerTest(unittest.TestCase):
             self.time_slices, self.batches, self.size)
         self.net.forward_pass(X)
         out = self.net.pure_backpass(X.copy())
-        print(X[::-1, :, :])
-        print(out)
         np.testing.assert_array_almost_equal(X[::-1, :, :], out)
 
 
