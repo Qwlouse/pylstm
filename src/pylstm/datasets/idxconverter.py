@@ -48,7 +48,7 @@ def open_idx_file(filename, byteswap=True, reverse_header=False):
                 "Invalid type code %s." % hex(type_code)
             dim_count = np.fromfile(f, np.uint8, 1)[0]
             shape = np.fromfile(f, np.int32, dim_count).byteswap()
-        else :
+        else:
             dim_count = np.fromfile(f, np.uint8, 1)[0]
             print("dim_count", dim_count)
             type_code = np.fromfile(f, np.uint8, 1)[0]
