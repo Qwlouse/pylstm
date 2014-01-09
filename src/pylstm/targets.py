@@ -49,6 +49,8 @@ class FramewiseTargets(Targets):
         assert dim == 3 or (binarize_to and dim == 2)
         self.binarize_to = binarize_to
         self.data = T.reshape(T.shape[0], T.shape[1], -1)
+        if binarize_to:
+            self.data = np.array(self.data, dtype=np.int)
 
     def __getitem__(self, item):
         return FramewiseTargets(self.data[:, item, :],

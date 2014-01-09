@@ -2,6 +2,7 @@
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 import numpy as np
+from pylstm import binarize_array
 from .training.data_iterators import Online
 from .wrapper import ctcpp
 
@@ -103,6 +104,12 @@ def _FramewiseMCCEE(y_m, T, M):
     return (- np.sum(cee) / norm), (- quot / norm)
 
 
+def _FramewiseBinarizingMCCEE(y_m, T, M):
+    T_b = binarize_array(T, range(y_m.shape[2]))
+
+    return _FramewiseMCCEE(y_m, T_b, M)
+
+
 def _SequencewiseBinarizingMCCEE(y_m, T, M):
     cee = np.zeros_like(y_m)
     quot = np.zeros_like(y_m)
@@ -119,7 +126,7 @@ def _SequencewiseBinarizingMCCEE(y_m, T, M):
 
 MCCEE_implementations = {
     ('F', False): _FramewiseMCCEE,
-    ('F', True): _not_implemented,
+    ('F', True): _FramewiseBinarizingMCCEE,
     ('L', False): _illegal_combination,
     ('L', True): _illegal_combination,
     ('C', False): _not_implemented,
