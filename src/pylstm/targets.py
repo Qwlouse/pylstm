@@ -38,6 +38,10 @@ class Targets(object):
         return "<%s-Targets>" % self.targets_type
 
 
+def assert_shape_equals(s1, s2):
+    assert s1 == s2, "targets shape error: %s != %s" % (str(s1), str(s2))
+
+
 class FramewiseTargets(Targets):
     def __init__(self, T, binarize_to=None):
         super(FramewiseTargets, self).__init__(('F', binarize_to is not None))
@@ -45,6 +49,8 @@ class FramewiseTargets(Targets):
         assert dim == 3 or (binarize_to and dim == 2)
         self.binarize_to = binarize_to
         self.data = T.reshape(T.shape[0], T.shape[1], -1)
+        if binarize_to:
+            self.data = np.array(self.data, dtype=np.int)
 
     def __getitem__(self, item):
         return FramewiseTargets(self.data[:, item, :],
@@ -56,10 +62,10 @@ class FramewiseTargets(Targets):
 
     def validate_for_output_shape(self, timesteps, batchsize, out_size):
         if self.binarize_to:
-            return self.data.shape == (timesteps, batchsize, 1) and \
-                self.binarize_to == out_size
+            assert_shape_equals(self.data.shape, (timesteps, batchsize, 1))
+            assert self.binarize_to == out_size
         else:
-            return self.data.shape == (timesteps, batchsize, out_size)
+            assert_shape_equals(self.data.shape, (timesteps, batchsize, out_size))
 
     def __str__(self):
         return "<FramewiseTargets dim=%s>" % str(self.data.shape)
@@ -85,7 +91,7 @@ class LabelingTargets(Targets):
         return self
 
     def validate_for_output_shape(self, timesteps, batchsize, out_size):
-        return len(self.data) == batchsize
+        assert len(self.data) == batchsize
 
     def __str__(self):
         return "<LabelingTargets len=%d>" % len(self.data)
@@ -108,10 +114,10 @@ class SequencewiseTargets(Targets):
 
     def validate_for_output_shape(self, timesteps, batchsize, out_size):
         if self.binarize_to:
-            return self.data.shape == (batchsize, 1) and \
-                self.binarize_to == out_size
+            assert_shape_equals(self.data.shape, (batchsize, 1))
+            assert self.binarize_to == out_size
         else:
-            return self.data.shape == (batchsize, out_size)
+            assert_shape_equals(self.data.shape, (batchsize, out_size))
 
     def __str__(self):
         return "<SequencewiseTargets dim=%s>" % str(self.data.shape)

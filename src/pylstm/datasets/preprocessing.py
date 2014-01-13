@@ -32,7 +32,7 @@ def binarize_array(A, alphabet=None):
     You can specify the alphabet for binarization yourself. Otherwise it will be
     the symbols from the passed in sequences.
     """
-    if A.shape == 3:
+    if len(A.shape) == 3:
         assert A.shape[2] == 1
         A = A[:, :, 0]
     if alphabet is None:
@@ -40,10 +40,8 @@ def binarize_array(A, alphabet=None):
     else:
         alphabet = list(alphabet)
     result = np.zeros((A.shape[0], A.shape[1], len(alphabet)))
-    for seq_nr in range(A.shape[1]):
-        for t in range(A.shape[0]):
-            index = alphabet.index(A[t, seq_nr])
-            result[t, seq_nr, index] = 1
+    for i, a in enumerate(alphabet):
+        result[A == a, i] = 1
     return result
 
 
