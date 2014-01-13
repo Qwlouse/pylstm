@@ -36,8 +36,10 @@ class Undivided(object):
         self.shuffle = shuffle
 
     def __call__(self):
-        X, T, M, _ = shuffle_data(self.X, self.T, self.M) if self.shuffle else \
-                     self.X, self.T, self.M, None
+        if self.shuffle:
+            X, T, M, _ = shuffle_data(self.X, self.T, self.M)
+        else:
+            X, T, M = self.X, self.T, self.M
         yield X, T, M
 
 
