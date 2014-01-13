@@ -56,7 +56,7 @@ class Minibatches(object):
     def __call__(self):
         if self.verbose:
             _update_progress(0)
-        total_batches = self.X.shape[1]
+        nr_sequences = self.X.shape[1]
 
         if self.shuffle:
             X, T, M, _ = shuffle_data(self.X, self.T, self.M,
@@ -64,14 +64,14 @@ class Minibatches(object):
         else:
             X, T, M = self.X, self.T, self.M
 
-        for i in range(0, total_batches, self.batch_size):
-            j = min(i + self.batch_size, total_batches)
+        for i in range(0, nr_sequences, self.batch_size):
+            j = min(i + self.batch_size, nr_sequences)
             x = X[:, i:j, :]
             t = T[i:j]
             m = None if M is None else M[:, i:j, :]
             yield x, t, m
             if self.verbose:
-                _update_progress(i/total_batches)
+                _update_progress(j/nr_sequences)
 
 
 class Online(object):
@@ -86,8 +86,8 @@ class Online(object):
     def __call__(self):
         if self.verbose:
             _update_progress(0)
-        total_batches = self.X.shape[1]
-        indices = np.arange(total_batches)
+        nr_sequences = self.X.shape[1]
+        indices = np.arange(nr_sequences)
         if self.shuffle:
             self.rnd.shuffle(indices)
         for i, idx in enumerate(indices):
@@ -104,7 +104,7 @@ class Online(object):
                         break
             yield x, t, m
             if self.verbose:
-                _update_progress((i+1)/total_batches)
+                _update_progress((i+1)/nr_sequences)
 
 
 def _update_progress(progress):
