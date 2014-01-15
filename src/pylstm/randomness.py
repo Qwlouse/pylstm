@@ -17,6 +17,7 @@ class HierarchicalRandomState(np.random.RandomState):
 
     def seed(self, seed=None):
         super(HierarchicalRandomState, self).seed(seed)
+        self._seed = seed
         self.categories = dict()
 
     def get_seed(self):
@@ -55,14 +56,14 @@ class Seedable(object):
 
 def reseeding_deepcopy(values, seed):
     r = deepcopy(values)
-    if isinstance(r, HierarchicalRandomState):
+    if isinstance(r, (HierarchicalRandomState, Seedable)):
         r.set_seed(seed)
     return r
 
 
 def reseeding_copy(values, seed):
     r = copy(values)
-    if isinstance(r, HierarchicalRandomState):
+    if isinstance(r, (HierarchicalRandomState, Seedable)):
         r.set_seed(seed)
     return r
 
