@@ -3,7 +3,8 @@
 
 from __future__ import division, print_function, unicode_literals
 import unittest
-from pylstm import global_rnd, shuffle_data
+from pylstm import global_rnd, shuffle_data, build_net, InputLayer, ForwardLayer
+from pylstm import Gaussian
 from pylstm.randomness import HierarchicalRandomState
 
 import numpy as np
@@ -127,7 +128,21 @@ class GlobalRndTest(unittest.TestCase):
         _, _, _, s2 = shuffle_data(X, T, M, seed=2)
         self.assertFalse(np.all(s1 == s2))
 
+    def test_initialize_is_random(self):
+        net1 = build_net(InputLayer(1) >> ForwardLayer(3))
+        net1.initialize(Gaussian())
+        net2 = build_net(InputLayer(1) >> ForwardLayer(3))
+        net2.initialize(Gaussian())
+        self.assertFalse(np.allclose(net1.param_buffer, net2.param_buffer))
 
+    def test_initialize_depends_on_global_rnd(self):
+        global_rnd.set_seed(1)
+        net1 = build_net(InputLayer(1) >> ForwardLayer(3))
+        net1.initialize(Gaussian())
+        global_rnd.set_seed(1)
+        net2 = build_net(InputLayer(1) >> ForwardLayer(3))
+        net2.initialize(Gaussian())
+        np.testing.assert_allclose(net1.param_buffer, net2.param_buffer)
 
 
 
