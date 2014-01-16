@@ -39,7 +39,7 @@ class HierarchicalRandomState(np.random.RandomState):
 
     def __getitem__(self, item):
         if item not in self.categories:
-            seed = abs(hash(str(self.seed) + '$' + str(item)))
+            seed = abs(hash(str(self._seed) + '$' + str(item)))
             self.categories[item] = HierarchicalRandomState(seed)
         return self.categories[item]
 
