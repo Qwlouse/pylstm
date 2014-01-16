@@ -7,6 +7,16 @@ import numpy as np
 
 
 class HierarchicalRandomState(np.random.RandomState):
+    """
+    An extension of the numpy RandomState that saves it's own seed and allows to
+    create sub-RandomStates like this:
+    >> sub_rnd = rnd['sub1']
+
+    The sub-RandomStates depend on the seed of their creator, but are otherwise
+    as independent as possible. That means that the seed of the sub-RandomState
+    is only dependent on the seed of the creator and on it's name, not on the
+    random state of the creator.
+    """
     def __init__(self, seed=None, seed_range=(0, 1000000000)):
         if seed is None:
             seed = np.random.randint(*seed_range)
@@ -16,6 +26,14 @@ class HierarchicalRandomState(np.random.RandomState):
         self.categories = dict()
 
     def seed(self, seed=None):
+        """
+        This method is kept for compatibility with the numpy RandomState. But
+        for better readability you are encouraged to use the set_seed() method
+        instead.
+
+        :param seed: the seed to reseed this random state with.
+        :type seed: int
+        """
         super(HierarchicalRandomState, self).seed(seed)
         self._seed = seed
         self.categories = dict()

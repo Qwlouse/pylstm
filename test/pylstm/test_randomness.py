@@ -67,6 +67,23 @@ class HierarchicalRandomStateTest(unittest.TestCase):
         rnd2 = self.rnd['A']
         self.assertEqual(rnd1, rnd2)
 
+    def test_get_item_independent_of_previous_usage(self):
+        self.rnd.set_seed(1)
+        rnd1 = self.rnd['A']
+        self.rnd.set_seed(1)
+        self.rnd.randint(1000)
+        rnd2 = self.rnd['A']
+        self.assertNotEqual(rnd1, rnd2)
+        self.assertEqual(rnd1.get_seed(), rnd2.get_seed())
+
+    def test_get_item_different_names(self):
+        rnd1 = self.rnd['A']
+        rnd2 = self.rnd['B']
+        self.assertNotEqual(rnd1, rnd2)
+
+
+
+
 
 class GlobalRndTest(unittest.TestCase):
     def setUp(self):
