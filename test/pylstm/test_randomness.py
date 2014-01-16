@@ -3,8 +3,10 @@
 
 from __future__ import division, print_function, unicode_literals
 import unittest
-from pylstm import global_rnd
+from pylstm import global_rnd, shuffle_data
 from pylstm.randomness import HierarchicalRandomState
+
+import numpy as np
 
 
 class HierarchicalRandomStateTest(unittest.TestCase):
@@ -82,9 +84,6 @@ class HierarchicalRandomStateTest(unittest.TestCase):
         self.assertNotEqual(rnd1, rnd2)
 
 
-
-
-
 class GlobalRndTest(unittest.TestCase):
     def setUp(self):
         global_rnd.set_seed(1)
@@ -98,6 +97,35 @@ class GlobalRndTest(unittest.TestCase):
         global_rnd.set_seed(1)
         b = global_rnd.randint(1000)
         self.assertEqual(a, b)
+
+    def test_shuffle_is_random(self):
+        X = np.arange(10).reshape(1, -1, 1)
+        T = np.arange(10).reshape(1, -1, 1)
+        M = None
+        global_rnd.set_seed(1)
+        _, _, _, s1 = shuffle_data(X, T, M)
+        _, _, _, s2 = shuffle_data(X, T, M)
+        self.assertFalse(np.all(s1 == s2))
+
+    def test_shuffle_depends_on_global_seed(self):
+        X = np.arange(10).reshape(1, -1, 1)
+        T = np.arange(10).reshape(1, -1, 1)
+        M = None
+        global_rnd.set_seed(1)
+        _, _, _, s1 = shuffle_data(X, T, M)
+        global_rnd.set_seed(1)
+        _, _, _, s2 = shuffle_data(X, T, M)
+        np.testing.assert_array_equal(s1.flat, s2.flat)
+
+    def test_shuffle_seed_overwrites_global_seed(self):
+        X = np.arange(10).reshape(1, -1, 1)
+        T = np.arange(10).reshape(1, -1, 1)
+        M = None
+        global_rnd.set_seed(1)
+        _, _, _, s1 = shuffle_data(X, T, M, seed=1)
+        global_rnd.set_seed(1)
+        _, _, _, s2 = shuffle_data(X, T, M, seed=2)
+        self.assertFalse(np.all(s1 == s2))
 
 
 
