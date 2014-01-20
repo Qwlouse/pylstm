@@ -14,6 +14,7 @@ class LayerBase(object):
     def __init__(self, in_size, out_size):
         self.in_size = in_size
         self.out_size = out_size
+        self.skip_training = True
 
     def get_input_buffer_size(self, time_length=1, batch_size=1):
         return self.in_size * time_length * batch_size

@@ -20,6 +20,9 @@ cdef class BaseLayer:
     def out_size(self):
         return self.layer.out_size
 
+    def __init__(self):
+        self.skip_training = False
+
     def __cinit__(self):
         self.layer = NULL
     
@@ -190,6 +193,7 @@ def create_layer(name, in_size, out_size, **kwargs):
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.Lstm97Layer](in_size, out_size, lstm97))
     elif name_lower == "reverselayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.ReverseLayer](in_size, out_size, cl.ReverseLayer()))
+        l.skip_training = True
     else :
         raise AttributeError("No layer with name " + name)
     return l

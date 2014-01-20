@@ -197,6 +197,8 @@ class Network(object):
         self.grad_manager.initialize_buffer(
             pw.Matrix(self.get_param_size()))
         for n, l in self.layers.items()[-1:0:-1]:
+            if l.skip_training:
+                continue
             param = self.param_manager.get_source_view(n)
             grad = self.grad_manager.get_source_view(n)
             fwd_state = self.fwd_state_manager.get_source_view(n)
