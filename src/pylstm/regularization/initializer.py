@@ -199,6 +199,31 @@ class SparseOutputs(Seedable):
         return res * M
 
 
+class EchoState(Seedable):
+    """
+    Classic echo state initialization. Creates a matrix with a fixed spectral
+    radius (default=1.25). Spectral radius should be < 1 to satisfy ES-property.
+    Only works for square matrices.
+
+    Example usage:
+    >> net = build_net(InputLayer(5) >> RnnLayer(20, act_func='tanh') >> ForwardLayer(3))
+    >> net.initialize(default=Gaussian(), RnnLayer={'HR': EchoState(0.77)})
+    """
+
+    def __init__(self, spectral_radius=0.9):
+        super(EchoState, self).__init__()
+        self.spectral_radius = spectral_radius
+
+    def __call__(self, layer_name, view_name,  shape):
+        assert shape[0] == 1, "Shape should be 2D but was: %s" % str(shape)
+        assert shape[1] == shape[2], "Matrix should be square but was: %s" % str(shape)
+        n = shape[1]
+        W = self.rnd.rand(n, n) - 0.5
+        # normalizing and setting spectral radius (correct, slow):
+        rhoW = max(abs(np.linalg.eig(W)[0]))
+        return (W * (self.spectral_radius / rhoW)).reshape(1, n, n)
+
+
 def _evaluate_initializer(initializer, layer_name, view_name, shape):
     if callable(initializer):
         return initializer(layer_name, view_name, shape)
