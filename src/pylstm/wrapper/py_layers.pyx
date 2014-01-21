@@ -25,9 +25,13 @@ cdef class BaseLayer:
         self.layer = NULL
         self._skip_training = False
 
-    @property
-    def skip_training(self):
-        return self._skip_training
+
+    property skip_training:
+        def __get__(self):
+            return self._skip_training
+
+        def __set__(self, value):
+            self._skip_training = value
     
     def __dealloc(self):
         del self.layer
