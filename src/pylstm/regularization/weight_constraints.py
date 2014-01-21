@@ -49,7 +49,7 @@ class LimitIncomingWeightsSquared(object):
         return view / np.sqrt(sums)
 
     def __repr__(self):
-        return "<RescaleIncomingWeights %0.4f>" % self.target_sum
+        return "<LimitIncomingWeightsSquared %0.4f>" % self.target_sum
 
 
 class ClipWeights(object):
