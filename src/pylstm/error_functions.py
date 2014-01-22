@@ -200,29 +200,13 @@ def ctc_best_path_decoding(Y):
 ################################################################################
 # Classification Error for monitoring
 
-def _FramewiseClassificationError(Y, T, M):
-    pass
-
-
-def _FramewiseBinarizingClassificationError(Y, T, M):
-    pass
-
-
-def _SequencewiseClassificationError(Y, T, M):
-    pass
-
-
-def _SequencewiseBinarizingClassificationError(Y, T, M):
-    pass
-
-
 ClassificationError_implementations = {
-    ('F', False): _FramewiseClassificationError,
-    ('F', True): _FramewiseBinarizingClassificationError,
+    ('F', False): _not_implemented,
+    ('F', True): _not_implemented,
     ('L', False): _illegal_combination,
     ('L', True): _illegal_combination,
-    ('S', False): _SequencewiseClassificationError,
-    ('S', True): _SequencewiseBinarizingClassificationError
+    ('S', False): _not_implemented,
+    ('S', True): _not_implemented
 }
 
 

@@ -117,6 +117,8 @@ class MonitorClassificationError(object):
         total_errors = 0
         total = 0
         for x, t, m in self.data_iter():
+            assert t.targets_type in [('F', False), ('F', True), ('S', False), ('S', True)], \
+                "Target type not suitable for classification error monitoring."
             y = net.forward_pass(x)
             y_win = y.argmax(2)
             if t.binarize_to is not None:
@@ -129,7 +131,7 @@ class MonitorClassificationError(object):
                 total += np.sum(m)
             else:
                 total_errors += np.sum((y_win != t_win))
-                total += t.shape[0] * t.shape[1]
+                total += t.data.shape[0] * t.data.shape[1]
         error_fraction = total_errors / total
         self.log['classification_error'].append(error_fraction)
         print(self.name, ":\tClassification Error = %0.4f\t (%d / %d)" %
@@ -154,7 +156,7 @@ class MonitorPooledClassificationError(object):
         total_errors = 0
         total = 0
         for x, t, m in self.data_iter():
-            relevant_from = (t.shape[2] / self.pool_size) * (self.pool_size // 2)
+            relevant_from = (t.data.shape[2] / self.pool_size) * (self.pool_size // 2)
             relevant_to = relevant_from + (t.shape[2] / self.pool_size)
             t = t[:, :, relevant_from: relevant_to]
             y = net.forward_pass(x)
@@ -165,7 +167,7 @@ class MonitorPooledClassificationError(object):
                 total += np.sum(m)
             else:
                 total_errors += np.sum((y_win != t_win))
-                total += t.shape[0] * t.shape[1]
+                total += t.data.shape[0] * t.data.shape[1]
         error_fraction = total_errors / total
         self.log['classification_error'].append(error_fraction)
         print(self.name, ":\tClassification Error = %0.4f\t (%d / %d)" %

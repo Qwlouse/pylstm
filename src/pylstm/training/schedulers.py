@@ -1,10 +1,24 @@
 #!/usr/bin/python
 # coding=utf-8
+"""
+Quantities like learning_rate and momentum in SgdStep, NesterovStep, MomentumStep etc.
+can be changed according to schedules instead of being constants.
+These common schedulers are provided for convenience.
+"""
 from __future__ import division, print_function, unicode_literals
 import numpy as np
 
 
 class LinearSchedule(object):
+    """
+    Change the quantity linearly from 'initial_value' to 'final_value'
+    by changing the quantity every 'interval' number of updates.
+    Step size is decided by num_changes.
+    For example:
+    LinearSchedule(0.9, 1.0, 10, 100)
+    will change the quantity starting from 0.9 to 1.0 by incrementing it
+    after every 100 updates such that 10 increments are made.
+    """
     def __init__(self, initial_value=0, final_value=0, num_changes=1, interval=1, name=""):
         self.initial_value = initial_value
         self.final_value = final_value

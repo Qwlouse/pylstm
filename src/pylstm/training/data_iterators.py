@@ -44,6 +44,10 @@ class Undivided(object):
 
 
 class Minibatches(object):
+    """
+    Minibatch (batch_size samples at a time) iterator for inputs, targets and masks.
+    Argument verbose=True enables a progress bar.
+    """
     def __init__(self, X, T, M=None, batch_size=1, shuffle=True, verbose=True):
         self.X = X
         self.T = create_targets_object(T)
@@ -75,6 +79,10 @@ class Minibatches(object):
 
 
 class Online(object):
+    """
+    Online (one sample at a time) iterator for inputs, targets and masks.
+    Argument verbose=True enables a progress bar.
+    """
     def __init__(self, X, T, M=None, shuffle=True, verbose=True):
         self.X = X
         self.T = create_targets_object(T)
@@ -108,6 +116,9 @@ class Online(object):
 
 
 def _update_progress(progress):
+    """
+    Progress bar for minibatch and online iterators.
+    """
     barLength = 50  # Modify this to change the length of the progress bar
     status = ""
     if isinstance(progress, int):
@@ -132,6 +143,10 @@ def _update_progress(progress):
 
 ################## Dataset Modifications ######################
 class Noisy(object):
+    """
+    Adds noise to each input sample.
+    Can be applied to any iterator (Online, Minibatches or Undivided).
+    """
     def __init__(self, data_iter, std=0.1, rnd=np.random.RandomState()):
         self.f = data_iter
         self.rnd = rnd
