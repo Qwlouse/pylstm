@@ -43,8 +43,8 @@ MSE_implementations = {
     ('F', True): _not_implemented,
     ('L', False): _illegal_combination,
     ('L', True): _illegal_combination,
-    ('C', False): _FramewiseMSE,  # should work smoothly through broadcasting
-    ('C', True): _SequencewiseBinarizingMSE
+    ('S', False): _FramewiseMSE,  # should work smoothly through broadcasting
+    ('S', True): _SequencewiseBinarizingMSE
 }
 
 
@@ -147,6 +147,7 @@ def MultiClassCrossEntropyError(Y, T, M=None):
 
 
 ################################################################################
+# CTC error implementations for labellings
 
 def _LabelingBinarizingCTC(Y, T, M):
     time_size, batch_size, label_count = Y.shape
@@ -177,6 +178,7 @@ def CTC(Y, T, M=None):
 
 
 ################################################################################
+# Best path decoding for monitoring Phoneme Errors
 
 def ctc_best_path_decoding(Y):
     assert Y.shape[1] == 1
@@ -193,3 +195,37 @@ def ctc_best_path_decoding(Y):
             elif y - 1 != t[-1]:
                 t.append(y - 1)
     return t
+
+
+################################################################################
+# Classification Error for monitoring
+
+def _FramewiseClassificationError(Y, T, M):
+    pass
+
+
+def _FramewiseBinarizingClassificationError(Y, T, M):
+    pass
+
+
+def _SequencewiseClassificationError(Y, T, M):
+    pass
+
+
+def _SequencewiseBinarizingClassificationError(Y, T, M):
+    pass
+
+
+ClassificationError_implementations = {
+    ('F', False): _FramewiseClassificationError,
+    ('F', True): _FramewiseBinarizingClassificationError,
+    ('L', False): _illegal_combination,
+    ('L', True): _illegal_combination,
+    ('S', False): _SequencewiseClassificationError,
+    ('S', True): _SequencewiseBinarizingClassificationError
+}
+
+
+def ClassificationError(Y, T, M=None):
+    T.validate_for_output_shape(*Y.shape)
+    return ClassificationError_implementations[T.targets_type](Y, T, M)
