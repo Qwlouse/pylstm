@@ -186,11 +186,16 @@ class Network(object):
         return self.delta_manager.get_source_view("InputLayer").as_array()
 
     def backward_pass(self, T, M=None):
-        if self.deltas is None:
+        if self.error is None:
             self.T = create_targets_object(T)
             self.M = M
             self.error, self.deltas = self.error_func(self.out_buffer,
                                                       self.T, M)
+
+        if self.deltas is None:
+            raise RuntimeError("Deltas where None. Ensure that your error "
+                               "function supports a backward pass.")
+
         return self.pure_backpass(self.deltas)
 
     def calc_gradient(self):
@@ -246,7 +251,8 @@ class Network(object):
             r_out = self.r_in_out_manager.get_source_view(n)
             input_view = self.in_out_manager.get_sink_view(n)
 
-            l.Rpass(param, v, fwd_state, r_fwd_state, input_view, out, r_in, r_out)
+            l.Rpass(param, v, fwd_state, r_fwd_state, input_view, out, r_in,
+                    r_out)
             # read the output buffer
         return self.r_in_out_manager.get_source_view(self.out_layer).as_array()
 
