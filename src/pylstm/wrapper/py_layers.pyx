@@ -127,17 +127,16 @@ def create_layer(name, in_size, out_size, **kwargs):
 
     cdef cm.ActivationFunction* act_fct = <cm.ActivationFunction*> &cm.Sigmoid
 
-    unexpected_kwargs = [k for k in kwargs if k not in {'act_func'}]
-    expected_kwargs = set()
+    expected_kwargs = {'act_func', 'skip_training'}
     if name_lower == "lstm97layer":
-        expected_kwargs = {'full_gradient', 'peephole_connections',
+        expected_kwargs |= {'full_gradient', 'peephole_connections',
                            'forget_gate', 'output_gate', 'gate_recurrence',
                            'use_bias'}
     if name_lower == "lstmlayer":
-        expected_kwargs = {'delta_range'}
+        expected_kwargs |= {'delta_range'}
     if name_lower == "forwardlayer":
-        expected_kwargs = {'use_bias'}
-    unexpected_kwargs = list(set(unexpected_kwargs) - expected_kwargs)
+        expected_kwargs |= {'use_bias'}
+    unexpected_kwargs = [k for k in kwargs if k not in expected_kwargs]
     if unexpected_kwargs:
         import warnings
         warnings.warn("Warning: got unexpected kwargs: %s"%unexpected_kwargs)
@@ -160,7 +159,6 @@ def create_layer(name, in_size, out_size, **kwargs):
             act_fct = <cm.ActivationFunction*> &cm.Winout
         elif af_name == "tanhscaled":
             act_fct = <cm.ActivationFunction*> &cm.TanhScaled
-
 
     cdef cl.Lstm97Layer lstm97
     cdef cl.LstmLayer lstm_layer
@@ -200,7 +198,11 @@ def create_layer(name, in_size, out_size, **kwargs):
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.Lstm97Layer](in_size, out_size, lstm97))
     elif name_lower == "reverselayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.ReverseLayer](in_size, out_size, cl.ReverseLayer()))
-        l._skip_training = True
+        l.skip_training = True
     else :
         raise AttributeError("No layer with name " + name)
+
+    if "skip_training" in kwargs:
+        l.skip_training = kwargs['skip_training']
+
     return l
