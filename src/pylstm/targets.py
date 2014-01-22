@@ -99,7 +99,7 @@ class LabelingTargets(Targets):
 
 class SequencewiseTargets(Targets):
     def __init__(self, C, binarize_to=None):
-        super(SequencewiseTargets, self).__init__(('C',
+        super(SequencewiseTargets, self).__init__(('S',
                                                    binarize_to is not None))
         dim = len(C.shape)
         assert dim == 2 or (binarize_to and dim == 1)

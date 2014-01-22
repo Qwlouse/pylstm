@@ -16,6 +16,8 @@ def _illegal_combination(*_):
 
 
 ################################################################################
+# Mean Squared Error Implementations
+# (Gaussian Cross Entropy)
 
 def _FramewiseMSE(Y, T, M):
     diff = Y - T
@@ -52,6 +54,8 @@ def MeanSquaredError(Y, T, M=None):
 
 
 ################################################################################
+# Cross Entropy Error Implementations
+# (Independent Binomial Cross Entropy)
 
 def _FramewiseCEE(y_m, T, M):
     cee = T * np.log(y_m) + (1 - T) * np.log(1 - y_m)
@@ -81,8 +85,8 @@ CEE_implementations = {
     ('F', True): _not_implemented,
     ('L', False): _illegal_combination,
     ('L', True): _illegal_combination,
-    ('C', False): _not_implemented,
-    ('C', True): _SequencewiseBinarizingCEE
+    ('S', False): _not_implemented,
+    ('S', True): _SequencewiseBinarizingCEE
 }
 
 
@@ -93,6 +97,8 @@ def CrossEntropyError(Y, T, M=None):
 
 
 ################################################################################
+# Multi-Class (Multi-Label) Cross Entropy Error Implementations
+# (Multinomial/softmax cross entropy)
 
 def _FramewiseMCCEE(y_m, T, M):
     cee = T * np.log(y_m)
@@ -129,8 +135,8 @@ MCCEE_implementations = {
     ('F', True): _FramewiseBinarizingMCCEE,
     ('L', False): _illegal_combination,
     ('L', True): _illegal_combination,
-    ('C', False): _not_implemented,
-    ('C', True): _SequencewiseBinarizingMCCEE
+    ('S', False): _not_implemented,
+    ('S', True): _SequencewiseBinarizingMCCEE
 }
 
 
@@ -160,8 +166,8 @@ CTC_implementations = {
     ('F', True): _illegal_combination,
     ('L', False): _not_implemented,
     ('L', True): _LabelingBinarizingCTC,
-    ('C', False): _illegal_combination,
-    ('C', True): _illegal_combination
+    ('S', False): _illegal_combination,
+    ('S', True): _illegal_combination
 }
 
 

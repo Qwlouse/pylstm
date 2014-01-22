@@ -78,7 +78,7 @@ class SaveBestWeights(object):
 
 class MonitorError(object):
     """
-    Monitor the given error.
+    Monitor the given error (averaged over all sequences).
     """
     def __init__(self, data_iter, error, name="", timescale='epoch', interval=1):
         self.timescale = timescale
