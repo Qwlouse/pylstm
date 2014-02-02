@@ -6,7 +6,7 @@ import numpy as np
 from .data_iterators import Minibatches
 
 
-def conjgrad(gradient, v, f_hessp, maxiter=20):
+def conjgrad(gradient, v, f_hessp, maxiter=300):
     r = gradient - f_hessp(v)  # residual
     p = -r  # current step
     rsold = r.T.dot(r)
@@ -53,10 +53,24 @@ def conjgrad2(gradient, v, f_hessp, maxiter=300):
     return allvecs
 
 def conjgrad3(gradient, v, f_hessp, maxiter=300):
+
+    ## set parameters for our conjgrad version
+    miniter = 1
+    inext = 5
+    imult = 1.3
+
+    tolerance = 5e-6
+    gapRatio = 0.1
+    minGap = 10
+    maxTestgap = np.maximum(np.ceil(maxiter * gapRatio), minGap) + 1
+
+    vals = np.zeros(maxTestgap)
+
     r = f_hessp(v) - gradient  # residual
     p = -r  # current step
     rsold = r.T.dot(r)
     allvecs = [v.copy()]
+
     for i in range(maxiter):
         Ap = f_hessp(p)
         curv = (p.T.dot(Ap))
@@ -73,6 +87,22 @@ def conjgrad3(gradient, v, f_hessp, maxiter=300):
 
         rsold = rsnew
 
+        val = 0.5*(np.dot((-gradient+r), v))
+        vals[np.mod(i, maxTestgap)] = val
+
+        testGap = np.maximum(np.ceil(gapRatio * i), minGap)
+        prevVal = vals[np.mod((i - testGap), maxTestgap)]
+
+        if i == np.ceil(inext):
+            allvecs.append(v)
+            inext *= imult
+            saved = True
+
+        if (i > testGap and (val - prevVal)/val < (tolerance * testGap) and i >= miniter):
+            #print("BREAK AT ITER: %d" %i  )
+            #print("pAp: %f" %curv)
+            break
+
     return allvecs
 
 
@@ -81,7 +111,7 @@ class CgLiteTrainer(object):
         pass
 
     def train(self, net, X, T, M=None, epochs=10, minibatch_size=32,
-              mu=1. / 30, maxiter=150, success=lambda x: False):
+              mu=1. / 30, maxiter=300, success=lambda x: False):
         # TODO remove Loop=True
         mb = Minibatches(X, T, M, 32, verbose=False)()
         lambda_ = .1
@@ -104,7 +134,7 @@ class CgLiteTrainer(object):
 
             ## initialize v
             #v = np.zeros(net.get_param_size())
-            v = .00006 * np.random.randn(net.get_param_size())
+            v = .01 * np.random.randn(net.get_param_size())
 
 
             ## get next minibatch to work with
@@ -121,7 +151,7 @@ class CgLiteTrainer(object):
                 return net.hessian_pass(x, v, mu, lambda_).copy().flatten() / minibatch_size
 
             ## run CG
-            all_v = conjgrad2(grad, v.copy(), fhess_p, maxiter=maxiter)
+            all_v = conjgrad3(grad, v.copy(), fhess_p, maxiter=maxiter)
 
             ## backtrack #1
             lowError = float('Inf')
