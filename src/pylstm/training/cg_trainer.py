@@ -29,7 +29,7 @@ def conjgrad(gradient, v, f_hessp, maxiter=20):
 
     return allvecs
 
-def conjgrad2(gradient, v, f_hessp, maxiter=150):
+def conjgrad2(gradient, v, f_hessp, maxiter=300):
     r = f_hessp(v) - gradient  # residual
     p = -r  # current step
     rsold = r.T.dot(r)
@@ -51,6 +51,30 @@ def conjgrad2(gradient, v, f_hessp, maxiter=150):
         rsold = rsnew
 
     return allvecs
+
+def conjgrad3(gradient, v, f_hessp, maxiter=300):
+    r = f_hessp(v) - gradient  # residual
+    p = -r  # current step
+    rsold = r.T.dot(r)
+    allvecs = [v.copy()]
+    for i in range(maxiter):
+        Ap = f_hessp(p)
+        curv = (p.T.dot(Ap))
+        if curv < 3 * np.finfo(np.float64).eps:
+            break  # curvature is negative or zero
+        alpha = rsold / curv
+        v += alpha * p
+        allvecs.append(v.copy())
+        r = r + alpha * Ap   # updated residual
+        rsnew = r.T.dot(r)
+        if np.sqrt(rsnew) < 1e-10:
+            break  # found solution
+        p = -r + rsnew / rsold * p
+
+        rsold = rsnew
+
+    return allvecs
+
 
 class CgLiteTrainer(object):
     def __init__(self):
