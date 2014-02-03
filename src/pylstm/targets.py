@@ -6,6 +6,13 @@ import numpy as np
 
 
 def create_targets_object(targets, mask=None):
+    """
+    Try to create a suitable targets object from given targets and optionally
+    mask. If targets is already a targets object then do nothing.
+    If the dimensionality of the targets is 3 assume framewise targets.
+    If the dimensionality of the targets is 2 assume sequencewise targets.
+    If targets is a list assume labelling targets.
+    """
     if isinstance(targets, Targets):
         return targets
 
@@ -47,6 +54,10 @@ def assert_shape_equals(s1, s2):
 
 
 class FramewiseTargets(Targets):
+    """
+    Provide a target value for every point in time. Although some timesteps
+    might be masked out.
+    """
     def __init__(self, targets, mask=None, binarize_to=None):
         super(FramewiseTargets, self).__init__('F', binarize_to is not None)
         assert (targets.ndim == 3) or (binarize_to and targets.ndim == 2)
@@ -83,6 +94,10 @@ class FramewiseTargets(Targets):
 
 
 class LabelingTargets(Targets):
+    """
+    Provide a list of labels for the sequence. If a mask is given, then the
+    resulting deltas will be masked.
+    """
     def __init__(self, labels, mask=None, binarize_to=None):
         super(LabelingTargets, self).__init__('L', binarize_to is not None)
         self.data = labels
@@ -121,6 +136,11 @@ class LabelingTargets(Targets):
 
 
 class SequencewiseTargets(Targets):
+    """
+    Provide one target per sequence. If no mask is given then only the last
+    timestep will receive deltas. If a mask is given, then all the masked in
+    timesteps will receive deltas.
+    """
     def __init__(self, sequence_targets, mask=None, binarize_to=None):
         super(SequencewiseTargets, self).__init__('S', binarize_to is not None)
         assert sequence_targets.ndim == 2 or \

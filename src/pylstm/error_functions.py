@@ -29,6 +29,7 @@ def _FramewiseMSE(Y, T, M):
 
 
 def _SequencewiseBinarizingMSE(Y, T, M):
+    # TODO change behavior for M = None to only inject at last timestep
     diff = Y.copy()
     for b in range(Y.shape[1]):
         diff[:, b, T[b, 0]] -= 1
@@ -68,6 +69,7 @@ def _FramewiseCEE(y_m, T, M):
 
 
 def _SequencewiseBinarizingCEE(y_m, T, M):
+    # TODO change behavior for M = None to only inject at last timestep
     cee = np.log(1 - y_m)
     ceed = 1. / (y_m - 1)
     for b in range(y_m.shape[1]):
@@ -117,6 +119,7 @@ def _FramewiseBinarizingMCCEE(y_m, T, M):
 
 
 def _SequencewiseBinarizingMCCEE(y_m, T, M):
+    # TODO change behavior for M = None to only inject at last timestep
     cee = np.zeros_like(y_m)
     quot = np.zeros_like(y_m)
     for b in range(y_m.shape[1]):
@@ -150,6 +153,7 @@ def MultiClassCrossEntropyError(Y, T, M=None):
 # CTC error implementations for labellings
 
 def _LabelingBinarizingCTC(Y, T, M):
+    # TODO: use mask to mask deltas
     time_size, batch_size, label_count = Y.shape
     deltas = np.zeros((time_size, batch_size, label_count))
     deltas[:] = float('-inf')
