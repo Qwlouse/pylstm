@@ -6,7 +6,7 @@ from distutils.core import setup
 
 setup(
     name="pylstm",
-    version="0.3",
+    version="0.4",
     packages=['pylstm', 'pylstm.wrapper', 'pylstm.structure', 'pylstm.datasets',
               'pylstm.regularization', 'pylstm.training'],
     package_data={'pylstm.wrapper': ['*.so']},
