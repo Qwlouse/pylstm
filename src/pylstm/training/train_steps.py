@@ -3,6 +3,7 @@
 
 from __future__ import division, print_function, unicode_literals
 import numpy as np
+from pylstm.randomness import Seedable, global_rnd
 from pylstm.training.schedules import get_schedule
 from pylstm.training.data_iterators import Minibatches
 from pylstm.targets import Targets
@@ -227,44 +228,55 @@ class RmsPropStep(TrainingStep):
         return error
 
 
-class CgStep(TrainingStep):
-    def __init__(self, minibatch_size=32, mu=1. / 30, maxiter=300):
-        super(CgStep, self).__init__()
+def calculate_gradient(net, data_iter):
+        grad = np.zeros_like(net.param_buffer.flatten())
+        error = []
+        for x, t, m in data_iter():
+            net.forward_pass(x)
+            net.backward_pass(t, m)
+            error.append(net.calculate_error(t, m))
+            grad += net.calc_gradient().flatten()
+        error = np.mean(error)
+        return error, grad
+
+
+class CgStep(TrainingStep, Seedable):
+    def __init__(self, minibatch_size=32, mu=1. / 30, maxiter=300, seed=None):
+        TrainingStep.__init__(self)
+        seed = global_rnd['trainer'].generate_seed() if seed is None else seed
+        Seedable.__init__(self, seed)
         self.minibatch_size = minibatch_size
         self.mu = mu
         self.lambda_ = 0.1
         self.maxiter = maxiter
-        self.net = None
 
     def _initialize(self):
         self.lambda_ = 0.1
 
-    def run(self, X, T, M):
-        mb = Minibatches(X, T, M, self.minibatch_size, verbose=False)()
-        x, t, m = mb.next()
-        ## calculate the gradient
-        grad = np.zeros_like(self.net.param_buffer.flatten())
-        error = []
-        for x, t, m in Minibatches(X, T, M, self.minibatch_size, verbose=False,
-                                   shuffle=False)():
-            self.net.forward_pass(x)
-            self.net.backward_pass(t, m)
-            error.append(self.net.calculate_error(t, m))
-            grad += self.net.calc_gradient().flatten()
+    def _get_random_subset(self, X, T, M, subset_size):
+        subset_idx = self.rnd.choice(X.shape[1], subset_size, replace=False)
+        x = X[:, subset_idx, :]
+        t = T[subset_idx]
+        m = M[:, subset_idx, :] if M is not None else None
+        return x, t, m
 
-        grad /= self.minibatch_size
-        #grad *= -1
-        error = np.mean(error)
-        print(error)
+    def run(self, X, T, M):
+        ## calculate the gradient and initial error
+        data_iter = Minibatches(X, T, M, self.minibatch_size, verbose=False,
+                                shuffle=False)
+        error, grad = calculate_gradient(self.net, data_iter)
 
         ## initialize v
         #v = np.zeros(net.get_param_size())
-        v = .01 * np.random.randn(self.net.get_param_size())
+        v = .01 * self.rnd.randn(self.net.get_param_size())
+
+        # select a random subset of the data for the CG
+        x, t, m = self._get_random_subset(X, T, M, self.minibatch_size)
 
         ## define hessian pass
         def fhess_p(v):
             return self.net.hessian_pass(x, v, self.mu, self.lambda_).copy().\
-                       flatten() / self.minibatch_size
+                       flatten()
 
         ## run CG
         all_v = conjgrad3(grad, v.copy(), fhess_p, maxiter=self.maxiter)
