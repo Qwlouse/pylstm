@@ -3,6 +3,7 @@
 
 from __future__ import division, print_function, unicode_literals
 import numpy as np
+from pylstm.training.schedules import get_schedule
 from pylstm.training.data_iterators import Minibatches
 from pylstm.targets import Targets
 from pylstm.training.cg_trainer import conjgrad3
@@ -60,18 +61,15 @@ class SgdStep(TrainingStep):
     """
     def __init__(self, learning_rate=0.1):
         super(SgdStep, self).__init__()
-        self.learning_rate = learning_rate
+        self.learning_rate_schedule = get_schedule(learning_rate)
 
     def run(self, x, t, m):
-        if isinstance(self.learning_rate, (int, float)):
-            learning_rate = self.learning_rate
-        else:
-            learning_rate = self.learning_rate()
+        learning_rate = self.learning_rate_schedule()
         self.net.forward_pass(x)
         error = self.net.calculate_error(t, m)
         self.net.backward_pass(t, m)
-        self.net.param_buffer -= learning_rate * \
-                                 self.net.calc_gradient().flatten()
+        self.net.param_buffer -= (learning_rate *
+                                  self.net.calc_gradient().flatten())
         return error
 
 
@@ -82,21 +80,15 @@ class MomentumStep(TrainingStep):
     def __init__(self, learning_rate=0.1, momentum=0.0):
         super(MomentumStep, self).__init__()
         self.velocity = None
-        self.momentum = momentum
-        self.learning_rate = learning_rate
+        self.momentum_schedule = get_schedule(momentum)
+        self.learning_rate_schedule = get_schedule(learning_rate)
 
     def _initialize(self):
         self.velocity = np.zeros(self.net.get_param_size())
 
     def run(self, x, t, m):
-        if isinstance(self.learning_rate, (int, float)):
-            learning_rate = self.learning_rate
-        else:
-            learning_rate = self.learning_rate()
-        if isinstance(self.momentum, (int, float)):
-            momentum = self.momentum
-        else:
-            momentum = self.momentum()
+        learning_rate = self.learning_rate_schedule()
+        momentum = self.momentum_schedule()
         self.velocity *= momentum
         self.net.forward_pass(x)
         error = self.net.calculate_error(t, m)
@@ -114,21 +106,15 @@ class NesterovStep(TrainingStep):
     def __init__(self, learning_rate=0.1, momentum=0.0):
         super(NesterovStep, self).__init__()
         self.velocity = None
-        self.momentum = momentum
-        self.learning_rate = learning_rate
+        self.momentum_schedule = get_schedule(momentum)
+        self.learning_rate_schedule = get_schedule(learning_rate)
 
     def _initialize(self):
         self.velocity = np.zeros(self.net.get_param_size())
 
     def run(self, x, t, m):
-        if isinstance(self.learning_rate, (int, float)):
-            learning_rate = self.learning_rate
-        else:
-            learning_rate = self.learning_rate()
-        if isinstance(self.momentum, (int, float)):
-            momentum = self.momentum
-        else:
-            momentum = self.momentum()
+        learning_rate = self.learning_rate_schedule()
+        momentum = self.momentum_schedule()
         self.velocity *= momentum
         self.net.param_buffer += self.velocity
         self.net.forward_pass(x)
@@ -146,9 +132,11 @@ class RPropStep(TrainingStep):
     Improving the Rprop Learning Algorithm. Igel and Husken (2000).
     Rprop - Description and Implementation Details. Reidmiller (1994).
 
-    Rprop default is Rprop+ which includes backtracking (even when error drops and gradient changes sign)
+    Rprop default is Rprop+ which includes backtracking (even when error drops
+    and gradient changes sign)
     Rprop- can be obtained by setting backtracking = False
-    iRprop+ can be obtained by setting backtracking = True but backtrack_on_error_drop = False
+    iRprop+ can be obtained by setting backtracking = True but
+    backtrack_on_error_drop = False
     """
 
     def __init__(self, eta_minus=0.5, eta_plus=1.2, delta_0=0.1, delta_min=1e-6,
@@ -182,9 +170,9 @@ class RPropStep(TrainingStep):
         sign_flip = grad_sign * self.last_grad_sign
 
         # Calculate the delta
-        self.delta = (self.eta_plus * self.delta) * (sign_flip > 0) + \
-                     (self.eta_minus * self.delta) * (sign_flip < 0) + \
-                      self.delta * (sign_flip == 0)
+        self.delta = ((self.eta_plus * self.delta) * (sign_flip > 0) +
+                      (self.eta_minus * self.delta) * (sign_flip < 0) +
+                      self.delta * (sign_flip == 0))
         self.delta = np.clip(self.delta, self.delta_min, self.delta_max)
 
         # Calculate the update
@@ -232,8 +220,8 @@ class RmsPropStep(TrainingStep):
         self.net.backward_pass(t, m)
         grad = self.net.calc_gradient()
 
-        self.scaling_factor = (1 - self.decay) * grad**2 + self.decay * \
-                              self.scaling_factor
+        self.scaling_factor = ((1 - self.decay) * grad**2 +
+                               self.decay * self.scaling_factor)
         update = (self.step_rate / self.scaling_factor) * grad
         self.net.param_buffer += update.flatten()
         return error

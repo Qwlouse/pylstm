@@ -9,6 +9,13 @@ from __future__ import division, print_function, unicode_literals
 import numpy as np
 
 
+def get_schedule(schedule_or_const):
+    if callable(schedule_or_const):
+        return schedule_or_const
+    else:
+        return lambda: schedule_or_const
+
+
 class LinearSchedule(object):
     """
     Change the quantity linearly from 'initial_value' to 'final_value'
