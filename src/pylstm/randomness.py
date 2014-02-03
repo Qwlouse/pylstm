@@ -63,8 +63,16 @@ class HierarchicalRandomState(np.random.RandomState):
 
 
 class Seedable(object):
-    def __init__(self, seed=None):
-        self.rnd = HierarchicalRandomState(seed)
+    """
+    Baseclass for all objects that use randomness. It helps to make sure all the
+    results are reproducible.
+    It offers a self.rnd which is a HierarchicalRandomState.
+    """
+    def __init__(self, seed=None, category=None):
+        if category is None:
+            self.rnd = HierarchicalRandomState(seed)
+        else:
+            self.rnd = global_rnd[category].get_new_random_state(seed)
         self.seed = self.rnd.get_seed()
 
     def set_seed(self, seed):
@@ -88,9 +96,10 @@ def reseeding_copy(values, seed):
 ### used categories:
 # - preprocessing
 # - datasets
-# * initializers
-# * weight_constraints
 # - network
+#   * initialize
+#   * set_constraints
+#   * set_regularizers
 # - trainer
 global_rnd = HierarchicalRandomState(np.random.randint(0, 1000000000))
 

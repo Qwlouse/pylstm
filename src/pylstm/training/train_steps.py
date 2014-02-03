@@ -243,8 +243,7 @@ def calculate_gradient(net, data_iter):
 class CgStep(TrainingStep, Seedable):
     def __init__(self, minibatch_size=32, mu=1. / 30, maxiter=300, seed=None):
         TrainingStep.__init__(self)
-        seed = global_rnd['trainer'].generate_seed() if seed is None else seed
-        Seedable.__init__(self, seed)
+        Seedable.__init__(self, seed, category='trainer')
         self.minibatch_size = minibatch_size
         self.mu = mu
         self.lambda_ = 0.1
