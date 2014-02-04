@@ -3,14 +3,15 @@
 from __future__ import division, print_function, unicode_literals
 from copy import deepcopy
 from .. import wrapper as pw
-from pylstm.randomness import global_rnd, reseeding_copy
+from pylstm.randomness import global_rnd, reseeding_copy, Seedable
 from pylstm.regularization.initializer import _evaluate_initializer
 from pylstm.targets import create_targets_object
 
 
-class Network(object):
+class Network(Seedable):
     def __init__(self, layers, param_manager, fwd_state_manager, in_out_manager,
                  bwd_state_manager, error_func, architecture, seed=None):
+        super(Network, self).__init__(seed=seed, category='network')
         self.layers = layers
 
         self.param_manager = param_manager
@@ -38,7 +39,6 @@ class Network(object):
         self.constraints = {}
 
         self.out_layer = self.layers.keys()[-1]
-        self.rnd = global_rnd['network'].get_new_random_state(seed)
 
     def is_initialized(self):
         return self.param_manager.buffer is not None
