@@ -275,7 +275,7 @@ class CgStep(TrainingStep, Seedable):
         ## define hessian pass
         def fhess_p(v):
             return self.net.hessian_pass(x, v, self.mu, self.lambda_).copy().\
-                       flatten()
+                       flatten() + self.lambda_*v
 
         ## run CG
         all_v = conjgrad3(grad, v.copy(), fhess_p, maxiter=self.maxiter)
@@ -307,8 +307,8 @@ class CgStep(TrainingStep, Seedable):
         ## Levenberg-Marquardt heuristic
         boost = 3.0 / 2.0
         self.net.param_buffer = weights
-        denom = 0.5 * (np.dot(finalDW, fhess_p(finalDW))) + np.dot(
-            np.squeeze(grad), finalDW) + error
+        denom = 0.5 * (np.dot(finalDW, fhess_p(finalDW))) - np.dot(
+            np.squeeze(grad), finalDW)
         rho = (lowError - error) / denom
         if rho < 0.25:
             self.lambda_ *= boost
