@@ -262,15 +262,16 @@ class PlotErrors(object):
             if training_errors:
                 self.t_line, = self.ax.plot(training_errors, 'g-',
                                             label='Training Error')
-                min_ep, min_err = self._get_min_err(validation_errors)
-                self.v_dot, = self.ax.plot([min_ep], min_err, 'bo')
+                if validation_errors:
+                    min_ep, min_err = self._get_min_err(validation_errors)
+                    self.v_dot, = self.ax.plot([min_ep], min_err, 'bo')
             self.ax.legend()
             self.fig.canvas.draw()
             return
 
         self.t_line.set_ydata(training_errors)
         self.t_line.set_xdata(range(len(training_errors)))
-        if self.v_line is not None:
+        if self.v_line is not None and validation_errors:
             self.v_line.set_ydata(validation_errors)
             self.v_line.set_xdata(range(len(validation_errors)))
             min_ep, min_err = self._get_min_err(validation_errors)
