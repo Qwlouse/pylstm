@@ -10,6 +10,7 @@
 class DropoutLayer {
 public:
 	bool drop_prob;
+	unsigned int rnd_state;
 
 	DropoutLayer();
 	explicit DropoutLayer(double drop_prob);
@@ -17,8 +18,6 @@ public:
 
 	class Parameters : public ::MatrixContainer {
 	public:
-		///Variables defining sizes
-		Matrix Mask;  //!< Weight Matrix
 
 		Parameters(size_t n_inputs, size_t n_cells);
 	};
@@ -26,6 +25,7 @@ public:
 	class FwdState : public ::MatrixContainer {
 	public:
 		Matrix Ha; //!< activations for all neurons in layer
+		Matrix Mask;  //!< Dropout Mask
 
 		FwdState(size_t n_inputs, size_t n_cells, size_t n_batches, size_t time);
 	};

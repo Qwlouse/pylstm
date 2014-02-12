@@ -19,18 +19,18 @@ DropoutLayer::~DropoutLayer()
 {
 }
 
-DropoutLayer::Parameters::Parameters(size_t n_inputs, size_t) :
-    Mask(NULL, n_inputs, 1, 1)
+DropoutLayer::Parameters::Parameters(size_t n_inputs, size_t)
 {
-	add_view("Mask", &Mask);
 }
 
 ////////////////////// Fwd Buffer /////////////////////////////////////////////
 
 DropoutLayer::FwdState::FwdState(size_t n_inputs, size_t, size_t n_batches, size_t time) :
-    Ha(NULL, n_inputs, n_batches, time)
+    Ha(NULL, n_inputs, n_batches, time),
+    Mask(NULL, n_inputs, 1, 1)
 {
 	add_view("Ha", &Ha);
+	add_view("Mask", &Mask);
 }
 
 ////////////////////// Bwd Buffer /////////////////////////////////////////////
@@ -42,13 +42,14 @@ DropoutLayer::BwdState::BwdState(size_t n_inputs, size_t, size_t n_batches, size
 }
 
 ////////////////////// Methods /////////////////////////////////////////////
-void DropoutLayer::forward(DropoutLayer::Parameters &w, DropoutLayer::FwdState &b, Matrix &x, Matrix &) {
-	dot(w.Mask, x.flatten_time(), b.Ha.flatten_time());
+void DropoutLayer::forward(DropoutLayer::Parameters &, DropoutLayer::FwdState &b, Matrix &x, Matrix &) {
+    //TODO: Randomize the mask!
+	dot(b.Mask, x.flatten_time(), b.Ha.flatten_time());
 
 }
 
-void DropoutLayer::backward(DropoutLayer::Parameters &w, DropoutLayer::FwdState &, DropoutLayer::BwdState &, Matrix &, Matrix &in_deltas, Matrix &out_deltas) {
-    dot(w.Mask, out_deltas.flatten_time(), in_deltas.flatten_time());
+void DropoutLayer::backward(DropoutLayer::Parameters &, DropoutLayer::FwdState &b, DropoutLayer::BwdState &, Matrix &, Matrix &in_deltas, Matrix &out_deltas) {
+    dot(b.Mask, out_deltas.flatten_time(), in_deltas.flatten_time());
 }
 
 void DropoutLayer::gradient(DropoutLayer::Parameters&, DropoutLayer::Parameters&, DropoutLayer::FwdState&, DropoutLayer::BwdState&, Matrix&, Matrix&, Matrix&)
