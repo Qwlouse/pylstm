@@ -10,6 +10,12 @@ cdef extern from "forward_layer.h":
         bool use_bias
 
 
+cdef extern from "dropout_layer.h":
+    cppclass DropoutLayer:
+        DropoutLayer()
+        DropoutLayer(double drop_prob)
+        double drop_prob
+
 cdef extern from "reverse_layer.h":
     cppclass ReverseLayer:
         ReverseLayer()

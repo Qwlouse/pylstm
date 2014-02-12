@@ -136,6 +136,8 @@ def create_layer(name, in_size, out_size, **kwargs):
         expected_kwargs |= {'delta_range'}
     if name_lower == "forwardlayer":
         expected_kwargs |= {'use_bias'}
+    if name_lower == "dropoutlayer":
+        expected_kwargs |= {'dropout_prob'}
     unexpected_kwargs = [k for k in kwargs if k not in expected_kwargs]
     if unexpected_kwargs:
         import warnings
@@ -163,6 +165,7 @@ def create_layer(name, in_size, out_size, **kwargs):
     cdef cl.Lstm97Layer lstm97
     cdef cl.LstmLayer lstm_layer
     cdef cl.ForwardLayer forward_layer
+    cdef cl.DropoutLayer dropout_layer
 
     if name_lower == "forwardlayer":
         forward_layer = cl.ForwardLayer(act_fct)
@@ -199,6 +202,11 @@ def create_layer(name, in_size, out_size, **kwargs):
     elif name_lower == "reverselayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.ReverseLayer](in_size, out_size, cl.ReverseLayer()))
         l.skip_training = True
+    elif name_lower == "dropoutlayer":
+        if 'dropout_prob' in kwargs:
+            dropout_layer.drop_prob = kwargs['dropout_prob']
+        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.DropoutLayer](in_size, out_size, dropout_layer))
+
     else :
         raise AttributeError("No layer with name " + name)
 
