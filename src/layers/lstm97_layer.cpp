@@ -105,7 +105,7 @@ Lstm97Layer::BwdState::BwdState(size_t, size_t n_cells, size_t n_batches, size_t
 }
 
 
-void Lstm97Layer::forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y) {
+void Lstm97Layer::forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y, bool) {
     mult(w.IX, x.flatten_time(), b.Ia.flatten_time());
     if (forget_gate) {
         mult(w.FX, x.flatten_time(), b.Fa.flatten_time());

@@ -45,7 +45,7 @@ void reverse_add(Matrix &x, Matrix &y)
 }
 
 
-void ReverseLayer::forward(ReverseLayer::Parameters&, ReverseLayer::FwdState&, Matrix &x, Matrix &y) {
+void ReverseLayer::forward(ReverseLayer::Parameters&, ReverseLayer::FwdState&, Matrix &x, Matrix &y, bool) {
 	reverse(x, y);
 }
 

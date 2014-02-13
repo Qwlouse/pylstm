@@ -85,7 +85,7 @@ void copy_errors_of_inactive_nodes(Matrix y_old, const Matrix& y, const Matrix& 
 
 
 ////////////////////// Methods /////////////////////////////////////////////
-void ArnnLayer::forward(ArnnLayer::Parameters& w, ArnnLayer::FwdState& b, Matrix& x, Matrix& y) {
+void ArnnLayer::forward(ArnnLayer::Parameters& w, ArnnLayer::FwdState& b, Matrix& x, Matrix& y, bool) {
     size_t n_slices = x.n_slices;
     mult(w.HX, x.flatten_time(), b.Ha.flatten_time());
     for (int t = 0; t < n_slices; ++t) {

@@ -131,7 +131,7 @@ class Network(Seedable):
         self.r_in_out_manager.set_dimensions(t, b)
         self.delta_manager.set_dimensions(t, b)
 
-    def forward_pass(self, input_buffer):
+    def forward_pass(self, input_buffer, training_pass=False):
         self.T = None
         self.M = None
         self.error = None
@@ -150,7 +150,7 @@ class Network(Seedable):
             out = self.in_out_manager.get_source_view(n)
             input_view = self.in_out_manager.get_sink_view(n)
 
-            l.forward(param, fwd_state, input_view, out)
+            l.forward(param, fwd_state, input_view, out, training_pass)
         # read the output buffer
         return self.out_buffer
 

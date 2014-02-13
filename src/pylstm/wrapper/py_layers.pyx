@@ -71,8 +71,8 @@ cdef class BaseLayer:
         cdef cm.MatrixContainer* bwd_state = self.layer.create_bwd_state_view(bwd_state_buffer.c_obj, batch_size, time_length)
         return create_MatrixContainer(bwd_state)
 
-    def forward(self, MatrixContainer param, MatrixContainer fwd_state, Matrix in_view, Matrix out_view):
-        self.layer.forward_pass(deref(param.this_ptr), deref(fwd_state.this_ptr), in_view.c_obj, out_view.c_obj)
+    def forward(self, MatrixContainer param, MatrixContainer fwd_state, Matrix in_view, Matrix out_view, bool training_pass):
+        self.layer.forward_pass(deref(param.this_ptr), deref(fwd_state.this_ptr), in_view.c_obj, out_view.c_obj, training_pass)
 
     def backward(self, MatrixContainer param, MatrixContainer fwd_state, MatrixContainer err, Matrix out_view, Matrix in_deltas, Matrix out_deltas):
         self.layer.backward_pass(deref(param.this_ptr), deref(fwd_state.this_ptr), deref(err.this_ptr), out_view.c_obj, in_deltas.c_obj, out_deltas.c_obj)

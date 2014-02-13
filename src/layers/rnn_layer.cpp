@@ -50,7 +50,7 @@ RnnLayer::BwdState::BwdState(size_t, size_t n_cells, size_t n_batches, size_t ti
 }
 
 ////////////////////// Methods /////////////////////////////////////////////
-void RnnLayer::forward(RnnLayer::Parameters& w, RnnLayer::FwdState& b, Matrix& x, Matrix& y) {
+void RnnLayer::forward(RnnLayer::Parameters& w, RnnLayer::FwdState& b, Matrix& x, Matrix& y, bool) {
     size_t n_slices = x.n_slices;
     mult(w.HX, x.flatten_time(), b.Ha.flatten_time());
     for (int t = 0; t < n_slices; ++t) {
@@ -92,7 +92,7 @@ void RnnLayer::Rpass(Parameters& w, Parameters& v,  FwdState&, FwdState& Rb, Mat
 
 }
 
-void RnnLayer::dampened_backward(Parameters& w, FwdState& b, BwdState& d, Matrix& y, Matrix& in_deltas, Matrix& out_deltas, FwdState& Rb, double lambda, double mu)
+void RnnLayer::dampened_backward(Parameters& w, FwdState&, BwdState& d, Matrix& y, Matrix& in_deltas, Matrix& out_deltas, FwdState& Rb, double lambda, double mu)
 {
     size_t n_slices = y.n_slices;
     f->apply_deriv(y.slice(n_slices-1), out_deltas.slice(n_slices-1), d.Ha.slice(n_slices-1));
