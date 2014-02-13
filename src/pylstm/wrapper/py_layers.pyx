@@ -205,6 +205,12 @@ def create_layer(name, in_size, out_size, **kwargs):
     elif name_lower == "dropoutlayer":
         if 'dropout_prob' in kwargs:
             dropout_layer.drop_prob = kwargs['dropout_prob']
+        else:
+            dropout_layer.drop_prob = 0.5
+        if 'initial_state' in kwargs:
+            dropout_layer.rnd_state = kwargs['initial_state']
+        else:
+            dropout_layer.rnd_state = 42
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.DropoutLayer](in_size, out_size, dropout_layer))
 
     else :

@@ -15,6 +15,7 @@ cdef extern from "dropout_layer.h":
         DropoutLayer()
         DropoutLayer(double drop_prob)
         double drop_prob
+        unsigned int rnd_state
 
 cdef extern from "reverse_layer.h":
     cppclass ReverseLayer:

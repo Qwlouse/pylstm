@@ -30,11 +30,17 @@ class NetworkTests(unittest.TestCase):
         return net
 
     def setUp(self):
-        self.input_size = 2
+        self.input_size = 10
         self.output_size = 3
         self.layer_types = [ForwardLayer, RnnLayer, MrnnLayer, LstmLayer, Lstm97Layer]
         self.activation_functions = ["linear", "tanh", "tanhx2", "sigmoid"]
         self.X = rnd.randn(2, 7, self.input_size)
+
+    def test_dropout_mask_application(self):
+        net = build_net(InputLayer(self.input_size) >> DropoutLayer())
+        output = net.forward_pass(self.X)
+        mask = net.get_fwd_state_for('DropoutLayer')['Mask']
+        self.assertTrue(np.all(output[mask == 0] == 0))
 
     def test_dropout_layer_fwd_pass(self):
         for l, a in itertools.product(self.layer_types, self.activation_functions):
