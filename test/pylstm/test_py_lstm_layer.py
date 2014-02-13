@@ -107,4 +107,4 @@ class LstmLayerTest(unittest.TestCase):
         W = l.create_param_view(wm)
         im = pw.Matrix(t, b, l.get_fwd_state_size(t, b))
         I = l.create_fwd_state(im, t, b)
-        l.forward(W, I, X, Y)
+        l.forward(W, I, X, Y, False)

@@ -14,6 +14,7 @@ class LayerBase(object):
     def __init__(self, in_size, out_size):
         self.in_size = in_size
         self.out_size = out_size
+        self.skip_training = True
 
     def get_input_buffer_size(self, time_length=1, batch_size=1):
         return self.in_size * time_length * batch_size
@@ -49,7 +50,7 @@ class LayerBase(object):
     def create_bwd_state(self, bwd_state_buffer, time_length, batch_size):
         return None
 
-    def forward(self, param, fwd_state, in_view, out_view):
+    def forward(self, param, fwd_state, in_view, out_view, training_pass):
         pass
 
     def backward(self, param, fwd_state, bwd_state, out_view, in_deltas,
@@ -69,17 +70,7 @@ class NoOpLayer(LayerBase):
     This is essentially a no-op layer.
     It just copies it's input into it's output.
     """
-    def create_input_view(self, input_buffer, time_length, batch_size):
-        return super(NoOpLayer, self).create_input_view(input_buffer,
-                                                        time_length,
-                                                        batch_size)
-
-    def create_output_view(self, output_buffer, time_length, batch_size):
-        return super(NoOpLayer, self).create_output_view(output_buffer,
-                                                         time_length,
-                                                         batch_size)
-
-    def forward(self, param, fwd_state, in_view, out_view):
+    def forward(self, param, fwd_state, in_view, out_view, training_pass):
         out_view.as_array()[:] = in_view.as_array()
 
     def backward(self, param, fwd_state, bwd_state, out_view, in_deltas,

@@ -3,6 +3,7 @@
 
 from __future__ import division, print_function, unicode_literals
 import numpy as np
+from pylstm.randomness import Seedable
 
 
 class RescaleIncomingWeights(object):
@@ -48,7 +49,7 @@ class LimitIncomingWeightsSquared(object):
         return view / np.sqrt(sums)
 
     def __repr__(self):
-        return "<RescaleIncomingWeights %0.4f>" % self.target_sum
+        return "<LimitIncomingWeightsSquared %0.4f>" % self.target_sum
 
 
 class ClipWeights(object):
@@ -115,7 +116,7 @@ class FreezeWeights(object):
         return "<FreezeWeights>"
 
 
-class NoisyWeights(object):
+class NoisyWeights(Seedable):
     """
     Adds a small amount of normal-distributed noise (mean=0, std=std) to all the
     weights of a network every time they are set. This means that you get
@@ -127,9 +128,9 @@ class NoisyWeights(object):
     See Network.set_constraints for more information on how to control which
     weights to affect.
     """
+
     def __init__(self, std=0.01, seed=None):
-        self.seed = seed
-        self.rnd = np.random.RandomState(seed)
+        super(NoisyWeights, self).__init__(seed)
         self.std = std
         self.noise = None
 
@@ -141,7 +142,5 @@ class NoisyWeights(object):
         return view - old_noise + self.noise
 
     def __repr__(self):
-        if self.seed is None:
-            return "<NoisyWeights std=%0.4f>" % self.std
-        else:
-            return "<NoisyWeights std=%0.4f seed=%d>" % (self.std, self.seed)
+        return "<NoisyWeights std=%0.4f seed=%d>" % (self.std,
+                                                     self.rnd.get_seed())

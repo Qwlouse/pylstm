@@ -65,6 +65,14 @@ inline double tanhx2_deriv(double val) {
     return 2.0 - 0.5 * val * val;
 }
 
+inline double tanh_scaled(double val) {
+  return 1.7159*tanh(0.66666667*val);
+}
+
+inline double tanh_scaled_deriv(double val) {
+  return 1.14393333333*(1 - (val * val));
+}
+
 inline double identity(double val) {
     return val;
 }
@@ -115,10 +123,15 @@ const SoftmaxLayerActivation Softmax;
 const ActivationFunction Tanhx2(&tanhx2, &tanhx2_deriv);
 const WinoutActivation Winout;
 const ActivationFunction RectifiedLinear(&rectified_linear, &reclin_deriv);
+const ActivationFunction TanhScaled(&tanh_scaled, &tanh_scaled_deriv);
 
 
 void apply(Matrix in, Matrix out, unary_double_func f);
 
+
+/* Those functions are just used in LSTM for legacy reasons.
+ All other layer types use the ActivationFunctions from above.
+*/
 ///Apply sigmoid to all elements of a
 void apply_sigmoid(Matrix a, Matrix out);
 
@@ -128,12 +141,6 @@ void apply_sigmoid_deriv(Matrix a, Matrix out);
 void apply_tanh(Matrix a, Matrix out);
 
 void apply_tanh_deriv(Matrix a, Matrix out);
-
-///Apply tanh * 2 to all elements of a
-void apply_tanhx2(Matrix a, Matrix out);
-
-void apply_tanhx2_deriv(Matrix a, Matrix out);
-
 
 
 ///squash

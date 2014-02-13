@@ -6,6 +6,7 @@ import random
 import numpy as np
 import itertools
 from .preprocessing import binarize_sequence
+from pylstm.randomness import global_rnd
 
 
 def generate_memo_task(pattern_length, alphabet_size, batch_size, length,
@@ -67,7 +68,7 @@ def generate_20bit_memory_task_compact(total_length, batch_size=1000):
 
 
 def generate_math_task(T0, batch_size, operation=np.add, input_binary=False,
-                       rnd=np.random.RandomState()):
+                       seed=None):
     """
     In this task there are two input channels (L = 2). The first channel
     receives a stream u1(n) of random (reals # if not input_binary) sampled
@@ -78,6 +79,7 @@ def generate_math_task(T0, batch_size, operation=np.add, input_binary=False,
     the given binary operation on u1(n1) and u1(n2). An additional difficulty
     is that the length of input sequences varies randomly.
     """
+    rnd = global_rnd['datasets'].get_new_random_state(seed)
     Ti = rnd.randint(T0, 1.1 * T0, batch_size)
     n1 = rnd.randint(1, 0.1 * T0, batch_size)
     n2 = rnd.randint(0.1 * T0 + 1, 0.5 * T0, batch_size)
@@ -96,23 +98,24 @@ def generate_math_task(T0, batch_size, operation=np.add, input_binary=False,
     return X, T, M
 
 
-def generate_addition_task(T0, batch_size, rnd=np.random.RandomState()):
-    return generate_math_task(T0, batch_size, rnd=rnd,
+def generate_addition_task(T0, batch_size, seed=None):
+    return generate_math_task(T0, batch_size, seed=seed,
                               operation=lambda a, b: np.add(a, b)/2)
 
 
-def generate_multiplication_task(T0, batch_size, rnd=np.random.RandomState()):
-    return generate_math_task(T0, batch_size, operation=np.multiply, rnd=rnd)
+def generate_multiplication_task(T0, batch_size, seed=None):
+    return generate_math_task(T0, batch_size, operation=np.multiply, seed=seed)
 
 
-def generate_xor_task(T0, batch_size, rnd=np.random.RandomState()):
+def generate_xor_task(T0, batch_size, seed=None):
     return generate_math_task(T0, batch_size, operation=np.logical_xor,
-                              input_binary=True, rnd=rnd)
+                              input_binary=True, seed=seed)
 
 
 def generate_temporal_order_task(length, batch_size,
                                  symbol_occurences=((.1, .2), (.5, .6)),
-                                 rnd=np.random.RandomState()):
+                                 seed=None):
+    rnd = global_rnd['datasets'].get_new_random_state(seed)
     X = np.zeros((length, batch_size, 6))
     T = np.zeros((length, batch_size, 2 ** len(symbol_occurences)))
     M = np.zeros((length, batch_size, 1))
@@ -137,23 +140,24 @@ def generate_temporal_order_task(length, batch_size,
 
 
 def generate_2_symbol_temporal_order_task(length, batch_size,
-                                          rnd=np.random.RandomState()):
-    generate_temporal_order_task(length, batch_size, rnd=rnd,
+                                          seed=None):
+    generate_temporal_order_task(length, batch_size, seed=seed,
                                  symbol_occurences=((.1, .2),
                                                     (.5, .6)))
 
 
 def generate_3_symbol_temporal_order_task(length, batch_size,
-                                          rnd=np.random.RandomState()):
-    generate_temporal_order_task(length, batch_size, rnd=rnd,
+                                          seed=None):
+    generate_temporal_order_task(length, batch_size, seed=seed,
                                  symbol_occurences=((.1, .2),
                                                     (.3, .4),
                                                     (.6, .7)))
 
 
-def generate_random_permutation_task(length, batch_size, rnd=np.random.RandomState()):
-    outputs = []
+def generate_random_permutation_task(length, batch_size, seed=None):
+    rnd = global_rnd['datasets'].get_new_random_state(seed)
 
+    outputs = []
     for b in range(batch_size):
         seq = rnd.randint(2, 100, length)
         seq[0] = rnd.randint(0, 2)

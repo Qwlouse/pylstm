@@ -2,64 +2,183 @@
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 import numpy as np
+from pylstm import binarize_array
 from .training.data_iterators import Online
 from .wrapper import ctcpp
 
 
-def MeanSquaredError(Y, T, M=None):
-    assert Y.shape == T.shape, "Shape mismatch Y%s != T%s" % (Y.shape, T.shape)
+def _not_implemented(*_):
+    raise NotImplementedError('This combination is not implemented yet!')
+
+
+def _illegal_combination(*_):
+    raise RuntimeError('Illegal combination of targets and error function!')
+
+
+################################################################################
+# Mean Squared Error Implementations
+# (Gaussian Cross Entropy)
+
+def _FramewiseMSE(Y, T, M):
     diff = Y - T
-    norm = Y.shape[1]  # normalize by number of sequences
     if M is not None:
         diff *= M
-    error = 0.5 * np.sum(diff ** 2) / norm
-    deltas = diff / norm
-    return error, deltas
-
-
-def CrossEntropyError(Y, T, M=None):
-    assert Y.shape == T.shape, "Shape mismatch Y%s != T%s" % (Y.shape, T.shape)
-    Y = Y.copy()  # do not modify original Y
-    Y[Y < 1e-6] = 1e-6
-    Y[Y > 1 - 1e-6] = 1 - 1e-6
-    cee = T * np.log(Y) + (1 - T) * np.log(1 - Y)
-    ceed = (T - Y) / (Y * (Y - 1))
     norm = Y.shape[1]  # normalize by number of sequences
+    error = 0.5 * np.sum(diff ** 2) / norm
+    return error, (diff / norm)
+
+
+def _SequencewiseBinarizingMSE(Y, T, M):
+    diff = Y.copy()
+    for b in range(Y.shape[1]):
+        diff[:, b, T[b, 0]] -= 1
+    if M is not None:
+        diff *= M
+    norm = Y.shape[1]  # normalize by number of sequences
+    error = 0.5 * np.sum(diff ** 2) / norm
+    return error, (diff / norm)
+
+MSE_implementations = {
+    ('F', False): _FramewiseMSE,
+    ('F', True): _not_implemented,
+    ('L', False): _illegal_combination,
+    ('L', True): _illegal_combination,
+    ('S', False): _FramewiseMSE,  # should work smoothly through broadcasting
+    ('S', True): _SequencewiseBinarizingMSE
+}
+
+
+def MeanSquaredError(Y, T, M=None):
+    T.validate_for_output_shape(*Y.shape)
+    return MSE_implementations[T.targets_type](Y, T.data, M)
+
+
+################################################################################
+# Cross Entropy Error Implementations
+# (Independent Binomial Cross Entropy)
+
+def _FramewiseCEE(y_m, T, M):
+    cee = T * np.log(y_m) + (1 - T) * np.log(1 - y_m)
+    ceed = (T - y_m) / (y_m * (y_m - 1))
     if M is not None:
         cee *= M
         ceed *= M
-    error = - np.sum(cee) / norm
-    deltas = ceed / norm
-    return error, deltas
+    norm = y_m.shape[1]  # normalize by number of sequences
+    return (-np.sum(cee) / norm), (ceed / norm)
 
 
-def MultiClassCrossEntropyError(Y, T, M=None):
-    assert Y.shape == T.shape, "Shape mismatch Y%s != T%s" % (Y.shape, T.shape)
-    Y = Y.copy()  # do not modify original Y
-    Y[Y < 1e-6] = 1e-6
-    cee = T * np.log(Y)
-    quot = T / Y
-    norm = Y.shape[1]  # normalize by number of sequences
+def _SequencewiseBinarizingCEE(y_m, T, M):
+    cee = np.log(1 - y_m)
+    ceed = 1. / (y_m - 1)
+    for b in range(y_m.shape[1]):
+        cee[:, b, T[b, 0]] = np.log(y_m[:, b, T[b, 0]])
+        ceed[:, b, T[b, 0]] = 1. / y_m[:, b, T[b, 0]]
+    norm = y_m.shape[1]  # normalize by number of sequences
+    if M is not None:
+        cee *= M
+        ceed *= M
+    return (-np.sum(cee) / norm), (-ceed / norm)
+
+
+CEE_implementations = {
+    ('F', False): _FramewiseCEE,
+    ('F', True): _not_implemented,
+    ('L', False): _illegal_combination,
+    ('L', True): _illegal_combination,
+    ('S', False): _not_implemented,
+    ('S', True): _SequencewiseBinarizingCEE
+}
+
+
+def CrossEntropyError(Y, T, M=None):
+    T.validate_for_output_shape(*Y.shape)
+    y_m = np.clip(Y, 1e-6, 1.0-1e-6)  # do not modify original Y
+    return CEE_implementations[T.targets_type](y_m, T.data, M)
+
+
+################################################################################
+# Multi-Class (Multi-Label) Cross Entropy Error Implementations
+# (Multinomial/softmax cross entropy)
+
+def _FramewiseMCCEE(y_m, T, M):
+    cee = T * np.log(y_m)
+    quot = T / y_m
+    norm = y_m.shape[1]  # normalize by number of sequences
     if M is not None:
         cee *= M
         quot *= M
-    error = - np.sum(cee) / norm
-    deltas = - quot / norm
-    return error, deltas
+    return (- np.sum(cee) / norm), (- quot / norm)
 
 
-def CTC(Y, T, M=None):
-    N, batch_size, label_count = Y.shape
-    deltas = np.zeros((N, batch_size, label_count))
+def _FramewiseBinarizingMCCEE(y_m, T, M):
+    T_b = binarize_array(T, range(y_m.shape[2]))
+
+    return _FramewiseMCCEE(y_m, T_b, M)
+
+
+def _SequencewiseBinarizingMCCEE(y_m, T, M):
+    cee = np.zeros_like(y_m)
+    quot = np.zeros_like(y_m)
+    for b in range(y_m.shape[1]):
+        cee[:, b, T[b, 0]] = np.log(y_m[:, b, T[b, 0]])
+        quot[:, b, T[b, 0]] = 1.0 / y_m[:, b, T[b, 0]]
+
+    norm = y_m.shape[1]  # normalize by number of sequences
+    if M is not None:
+        cee *= M
+        quot *= M
+    return (- np.sum(cee) / norm), (- quot / norm)
+
+
+MCCEE_implementations = {
+    ('F', False): _FramewiseMCCEE,
+    ('F', True): _FramewiseBinarizingMCCEE,
+    ('L', False): _illegal_combination,
+    ('L', True): _illegal_combination,
+    ('S', False): _not_implemented,
+    ('S', True): _SequencewiseBinarizingMCCEE
+}
+
+
+def MultiClassCrossEntropyError(Y, T, M=None):
+    T.validate_for_output_shape(*Y.shape)
+    y_m = np.clip(Y, 1e-6, 1.0)  # do not modify original Y
+    return MCCEE_implementations[T.targets_type](y_m, T.data, M)
+
+
+################################################################################
+# CTC error implementations for labellings
+
+def _LabelingBinarizingCTC(Y, T, M):
+    time_size, batch_size, label_count = Y.shape
+    deltas = np.zeros((time_size, batch_size, label_count))
     deltas[:] = float('-inf')
-    errors = []
+    errors = np.zeros(batch_size)
     for b, (y, t, m) in enumerate(Online(Y, T, M, verbose=False)()):
-        err, delt = ctcpp(y, list(t[0]))
-        errors.append(err)
+        err, delt = ctcpp(y, list(t.data[0]))
+        errors[b] = err
         deltas[:, b:b+1, :] = delt.as_array()
 
     return np.mean(errors), -deltas / batch_size
 
+
+CTC_implementations = {
+    ('F', False): _illegal_combination,
+    ('F', True): _illegal_combination,
+    ('L', False): _not_implemented,
+    ('L', True): _LabelingBinarizingCTC,
+    ('S', False): _illegal_combination,
+    ('S', True): _illegal_combination
+}
+
+
+def CTC(Y, T, M=None):
+    T.validate_for_output_shape(*Y.shape)
+    return CTC_implementations[T.targets_type](Y, T, M)
+
+
+################################################################################
+# Best path decoding for monitoring Phoneme Errors
 
 def ctc_best_path_decoding(Y):
     assert Y.shape[1] == 1
@@ -76,3 +195,21 @@ def ctc_best_path_decoding(Y):
             elif y - 1 != t[-1]:
                 t.append(y - 1)
     return t
+
+
+################################################################################
+# Classification Error for monitoring
+
+ClassificationError_implementations = {
+    ('F', False): _not_implemented,
+    ('F', True): _not_implemented,
+    ('L', False): _illegal_combination,
+    ('L', True): _illegal_combination,
+    ('S', False): _not_implemented,
+    ('S', True): _not_implemented
+}
+
+
+def ClassificationError(Y, T, M=None):
+    T.validate_for_output_shape(*Y.shape)
+    return ClassificationError_implementations[T.targets_type](Y, T, M)

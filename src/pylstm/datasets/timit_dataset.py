@@ -71,7 +71,8 @@ class TimitSample(object):
             wordlist = [c.strip().split(' ', 2) for c in content]
             return [(int(start), int(stop), word)
                     for start, stop, word in wordlist
-                    if int(start) >= self.start and int(stop) <= self.stop]
+                    if (self.start is None or int(start) >= self.start) and
+                       (self.stop is None or int(stop) <= self.stop)]
 
     def get_phonemes(self, basedir=TIMIT_DIR):
         filename = self._get_path('phn', basedir)
@@ -80,7 +81,8 @@ class TimitSample(object):
             phoneme_list = [c.strip().split(' ', 2) for c in content]
             return [(int(start), int(stop), phoneme, phonemes.index(phoneme))
                     for start, stop, phoneme in phoneme_list
-                    if int(start) >= self.start and int(stop) <= self.stop]
+                    if (self.start is None or int(start) >= self.start) and
+                       (self.stop is None or int(stop) <= self.stop)]
 
     def get_audio_data(self, basedir=TIMIT_DIR):
         import scikits.audiolab as al
@@ -103,14 +105,18 @@ class TimitSample(object):
         labels = [np.bincount(p_extended[f[0]:f[1]]).argmax() for f in windows]
         return np.array(labels)
 
-    def get_features(self, basedir=TIMIT_DIR):
+    def get_features(self, basedir=TIMIT_DIR, extractor=MFCC.extract,
+                     derivatives=2):
         d = self.get_audio_data(basedir)
-        mfcc = MFCC.extract(d)
-        mfcc_d1 = np.gradient(mfcc)[0]
-        mfcc_d2 = np.gradient(mfcc_d1)[0]
-        features = np.hstack((mfcc, mfcc_d1, mfcc_d2))
+        features = extractor(d)
+
+        feature_derivs = [features]
+        for i in range(derivatives):
+            feature_derivs.append(np.gradient(feature_derivs[-1])[0])
+
+        all_features = np.hstack(feature_derivs)
         labels = self.get_labels(basedir=basedir)
-        return features, labels
+        return all_features, labels
 
     def __unicode__(self):
         return '<TimitSample ' + '/'.join([self.usage, self.dialect,
@@ -141,8 +147,10 @@ def filter_samples(samples, usage=None, dialect=None, sex=None, speaker_id=None,
     return [s for s in samples if match(s)]
 
 
-def get_features_and_labels_for(samples, timit_dir=TIMIT_DIR, normalize=True):
-    ds_list = [s.get_features(timit_dir) for s in samples]
+def get_features_and_labels_for(samples, timit_dir=TIMIT_DIR, normalize=True,
+                                extractor=MFCC.extract, derivatives=2):
+    ds_list = [s.get_features(timit_dir, extractor, derivatives)
+               for s in samples]
     if normalize:
         features_mean = np.zeros((1, ds_list[0][0].shape[1]))
         features_num  = 0

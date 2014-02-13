@@ -55,8 +55,8 @@ ArnnLayer::BwdState::BwdState(size_t, size_t n_cells, size_t n_batches, size_t t
 ////////////////////// Helpers /////////////////////////////////////////////
 void undo_inactive_nodes(const Matrix& y_old, Matrix y, const Matrix& D, const int t) {
     for (int row = 0; row < D.n_rows; ++row) {
-        for (int col = 0; col < y.n_columns; ++col) {
-            if (fmod(t, D.get(row, 0, 0)) != 0) {
+        if (fmod(t, D.get(row, 0, 0)) != 0) {
+            for (int col = 0; col < y.n_columns; ++col) {
                 y.get(row, col, 0) = y_old.get(row, col, 0);
             }
         }
@@ -73,7 +73,7 @@ void set_inactive_nodes_to_zero(Matrix y, const Matrix& D, const int t) {
     }
 }
 
-void copy_activation_of_inactive_nodes(Matrix y_old, const Matrix& y, const Matrix& D, const int t) {
+void copy_errors_of_inactive_nodes(Matrix y_old, const Matrix& y, const Matrix& D, const int t) {
     for (int row = 0; row < D.n_rows; ++row) {
         if (fmod(t, D.get(row, 0, 0)) != 0) {
             for (int col = 0; col < y.n_columns; ++col) {
@@ -85,7 +85,7 @@ void copy_activation_of_inactive_nodes(Matrix y_old, const Matrix& y, const Matr
 
 
 ////////////////////// Methods /////////////////////////////////////////////
-void ArnnLayer::forward(ArnnLayer::Parameters& w, ArnnLayer::FwdState& b, Matrix& x, Matrix& y) {
+void ArnnLayer::forward(ArnnLayer::Parameters& w, ArnnLayer::FwdState& b, Matrix& x, Matrix& y, bool) {
     size_t n_slices = x.n_slices;
     mult(w.HX, x.slice(1,x.n_slices).flatten_time(), b.Ha.slice(1,b.Ha.n_slices).flatten_time());
     for (int t = 1; t < n_slices; ++t) {
@@ -102,9 +102,11 @@ void ArnnLayer::forward(ArnnLayer::Parameters& w, ArnnLayer::FwdState& b, Matrix
 void ArnnLayer::backward(ArnnLayer::Parameters& w, ArnnLayer::FwdState&, ArnnLayer::BwdState& d, Matrix& y, Matrix& in_deltas, Matrix& out_deltas) {
         size_t n_slices = y.n_slices;
     f->apply_deriv(y.slice(n_slices-1), out_deltas.slice(n_slices-1), d.Ha.slice(n_slices-1));
+    copy(out_deltas.slice(n_slices-1), d.Hb.slice(n_slices-1));
+    set_inactive_nodes_to_zero(d.Ha.slice(n_slices-1), w.Timing, n_slices-1);
     for (int t = static_cast<int>(n_slices - 2); t >= 0; --t) {
         copy(out_deltas.slice(t), d.Hb.slice(t));
-        copy_activation_of_inactive_nodes(d.Hb.slice(t), d.Hb.slice(t+1), w.Timing, t+1);
+        copy_errors_of_inactive_nodes(d.Hb.slice(t), d.Hb.slice(t+1), w.Timing, t+1);
         mult_add(w.HR.T(), d.Ha.slice(t+1), d.Hb.slice(t));
         f->apply_deriv(y.slice(t), d.Hb.slice(t), d.Ha.slice(t));
         set_inactive_nodes_to_zero(d.Ha.slice(t), w.Timing, t);

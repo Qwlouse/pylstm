@@ -24,7 +24,7 @@ public:
     virtual MatrixContainer* create_parameter_view(Matrix& w) = 0;
     virtual MatrixContainer* create_fwd_state_view(Matrix& b, size_t n_batches, size_t n_slices) = 0;
     virtual MatrixContainer* create_bwd_state_view(Matrix& b, size_t n_batches, size_t n_slices) = 0;
-    virtual void forward_pass(MatrixContainer& w, MatrixContainer& b, Matrix& x, Matrix& y) = 0;
+    virtual void forward_pass(MatrixContainer& w, MatrixContainer& b, Matrix& x, Matrix& y, bool training_pass) = 0;
     virtual void backward_pass(MatrixContainer& w, MatrixContainer& b, MatrixContainer& d, Matrix& y, Matrix& in_deltas, Matrix& out_deltas) = 0;
     virtual void gradient(MatrixContainer& w, MatrixContainer& grad, MatrixContainer& b, MatrixContainer& d, Matrix& y, Matrix& x, Matrix& out_deltas) = 0;
     virtual void Rpass(MatrixContainer &w, MatrixContainer &v,  MatrixContainer &b, MatrixContainer &Rb, Matrix &x, Matrix &y, Matrix& Rx, Matrix &Ry) = 0;
@@ -107,7 +107,7 @@ public:
         return Matrix(out_size, n_batches, n_slices);
     }
 
-    void forward_pass(MatrixContainer& w, MatrixContainer& b, Matrix& x, Matrix& y) {
+    void forward_pass(MatrixContainer& w, MatrixContainer& b, Matrix& x, Matrix& y, bool training_pass) {
         ASSERT(x.n_rows == in_size);
         ASSERT(x.n_columns == y.n_columns);
         ASSERT(x.n_slices == y.n_slices);
@@ -116,7 +116,7 @@ public:
         layer.forward(
                 dynamic_cast<typename L::Parameters&>(w),
                 dynamic_cast<typename L::FwdState&>(b),
-                x, y);
+                x, y, training_pass);
     }
 
     void backward_pass(MatrixContainer& w, MatrixContainer& b, MatrixContainer& d, Matrix& y, Matrix& in_deltas, Matrix& out_deltas) {
@@ -214,7 +214,7 @@ public:
 
         Matrix y = create_empty_out_view(n_batches, n_slices);
 
-        forward_pass(*parameters, *fwd_state, x, y);
+        forward_pass(*parameters, *fwd_state, x, y, false);
         delete fwd_state;
         delete parameters;
         return y;

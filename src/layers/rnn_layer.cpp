@@ -50,7 +50,7 @@ RnnLayer::BwdState::BwdState(size_t, size_t n_cells, size_t n_batches, size_t ti
 }
 
 ////////////////////// Methods /////////////////////////////////////////////
-void RnnLayer::forward(RnnLayer::Parameters& w, RnnLayer::FwdState& b, Matrix& x, Matrix& y) {
+void RnnLayer::forward(RnnLayer::Parameters& w, RnnLayer::FwdState& b, Matrix& x, Matrix& y, bool) {
     size_t n_slices = x.n_slices;
     mult(w.HX, x.slice(1,x.n_slices).flatten_time(), b.Ha.slice(1,b.Ha.n_slices).flatten_time());
     for (int t = 1; t < n_slices; ++t) {

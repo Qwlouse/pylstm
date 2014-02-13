@@ -3,14 +3,15 @@
 cimport c_layers as cl
 cimport c_matrix as cm
 from cython.operator cimport dereference as deref
+from cpython cimport bool
 from libcpp.vector cimport vector
 
 from py_matrix cimport Matrix
 from py_matrix_container cimport create_MatrixContainer, MatrixContainer
 
-
 cdef class BaseLayer:
     cdef cl.BaseLayer* layer
+    cdef bool _skip_training
 
     @property
     def in_size(self):
@@ -22,6 +23,15 @@ cdef class BaseLayer:
 
     def __cinit__(self):
         self.layer = NULL
+        self._skip_training = False
+
+
+    property skip_training:
+        def __get__(self):
+            return self._skip_training
+
+        def __set__(self, value):
+            self._skip_training = value
     
     def __dealloc(self):
         del self.layer
@@ -61,8 +71,8 @@ cdef class BaseLayer:
         cdef cm.MatrixContainer* bwd_state = self.layer.create_bwd_state_view(bwd_state_buffer.c_obj, batch_size, time_length)
         return create_MatrixContainer(bwd_state)
 
-    def forward(self, MatrixContainer param, MatrixContainer fwd_state, Matrix in_view, Matrix out_view):
-        self.layer.forward_pass(deref(param.this_ptr), deref(fwd_state.this_ptr), in_view.c_obj, out_view.c_obj)
+    def forward(self, MatrixContainer param, MatrixContainer fwd_state, Matrix in_view, Matrix out_view, bool training_pass):
+        self.layer.forward_pass(deref(param.this_ptr), deref(fwd_state.this_ptr), in_view.c_obj, out_view.c_obj, training_pass)
 
     def backward(self, MatrixContainer param, MatrixContainer fwd_state, MatrixContainer err, Matrix out_view, Matrix in_deltas, Matrix out_deltas):
         self.layer.backward_pass(deref(param.this_ptr), deref(fwd_state.this_ptr), deref(err.this_ptr), out_view.c_obj, in_deltas.c_obj, out_deltas.c_obj)
@@ -117,17 +127,18 @@ def create_layer(name, in_size, out_size, **kwargs):
 
     cdef cm.ActivationFunction* act_fct = <cm.ActivationFunction*> &cm.Sigmoid
 
-    unexpected_kwargs = [k for k in kwargs if k not in {'act_func'}]
-    expected_kwargs = set()
+    expected_kwargs = {'act_func', 'skip_training'}
     if name_lower == "lstm97layer":
-        expected_kwargs = {'full_gradient', 'peephole_connections',
+        expected_kwargs |= {'full_gradient', 'peephole_connections',
                            'forget_gate', 'output_gate', 'gate_recurrence',
                            'use_bias'}
     if name_lower == "lstmlayer":
-        expected_kwargs = {'delta_range'}
+        expected_kwargs |= {'delta_range'}
     if name_lower == "forwardlayer":
-        expected_kwargs = {'use_bias'}
-    unexpected_kwargs = list(set(unexpected_kwargs) - expected_kwargs)
+        expected_kwargs |= {'use_bias'}
+    if name_lower == "dropoutlayer":
+        expected_kwargs |= {'dropout_prob'}
+    unexpected_kwargs = [k for k in kwargs if k not in expected_kwargs]
     if unexpected_kwargs:
         import warnings
         warnings.warn("Warning: got unexpected kwargs: %s"%unexpected_kwargs)
@@ -148,10 +159,13 @@ def create_layer(name, in_size, out_size, **kwargs):
             act_fct = <cm.ActivationFunction*> &cm.Softmax
         elif af_name == "winout":
             act_fct = <cm.ActivationFunction*> &cm.Winout
+        elif af_name == "tanhscaled":
+            act_fct = <cm.ActivationFunction*> &cm.TanhScaled
 
     cdef cl.Lstm97Layer lstm97
     cdef cl.LstmLayer lstm_layer
     cdef cl.ForwardLayer forward_layer
+    cdef cl.DropoutLayer dropout_layer
 
     if name_lower == "forwardlayer":
         forward_layer = cl.ForwardLayer(act_fct)
@@ -187,6 +201,22 @@ def create_layer(name, in_size, out_size, **kwargs):
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.Lstm97Layer](in_size, out_size, lstm97))
     elif name_lower == "reverselayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.ReverseLayer](in_size, out_size, cl.ReverseLayer()))
+        l.skip_training = True
+    elif name_lower == "dropoutlayer":
+        if 'dropout_prob' in kwargs:
+            dropout_layer.drop_prob = kwargs['dropout_prob']
+        else:
+            dropout_layer.drop_prob = 0.5
+        if 'initial_state' in kwargs:
+            dropout_layer.rnd_state = kwargs['initial_state']
+        else:
+            dropout_layer.rnd_state = 42
+        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.DropoutLayer](in_size, out_size, dropout_layer))
+
     else :
         raise AttributeError("No layer with name " + name)
+
+    if "skip_training" in kwargs:
+        l.skip_training = kwargs['skip_training']
+
     return l

@@ -10,6 +10,13 @@ cdef extern from "forward_layer.h":
         bool use_bias
 
 
+cdef extern from "dropout_layer.h":
+    cppclass DropoutLayer:
+        DropoutLayer()
+        DropoutLayer(double drop_prob)
+        double drop_prob
+        unsigned int rnd_state
+
 cdef extern from "reverse_layer.h":
     cppclass ReverseLayer:
         ReverseLayer()
@@ -73,7 +80,7 @@ cdef extern from "layer.hpp":
 
         MatrixContainer* create_bwd_state_view(Matrix&b, size_t n_batches, size_t n_slices) except +
 
-        void forward_pass(MatrixContainer& w, MatrixContainer& b, Matrix& x, Matrix& y) except +
+        void forward_pass(MatrixContainer& w, MatrixContainer& b, Matrix& x, Matrix& y, bool training_pass) except +
 
         void backward_pass(MatrixContainer &w, MatrixContainer &b, MatrixContainer &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas) except +
 

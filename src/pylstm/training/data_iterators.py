@@ -10,9 +10,12 @@ modify or augment the data.
 """
 
 from __future__ import division, print_function, unicode_literals
-import numpy as np
 import sys
-from pylstm import shuffle_data
+
+import numpy as np
+
+from pylstm import shuffle_data, global_rnd
+from pylstm.targets import create_targets_object
 
 
 class Undivided(object):
@@ -28,77 +31,94 @@ class Undivided(object):
     """
     def __init__(self, X, T, M=None, shuffle=True):
         self.X = X
-        self.T = T
+        self.T = create_targets_object(T)
         self.M = M
         self.shuffle = shuffle
 
     def __call__(self):
-        X, T, M, _ = shuffle_data(self.X, self.T, self.M) if self.shuffle else \
-                     self.X, self.T, self.M, None
+        if self.shuffle:
+            X, T, M, _ = shuffle_data(self.X, self.T, self.M)
+        else:
+            X, T, M = self.X, self.T, self.M
         yield X, T, M
 
 
 class Minibatches(object):
+    """
+    Minibatch (batch_size samples at a time) iterator for inputs, targets and masks.
+    Argument verbose=True enables a progress bar.
+    """
     def __init__(self, X, T, M=None, batch_size=1, shuffle=True, verbose=True):
         self.X = X
-        self.T = T
+        self.T = create_targets_object(T)
         self.M = M
         self.batch_size = batch_size
         self.shuffle = shuffle
+        self.rnd = global_rnd['data_iterators'].get_new_random_state()
         self.verbose = verbose
 
     def __call__(self):
         if self.verbose:
             _update_progress(0)
-        total_batches = self.X.shape[1]
+        nr_sequences = self.X.shape[1]
 
-        X, T, M, _ = shuffle_data(self.X, self.T, self.M) if self.shuffle else \
-                     self.X, self.T, self.M, None
+        if self.shuffle:
+            X, T, M, _ = shuffle_data(self.X, self.T, self.M,
+                                      seed=self.rnd.generate_seed())
+        else:
+            X, T, M = self.X, self.T, self.M
 
-        for i in range(0, total_batches, self.batch_size):
-            j = min(i + self.batch_size, total_batches)
+        for i in range(0, nr_sequences, self.batch_size):
+            j = min(i + self.batch_size, nr_sequences)
             x = X[:, i:j, :]
-            t = T[i:j] if isinstance(T, list) else T[:, i:j, :]
+            t = T[i:j]
             m = None if M is None else M[:, i:j, :]
             yield x, t, m
             if self.verbose:
-                _update_progress(i/total_batches)
+                _update_progress(j/nr_sequences)
 
 
 class Online(object):
+    """
+    Online (one sample at a time) iterator for inputs, targets and masks.
+    Argument verbose=True enables a progress bar.
+    """
     def __init__(self, X, T, M=None, shuffle=True, verbose=True):
         self.X = X
-        self.T = T
+        self.T = create_targets_object(T)
         self.M = M
         self.shuffle = shuffle
+        self.rnd = global_rnd['data_iterators'].get_new_random_state()
         self.verbose = verbose
 
     def __call__(self):
         if self.verbose:
             _update_progress(0)
-        total_batches = self.X.shape[1]
-        indices = np.arange(total_batches)
+        nr_sequences = self.X.shape[1]
+        indices = np.arange(nr_sequences)
         if self.shuffle:
-            np.random.shuffle(indices)
+            self.rnd.shuffle(indices)
         for i, idx in enumerate(indices):
             x = self.X[:, idx:idx+1, :]
-            t = self.T[idx:idx+1] if isinstance(self.T, list) else \
-                self.T[:, idx:idx+1, :]
+            t = self.T[idx:idx+1]
             m = None
             if self.M is not None:
                 m = self.M[:, idx:idx+1, :]
                 for k in range(m.shape[0] - 1, -1, -1):
                     if m[k, 0, 0] != 0:
                         x = x[:k + 1, :, :]
-                        t = t[:k + 1, :, :] if not isinstance(t, list) else t
+                        t = t.crop_time(k + 1)
                         m = m[:k + 1, :, :]
                         break
             yield x, t, m
             if self.verbose:
-                _update_progress((i+1)/total_batches)
+                _update_progress((i+1)/nr_sequences)
 
 
 def _update_progress(progress):
+    """
+    Progress bar for minibatch and online iterators.
+    """
     barLength = 50  # Modify this to change the length of the progress bar
     status = ""
     if isinstance(progress, int):
@@ -123,6 +143,10 @@ def _update_progress(progress):
 
 ################## Dataset Modifications ######################
 class Noisy(object):
+    """
+    Adds noise to each input sample.
+    Can be applied to any iterator (Online, Minibatches or Undivided).
+    """
     def __init__(self, data_iter, std=0.1, rnd=np.random.RandomState()):
         self.f = data_iter
         self.rnd = rnd

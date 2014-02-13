@@ -6,7 +6,7 @@ import numpy as np
 from .data_iterators import Minibatches
 
 
-def conjgrad(gradient, v, f_hessp, maxiter=20):
+def conjgrad(gradient, v, f_hessp, maxiter=300):
     r = gradient - f_hessp(v)  # residual
     p = -r  # current step
     rsold = r.T.dot(r)
@@ -29,81 +29,78 @@ def conjgrad(gradient, v, f_hessp, maxiter=20):
 
     return allvecs
 
+def conjgrad2(gradient, v, f_hessp, maxiter=300):
+    r = f_hessp(v) - gradient  # residual
+    p = -r  # current step
+    rsold = r.T.dot(r)
+    allvecs = [v.copy()]
+    for i in range(maxiter):
+        Ap = f_hessp(p)
+        curv = (p.T.dot(Ap))
+        if curv < 3 * np.finfo(np.float64).eps:
+            break  # curvature is negative or zero
+        alpha = rsold / curv
+        v += alpha * p
+        allvecs.append(v.copy())
+        r = r + alpha * Ap   # updated residual
+        rsnew = r.T.dot(r)
+        if np.sqrt(rsnew) < 1e-10:
+            break  # found solution
+        p = -r + rsnew / rsold * p
 
-class CgLiteTrainer(object):
-    def __init__(self):
-        pass
+        rsold = rsnew
 
-    def train(self, net, X, T, M=None, epochs=10, minibatch_size=32,
-              mu=1. / 30, maxiter=20, success=lambda x: False):
-        # TODO remove Loop=True
-        mb = Minibatches(X, T, M, 1, loop=True)()
-        lambda_ = .1
+    return allvecs
 
-        for i in range(epochs):
-            print("======= Epoch %d =====" % i)
-            ## calculate the gradient
-            grad = np.zeros_like(net.param_buffer.flatten())
-            error = []
-            for x, t, m in Minibatches(minibatch_size)(X, T, M):
-                net.forward_pass(x)
-                net.backward_pass(t, m)
-                error.append(net.calculate_error(t, m))
-                grad += net.calc_gradient().flatten()
-            error = np.mean(error)
-            print("Error:", error)
+def conjgrad3(gradient, v, f_hessp, maxiter=300):
 
-            ## initialize v
-            v = np.zeros(net.get_param_size())
+    ## set parameters for our conjgrad version
+    miniter = 1
+    inext = 5
+    imult = 1.3
 
-            ## get next minibatch to work with
-            x, t, m = mb.next()
+    tolerance = 5e-6
+    gapRatio = 0.1
+    minGap = 10
+    maxTestgap = np.maximum(np.ceil(maxiter * gapRatio), minGap) + 1
 
-            ## define hessian pass
-            def fhess_p(v):
-                return net.hessian_pass(x, v, mu, lambda_).copy().flatten()
+    vals = np.zeros(maxTestgap)
 
-            ## run CG
-            all_v = conjgrad(grad, v.copy(), fhess_p, maxiter=maxiter)
+    r = f_hessp(v) - gradient  # residual
+    p = -r  # current step
+    rsold = r.T.dot(r)
+    allvecs = [v.copy()]
 
-            ## backtrack #1
-            lowError = float('Inf')
-            lowIdx = 0
-            weights = net.param_buffer.copy()
-            for i, testW in reversed(list(enumerate(all_v))):
-                net.param_buffer = weights - testW
-                net.forward_pass(x)
-                tmpError = net.calculate_error(t, m)
-                if tmpError < lowError:
-                    lowError = tmpError
-                    lowIdx = i
-            bestDW = all_v[lowIdx]
+    for i in range(maxiter):
+        Ap = f_hessp(p)
+        curv = (p.T.dot(Ap))
+        if curv < 3 * np.finfo(np.float64).eps:
+            break  # curvature is negative or zero
+        alpha = rsold / curv
+        v += alpha * p
+        allvecs.append(v.copy())
+        r = r + alpha * Ap   # updated residual
+        rsnew = r.T.dot(r)
+        if np.sqrt(rsnew) < 1e-10:
+            break  # found solution
+        p = -r + rsnew / rsold * p
 
-            ## backtrack #2
-            finalDW = bestDW
-            for j in np.arange(0, 1.0, 0.1):
-                tmpDW = j * bestDW
-                net.param_buffer = weights - tmpDW
-                net.forward_pass(X)
-                tmpError = net.calculate_error(T)
-                if tmpError < lowError:
-                    finalDW = tmpDW
-                    lowError = tmpError
+        rsold = rsnew
 
-            ## Levenberg-Marquardt heuristic
-            boost = 3.0 / 2.0
-            net.param_buffer = weights
-            denom = 0.5 * (np.dot(finalDW, fhess_p(finalDW))) + np.dot(
-                np.squeeze(grad), finalDW) + error
-            rho = (lowError - error) / denom
-            if rho < 0.25:
-                lambda_ *= boost
-            elif rho > 0.75:
-                lambda_ /= boost
+        val = 0.5*(np.dot((-gradient+r), v))
+        vals[np.mod(i, maxTestgap)] = val
 
-            ## update weights
-            net.param_buffer = weights - finalDW
+        testGap = np.maximum(np.ceil(gapRatio * i), minGap)
+        prevVal = vals[np.mod((i - testGap), maxTestgap)]
 
-            if success(net):
-                print('Success!!!! after %d Epochs' % i)
-                return i
+        if i == np.ceil(inext):
+            allvecs.append(v)
+            inext *= imult
+            saved = True
+
+        if (i > testGap and (val - prevVal)/val < (tolerance * testGap) and i >= miniter):
+            #print("BREAK AT ITER: %d" %i  )
+            #print("pAp: %f" %curv)
+            break
+
+    return allvecs

@@ -5,6 +5,7 @@
 
 #include "matrix/matrix.h"
 
+typedef std::map<std::string, Matrix> MatrixContainerSlice;
 
 class MatrixContainer {
 public:
@@ -25,6 +26,10 @@ public:
     std::string get_typename();
 
     void lay_out(Matrix& buffer);
+
+    MatrixContainerSlice* slice(size_t start, size_t stop);
+
+    void set_values(MatrixContainerSlice* slice, size_t start=0);
 
 protected:
     void add_view(const std::string& name, Matrix* view);

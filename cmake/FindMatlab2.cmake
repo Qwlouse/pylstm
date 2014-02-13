@@ -40,7 +40,7 @@ ENDIF(OperatingSystem MATCHES "Mac OS X")
 IF(OperatingSystem MATCHES "Linux")
 find_path(MATLAB_EXTERN_INCLUDE_PATH
     NAMES blas.h mex.h mat.h
-    PATH_SUFFIXES R2012b/extern/include R2012a/extern/include R2011a/extern/include R2011b/extern/include 
+    PATH_SUFFIXES R2014b/extern/include R2014a/extern/include R2013b/extern/include R2013a/extern/include R2012b/extern/include R2012a/extern/include R2011a/extern/include R2011b/extern/include 
     PATHS /usr/local/MATLAB ~/libs/MATLAB
     )
 ENDIF(OperatingSystem MATCHES "Linux")
@@ -67,7 +67,7 @@ ENDIF(OperatingSystem MATCHES "Mac OS X")
 IF(OperatingSystem MATCHES "Linux")
 FIND_LIBRARY(MATLAB_LIBRARIES
     NAMES mwblas
-    PATH_SUFFIXES R2012b/bin/glnxa64 R2012a/bin/glnxa64 R2011b/bin/glnxa64 R2011a/bin/glnxa64
+    PATH_SUFFIXES R2014b/bin/glnxa64 R2014a/bin/glnxa64 R2013b/bin/glnxa64 R2013a/bin/glnxa64 R2012b/bin/glnxa64 R2012a/bin/glnxa64 R2011b/bin/glnxa64 R2011a/bin/glnxa64
     PATHS /usr/local/MATLAB ~/libs/MATLAB
     )
 ENDIF(OperatingSystem MATCHES "Linux")

@@ -2,14 +2,16 @@
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 from copy import deepcopy
-import numpy as np
 from .. import wrapper as pw
+from pylstm.randomness import global_rnd, reseeding_copy, Seedable
 from pylstm.regularization.initializer import _evaluate_initializer
+from pylstm.targets import create_targets_object
 
 
-class Network(object):
+class Network(Seedable):
     def __init__(self, layers, param_manager, fwd_state_manager, in_out_manager,
-                 bwd_state_manager, error_func, architecture):
+                 bwd_state_manager, error_func, architecture, seed=None):
+        super(Network, self).__init__(seed=seed, category='network')
         self.layers = layers
 
         self.param_manager = param_manager
@@ -193,7 +195,7 @@ class Network(object):
         self.r_in_out_manager.set_dimensions(t + 1, b)
         self.delta_manager.set_dimensions(t + 1, b)
 
-    def forward_pass(self, input_buffer, reset=True):
+    def forward_pass(self, input_buffer, reset=True, training_pass=False):
         self.targets = None
         self.mask = None
         self.error = None
@@ -214,15 +216,16 @@ class Network(object):
             out = self.in_out_manager.get_source_view(n)
             input_view = self.in_out_manager.get_sink_view(n)
 
-            l.forward(param, fwd_state, input_view, out)
+            l.forward(param, fwd_state, input_view, out, training_pass)
         # read the output buffer
         return self.out_buffer
 
     def calculate_error(self, T, M=None):
         if self.error is None:
-            self.targets = T
+            self.targets = create_targets_object(T)
             self.mask = M
-            self.error, self.deltas = self.error_func(self.out_buffer, T, M)
+            self.error, self.deltas = self.error_func(self.out_buffer, 
+                                                      self.targets, M)
         return self.error
 
     def pure_backpass(self, deltas):
@@ -248,16 +251,19 @@ class Network(object):
         return self.in_delta_buffer
 
     def backward_pass(self, T, M=None):
-        if self.deltas is None:
-            self.targets = T
+        if self.error is None:
+            self.targets = create_targets_object(T)
             self.mask = M
-            self.error, self.deltas = self.error_func(self.out_buffer, T, M)
+            self.error, self.deltas = self.error_func(self.out_buffer, 
+                                                      self.targets, M)
         return self.pure_backpass(self.deltas)
 
     def calc_gradient(self):
         self.grad_manager.initialize_buffer(
             pw.Matrix(self.get_param_size()))
         for n, l in self.layers.items()[-1:0:-1]:
+            if l.skip_training:
+                continue
             param = self.param_manager.get_source_view(n)
             grad = self.grad_manager.get_source_view(n)
             fwd_state = self.fwd_state_manager.get_source_view(n)
@@ -306,9 +312,9 @@ class Network(object):
             r_out = self.r_in_out_manager.get_source_view(n)
             input_view = self.in_out_manager.get_sink_view(n)
 
-            l.Rpass(param, v, fwd_state, r_fwd_state, input_view, out, r_in,
+            l.Rpass(param, v, fwd_state, r_fwd_state, input_view, out, r_in, 
                     r_out)
-        # read the output buffer
+            # read the output buffer
         return self.r_out_buffer
 
     def r_backward_pass(self, lambda_, mu):
@@ -381,24 +387,22 @@ class Network(object):
         """
         initializers = _update_references_with_dict(init_dict, kwargs)
         self._assert_view_reference_wellformed(initializers)
-        rnd = np.random.RandomState(seed)
+        rnd = self.rnd['initialize'].get_new_random_state(seed)
 
         for layer_name, layer in self.layers.items()[1:]:
             views = self.get_param_view_for(layer_name)
             if views is None:
                 continue
             for view_name, view in views.items():
-                view_initializer = _get_default_aware(initializers,
-                                                      layer_name,
-                                                      view_name)
+                view_initializer = _get_default_aware(initializers, layer_name,
+                                                      view_name, rnd)
                 view[:] = _evaluate_initializer(view_initializer, layer_name,
-                                                view_name, view.shape,
-                                                seed=rnd.randint(1e9))
+                                                view_name, view.shape)
 
         self.enforce_constraints()
         # TODO: implement serialization of initializer
 
-    def set_regularizers(self, reg_dict=None, **kwargs):
+    def set_regularizers(self, reg_dict=None, seed=None, **kwargs):
         """
         Set weight regularizers for layers and even individual views of a layer.
         A regularizer has to be callable(function or object) with a single
@@ -427,15 +431,17 @@ class Network(object):
         should not be regularized. This is useful in combination with 'default'.
 
         """
+        rnd = self.rnd['set_regularizers'].get_new_random_state(seed)
         regularizers = _update_references_with_dict(reg_dict, kwargs)
-        self.regularizers = self._flatten_view_references(regularizers)
+        self.regularizers = self._flatten_view_references(regularizers, rnd)
         _prune_view_references(self.regularizers)
         _ensure_all_references_are_lists(self.regularizers)
 
-    def set_constraints(self, constraint_dict=None, **kwargs):
+    def set_constraints(self, constraint_dict=None, seed=None, **kwargs):
+        rnd = self.rnd['set_constraints'].get_new_random_state(seed)
         assert self.is_initialized()
         constraints = _update_references_with_dict(constraint_dict, kwargs)
-        self.constraints = self._flatten_view_references(constraints)
+        self.constraints = self._flatten_view_references(constraints, rnd)
         _prune_view_references(self.constraints)
         _ensure_all_references_are_lists(self.constraints)
         self.enforce_constraints()
@@ -462,7 +468,7 @@ class Network(object):
                         "Unknown view '%s' for '%s'.\nPossible views are: %s"\
                         % (view_name, layer_name, ", ".join(param_view.keys()))
 
-    def _flatten_view_references(self, references, default=None):
+    def _flatten_view_references(self, references, rnd, default=None):
         self._assert_view_reference_wellformed(references)
         flattened = dict()
         for layer_name, layer in self.layers.items()[1:]:
@@ -471,7 +477,7 @@ class Network(object):
             for view_name, view in views.items():
                 flattened[layer_name][view_name] = \
                     _get_default_aware(references, layer_name, view_name,
-                                       default=default)
+                                       rnd, default=default)
         return flattened
 
 
@@ -499,7 +505,7 @@ def _ensure_all_references_are_lists(references):
                 l[vname] = [l[vname]]
 
 
-def _get_default_aware(values, layer_name, view_name, default=0):
+def _get_default_aware(values, layer_name, view_name, rnd, default=0):
     """
     This function retrieves values from view reference dictionary that
     makes use of 'default'. These are used for initialize, set_regularizers, and
@@ -508,20 +514,22 @@ def _get_default_aware(values, layer_name, view_name, default=0):
     if not isinstance(values, dict):
         return values
 
+    seed = rnd.generate_seed()
+
     if layer_name in values:
         layer_values = values[layer_name]
         if not isinstance(layer_values, dict):
-            return deepcopy(layer_values)
+            return reseeding_copy(layer_values, seed)
 
         if view_name in layer_values:
-            return deepcopy(layer_values[view_name])
+            return reseeding_copy(layer_values[view_name], seed)
         elif 'default' in layer_values:
-            return deepcopy(layer_values['default'])
+            return reseeding_copy(layer_values['default'], seed)
 
     if 'default' in values:
-        return deepcopy(values['default'])
+        return reseeding_copy(values['default'], seed)
 
-    return deepcopy(default)
+    return reseeding_copy(default, seed)
 
 
 def _update_references_with_dict(refs, ref_dict):

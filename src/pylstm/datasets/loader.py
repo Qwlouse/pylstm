@@ -6,6 +6,7 @@ from __future__ import division, print_function, unicode_literals
 import os
 import numpy as np
 import cPickle
+from pylstm.targets import SequencewiseTargets
 
 
 def get_files_containing(file_list, search_string, ignore_case=False):
@@ -68,3 +69,53 @@ def load_dataset(dataset_path, subset='', targets='T'):
     ds['test'] = read_data(test_files, targets) if test_files else None
     ds['val'] = read_data(val_files, targets) if val_files else None
     return ds
+
+
+def transform_ds_to_nsp(ds):
+    """
+    Takes a dataset dictionary like the one returned from load_dataset
+    and transforms it into a next-step-prediction task.
+    """
+    ds_nsp = {}
+    for use in ds:
+        if ds[use] is None:
+            continue
+        ds_nsp[use] = (ds[use][0][:-1, :, :],
+                       ds[use][0][1:, :, :],
+                       ds[use][2][:-1, :, :])
+    return ds_nsp
+
+
+def transform_ds_to_seq_classification(ds):
+    """
+    Takes a dataset dictionary like the one returned from load_dataset
+    and transforms it into a sequence classification task.
+    """
+    classes = list(np.lib.arraysetops.unique(ds['train'][1]))
+    ds_seq_class = {}
+    for use in ds:
+        if ds[use] is None:
+            continue
+        T = np.array([classes.index(t) for t in ds[use][1].flatten()])
+        ds_seq_class[use] = (ds[use][0],
+                             SequencewiseTargets(T, binarize_to=len(classes)),
+                             ds[use][2])
+
+    return ds_seq_class, len(classes)
+
+
+def mask_features(ds, feature_mask):
+    """
+    Can be used to remove some features from a dataset.
+    :param ds: dataset dictionary
+    :param feature_mask: binary mask with shape = (# features, )
+    :return: new ds dictionary
+    """
+    masked_ds = {}
+    for usage in ds:
+        if ds[usage] is None:
+            continue
+        X, T, M = ds[usage]
+        X = X[:, :, feature_mask == 1]
+        masked_ds[usage] = X, T, M
+    return masked_ds

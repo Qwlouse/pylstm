@@ -2,7 +2,8 @@
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 import numpy as np
-from random import shuffle
+from pylstm.randomness import global_rnd
+from pylstm.targets import create_targets_object
 
 
 def binarize_sequence(seq, alphabet=None):
@@ -31,7 +32,7 @@ def binarize_array(A, alphabet=None):
     You can specify the alphabet for binarization yourself. Otherwise it will be
     the symbols from the passed in sequences.
     """
-    if A.shape == 3:
+    if len(A.shape) == 3:
         assert A.shape[2] == 1
         A = A[:, :, 0]
     if alphabet is None:
@@ -39,10 +40,8 @@ def binarize_array(A, alphabet=None):
     else:
         alphabet = list(alphabet)
     result = np.zeros((A.shape[0], A.shape[1], len(alphabet)))
-    for seq_nr in range(A.shape[1]):
-        for t in range(A.shape[0]):
-            index = alphabet.index(A[t, seq_nr])
-            result[t, seq_nr, index] = 1
+    for i, a in enumerate(alphabet):
+        result[A == a, i] = 1
     return result
 
 
@@ -103,27 +102,23 @@ def normalize_data(X_train, M_train, X_test, M_test):
     return means, stds
 
 
-def shuffle_data(X, T, M=None, rnd=np.random.RandomState()):
+def shuffle_data(X, T, M=None, seed=None):
     """
     Shuffles the samples of the data.
     :param X:
     :param T:
     :param M:
-    :param rnd:
     :return:
     """
+    T = create_targets_object(T)
     indices = np.arange(X.shape[1])
-    rnd.shuffle(indices)
+    global_rnd['preprocessing'].get_new_random_state(seed).shuffle(indices)
     X_s = X[:, indices, :]
-    if isinstance(T, list):
-        T_s = [T[i] for i in indices]
-    else:
-        T_s = T[:, indices, :]
-    if M is not None:
-        M = M[:, indices, :]
+    T_s = T[indices]
+    M_s = M[:, indices, :] if M is not None else None
 
-    M_s = M[:, indices, :]
     return X_s, T_s, M_s, indices
+
 
 def mid_pool_outputs(T, size=3):
     """

@@ -64,7 +64,7 @@ MrnnLayer::BwdState::BwdState(size_t, size_t n_cells, size_t n_batches, size_t t
 }
 
 ////////////////////// Methods /////////////////////////////////////////////
-void MrnnLayer::forward(MrnnLayer::Parameters& w, MrnnLayer::FwdState& b, Matrix& x, Matrix& y) {
+void MrnnLayer::forward(MrnnLayer::Parameters& w, MrnnLayer::FwdState& b, Matrix& x, Matrix& y, bool) {
     size_t n_slices = x.n_slices;
     mult(w.HX, x.slice(1,x.n_slices).flatten_time(), b.Ha.slice(1,b.Ha.n_slices).flatten_time());
     mult(w.FX, x.slice(1,x.n_slices).flatten_time(), b.F1.slice(1,b.F1.n_slices).flatten_time());

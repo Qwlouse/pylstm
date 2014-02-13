@@ -53,19 +53,52 @@ class SaveBestWeights(object):
     is no validation error) is at it's minimum and if so, save the weights to
     the specified file.
     """
-    def __init__(self, filename):
+    def __init__(self, filename=None, verbose=True):
         self.timescale = 'epoch'
         self.interval = 1
         self.filename = filename
+        self.weights = None
+        self.verbose = verbose
 
     def __call__(self, net, training_errors, validation_errors, **_):
         e = validation_errors if len(validation_errors) > 0 else training_errors
         if np.argmin(e) == len(e) - 1:
-            print("Saving weights to {0}...".format(self.filename))
-            np.save(self.filename, net.param_buffer)
+            if self.filename is not None:
+                if self.verbose:
+                    print("Saving weights to {0}...".format(self.filename))
+                np.save(self.filename, net.param_buffer)
+            else:
+                if self.verbose:
+                    print("Caching weights")
+                self.weights = net.param_buffer.copy()
 
     def load_weights(self):
-        return np.load(self.filename)
+        return np.load(self.filename) if self.filename is not None else self.weights
+
+
+class MonitorError(object):
+    """
+    Monitor the given error (averaged over all sequences).
+    """
+    def __init__(self, data_iter, error, name="", timescale='epoch', interval=1):
+        self.timescale = timescale
+        self.interval = interval
+        self.data_iter = data_iter
+        self.error_func = error
+        self.name = name
+        self.log = dict()
+        self.log['error'] = []
+
+    def __call__(self, net, **_):
+        errors = []
+        for x, t, m in self.data_iter():
+            y = net.forward_pass(x)
+            error, _ = self.error_func(y, t, m)
+            errors.append(error)
+
+        mean_error = np.mean(errors)
+        self.log['error'].append(mean_error)
+        print(self.name, "= %0.4f" % mean_error)
 
 
 class MonitorClassificationError(object):
@@ -84,15 +117,21 @@ class MonitorClassificationError(object):
         total_errors = 0
         total = 0
         for x, t, m in self.data_iter():
+            assert t.targets_type in [('F', False), ('F', True), ('S', False), ('S', True)], \
+                "Target type not suitable for classification error monitoring."
             y = net.forward_pass(x)
             y_win = y.argmax(2)
-            t_win = t.argmax(2)
+            if t.binarize_to is not None:
+                t_win = t.data
+            else:
+                t_win = t.data.argmax(2)
+
             if m is not None:
                 total_errors += np.sum((y_win != t_win) * m[:, :, 0])
                 total += np.sum(m)
             else:
                 total_errors += np.sum((y_win != t_win))
-                total += t.shape[0] * t.shape[1]
+                total += t.data.shape[0] * t.data.shape[1]
         error_fraction = total_errors / total
         self.log['classification_error'].append(error_fraction)
         print(self.name, ":\tClassification Error = %0.4f\t (%d / %d)" %
@@ -117,7 +156,7 @@ class MonitorPooledClassificationError(object):
         total_errors = 0
         total = 0
         for x, t, m in self.data_iter():
-            relevant_from = (t.shape[2] / self.pool_size) * (self.pool_size // 2)
+            relevant_from = (t.data.shape[2] / self.pool_size) * (self.pool_size // 2)
             relevant_to = relevant_from + (t.shape[2] / self.pool_size)
             t = t[:, :, relevant_from: relevant_to]
             y = net.forward_pass(x)
@@ -128,7 +167,7 @@ class MonitorPooledClassificationError(object):
                 total += np.sum(m)
             else:
                 total_errors += np.sum((y_win != t_win))
-                total += t.shape[0] * t.shape[1]
+                total += t.data.shape[0] * t.data.shape[1]
         error_fraction = total_errors / total
         self.log['classification_error'].append(error_fraction)
         print(self.name, ":\tClassification Error = %0.4f\t (%d / %d)" %
@@ -153,8 +192,8 @@ class MonitorPhonemeError(object):
         for x, t, m in self.data_iter():
             y = net.forward_pass(x)
             lab = ctc_best_path_decoding(y)
-            total_errors += levenshtein(lab, t[0])
-            total_length += len(t[0])
+            total_errors += levenshtein(lab, t.data[0])
+            total_length += len(t.data[0])
         error_fraction = total_errors / total_length
         self.log['phoneme_error'].append(error_fraction)
         print(self.name, ':\tPhoneme Error = %0.4f\t (%d / %d)' %
@@ -223,15 +262,16 @@ class PlotErrors(object):
             if training_errors:
                 self.t_line, = self.ax.plot(training_errors, 'g-',
                                             label='Training Error')
-                min_ep, min_err = self._get_min_err(validation_errors)
-                self.v_dot, = self.ax.plot([min_ep], min_err, 'bo')
+                if validation_errors:
+                    min_ep, min_err = self._get_min_err(validation_errors)
+                    self.v_dot, = self.ax.plot([min_ep], min_err, 'bo')
             self.ax.legend()
             self.fig.canvas.draw()
             return
 
         self.t_line.set_ydata(training_errors)
         self.t_line.set_xdata(range(len(training_errors)))
-        if self.v_line is not None:
+        if self.v_line is not None and validation_errors:
             self.v_line.set_ydata(validation_errors)
             self.v_line.set_xdata(range(len(validation_errors)))
             min_ep, min_err = self._get_min_err(validation_errors)
@@ -241,3 +281,42 @@ class PlotErrors(object):
         self.ax.autoscale_view()
         self.fig.canvas.draw()
 
+
+class PlotMonitors(object):
+    """
+    Open a window and plot the log entries of the given monitors.
+    """
+    def __init__(self, monitors, timescale='epoch', interval=1):
+        self.timescale = timescale
+        self.interval = interval
+        self.monitors = monitors
+        import matplotlib.pyplot as plt
+        self.plt = plt
+        self.plt.ion()
+        self.fig, self.ax = self.plt.subplots()
+        self.ax.set_title('Plotting Monitors')
+        self.ax.set_xlabel('Epochs')
+        self.ax.set_ylabel('Error')
+        self.line_dict = dict()
+        self.plt.show()
+
+    def __call__(self, **_):
+
+        for m in self.monitors:
+            for k in m.log:
+                n = m.name + '.' + k
+                if n not in self.line_dict and m.log[k]:
+                        self.line_dict[n], = self.ax.plot(m.log[k], '-', label=n)
+
+            self.ax.legend()
+            self.fig.canvas.draw()
+
+        for m in self.monitors:
+            for k in m.log:
+                n = m.name + '.' + k
+                self.line_dict[n].set_ydata(m.log[k])
+                self.line_dict[n].set_xdata(range(len(m.log[k])))
+
+        self.ax.relim()
+        self.ax.autoscale_view()
+        self.fig.canvas.draw()
