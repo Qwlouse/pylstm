@@ -50,9 +50,17 @@ class ForwardStep(TrainingStep):
     """
     Only runs the forward pass and returns the error. Does not train the
     network at all.
+    This step is usually used for validation. If this step is used during
+    training it should be initialized with the use_training_pass flag set to
+    true.
     """
+
+    def __init__(self, use_training_pass=False):
+        super(ForwardStep, self).__init__()
+        self.use_training_pass = use_training_pass
+
     def run(self, x, t, m):
-        self.net.forward_pass(x)
+        self.net.forward_pass(x, self.use_training_pass)
         return self.net.calculate_error(t, m)
 
 
@@ -66,7 +74,7 @@ class SgdStep(TrainingStep):
 
     def run(self, x, t, m):
         learning_rate = self.learning_rate_schedule()
-        self.net.forward_pass(x)
+        self.net.forward_pass(x, training_pass=True)
         error = self.net.calculate_error(t, m)
         self.net.backward_pass(t, m)
         self.net.param_buffer -= (learning_rate *
@@ -91,7 +99,7 @@ class MomentumStep(TrainingStep):
         learning_rate = self.learning_rate_schedule()
         momentum = self.momentum_schedule()
         self.velocity *= momentum
-        self.net.forward_pass(x)
+        self.net.forward_pass(x, training_pass=True)
         error = self.net.calculate_error(t, m)
         self.net.backward_pass(t, m)
         dv = learning_rate * self.net.calc_gradient().flatten()
@@ -118,7 +126,7 @@ class NesterovStep(TrainingStep):
         momentum = self.momentum_schedule()
         self.velocity *= momentum
         self.net.param_buffer += self.velocity
-        self.net.forward_pass(x)
+        self.net.forward_pass(x, training_pass=True)
         error = self.net.calculate_error(t, m)
         self.net.backward_pass(t, m)
         dv = learning_rate * self.net.calc_gradient().flatten()
@@ -162,7 +170,7 @@ class RPropStep(TrainingStep):
         self.initialized = True
 
     def run(self, x, t, m):
-        self.net.forward_pass(x)
+        self.net.forward_pass(x, training_pass=True)
         error = self.net.calculate_error(t, m)
         self.net.backward_pass(t, m)
         grad = self.net.calc_gradient()
@@ -216,7 +224,7 @@ class RmsPropStep(TrainingStep):
         self.scaling_factor = np.zeros(self.net.get_param_size())
 
     def run(self, x, t, m):
-        self.net.forward_pass(x)
+        self.net.forward_pass(x, training_pass=True)
         error = self.net.calculate_error(t, m)
         self.net.backward_pass(t, m)
         grad = self.net.calc_gradient()
@@ -232,7 +240,7 @@ def calculate_gradient(net, data_iter):
         grad = np.zeros_like(net.param_buffer.flatten())
         error = []
         for x, t, m in data_iter():
-            net.forward_pass(x)
+            net.forward_pass(x, training_pass=True)
             net.backward_pass(t, m)
             error.append(net.calculate_error(t, m))
             grad += net.calc_gradient().flatten()
@@ -286,7 +294,7 @@ class CgStep(TrainingStep, Seedable):
         weights = self.net.param_buffer.copy()
         for i, testW in reversed(list(enumerate(all_v))):
             self.net.param_buffer = weights - testW
-            self.net.forward_pass(x)
+            self.net.forward_pass(x, training_pass=True)
             tmpError = self.net.calculate_error(t, m)
             if tmpError < lowError:
                 lowError = tmpError
@@ -298,7 +306,7 @@ class CgStep(TrainingStep, Seedable):
         for j in np.arange(0, 1.0, 0.1):
             tmpDW = j * bestDW
             self.net.param_buffer = weights - tmpDW
-            self.net.forward_pass(x)
+            self.net.forward_pass(x, training_pass=True)
             tmpError = self.net.calculate_error(t, m)
             if tmpError < lowError:
                 finalDW = tmpDW

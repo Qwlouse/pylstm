@@ -82,7 +82,7 @@ LstmLayer::BwdState::BwdState(size_t, size_t n_cells, size_t n_batches, size_t t
 }
 
 
-void LstmLayer::forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y) {
+void LstmLayer::forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y, bool) {
     mult(w.IX, x.flatten_time(), b.Ia.flatten_time());
     mult(w.FX, x.flatten_time(), b.Fa.flatten_time());
     mult(w.ZX, x.flatten_time(), b.Za.flatten_time());

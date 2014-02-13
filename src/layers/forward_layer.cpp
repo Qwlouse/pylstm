@@ -46,7 +46,7 @@ ForwardLayer::BwdState::BwdState(size_t, size_t n_cells, size_t n_batches, size_
 }
 
 ////////////////////// Methods /////////////////////////////////////////////
-void ForwardLayer::forward(ForwardLayer::Parameters &w, ForwardLayer::FwdState &b, Matrix &x, Matrix &y) {
+void ForwardLayer::forward(ForwardLayer::Parameters &w, ForwardLayer::FwdState &b, Matrix &x, Matrix &y, bool) {
 	mult(w.HX, x.flatten_time(), b.Ha.flatten_time());
 
     if (use_bias)
