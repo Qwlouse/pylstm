@@ -165,6 +165,7 @@ def create_layer(name, in_size, out_size, **kwargs):
     cdef cl.Lstm97Layer lstm97
     cdef cl.LstmLayer lstm_layer
     cdef cl.ForwardLayer forward_layer
+    cdef cl.HfFinalLayer hf_final_layer
     cdef cl.DropoutLayer dropout_layer
 
     if name_lower == "forwardlayer":
@@ -172,6 +173,11 @@ def create_layer(name, in_size, out_size, **kwargs):
         if 'use_bias' in kwargs:
             forward_layer.use_bias = kwargs['use_bias']
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.ForwardLayer](in_size, out_size, forward_layer))
+    if name_lower == "hffinallayer":
+        hf_final_layer = cl.HfFinalLayer(act_fct)
+        if 'use_bias' in kwargs:
+            hf_final_layer.use_bias = kwargs['use_bias']
+        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.HfFinalLayer](in_size, out_size, hf_final_layer))
     elif name_lower == "rnnlayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.RnnLayer](in_size, out_size, cl.RnnLayer(act_fct)))
     elif name_lower == "arnnlayer":

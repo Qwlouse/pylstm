@@ -9,6 +9,11 @@ cdef extern from "forward_layer.h":
         ForwardLayer(ActivationFunction* f)
         bool use_bias
 
+cdef extern from "hf_final_layer.h":
+    cppclass HfFinalLayer:
+        HfFinalLayer()
+        HfFinalLayer(ActivationFunction* f)
+        bool use_bias
 
 cdef extern from "dropout_layer.h":
     cppclass DropoutLayer:
