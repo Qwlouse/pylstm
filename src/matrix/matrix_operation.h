@@ -39,6 +39,9 @@ void mult(Matrix a, Matrix b, Matrix out, d_type scale = 1.0);
 ///Matrix multiplication and addition
 void mult_add(Matrix a, Matrix b, Matrix out, d_type scale = 1.0);
 
+///Perform hard local competition in blocks
+void hard_compete_locally(Matrix mask, Matrix x, Matrix out, unsigned int block_size);
+
 
 
 inline double sigmoid(double val) {

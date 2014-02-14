@@ -172,6 +172,9 @@ void mult_add(Matrix a, Matrix b, Matrix out, d_type scale) {
 	      a_stride, b.get_data(), b_stride, 1.0, out.get_data(), out_stride);
 }
 
+void hard_compete_locally(Matrix mask, Matrix x, Matrix out, unsigned int block_size) {
+
+}
 
 void ActivationFunction::apply(Matrix in, Matrix out) const {
     transform(in.begin(), in.end(), out.begin(), *f);

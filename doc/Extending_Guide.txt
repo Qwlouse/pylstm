@@ -1,0 +1,7 @@
+Adding a new C++ layer
+======================
+
+1.  You will need to create my_layer.h and my_layer.cpp first.
+    Make sure you follow the signatures of the existing layers.
+
+2.
