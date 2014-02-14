@@ -202,6 +202,9 @@ class Network(Seedable):
         self.deltas = None
         if reset:
             self.clear_internal_state()
+        else:
+            old_t = self.fwd_state_manager.slice_count - 1
+
         # determine dimensions and set buffer managers accordingly
         t, b, f = input_buffer.shape
         assert f == self.layers.values()[0].out_size
@@ -213,10 +216,14 @@ class Network(Seedable):
             param = self.param_manager.get_source_view(n)
             fwd_state = self.fwd_state_manager.get_source_view(n)
 
-            out = self.in_out_manager.get_source_view(n)
-            input_view = self.in_out_manager.get_sink_view(n)
+            out_view = self.in_out_manager.get_source_view(n)
+            in_view = self.in_out_manager.get_sink_view(n)
+            if not reset:
+                fwd_state.set_value(fwd_state.slice(old_t, old_t + 1))
+                # todo: check if we need in_view
+                in_view.as_array()[0, :, :] = in_view.as_array()[old_t, :, :]
 
-            l.forward(param, fwd_state, input_view, out, training_pass)
+            l.forward(param, fwd_state, in_view, out_view, training_pass)
         # read the output buffer
         return self.out_buffer
 
