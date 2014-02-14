@@ -12,3 +12,9 @@ Adding a new C++ layer
 
 2. Add your layer to c_layers.pxd in directory 'pylstm/wrapper'.
    If you added any new matrix operations, add them to c_matrix.pxd in 'pylstm/wrapper'.
+   Also add new operations to py_matrix.pyx if you need to call your operations from Python.
+
+3. Define the creation of your layer in function create_layer in py_layer.pyx in directory 'pylstm/wrapper'.
+   Make sure you add any arguments your layer might expect to expected_kwargs as for other layers.
+
+4. Make a new C++ layer as others in layers.py in directory 'pylstm/structure'.
