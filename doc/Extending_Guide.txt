@@ -1,7 +1,14 @@
 Adding a new C++ layer
 ======================
 
-1.  You will need to create my_layer.h and my_layer.cpp first.
-    Make sure you follow the signatures of the existing layers.
+1. You will need to create my_layer.h and my_layer.cpp first.
+   These will go into the 'layers' directory.
 
-2.
+   Make sure you follow the signatures of the existing layers.
+   Remember to add it to CMakeLists.txt in 'layers' directory so it compiles.
+
+   Add any new matrix operations needed to matrix_operations.h and matrix_operations.cpp
+   in the 'matrix' directory.
+
+2. Add your layer to c_layers.pxd in directory 'pylstm/wrapper'.
+   If you added any new matrix operations, add them to c_matrix.pxd in 'pylstm/wrapper'.
