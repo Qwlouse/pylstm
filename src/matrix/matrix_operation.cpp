@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <limits>
 
 #include "Core.h"
 #include "cblas_wrapper.h"
@@ -173,7 +174,32 @@ void mult_add(Matrix a, Matrix b, Matrix out, d_type scale) {
 }
 
 void hard_compete_locally(Matrix mask, Matrix x, Matrix out, unsigned int block_size) {
-
+    for (size_t slice = 0; slice < x.n_slices; ++slice ) {
+        for (size_t column = 0; column < x.n_columns; ++column ) {
+            for (size_t row = 0; row < x.n_rows; row += block_size) {
+                d_type max = std::numeric_limits<d_type>::min();
+                size_t max_i = row;
+                for (size_t row_g = row; row_g < row + block_size; row_g++) {
+                    d_type current = x.get(row_g, column, slice);
+                    if (current > max) {
+                        max = current;
+                        max_i = row_g;
+                    }
+                }
+                mask.get(max_i, column, slice) = 1;
+                out.get(max_i,column, slice) = x.get(max_i, column, slice);
+//                for (size_t row_g = row; row_g < row + block_size; row_g++) {
+//                    if (row_g == max_i) {
+//                        mask.get(row_g, column, slice) = 1;
+//                        out.get(row_g, column, slice) = x.get(row_g, column, slice);
+//                    }
+//                    else {
+//                        out.get(row_g, column, slice) = 0;
+//                    }
+//                }
+            }
+        }
+    }
 }
 
 void ActivationFunction::apply(Matrix in, Matrix out) const {
