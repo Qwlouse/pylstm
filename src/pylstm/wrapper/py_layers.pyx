@@ -138,6 +138,8 @@ def create_layer(name, in_size, out_size, **kwargs):
         expected_kwargs |= {'use_bias'}
     if name_lower == "dropoutlayer":
         expected_kwargs |= {'dropout_prob'}
+    if name_lower == "lwtalayer":
+        expected_kwargs |= {'block_size'}
     unexpected_kwargs = [k for k in kwargs if k not in expected_kwargs]
     if unexpected_kwargs:
         import warnings
@@ -157,16 +159,19 @@ def create_layer(name, in_size, out_size, **kwargs):
             act_fct = <cm.ActivationFunction*> &cm.Linear
         elif af_name == "softmax":
             act_fct = <cm.ActivationFunction*> &cm.Softmax
-        elif af_name == "winout":
-            act_fct = <cm.ActivationFunction*> &cm.Winout
+        # elif af_name == "winout":
+        #     act_fct = <cm.ActivationFunction*> &cm.Winout
         elif af_name == "tanhscaled":
             act_fct = <cm.ActivationFunction*> &cm.TanhScaled
+        else:
+            raise AttributeError("No activation with name " + af_name)
 
     cdef cl.Lstm97Layer lstm97
     cdef cl.LstmLayer lstm_layer
     cdef cl.ForwardLayer forward_layer
     cdef cl.HfFinalLayer hf_final_layer
     cdef cl.DropoutLayer dropout_layer
+    cdef cl.LWTALayer lwta_layer
 
     if name_lower == "forwardlayer":
         forward_layer = cl.ForwardLayer(act_fct)
@@ -218,7 +223,12 @@ def create_layer(name, in_size, out_size, **kwargs):
         else:
             dropout_layer.rnd_state = 42
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.DropoutLayer](in_size, out_size, dropout_layer))
-
+    elif name_lower == "lwtalayer":
+        if 'block_size' in kwargs:
+            lwta_layer.block_size = kwargs['block_size']
+        else:
+            lwta_layer.block_size = 2
+        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.LWTALayer](in_size, out_size, lwta_layer))
     else :
         raise AttributeError("No layer with name " + name)
 

@@ -10,6 +10,7 @@ ADD_LIBRARY(layers SHARED
             ctc.cpp
             dropout_layer.cpp
             hf_final_layer.cpp
+            lwta_layer.cpp
             )
 
 TARGET_LINK_LIBRARIES(layers ${BLAS_LIBRARIES} core matrix)

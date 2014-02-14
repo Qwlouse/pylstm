@@ -45,7 +45,7 @@ cdef extern from "matrix_operation.h":
     ActivationFunction Linear
     ActivationFunction RectifiedLinear
     SoftmaxLayerActivation Softmax
-    WinoutActivation Winout
+    # WinoutActivation Winout
     ActivationFunction TanhScaled
 
 
@@ -57,6 +57,8 @@ cdef extern from "matrix_operation.h":
     void mult(Matrix a, Matrix b, Matrix out) except +
 
     void mult_add(Matrix a, Matrix b, Matrix out) except +
+
+    void hard_compete_locally(Matrix mask, Matrix x, Matrix out, unsigned int block_size) except +
 
     void dot(Matrix a, Matrix b, Matrix out) except +
 
