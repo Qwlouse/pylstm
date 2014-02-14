@@ -265,11 +265,6 @@ void LstmLayer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Matri
           dot_add(d.Fa.slice(t+1), w.FS, d.S.slice(t));
       }
 
-      //structural damping
-      copy(Rb.Hb.slice(t), d.tmp1.slice(t));
-      scale_into(d.tmp1.slice(t), lambda*mu);
-      add_vector_into(d.tmp1.slice(t), d.Hb.slice(t));
-
       //! \f$\frac{dE}{df_S} += \frac{dE}{dH} * b_O\f$  THIS IS WEIRD, IT GOES WITH NEXT LINE ??!?!
       dot(d.Hb.slice(t), b.Ob.slice(t), d.f_S.slice(t));
 
@@ -299,10 +294,6 @@ void LstmLayer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Matri
       //! \f$dE/da_Z = dE/db_Z * f'(a_Z)\f$
       apply(b.Zb.slice(t), d.tmp1.slice(t), &tanh_deriv);
       dot(d.Zb.slice(t), d.tmp1.slice(t), d.Za.slice(t));
-
-      //structural damping (this may be in the wrong place, but trying to follow previous version)
-      scale_into(d.tmp1.slice(t), lambda*mu);
-      dot_add(d.tmp1.slice(t), Rb.Za.slice(t), d.Za.slice(t));
 
       //! INPUT GATE DERIVS
       //! \f$\frac{dE}{db_I} = \frac{dE}{dS} * b_Z \f$
