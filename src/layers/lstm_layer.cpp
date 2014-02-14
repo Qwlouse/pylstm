@@ -295,32 +295,33 @@ void LstmLayer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Matri
       apply(b.Zb.slice(t), d.tmp1.slice(t), &tanh_deriv);
       dot(d.Zb.slice(t), d.tmp1.slice(t), d.Za.slice(t));
 
-      //! INPUT GATE DERIVS
-      //! \f$\frac{dE}{db_I} = \frac{dE}{dS} * b_Z \f$
-      dot(d.S.slice(t), b.Zb.slice(t), d.Ib.slice(t));
-
-      //! \f$\frac{dE}{da_I} = \frac{dE}{db_I} * f'(a_I) \f$
-      //sigmoid_deriv(d.Ib.slice(t), b.Ib.slice(t), d.temp_hidden, d.temp_hidden2, d.Ia.slice(t));
-
-      //apply_sigmoid_deriv(b.Ib.slice(t), d.Ia.slice(t));
-      apply_sigmoid_deriv(b.Ib.slice(t), d.tmp1.slice(t));
-      dot(d.Ib.slice(t), d.tmp1.slice(t), d.Ia.slice(t));
-
-      //! INPUT GATE DERIVS
-      //! \f$\frac{dE}{db_I} = \frac{dE}{dS} * b_Z \f$
-      dot(d.S.slice(t), b.Zb.slice(t), d.Ib.slice(t));
-
-      //! \f$\frac{dE}{da_I} = \frac{dE}{db_I} * f'(a_I) \f$
-      //sigmoid_deriv(d.Ib.slice(t), b.Ib.slice(t), d.temp_hidden, d.temp_hidden2, d.Ia.slice(t));
-
-      //apply_sigmoid_deriv(b.Ib.slice(t), d.Ia.slice(t));
-      apply_sigmoid_deriv(b.Ib.slice(t), d.tmp1.slice(t));
-      dot(d.Ib.slice(t), d.tmp1.slice(t), d.Ia.slice(t));
-
-      // STRUCTURAL DAMPING JUST ON INPUT GATE
-      copy(Rb.Ib.slice(t), d.tmp1.slice(t));
+      // STRUCTURAL DAMPING JUST ON INPUTS NOOOOOOOOTTTTT INPUT GATE
+      copy(Rb.Zb.slice(t), d.tmp1.slice(t));
       scale_into(d.tmp1.slice(t), lambda*mu);
-      add_into_b(d.tmp1.slice(t), d.Ia.slice(t));
+      add_into_b(d.tmp1.slice(t), d.Za.slice(t));
+
+
+      //! INPUT GATE DERIVS
+      //! \f$\frac{dE}{db_I} = \frac{dE}{dS} * b_Z \f$
+      dot(d.S.slice(t), b.Zb.slice(t), d.Ib.slice(t));
+
+      //! \f$\frac{dE}{da_I} = \frac{dE}{db_I} * f'(a_I) \f$
+      //sigmoid_deriv(d.Ib.slice(t), b.Ib.slice(t), d.temp_hidden, d.temp_hidden2, d.Ia.slice(t));
+
+      //apply_sigmoid_deriv(b.Ib.slice(t), d.Ia.slice(t));
+      apply_sigmoid_deriv(b.Ib.slice(t), d.tmp1.slice(t));
+      dot(d.Ib.slice(t), d.tmp1.slice(t), d.Ia.slice(t));
+
+      //! INPUT GATE DERIVS
+      //! \f$\frac{dE}{db_I} = \frac{dE}{dS} * b_Z \f$
+      dot(d.S.slice(t), b.Zb.slice(t), d.Ib.slice(t));
+
+      //! \f$\frac{dE}{da_I} = \frac{dE}{db_I} * f'(a_I) \f$
+      //sigmoid_deriv(d.Ib.slice(t), b.Ib.slice(t), d.temp_hidden, d.temp_hidden2, d.Ia.slice(t));
+
+      //apply_sigmoid_deriv(b.Ib.slice(t), d.Ia.slice(t));
+      apply_sigmoid_deriv(b.Ib.slice(t), d.tmp1.slice(t));
+      dot(d.Ib.slice(t), d.tmp1.slice(t), d.Ia.slice(t));
 
      //! FORGET GATE DERIVS
       if (t) {
