@@ -180,7 +180,7 @@ void hard_compete_locally(Matrix mask, Matrix x, Matrix out, unsigned int block_
     for (size_t slice = 0; slice < x.n_slices; ++slice ) {
         for (size_t column = 0; column < x.n_columns; ++column ) {
             for (size_t row = 0; row < x.n_rows; row += block_size) {
-                d_type max = std::numeric_limits<d_type>::min();
+                d_type max = -std::numeric_limits<d_type>::max();
                 size_t max_i = row;
                 for (size_t row_g = row; row_g < row + block_size; row_g++) {
                     d_type current = x.get(row_g, column, slice);
