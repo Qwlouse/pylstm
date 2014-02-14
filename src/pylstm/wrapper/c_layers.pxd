@@ -13,7 +13,7 @@ cdef extern from "forward_layer.h":
 cdef extern from "dropout_layer.h":
     cppclass DropoutLayer:
         DropoutLayer()
-        DropoutLayer(double drop_prob)
+        DropoutLayer(double drop_prob, unsigned int initial_state)
         double drop_prob
         unsigned int rnd_state
 
