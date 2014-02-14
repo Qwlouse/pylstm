@@ -317,6 +317,11 @@ void LstmLayer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Matri
       apply_sigmoid_deriv(b.Ib.slice(t), d.tmp1.slice(t));
       dot(d.Ib.slice(t), d.tmp1.slice(t), d.Ia.slice(t));
 
+      // STRUCTURAL DAMPING JUST ON INPUT GATE
+      copy(Rb.Ib.slice(t), d.tmp1.slice(t));
+      scale_into(d.tmp1.slice(t), lambda*mu);
+      add_into_b(d.tmp1.slice(t), d.Ia.slice(t));
+
      //! FORGET GATE DERIVS
       if (t) {
           //! \f$\frac{dE}{db_F} += \frac{dE}{dS} * s(t-1)\f$
@@ -328,11 +333,6 @@ void LstmLayer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Matri
       // \f$\frac{dE}{da_F} = \frac{dE}{db_F} * f'(a_F)\f$
       apply_sigmoid_deriv(b.Fb.slice(t), d.tmp1.slice(t));
       dot(d.Fb.slice(t), d.tmp1.slice(t), d.Fa.slice(t));
-
-      // STRUCTURAL DAMPING JUST ON FORGET GATE
-      copy(Rb.Fb.slice(t), d.tmp1.slice(t));
-      scale_into(d.tmp1.slice(t), lambda*mu);
-      add_into_b(d.tmp1.slice(t), d.Fa.slice(t));
 
 
       //////////////////////// Alex Graves Delta Clipping ///////////////////////////
