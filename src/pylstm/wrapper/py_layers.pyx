@@ -178,7 +178,7 @@ def create_layer(name, in_size, out_size, **kwargs):
         if 'use_bias' in kwargs:
             forward_layer.use_bias = kwargs['use_bias']
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.ForwardLayer](in_size, out_size, forward_layer))
-    if name_lower == "hffinallayer":
+    elif name_lower == "hffinallayer":
         hf_final_layer = cl.HfFinalLayer(act_fct)
         if 'use_bias' in kwargs:
             hf_final_layer.use_bias = kwargs['use_bias']
