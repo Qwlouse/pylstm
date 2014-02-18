@@ -257,6 +257,7 @@ class CgStep(TrainingStep, Seedable):
         self.lambda_ = 0.1
         self.maxiter = maxiter
 
+
     def _initialize(self):
         self.lambda_ = 0.1
 
@@ -275,7 +276,10 @@ class CgStep(TrainingStep, Seedable):
 
         ## initialize v
         #v = np.zeros(net.get_param_size())
-        v = .01 * self.rnd.randn(self.net.get_param_size())
+        try:
+            v = self.new_v
+        except:
+            v = .000001 * self.rnd.randn(self.net.get_param_size())
 
         # select a random subset of the data for the CG
         x, t, m = self._get_random_subset(X, T, M, self.minibatch_size)
@@ -287,6 +291,7 @@ class CgStep(TrainingStep, Seedable):
 
         ## run CG
         all_v = conjgrad3(grad, v.copy(), fhess_p, maxiter=self.maxiter)
+        self.new_v = all_v[-1]
 
         ## backtrack #1
         lowError = float('Inf')
