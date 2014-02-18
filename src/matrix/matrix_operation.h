@@ -49,6 +49,7 @@ inline double sigmoid(double val) {
 }
 
 inline double sigmoid_deriv(double val) {
+    // In terms of the output
     return val * (1.0 - val);
 }
 
@@ -61,19 +62,22 @@ inline double tanh_(double val) {
 }
 
 inline double tanh_deriv(double val) {
+    // In terms of the output
     return 1.0 - val * val;
 }
 
 inline double tanhx2_deriv(double val) {
+    // In terms of the output
     return 2.0 - 0.5 * val * val;
 }
 
 inline double tanh_scaled(double val) {
-  return 1.7159*tanh(0.66666667*val);
+    return 1.7159*tanh(0.66666667*val);
 }
 
 inline double tanh_scaled_deriv(double val) {
-  return 1.14393333333*(1 - (val * val));
+    // In terms of the output
+    return 1.14393333333*(1 - (val * val));
 }
 
 inline double identity(double val) {
@@ -89,6 +93,7 @@ inline double rectified_linear(double val) {
 }
 
 inline double reclin_deriv(double val) {
+    // In terms of the output
     return val == 0.0 ? 0.0 : 1.0;
 }
 

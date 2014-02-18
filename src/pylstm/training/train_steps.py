@@ -85,6 +85,9 @@ class SgdStep(TrainingStep):
 class MomentumStep(TrainingStep):
     """
     Stochastic Gradient Descent with a momentum term.
+    learning_rate and momentum can be scheduled using pylstm.training.schedules
+    If scale_learning_rate is True (default),
+    learning_rate is multiplied by (1 - momentum) when used.
     """
     def __init__(self, learning_rate=0.1, momentum=0.0, scale_learning_rate=True):
         super(MomentumStep, self).__init__()
@@ -118,6 +121,9 @@ class MomentumStep(TrainingStep):
 class NesterovStep(TrainingStep):
     """
     Stochastic Gradient Descent with a Nesterov-style momentum term.
+    learning_rate and momentum can be scheduled using pylstm.training.schedules
+    If scale_learning_rate is True (default),
+    learning_rate is multiplied by (1 - momentum) when used.
     """
     def __init__(self, learning_rate=0.1, momentum=0.0, scale_learning_rate=True):
         super(NesterovStep, self).__init__()
