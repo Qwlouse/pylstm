@@ -5,6 +5,7 @@ from __future__ import division, print_function, unicode_literals
 from collections import OrderedDict
 import time
 import numpy as np
+import sys
 from .train_steps import SgdStep, ForwardStep
 
 
@@ -71,6 +72,7 @@ class Trainer(object):
         self.restart_stopping_criteria()
 
         while True:
+            sys.stdout.flush()
             train_errors = []
             if verbose:
                 print('\n\n', 15*'- ', " Epoch ", (self.epochs_seen + 1), 15*' -')
