@@ -86,11 +86,14 @@ class MomentumStep(TrainingStep):
     """
     Stochastic Gradient Descent with a momentum term.
     """
-    def __init__(self, learning_rate=0.1, momentum=0.0):
+    def __init__(self, learning_rate=0.1, momentum=0.0, scale_learning_rate=True):
         super(MomentumStep, self).__init__()
         self.velocity = None
         self.momentum_schedule = get_schedule(momentum)
         self.learning_rate_schedule = get_schedule(learning_rate)
+        assert (scale_learning_rate is True) or (scale_learning_rate is False),\
+            "scale_learning_rate must be True or False"
+        self.scale_learning_rate = scale_learning_rate
 
     def _initialize(self):
         self.velocity = np.zeros(self.net.get_param_size())
@@ -102,7 +105,11 @@ class MomentumStep(TrainingStep):
         self.net.forward_pass(x, training_pass=True)
         error = self.net.calculate_error(t, m)
         self.net.backward_pass(t, m)
-        dv = learning_rate * self.net.calc_gradient().flatten()
+        if self.scale_learning_rate:
+            dv = (1 - momentum) * learning_rate * self.net.calc_gradient().flatten()
+        else:
+            dv = learning_rate * self.net.calc_gradient().flatten()
+
         self.velocity -= dv
         self.net.param_buffer += self.velocity
         return error
@@ -112,11 +119,14 @@ class NesterovStep(TrainingStep):
     """
     Stochastic Gradient Descent with a Nesterov-style momentum term.
     """
-    def __init__(self, learning_rate=0.1, momentum=0.0):
+    def __init__(self, learning_rate=0.1, momentum=0.0, scale_learning_rate=True):
         super(NesterovStep, self).__init__()
         self.velocity = None
         self.momentum_schedule = get_schedule(momentum)
         self.learning_rate_schedule = get_schedule(learning_rate)
+        assert (scale_learning_rate is True) or (scale_learning_rate is False), \
+            "scale_learning_rate must be True or False"
+        self.scale_learning_rate = scale_learning_rate
 
     def _initialize(self):
         self.velocity = np.zeros(self.net.get_param_size())
@@ -129,7 +139,11 @@ class NesterovStep(TrainingStep):
         self.net.forward_pass(x, training_pass=True)
         error = self.net.calculate_error(t, m)
         self.net.backward_pass(t, m)
-        dv = learning_rate * self.net.calc_gradient().flatten()
+        if self.scale_learning_rate:
+            dv = (1 - momentum) * learning_rate * self.net.calc_gradient().flatten()
+        else:
+            dv = learning_rate * self.net.calc_gradient().flatten()
+
         self.velocity -= dv
         self.net.param_buffer -= dv
         return error
