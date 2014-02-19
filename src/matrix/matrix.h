@@ -69,6 +69,8 @@ public:
 
 	bool overlaps_with(const Matrix& other) const;
 
+	Matrix copy();
+
 	// iterator
 	class iterator : public std::iterator<std::forward_iterator_tag, Matrix> {
 	private:

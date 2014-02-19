@@ -66,7 +66,7 @@ void HfFinalLayer::gradient(HfFinalLayer::Parameters&, HfFinalLayer::Parameters&
         squash(d.Ha, grad.H_bias);
 }
 
-void HfFinalLayer::Rpass(Parameters &w, Parameters &v,  FwdState &, FwdState &Rb, Matrix &x, Matrix &y, Matrix& Rx, Matrix &Ry)
+void HfFinalLayer::Rpass(Parameters &w, Parameters &v,  FwdState &, FwdState &Rb, Matrix &x, Matrix&, Matrix& Rx, Matrix &Ry)
 {
     // Rb.Ha = W Rx + V x
     mult(v.HX, x.flatten_time(), Rb.Ha.flatten_time());

@@ -28,6 +28,7 @@ cdef extern from "matrix.h":
         Matrix row_slice(size_t start_row, size_t stop_row) except +
         void set_all_elements_to(d_type value) except +
         void print_me() except +
+        Matrix copy() except +
 
 
 cdef extern from "matrix_operation.h":

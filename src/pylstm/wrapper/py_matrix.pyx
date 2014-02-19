@@ -145,6 +145,12 @@ cdef class Matrix:
     def set_all_elements_to(self, value):
         self.c_obj.set_all_elements_to(value)
 
+    def copy(self):
+        b = Matrix()
+        b.c_obj = self.c_obj.copy()
+        b.A = None
+        return b
+
 
 def dot(Matrix a not None, Matrix b not None, Matrix out not None):
     cm.dot(a.c_obj, b.c_obj, out.c_obj)
