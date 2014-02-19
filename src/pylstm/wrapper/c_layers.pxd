@@ -9,13 +9,24 @@ cdef extern from "forward_layer.h":
         ForwardLayer(ActivationFunction* f)
         bool use_bias
 
+cdef extern from "hf_final_layer.h":
+    cppclass HfFinalLayer:
+        HfFinalLayer()
+        HfFinalLayer(ActivationFunction* f)
+        bool use_bias
 
 cdef extern from "dropout_layer.h":
     cppclass DropoutLayer:
         DropoutLayer()
-        DropoutLayer(double drop_prob)
+        DropoutLayer(double drop_prob, unsigned int initial_state)
         double drop_prob
         unsigned int rnd_state
+
+cdef extern from "lwta_layer.h":
+    cppclass LWTALayer:
+        LWTALayer()
+        LWTALayer(unsigned int block_size)
+        unsigned int block_size
 
 cdef extern from "reverse_layer.h":
     cppclass ReverseLayer:

@@ -38,7 +38,7 @@ class NetworkTests(unittest.TestCase):
 
     def test_dropout_mask_application(self):
         net = build_net(InputLayer(self.input_size) >> DropoutLayer())
-        output = net.forward_pass(self.X)
+        output = net.forward_pass(self.X, training_pass=True)
         mask = net.get_fwd_state_for('DropoutLayer')['Mask']
         self.assertTrue(np.all(output[mask == 0] == 0))
 

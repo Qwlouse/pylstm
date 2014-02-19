@@ -86,11 +86,14 @@ class MomentumStep(TrainingStep):
     """
     Stochastic Gradient Descent with a momentum term.
     """
-    def __init__(self, learning_rate=0.1, momentum=0.0):
+    def __init__(self, learning_rate=0.1, momentum=0.0, scale_learning_rate=True):
         super(MomentumStep, self).__init__()
         self.velocity = None
         self.momentum_schedule = get_schedule(momentum)
         self.learning_rate_schedule = get_schedule(learning_rate)
+        assert (scale_learning_rate is True) or (scale_learning_rate is False),\
+            "scale_learning_rate must be True or False"
+        self.scale_learning_rate = scale_learning_rate
 
     def _initialize(self):
         self.velocity = np.zeros(self.net.get_param_size())
@@ -102,7 +105,11 @@ class MomentumStep(TrainingStep):
         self.net.forward_pass(x, training_pass=True)
         error = self.net.calculate_error(t, m)
         self.net.backward_pass(t, m)
-        dv = learning_rate * self.net.calc_gradient().flatten()
+        if self.scale_learning_rate:
+            dv = (1 - momentum) * learning_rate * self.net.calc_gradient().flatten()
+        else:
+            dv = learning_rate * self.net.calc_gradient().flatten()
+
         self.velocity -= dv
         self.net.param_buffer += self.velocity
         return error
@@ -112,11 +119,14 @@ class NesterovStep(TrainingStep):
     """
     Stochastic Gradient Descent with a Nesterov-style momentum term.
     """
-    def __init__(self, learning_rate=0.1, momentum=0.0):
+    def __init__(self, learning_rate=0.1, momentum=0.0, scale_learning_rate=True):
         super(NesterovStep, self).__init__()
         self.velocity = None
         self.momentum_schedule = get_schedule(momentum)
         self.learning_rate_schedule = get_schedule(learning_rate)
+        assert (scale_learning_rate is True) or (scale_learning_rate is False), \
+            "scale_learning_rate must be True or False"
+        self.scale_learning_rate = scale_learning_rate
 
     def _initialize(self):
         self.velocity = np.zeros(self.net.get_param_size())
@@ -129,7 +139,11 @@ class NesterovStep(TrainingStep):
         self.net.forward_pass(x, training_pass=True)
         error = self.net.calculate_error(t, m)
         self.net.backward_pass(t, m)
-        dv = learning_rate * self.net.calc_gradient().flatten()
+        if self.scale_learning_rate:
+            dv = (1 - momentum) * learning_rate * self.net.calc_gradient().flatten()
+        else:
+            dv = learning_rate * self.net.calc_gradient().flatten()
+
         self.velocity -= dv
         self.net.param_buffer -= dv
         return error
@@ -249,13 +263,15 @@ def calculate_gradient(net, data_iter):
 
 
 class CgStep(TrainingStep, Seedable):
-    def __init__(self, minibatch_size=32, mu=1. / 30, maxiter=300, seed=None):
+    def __init__(self, minibatch_size=32, mu=1. / 30, maxiter=300, seed=None, matching_loss=True):
         TrainingStep.__init__(self)
         Seedable.__init__(self, seed, category='trainer')
         self.minibatch_size = minibatch_size
         self.mu = mu
         self.lambda_ = 0.1
         self.maxiter = maxiter
+        self.matching_loss = matching_loss
+
 
     def _initialize(self):
         self.lambda_ = 0.1
@@ -275,18 +291,22 @@ class CgStep(TrainingStep, Seedable):
 
         ## initialize v
         #v = np.zeros(net.get_param_size())
-        v = .01 * self.rnd.randn(self.net.get_param_size())
+        try:
+            v = self.new_v
+        except:
+            v = .000001 * self.rnd.randn(self.net.get_param_size())
 
         # select a random subset of the data for the CG
         x, t, m = self._get_random_subset(X, T, M, self.minibatch_size)
 
         ## define hessian pass
         def fhess_p(v):
-            return self.net.hessian_pass(x, v, self.mu, self.lambda_).copy().\
+            return self.net.hessian_pass(x, v, t, m, self.mu, self.lambda_, self.matching_loss).copy().\
                        flatten() + self.lambda_*v
 
         ## run CG
         all_v = conjgrad3(grad, v.copy(), fhess_p, maxiter=self.maxiter)
+        self.new_v = all_v[-1]
 
         ## backtrack #1
         lowError = float('Inf')

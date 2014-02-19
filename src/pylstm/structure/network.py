@@ -6,7 +6,7 @@ from .. import wrapper as pw
 from pylstm.randomness import global_rnd, reseeding_copy, Seedable
 from pylstm.regularization.initializer import _evaluate_initializer
 from pylstm.targets import create_targets_object
-
+import numpy as np
 
 class Network(Seedable):
     def __init__(self, layers, param_manager, fwd_state_manager, in_out_manager,
@@ -324,8 +324,8 @@ class Network(Seedable):
             # read the output buffer
         return self.r_out_buffer
 
-    def r_backward_pass(self, lambda_, mu):
-        delta_buffer = self.r_out_buffer
+    def r_backward_pass(self, rvals, lambda_, mu):
+        delta_buffer = rvals
         t, b, f = delta_buffer.shape
         # dims should already be set during forward_pass, but in any case...
         self.set_buffer_manager_dimensions(t, b)
@@ -351,10 +351,23 @@ class Network(Seedable):
         # read the final delta buffer
         return self.in_delta_buffer
 
-    def hessian_pass(self, input_buffer, v_buffer, lambda_=0., mu=0.):
+    def hessian_pass(self, input_buffer, v_buffer, T, M=None, lambda_=0., mu=0., matching_loss=True):
         self.forward_pass(input_buffer)
         self.r_forward_pass(input_buffer, v_buffer)
-        self.r_backward_pass(lambda_, mu)
+        if matching_loss:
+            self.r_backward_pass(self.r_out_buffer, lambda_, mu)
+        else:
+            if self.error is None:
+                self.T = create_targets_object(T)
+                self.M = M
+                self.error, self.deltas = self.error_func(self.out_buffer,
+                                                      self.T, M)
+
+            rval = self.r_in_out_manager.get_source_view(self.out_layer).as_array()
+            for t in range(rval.shape[0]):
+                for b in range(rval.shape[1]):
+                    rval[t, b, :] = self.deltas[t, b] * np.inner(self.deltas[t, b], rval[t, b])
+            self.r_backward_pass(rval, lambda_, mu)
         return self.calc_gradient()
 
     def initialize(self, init_dict=None, seed=None, **kwargs):
