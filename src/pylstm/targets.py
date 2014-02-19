@@ -81,7 +81,7 @@ class LabelingTargets(Targets):
         if isinstance(item, slice) or isinstance(item, int):
             return LabelingTargets(self.data[item], binarize_to=self.binarize_to)
         elif isinstance(item, list) or isinstance(item, np.ndarray):
-            assert len(item) == len(self.data)
+            #assert len(item) == len(self.data)
             return LabelingTargets([self.data[i] for i in item],
                                    binarize_to=self.binarize_to)
         else:

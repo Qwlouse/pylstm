@@ -157,7 +157,7 @@ def _LabelingBinarizingCTC(Y, T, M):
     for b, (y, t, m) in enumerate(Online(Y, T, M, verbose=False)()):
         err, delt = ctcpp(y, list(t.data[0]))
         errors[b] = err
-        deltas[:, b:b+1, :] = delt.as_array()
+        deltas[:y.shape[0], b:b+1, :] = delt.as_array()
 
     return np.mean(errors), -deltas / batch_size
 
