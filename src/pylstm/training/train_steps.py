@@ -263,13 +263,14 @@ def calculate_gradient(net, data_iter):
 
 
 class CgStep(TrainingStep, Seedable):
-    def __init__(self, minibatch_size=32, mu=1. / 30, maxiter=300, seed=None):
+    def __init__(self, minibatch_size=32, mu=1. / 30, maxiter=300, seed=None, matching_loss=True):
         TrainingStep.__init__(self)
         Seedable.__init__(self, seed, category='trainer')
         self.minibatch_size = minibatch_size
         self.mu = mu
         self.lambda_ = 0.1
         self.maxiter = maxiter
+        self.matching_loss = matching_loss
 
 
     def _initialize(self):
@@ -300,7 +301,7 @@ class CgStep(TrainingStep, Seedable):
 
         ## define hessian pass
         def fhess_p(v):
-            return self.net.hessian_pass(x, v, self.mu, self.lambda_).copy().\
+            return self.net.hessian_pass(x, v, t, m, self.mu, self.lambda_, self.matching_loss).copy().\
                        flatten() + self.lambda_*v
 
         ## run CG
