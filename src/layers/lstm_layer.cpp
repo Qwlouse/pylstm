@@ -265,10 +265,11 @@ void LstmLayer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Matri
           dot_add(d.Fa.slice(t+1), w.FS, d.S.slice(t));
       }
 
-      //structural damping
+      // STRUCTURAL DAMPING JUST ON HIDDEN BLOCK --- ASSUMING NO NONLINEARITY
       copy(Rb.Hb.slice(t), d.tmp1.slice(t));
       scale_into(d.tmp1.slice(t), lambda*mu);
-      add_vector_into(d.tmp1.slice(t), d.Hb.slice(t));
+      add_into_b(d.tmp1.slice(t), d.Hb.slice(t));
+
 
       //! \f$\frac{dE}{df_S} += \frac{dE}{dH} * b_O\f$  THIS IS WEIRD, IT GOES WITH NEXT LINE ??!?!
       dot(d.Hb.slice(t), b.Ob.slice(t), d.f_S.slice(t));
@@ -293,6 +294,11 @@ void LstmLayer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Matri
       //! \f$\frac{dE}{dS} += \frac{dE}{da_O} * W_OS\f$
       dot_add(d.Oa.slice(t), w.OS, d.S.slice(t));
 
+      // STRUCTURAL DAMPING JUST ON STATE CELL
+      copy(Rb.f_S.slice(t), d.tmp1.slice(t));
+      scale_into(d.tmp1.slice(t), lambda*mu);
+      add_into_b(d.tmp1.slice(t), d.S.slice(t));
+
       //! CELL ACTIVATION DERIVS
       //! \f$\frac{dE}{db_Z} = \frac{dE}{dS} * b_I\f$
       dot(d.S.slice(t), b.Ib.slice(t), d.Zb.slice(t));
@@ -300,9 +306,6 @@ void LstmLayer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Matri
       apply(b.Zb.slice(t), d.tmp1.slice(t), &tanh_deriv);
       dot(d.Zb.slice(t), d.tmp1.slice(t), d.Za.slice(t));
 
-      //structural damping (this may be in the wrong place, but trying to follow previous version)
-      scale_into(d.tmp1.slice(t), lambda*mu);
-      dot_add(d.tmp1.slice(t), Rb.Za.slice(t), d.Za.slice(t));
 
       //! INPUT GATE DERIVS
       //! \f$\frac{dE}{db_I} = \frac{dE}{dS} * b_Z \f$
@@ -337,6 +340,7 @@ void LstmLayer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Matri
       // \f$\frac{dE}{da_F} = \frac{dE}{db_F} * f'(a_F)\f$
       apply_sigmoid_deriv(b.Fb.slice(t), d.tmp1.slice(t));
       dot(d.Fb.slice(t), d.tmp1.slice(t), d.Fa.slice(t));
+
 
       //////////////////////// Alex Graves Delta Clipping ///////////////////////////
       if (delta_range < INFINITY) {
