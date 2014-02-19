@@ -69,6 +69,6 @@ void MatrixContainer::set_values(MatrixContainerSlice* slice, size_t start) {
     for(std::map<std::string, Matrix*>::iterator iter = views.begin(); iter != views.end(); ++iter)
     {
         Matrix* target = iter->second;
-        copy((*slice)[iter->first], target->slice(start, target->n_slices));
+        copy((*slice)[iter->first], target->slice(start, start+target->n_slices));
     }
 }
