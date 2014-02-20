@@ -84,5 +84,5 @@ cdef extern from "matrix_container.h":
         vector[string] get_view_names() except +
         size_t get_size() except +
         string get_typename() except +
-        MatrixContainerSlice* slice(size_t start, size_t stop) except +
+        MatrixContainerSlice* copy_slice(size_t start, size_t stop) except +
         void set_values(MatrixContainerSlice* slice, size_t start) except +

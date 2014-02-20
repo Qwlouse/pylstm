@@ -92,9 +92,10 @@ cdef class MatrixContainer:
     def values(self):
         return [self[n] for n in self.keys()]
 
-    def slice(self, start, stop):
-        return create_MatrixContainerSlice(self.this_ptr.slice(start, stop))
+    def copy_slice(self, start, stop):
+        bc = MatrixContainerSlice()
+        bc.this_ptr = self.this_ptr.copy_slice(start, stop)
+        return bc
 
     def set_values(self, MatrixContainerSlice mc_slice, int start=0):
-        cdef cm.MatrixContainerSlice* ms = mc_slice.this_ptr
-        self.this_ptr.set_values(ms, start)
+        self.this_ptr.set_values(mc_slice.this_ptr, start)

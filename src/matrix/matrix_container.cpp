@@ -19,8 +19,7 @@ Matrix& MatrixContainer::operator[](const std::string& name) {
 
 std::vector<std::string> MatrixContainer::get_view_names() {
     std::vector<std::string> view_names;
-    for(std::map<std::string,Matrix*>::iterator iter = views.begin(); iter != views.end(); ++iter)
-    {
+    for (auto iter = views.begin(); iter != views.end(); ++iter) {
         view_names.push_back(iter->first);
     }
     return view_names;
@@ -38,8 +37,7 @@ std::string MatrixContainer::get_typename() {
 
 void MatrixContainer::lay_out(Matrix& buffer) {
     size_t offset = 0;
-    for(std::map<std::string,Matrix*>::iterator iter = views.begin(); iter != views.end(); ++iter)
-    {
+    for (auto iter = views.begin(); iter != views.end(); ++iter) {
         Matrix* k =  iter->second;
         size_t rows = k->n_rows;
         size_t cols = k->n_columns;
@@ -56,19 +54,19 @@ void MatrixContainer::add_view(const std::string& name, Matrix* view) {
     size += view->size;
 }
 
-MatrixContainerSlice* MatrixContainer::slice(size_t start, size_t stop) {
+
+MatrixContainerSlice* MatrixContainer::copy_slice(size_t start, size_t stop) {
     MatrixContainerSlice* sliced = new MatrixContainerSlice();
-    for(std::map<std::string,Matrix*>::iterator iter = views.begin(); iter != views.end(); ++iter)
-    {
-        (*sliced)[iter->first] = iter->second->slice(start, stop);
+    for (auto iter = views.begin(); iter != views.end(); ++iter) {
+        (*sliced)[iter->first] = iter->second->slice(start, stop).copy();
     }
     return sliced;
 }
 
+
 void MatrixContainer::set_values(MatrixContainerSlice* slice, size_t start) {
-    for(std::map<std::string, Matrix*>::iterator iter = views.begin(); iter != views.end(); ++iter)
-    {
+    for (auto iter = views.begin(); iter != views.end(); ++iter) {
         Matrix* target = iter->second;
-        copy((*slice)[iter->first], target->slice(start, start+target->n_slices));
+        copy((*slice)[iter->first], target->slice(start, target->n_slices));
     }
 }

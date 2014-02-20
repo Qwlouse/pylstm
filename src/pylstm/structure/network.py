@@ -3,10 +3,11 @@
 from __future__ import division, print_function, unicode_literals
 from copy import deepcopy
 from .. import wrapper as pw
-from pylstm.randomness import global_rnd, reseeding_copy, Seedable
+from pylstm.randomness import reseeding_copy, Seedable
 from pylstm.regularization.initializer import _evaluate_initializer
 from pylstm.targets import create_targets_object
 import numpy as np
+
 
 class Network(Seedable):
     def __init__(self, layers, param_manager, fwd_state_manager, in_out_manager,
@@ -180,6 +181,11 @@ class Network(Seedable):
         if self.bwd_state_manager.buffer:
             self.bwd_state_manager.clear_buffer()
 
+    def clear_context_slice(self):
+        for n, l in self.layers.items():
+            if self.in_out_manager.buffer:
+                self.in_out_manager.get_source_view(n).as_array()[0:1, :, :] = 0
+
     def __getitem__(self, item):
         """
         Get the layer with the given name.
@@ -195,20 +201,58 @@ class Network(Seedable):
         self.r_in_out_manager.set_dimensions(t + 1, b)
         self.delta_manager.set_dimensions(t + 1, b)
 
+    def _copy_context(self):
+        """
+        Copies the content of all forward buffers and in_out buffer for the
+        last timestep. The resulting dict can be copied into the
+        context-frame (the 0th timestep), to make the network continue execution
+        from where it left.
+        See: _apply_context
+        """
+        end_t = self.fwd_state_manager.slice_count - 1
+        context = dict()
+        for n, l in self.layers.items()[1:]:
+            fwd_state = self.fwd_state_manager.get_source_view(n)
+            in_view = self.in_out_manager.get_sink_view(n)
+            context[n] = {
+                'fwd_state': fwd_state.copy_slice(end_t, end_t + 1),
+                'in_view':  in_view.as_array()[end_t, :, :].copy()
+            }
+
+        context['__output_buffer__'] = self.in_out_manager.get_source_view(
+            self.out_layer).as_array()[end_t, :, :].copy()
+        return context
+
+    def _apply_context(self, context):
+        """
+        Copies the context from _copy_context() into the context frame.
+        """
+        for n, l in self.layers.items()[1:]:
+            fwd_state = self.fwd_state_manager.get_source_view(n)
+            in_view = self.in_out_manager.get_sink_view(n).as_array()
+            fwd_state.set_values(context[n]['fwd_state'], start=0)
+            in_view[0, :, :] = context[n]['in_view']
+        self.in_out_manager.get_source_view(self.out_layer).as_array()[0, :, :]\
+            = context['__output_buffer__']
+
     def forward_pass(self, input_buffer, reset=True, training_pass=False):
         self.targets = None
         self.mask = None
         self.error = None
         self.deltas = None
-        if reset:
-            self.clear_internal_state()
-        else:
-            old_t = self.fwd_state_manager.slice_count - 1
+        context = None
+        if not reset and self.fwd_state_manager.buffer is not None:
+            context = self._copy_context()
 
         # determine dimensions and set buffer managers accordingly
         t, b, f = input_buffer.shape
         assert f == self.layers.values()[0].out_size
         self.set_buffer_manager_dimensions(t, b)
+        if reset:
+            self.clear_internal_state()
+            self.clear_context_slice()
+        elif context:
+            self._apply_context(context)
         # inject the input buffer
         self.in_buffer[:] = input_buffer
         # execute all the intermediate layers
@@ -218,10 +262,6 @@ class Network(Seedable):
 
             out_view = self.in_out_manager.get_source_view(n)
             in_view = self.in_out_manager.get_sink_view(n)
-            if not reset:
-                fwd_state.set_value(fwd_state.slice(old_t, old_t + 1))
-                # todo: check if we need in_view
-                in_view.as_array()[0, :, :] = in_view.as_array()[old_t, :, :]
 
             l.forward(param, fwd_state, in_view, out_view, training_pass)
         # read the output buffer
@@ -361,7 +401,7 @@ class Network(Seedable):
                 self.T = create_targets_object(T)
                 self.M = M
                 self.error, self.deltas = self.error_func(self.out_buffer,
-                                                      self.T, M)
+                                                          self.T, M)
 
             rval = self.r_in_out_manager.get_source_view(self.out_layer).as_array()
             for t in range(rval.shape[0]):

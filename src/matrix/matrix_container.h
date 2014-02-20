@@ -27,7 +27,7 @@ public:
 
     void lay_out(Matrix& buffer);
 
-    MatrixContainerSlice* slice(size_t start, size_t stop);
+    MatrixContainerSlice* copy_slice(size_t start, size_t stop);
 
     void set_values(MatrixContainerSlice* slice, size_t start=0);
 
