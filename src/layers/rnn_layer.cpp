@@ -52,13 +52,11 @@ RnnLayer::BwdState::BwdState(size_t, size_t n_cells, size_t n_batches, size_t ti
 ////////////////////// Methods /////////////////////////////////////////////
 void RnnLayer::forward(RnnLayer::Parameters& w, RnnLayer::FwdState& b, Matrix& x, Matrix& y, bool) {
     size_t n_slices = x.n_slices;
-    mult(w.HX, x.flatten_time(), b.Ha.flatten_time());
-    for (int t = 0; t < n_slices; ++t) {
-      if (t) {
+    mult(w.HX, x.slice(1,x.n_slices).flatten_time(), b.Ha.slice(1,b.Ha.n_slices).flatten_time());
+    for (int t = 1; t < n_slices; ++t) {
         mult_add(w.HR, y.slice(t-1), b.Ha.slice(t));
-      }
-      add_vector_into(w.H_bias, b.Ha.slice(t));
-      f->apply(b.Ha.slice(t), y.slice(t));
+        add_vector_into(w.H_bias, b.Ha.slice(t));
+        f->apply(b.Ha.slice(t), y.slice(t));
     }
 }
 void RnnLayer::backward(RnnLayer::Parameters& w, RnnLayer::FwdState&b, RnnLayer::BwdState& d, Matrix& y, Matrix& in_deltas, Matrix& out_deltas) {
@@ -67,25 +65,23 @@ void RnnLayer::backward(RnnLayer::Parameters& w, RnnLayer::FwdState&b, RnnLayer:
 
 void RnnLayer::gradient(RnnLayer::Parameters&, RnnLayer::Parameters& grad, RnnLayer::FwdState& , RnnLayer::BwdState& d, Matrix& y, Matrix& x, Matrix&) {
     size_t n_slices = x.n_slices;
-    mult_add(d.Ha.slice(0), x.slice(0).T(), grad.HX);
     for (int t = 1; t < n_slices; ++t) {
         mult_add(d.Ha.slice(t), x.slice(t).T(), grad.HX);
         mult_add(d.Ha.slice(t), y.slice(t-1).T(), grad.HR);
     }
     
-    squash(d.Ha, grad.H_bias);
+    squash(d.Ha.slice(1, n_slices), grad.H_bias);
 }
 
 void RnnLayer::Rpass(Parameters& w, Parameters& v,  FwdState&, FwdState& Rb, Matrix& x, Matrix& y, Matrix& Rx, Matrix& Ry)
 {
     size_t n_slices = x.n_slices;
-    mult(v.HX, x.flatten_time(), Rb.Ha.flatten_time());
-    mult_add(w.HX, Rx.flatten_time(), Rb.Ha.flatten_time());
-    for (int t = 0; t < n_slices; ++t) {
-      if (t) {
-        mult_add(v.HR, y.slice(t-1), Rb.Ha.slice(t));
-        mult_add(w.HR, Ry.slice(t-1), Rb.Ha.slice(t));
-      }
+    mult(v.HX, x.slice(1,x.n_slices).flatten_time(), Rb.Ha.slice(1,Rb.Ha.n_slices).flatten_time());
+    mult_add(w.HX, Rx.slice(1,x.n_slices).flatten_time(), Rb.Ha.slice(1,Rb.Ha.n_slices).flatten_time());
+    for (int t = 1; t < n_slices; ++t) {
+      mult_add(v.HR, y.slice(t-1), Rb.Ha.slice(t));
+      mult_add(w.HR, Ry.slice(t-1), Rb.Ha.slice(t));
+
       add_vector_into(v.H_bias, Rb.Ha.slice(t));
       f->apply_deriv(y.slice(t), Rb.Ha.slice(t), Ry.slice(t));
     }
@@ -109,6 +105,6 @@ void RnnLayer::dampened_backward(Parameters& w, FwdState&, BwdState& d, Matrix& 
         scale_into(d.tmp.slice(t), lambda * mu);
         add_into_b(d.tmp.slice(t), d.Ha.slice(t));
     }
-    mult_add(w.HX.T(), d.Ha.flatten_time(), in_deltas.flatten_time());
+    mult_add(w.HX.T(), d.Ha.slice(1,d.Ha.n_slices).flatten_time(), in_deltas.slice(1,in_deltas.n_slices).flatten_time());
 }
 

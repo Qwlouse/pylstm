@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include "Core.h"
+#include "cblas_wrapper.h"
 
 using std::cout;
 
@@ -232,6 +233,20 @@ bool Matrix::overlaps_with(const Matrix& other) const {
         return (this_start <= other_start && other_start <= this_end) ||
                (this_start <= other_end && other_end <= this_end);
     }
+}
+
+Matrix Matrix::copy() {
+    Matrix duplicate(n_rows, n_columns, n_slices, state);
+
+    // copy data
+    if (stride == 0) {
+        cblas_dcopy(static_cast<int>(size), get_data(), 1, duplicate.get_data(), 1);
+    } else {
+        for (auto ita = begin(), itb = duplicate.begin(); ita != end(); ++ita, ++itb) {
+            *itb = *ita;
+        }
+    }
+    return duplicate;
 }
 
 // iterator implementation

@@ -83,43 +83,41 @@ LstmLayer::BwdState::BwdState(size_t, size_t n_cells, size_t n_batches, size_t t
 
 
 void LstmLayer::forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y, bool) {
-    mult(w.IX, x.flatten_time(), b.Ia.flatten_time());
-    mult(w.FX, x.flatten_time(), b.Fa.flatten_time());
-    mult(w.ZX, x.flatten_time(), b.Za.flatten_time());
-    mult(w.OX, x.flatten_time(), b.Oa.flatten_time());
+  mult(w.IX, x.slice(1,x.n_slices).flatten_time(), b.Ia.slice(1,b.Ia.n_slices).flatten_time());
+  mult(w.FX, x.slice(1,x.n_slices).flatten_time(), b.Fa.slice(1,b.Fa.n_slices).flatten_time());
+  mult(w.ZX, x.slice(1,x.n_slices).flatten_time(), b.Za.slice(1,b.Za.n_slices).flatten_time());
+  mult(w.OX, x.slice(1,x.n_slices).flatten_time(), b.Oa.slice(1,b.Oa.n_slices).flatten_time());
 
-    for (size_t t(0); t < x.n_slices; ++t) {
+    for (size_t t(1); t < x.n_slices; ++t) {
         //IF NEXT
-        if (t) {
-            mult_add(w.FH, y.slice(t - 1), b.Fa.slice(t));
-            mult_add(w.IH, y.slice(t - 1), b.Ia.slice(t));
-            mult_add(w.OH, y.slice(t - 1), b.Oa.slice(t));
-            mult_add(w.ZH, y.slice(t - 1), b.Za.slice(t));
+      mult_add(w.FH, y.slice(t - 1), b.Fa.slice(t));
+      mult_add(w.IH, y.slice(t - 1), b.Ia.slice(t));
+      mult_add(w.OH, y.slice(t - 1), b.Oa.slice(t));
+      mult_add(w.ZH, y.slice(t - 1), b.Za.slice(t));
+      
+      dot_add(b.S.slice(t - 1), w.FS, b.Fa.slice(t));
+      dot_add(b.S.slice(t - 1), w.IS, b.Ia.slice(t));
+      
+      add_vector_into(w.F_bias, b.Fa.slice(t));
+      add_vector_into(w.I_bias, b.Ia.slice(t));
+      add_vector_into(w.Z_bias, b.Za.slice(t));
+      add_vector_into(w.O_bias, b.Oa.slice(t));
 
-            dot_add(b.S.slice(t - 1), w.FS, b.Fa.slice(t));
-            dot_add(b.S.slice(t - 1), w.IS, b.Ia.slice(t));
-        }
+      apply_sigmoid(b.Fa.slice(t), b.Fb.slice(t));
+      apply_sigmoid(b.Ia.slice(t), b.Ib.slice(t));
+      apply_tanh(b.Za.slice(t), b.Zb.slice(t));
+      dot(b.Zb.slice(t), b.Ib.slice(t), b.S.slice(t));
 
-        add_vector_into(w.F_bias, b.Fa.slice(t));
-        add_vector_into(w.I_bias, b.Ia.slice(t));
-        add_vector_into(w.Z_bias, b.Za.slice(t));
-        add_vector_into(w.O_bias, b.Oa.slice(t));
+      
+      dot_add(b.S.slice(t - 1), b.Fb.slice(t), b.S.slice(t));
+      f->apply(b.S.slice(t), b.f_S.slice(t));
+      dot_add(b.S.slice(t), w.OS, b.Oa.slice(t));
 
-        apply_sigmoid(b.Fa.slice(t), b.Fb.slice(t));
-        apply_sigmoid(b.Ia.slice(t), b.Ib.slice(t));
-        apply_tanh(b.Za.slice(t), b.Zb.slice(t));
-        dot(b.Zb.slice(t), b.Ib.slice(t), b.S.slice(t));
-
-        if (t)
-            dot_add(b.S.slice(t - 1), b.Fb.slice(t), b.S.slice(t));
-        f->apply(b.S.slice(t), b.f_S.slice(t));
-        dot_add(b.S.slice(t), w.OS, b.Oa.slice(t));
-
-        //mult_add(b.S.slice(t), w.OS, b.Oa.slice(t));
-        apply_sigmoid(b.Oa.slice(t), b.Ob.slice(t));
-        //copy(b.Oa.slice(t), b.Ob.slice(t));
-
-        dot(b.f_S.slice(t), b.Ob.slice(t), y.slice(t));
+      //mult_add(b.S.slice(t), w.OS, b.Oa.slice(t));
+      apply_sigmoid(b.Oa.slice(t), b.Ob.slice(t));
+      //copy(b.Oa.slice(t), b.Ob.slice(t));
+      
+      dot(b.f_S.slice(t), b.Ob.slice(t), y.slice(t));
     }
 }
 
@@ -136,10 +134,10 @@ void LstmLayer::gradient(Parameters&, Parameters& grad, FwdState& b, BwdState& d
     //! \f$\frac{dE}{dW_FX} += \frac{dE}{da_F} * x(t)\f$
     //! \f$\frac{dE}{dW_IX} += \frac{dE}{da_I} * x(t)\f$
     //! \f$\frac{dE}{dW_OX} += \frac{dE}{da_O} * x(t)\f$
-    mult(d.Za.flatten_time(), x.flatten_time().T(), grad.ZX); //  1.0 / 1.0); //(double) n_time);
-    mult(d.Fa.flatten_time(), x.flatten_time().T(), grad.FX); // 1.0 / 1.0); //(double) n_time);
-    mult(d.Ia.flatten_time(), x.flatten_time().T(), grad.IX); //1.0 / 1.0); //(double) n_time);
-    mult(d.Oa.flatten_time(), x.flatten_time().T(), grad.OX); // 1.0 / 1.0); //(double) n_time);
+    mult(d.Za.slice(1,d.Za.n_slices).flatten_time(), x.slice(1,x.n_slices).flatten_time().T(), grad.ZX); //  1.0 / 1.0); //(double) n_time);
+    mult(d.Fa.slice(1,d.Fa.n_slices).flatten_time(), x.slice(1,x.n_slices).flatten_time().T(), grad.FX); // 1.0 / 1.0); //(double) n_time);
+    mult(d.Ia.slice(1,d.Ia.n_slices).flatten_time(), x.slice(1,x.n_slices).flatten_time().T(), grad.IX); //1.0 / 1.0); //(double) n_time);
+    mult(d.Oa.slice(1,d.Oa.n_slices).flatten_time(), x.slice(1,x.n_slices).flatten_time().T(), grad.OX); // 1.0 / 1.0); //(double) n_time);
 
     //! \f$\frac{dE}{dW_ZH} += \frac{dE}{da_Z} * h(t-1)\f$
     //! \f$\frac{dE}{dW_FH} += \frac{dE}{da_F} * h(t-1)\f$
@@ -149,6 +147,7 @@ void LstmLayer::gradient(Parameters&, Parameters& grad, FwdState& b, BwdState& d
     grad.ZH.set_all_elements_to(0.0);
     grad.FH.set_all_elements_to(0.0);
     grad.OH.set_all_elements_to(0.0);
+
     for (int t = 0; t < n_time - 1; ++t) {
         mult_add(d.Ia.slice(t+1), y.slice(t).T(), grad.IH); //(double) n_time);
         mult_add(d.Za.slice(t+1), y.slice(t).T(), grad.ZH); //(double) n_time);
@@ -175,36 +174,35 @@ void LstmLayer::gradient(Parameters&, Parameters& grad, FwdState& b, BwdState& d
 
 void LstmLayer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb, Matrix &x, Matrix &y, Matrix& Rx, Matrix &Ry) {
 
-  mult(v.IX, x.flatten_time(), Rb.Ia.flatten_time());
-  mult(v.FX, x.flatten_time(), Rb.Fa.flatten_time());
-  mult(v.ZX, x.flatten_time(), Rb.Za.flatten_time());
-  mult(v.OX, x.flatten_time(), Rb.Oa.flatten_time());
+  mult(v.IX, x.slice(1,x.n_slices).flatten_time(), Rb.Ia.slice(1,Rb.Ia.n_slices).flatten_time());
+  mult(v.FX, x.slice(1,x.n_slices).flatten_time(), Rb.Fa.slice(1,Rb.Fa.n_slices).flatten_time());
+  mult(v.ZX, x.slice(1,x.n_slices).flatten_time(), Rb.Za.slice(1,Rb.Za.n_slices).flatten_time());
+  mult(v.OX, x.slice(1,x.n_slices).flatten_time(), Rb.Oa.slice(1,Rb.Oa.n_slices).flatten_time());
 
-  mult_add(w.IX, Rx.flatten_time(), Rb.Ia.flatten_time());
-  mult_add(w.FX, Rx.flatten_time(), Rb.Fa.flatten_time());
-  mult_add(w.ZX, Rx.flatten_time(), Rb.Za.flatten_time());
-  mult_add(w.OX, Rx.flatten_time(), Rb.Oa.flatten_time());
+  mult_add(w.IX, Rx.slice(1,Rx.n_slices).flatten_time(), Rb.Ia.slice(1,Rb.Ia.n_slices).flatten_time());
+  mult_add(w.FX, Rx.slice(1,Rx.n_slices).flatten_time(), Rb.Fa.slice(1,Rb.Fa.n_slices).flatten_time());
+  mult_add(w.ZX, Rx.slice(1,Rx.n_slices).flatten_time(), Rb.Za.slice(1,Rb.Za.n_slices).flatten_time());
+  mult_add(w.OX, Rx.slice(1,Rx.n_slices).flatten_time(), Rb.Oa.slice(1,Rb.Oa.n_slices).flatten_time());
 
 
-  for (size_t t(0); t < x.n_slices; ++t) {
-    //IF NEXT
-    if (t) {
-      mult_add(w.IH, Ry.slice(t - 1), Rb.Ia.slice(t));
-      mult_add(w.FH, Ry.slice(t - 1), Rb.Fa.slice(t));
-      mult_add(w.ZH, Ry.slice(t - 1), Rb.Za.slice(t));
-      mult_add(w.OH, Ry.slice(t - 1), Rb.Oa.slice(t));
+  for (size_t t(1); t < x.n_slices; ++t) {
 
-      mult_add(v.IH, y.slice(t - 1), Rb.Ia.slice(t));
-      mult_add(v.FH, y.slice(t - 1), Rb.Fa.slice(t));
-      mult_add(v.ZH, y.slice(t - 1), Rb.Za.slice(t));
-      mult_add(v.OH, y.slice(t - 1), Rb.Oa.slice(t));
+    mult_add(w.IH, Ry.slice(t - 1), Rb.Ia.slice(t));
+    mult_add(w.FH, Ry.slice(t - 1), Rb.Fa.slice(t));
+    mult_add(w.ZH, Ry.slice(t - 1), Rb.Za.slice(t));
+    mult_add(w.OH, Ry.slice(t - 1), Rb.Oa.slice(t));
+    
+    mult_add(v.IH, y.slice(t - 1), Rb.Ia.slice(t));
+    mult_add(v.FH, y.slice(t - 1), Rb.Fa.slice(t));
+    mult_add(v.ZH, y.slice(t - 1), Rb.Za.slice(t));
+    mult_add(v.OH, y.slice(t - 1), Rb.Oa.slice(t));
+    
+    dot_add(Rb.S.slice(t - 1), w.IS, Rb.Ia.slice(t));
+    dot_add(Rb.S.slice(t - 1), w.FS, Rb.Fa.slice(t));
 
-      dot_add(Rb.S.slice(t - 1), w.IS, Rb.Ia.slice(t));
-      dot_add(Rb.S.slice(t - 1), w.FS, Rb.Fa.slice(t));
-
-      dot_add(b.S.slice(t - 1), v.IS, Rb.Ia.slice(t));
-      dot_add(b.S.slice(t - 1), v.FS, Rb.Fa.slice(t));
-    }
+    dot_add(b.S.slice(t - 1), v.IS, Rb.Ia.slice(t));
+    dot_add(b.S.slice(t - 1), v.FS, Rb.Fa.slice(t));
+  
 
     add_vector_into(v.I_bias, Rb.Ia.slice(t));
     add_vector_into(v.F_bias, Rb.Fa.slice(t));
@@ -224,10 +222,8 @@ void LstmLayer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb, 
     dot(Rb.Ib.slice(t), b.Zb.slice(t), Rb.S.slice(t));
     dot_add(b.Ib.slice(t), Rb.Zb.slice(t), Rb.S.slice(t));
 
-    if (t) {
-      dot_add(Rb.S.slice(t - 1), b.Fb.slice(t), Rb.S.slice(t));
-      dot_add(b.S.slice(t - 1), Rb.Fb.slice(t), Rb.S.slice(t));
-    }
+    dot_add(Rb.S.slice(t - 1), b.Fb.slice(t), Rb.S.slice(t));
+    dot_add(b.S.slice(t - 1), Rb.Fb.slice(t), Rb.S.slice(t));
 
     dot_add(Rb.S.slice(t), w.OS, Rb.Oa.slice(t));
     dot_add(b.S.slice(t), v.OS, Rb.Oa.slice(t));
@@ -352,9 +348,13 @@ void LstmLayer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Matri
       //////////////////////////////////////////////////////////////////////////
 
       //dE/dx
-      mult_add(w.IX.T(), d.Ia.slice(t), in_deltas.slice(t));
-      mult_add(w.OX.T(), d.Oa.slice(t), in_deltas.slice(t));
-      mult_add(w.ZX.T(), d.Za.slice(t), in_deltas.slice(t));
-      mult_add(w.FX.T(), d.Fa.slice(t), in_deltas.slice(t));
+      // if(t) because of 1-indexing
+      if(t) {
+	mult_add(w.IX.T(), d.Ia.slice(t), in_deltas.slice(t));
+	mult_add(w.OX.T(), d.Oa.slice(t), in_deltas.slice(t));
+	mult_add(w.ZX.T(), d.Za.slice(t), in_deltas.slice(t));
+	mult_add(w.FX.T(), d.Fa.slice(t), in_deltas.slice(t));
+      }
+
   }
 }

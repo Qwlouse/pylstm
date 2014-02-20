@@ -87,16 +87,15 @@ void copy_errors_of_inactive_nodes(Matrix y_old, const Matrix& y, const Matrix& 
 ////////////////////// Methods /////////////////////////////////////////////
 void ArnnLayer::forward(ArnnLayer::Parameters& w, ArnnLayer::FwdState& b, Matrix& x, Matrix& y, bool) {
     size_t n_slices = x.n_slices;
-    mult(w.HX, x.flatten_time(), b.Ha.flatten_time());
-    for (int t = 0; t < n_slices; ++t) {
-        if (t) {
-            mult_add(w.HR, y.slice(t-1), b.Ha.slice(t));
-        }
-        add_vector_into(w.H_bias, b.Ha.slice(t));
-        f->apply(b.Ha.slice(t), y.slice(t));
-        if (t) { // undo changes to non-active units
-            undo_inactive_nodes(y.slice(t-1), y.slice(t), w.Timing, t);
-        }
+    mult(w.HX, x.slice(1,x.n_slices).flatten_time(), b.Ha.slice(1,b.Ha.n_slices).flatten_time());
+    for (int t = 1; t < n_slices; ++t) {
+      mult_add(w.HR, y.slice(t-1), b.Ha.slice(t));
+      
+      add_vector_into(w.H_bias, b.Ha.slice(t));
+      f->apply(b.Ha.slice(t), y.slice(t));
+ 
+      undo_inactive_nodes(y.slice(t-1), y.slice(t), w.Timing, t);
+ 
     }
 }
 
@@ -113,12 +112,12 @@ void ArnnLayer::backward(ArnnLayer::Parameters& w, ArnnLayer::FwdState&, ArnnLay
         set_inactive_nodes_to_zero(d.Ha.slice(t), w.Timing, t);
     }
 
-    mult_add(w.HX.T(), d.Ha.flatten_time(), in_deltas.flatten_time());
+    mult_add(w.HX.T(), d.Ha.slice(1,d.Ha.n_slices).flatten_time(), in_deltas.slice(1,in_deltas.n_slices).flatten_time());
 }
 
 void ArnnLayer::gradient(ArnnLayer::Parameters&, ArnnLayer::Parameters& grad, ArnnLayer::FwdState& , ArnnLayer::BwdState& d, Matrix& y, Matrix& x, Matrix&) {
     size_t n_slices = x.n_slices;
-    mult_add(d.Ha.slice(0), x.slice(0).T(), grad.HX);
+    //mult_add(d.Ha.slice(0), x.slice(0).T(), grad.HX);
     for (int t = 1; t < n_slices; ++t) {
         mult_add(d.Ha.slice(t), x.slice(t).T(), grad.HX);
         mult_add(d.Ha.slice(t), y.slice(t-1).T(), grad.HR);
@@ -131,13 +130,12 @@ void ArnnLayer::Rpass(Parameters& w, Parameters& v,  FwdState&, FwdState& Rb, Ma
 {
     // NOT IMPLEMENTED YET
     size_t n_slices = x.n_slices;
-    mult(v.HX, x.flatten_time(), Rb.Ha.flatten_time());
-    mult_add(w.HX, Rx.flatten_time(), Rb.Ha.flatten_time());
-    for (int t = 0; t < n_slices; ++t) {
-      if (t) {
-        mult_add(v.HR, y.slice(t-1), Rb.Ha.slice(t));
-        mult_add(w.HR, Ry.slice(t-1), Rb.Ha.slice(t));
-      }
+    mult(v.HX, x.slice(1,x.n_slices).flatten_time(), Rb.Ha.slice(1,Rb.Ha.n_slices).flatten_time());
+    mult_add(w.HX, Rx.slice(1,x.n_slices).flatten_time(), Rb.Ha.slice(1,Rb.Ha.n_slices).flatten_time());
+    for (int t = 1; t < n_slices; ++t) {
+      mult_add(v.HR, y.slice(t-1), Rb.Ha.slice(t));
+      mult_add(w.HR, Ry.slice(t-1), Rb.Ha.slice(t));
+     
       add_vector_into(v.H_bias, Rb.Ha.slice(t));
       f->apply_deriv(y.slice(t), Rb.Ha.slice(t), Ry.slice(t));
     }

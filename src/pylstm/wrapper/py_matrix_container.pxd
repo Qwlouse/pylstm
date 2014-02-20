@@ -14,7 +14,3 @@ cdef inline create_MatrixContainer(cm.MatrixContainer* c):
     bc.this_ptr = c
     return bc
 
-cdef inline create_MatrixContainerSlice(cm.MatrixContainerSlice* cs):
-    bc = MatrixContainerSlice()
-    bc.this_ptr = cs
-    return bc

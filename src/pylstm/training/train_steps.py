@@ -60,7 +60,7 @@ class ForwardStep(TrainingStep):
         self.use_training_pass = use_training_pass
 
     def run(self, x, t, m):
-        self.net.forward_pass(x, self.use_training_pass)
+        self.net.forward_pass(x, training_pass=self.use_training_pass)
         return self.net.calculate_error(t, m)
 
 
