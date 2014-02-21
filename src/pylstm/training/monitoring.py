@@ -2,7 +2,7 @@
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 import numpy as np
-from pylstm.error_functions import ctc_best_path_decoding
+from pylstm.utils import ctc_best_path_decoding
 
 
 def MonitorFunction(timescale='epoch', interval=1):
