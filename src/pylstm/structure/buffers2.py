@@ -1,3 +1,4 @@
+from __future__ import division, print_function, unicode_literals
 import numpy as np
 import itertools
 
@@ -5,31 +6,25 @@ import itertools
 def get_forward_closure(layer, architecture):
     """
     For a given layer return two sets of layer names such that:
-      * the given layer is in the source_set
-      * the sink_set contains all the target layers of the source_set
-      * the source_set contains all the source layers of the sink_set
+      - the given layer is in the source_set
+      - the sink_set contains all the target layers of the source_set
+      - the source_set contains all the source layers of the sink_set
 
     Parameters
-    ----------
-    layer : string
-        The name of the layer to start the forward closure from.
-    architecture : dict
-        Extended architecture of the network mapping the layer name to the layer
-        description. The description has to be a dictionary containing lists
-        for 'sources' and 'targets'.
-    Returns
-    -------
-    source_set : set
-        A set of layer names containing the initial layer and all sources of all
-        layers in the sink_set.
-    sink_set : set
-        A set of layer names containing all the targets for all the layers from
-        the source_set.
+        :type layer: unicode
+        :param layer: The name of the layer to start the forward closure from.
+        :type architecture: dict
+        :param architecture: Extended architecture of the network mapping the
+            layer name to the layer description. The description has to be a
+            dictionary containing lists for 'sources' and 'targets'.
 
-    See Also
-    --------
-    extend_architecture_info : Returns an extended version of an architecture
-    including 'sources' for all layers.
+    Returns
+        :rtype: (set, set)
+        :return:
+            :source_set: A set of layer names containing the initial layer and
+                all sources of all layers in the sink_set.
+            :sink_set: A set of layer names containing all the targets for all
+                the layers from the source_set.
     """
     source_set = {layer}
     sink_set = set(architecture[layer]['targets'])
@@ -65,14 +60,14 @@ def set_up_connection_table(sources, sinks, architecture):
     return source_list, sink_list, connection_table
 
 
-def permute_sources(source_list, connection_table):
+def permute_rows(connection_table):
     """
     Given a list of sources and a connection table, find a permutation of the
     sources, such that they can be connected to the sinks via a single buffer.
     """
     # systematically try all permutations until one satisfies the condition
     final_permutation = None
-    for perm in itertools.permutations(range(len(source_list))):
+    for perm in itertools.permutations(range(connection_table.shape[0])):
         ct = connection_table[perm]
         if can_be_connected_with_single_buffer(ct):
             final_permutation = perm
@@ -80,10 +75,12 @@ def permute_sources(source_list, connection_table):
     if final_permutation is None:
         raise RuntimeError("Impossible")
 
+    return final_permutation
+
     # apply the permutation
-    source_list = [source_list[i] for i in final_permutation]
-    connection_table = connection_table[final_permutation]
-    return source_list, connection_table
+    # source_list = [source_list[i] for i in final_permutation]
+    # connection_table = connection_table[final_permutation]
+    # return source_list, connection_table
 
 
 def can_be_connected_with_single_buffer(connection_table):

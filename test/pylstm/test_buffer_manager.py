@@ -4,9 +4,11 @@
 from __future__ import division, print_function, unicode_literals
 from copy import deepcopy
 
+import numpy as np
+from numpy.testing import assert_array_equal
 import unittest
 from pylstm.structure.buffer_manager import BufferManager
-from pylstm.structure.buffers2 import get_forward_closure
+from pylstm.structure.buffers2 import get_forward_closure, set_up_connection_table, can_be_connected_with_single_buffer
 
 
 def generate_architecture(spec):
@@ -55,12 +57,54 @@ class BufferConstructionTest(unittest.TestCase):
              {'A', 'C'}, {'B', 'D'}),
         ]
 
+        self.connection_table_tests = [
+            [[1]],  # A>B
+            [[1]],  # A>B B>O I>A
+            [[1, 1]],    # A>B A>C
+            [[1], [1]],  # A>B C>B
+            [[1, 1], [0, 1]],  # A>B B>C A>C
+            [[1, 0], [1, 1]],  # A>B C>B C>D
+            [[1, 0], [1, 1]],  # A>B C>B C>D B>E D>E F>A G>C I>F I>G
+        ]
+
     def test_get_forward_closure(self):
         for spec, sources_exp, sinks_exp in self.forward_closure_tests:
             architecture = generate_architecture(spec)
             sources, sinks = get_forward_closure('A', architecture)
             self.assertSetEqual(sources, sources_exp)
             self.assertSetEqual(sinks, sinks_exp)
+
+    def test_get_connection_table(self):
+        for (spec, sources, sinks), table_exp in zip(self.forward_closure_tests,
+                                                 self.connection_table_tests):
+            architecture = generate_architecture(spec)
+            source_list, sink_list, table = set_up_connection_table(
+                sources, sinks, architecture)
+            self.assertListEqual(sorted(sources), source_list)
+            self.assertListEqual(sorted(sinks), sink_list)
+
+            assert_array_equal(table, np.array(table_exp))
+
+    def test_can_be_connected_with_single_buffer(self):
+        yes = [np.array(x) for x in [
+            [[1]],
+            [[1, 1], [1, 1]],
+            [[1, 0], [1, 1], [0, 1]],
+            [[1, 1, 0], [0, 1, 1], [0, 0, 1]]
+        ]]
+        no = [np.array(x) for x in [
+            [[1], [0], [1]],
+            [[0], [1], [1], [0], [1]],
+            [[1, 1, 0], [1, 0, 1], [0, 1, 1]]
+        ]]
+        for table in yes:
+            self.assertTrue(can_be_connected_with_single_buffer(table))
+        for table in no:
+            self.assertFalse(can_be_connected_with_single_buffer(table))
+
+
+
+
 
 
 class BufferManagerTest(unittest.TestCase):
