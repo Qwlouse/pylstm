@@ -3,7 +3,6 @@
 
 from __future__ import division, print_function, unicode_literals
 import numpy as np
-from .data_iterators import Minibatches
 
 
 def conjgrad(gradient, v, f_hessp, maxiter=300):

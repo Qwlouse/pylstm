@@ -2,14 +2,13 @@
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 import unittest
-
-from scipy.optimize import approx_fprime
 import numpy as np
 
 from pylstm.error_functions import (
     MeanSquaredError, CrossEntropyError, CTC, MultiClassCrossEntropyError)
-from pylstm.wrapper import ctcpp_alpha, ctcpp_beta
 from pylstm.targets import SequencewiseTargets, LabelingTargets, create_targets_object
+from pylstm.utils import approx_fprime
+from pylstm.wrapper import ctcpp_alpha, ctcpp_beta
 
 
 class SimpleErrorFuncsTest(unittest.TestCase):

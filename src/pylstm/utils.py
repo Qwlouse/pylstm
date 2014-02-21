@@ -2,8 +2,18 @@
 # coding=utf-8
 
 from __future__ import division, print_function, unicode_literals
-from scipy.optimize import approx_fprime
 import numpy as np
+
+
+def approx_fprime(xk,f,epsilon,*args):
+    f0 = f(*((xk,)+args))
+    grad = np.zeros((len(xk),), float)
+    ei = np.zeros((len(xk),), float)
+    for k in range(len(xk)):
+        ei[k] = epsilon
+        grad[k] = (f(*((xk+ei,)+args)) - f0)/epsilon
+        ei[k] = 0.0
+    return grad
 
 
 def check_gradient(net, X=None, T=None, n_timesteps=3, n_batches=5,

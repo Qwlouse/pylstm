@@ -2,7 +2,6 @@
 # coding=utf-8
 
 from __future__ import division, print_function, unicode_literals
-import itertools
 import unittest
 
 import numpy as np
@@ -10,10 +9,9 @@ from pylstm import Gaussian
 
 from pylstm.structure import LstmLayer, Lstm97Layer, RnnLayer, MrnnLayer
 from pylstm.structure import build_net, ForwardLayer, InputLayer
-from pylstm.training import ForwardStep, SgdStep, MomentumStep, NesterovStep, RmsPropStep, \
-    RPropStep, Trainer, Online, Undivided, Minibatches, MaxEpochsSeen
-from pylstm.utils import check_gradient, check_deltas, check_rpass
-from pylstm.wrapper import Matrix
+from pylstm.training import (ForwardStep, SgdStep, MomentumStep, NesterovStep,
+                             RmsPropStep, RPropStep, Trainer, Minibatches,
+                             MaxEpochsSeen)
 
 
 rnd = np.random.RandomState(213998106)
