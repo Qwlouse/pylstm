@@ -2,6 +2,7 @@
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 import numpy as np
+from pylstm.error_functions import ctc_best_path_decoding
 
 
 def MonitorFunction(timescale='epoch', interval=1):
@@ -198,23 +199,6 @@ class MonitorPhonemeError(object):
         self.log['phoneme_error'].append(error_fraction)
         print(self.name, ':\tPhoneme Error = %0.4f\t (%d / %d)' %
                          (error_fraction, total_errors, total_length))
-
-
-def ctc_best_path_decoding(Y):
-    assert Y.shape[1] == 1
-    Y_win = Y.argmax(2).reshape(Y.shape[0])
-    t = []
-    blank = True
-    for y in Y_win:
-        if blank is True and y != 0:
-            t.append(y - 1)
-            blank = False
-        elif blank is False:
-            if y == 0:
-                blank = True
-            elif y - 1 != t[-1]:
-                t.append(y - 1)
-    return t
 
 
 def levenshtein(seq1, seq2):
