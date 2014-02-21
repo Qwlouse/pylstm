@@ -118,25 +118,13 @@ class MomentumStep(TrainingStep):
         return error
 
 
-class NesterovStep(TrainingStep):
+class NesterovStep(MomentumStep):
     """
     Stochastic Gradient Descent with a Nesterov-style momentum term.
     learning_rate and momentum can be scheduled using pylstm.training.schedules
     If scale_learning_rate is True (default),
     learning_rate is multiplied by (1 - momentum) when used.
     """
-    def __init__(self, learning_rate=0.1, momentum=0.0, scale_learning_rate=True):
-        super(NesterovStep, self).__init__()
-        self.velocity = None
-        self.momentum_schedule = get_schedule(momentum)
-        self.learning_rate_schedule = get_schedule(learning_rate)
-        assert (scale_learning_rate is True) or (scale_learning_rate is False), \
-            "scale_learning_rate must be True or False"
-        self.scale_learning_rate = scale_learning_rate
-
-    def _initialize(self):
-        self.velocity = np.zeros(self.net.get_param_size())
-
     def run(self, x, t, m):
         learning_rate = self.learning_rate_schedule()
         momentum = self.momentum_schedule()
