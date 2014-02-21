@@ -152,3 +152,23 @@ def get_sequence_lengths(M):
     :return: array of sequence lengths with shape=(b,)
     """
     return M.shape[0] - M[::-1, :, 0].argmax(axis=0)
+
+
+################################################################################
+# Best path decoding for monitoring Phoneme Errors
+
+def ctc_best_path_decoding(Y):
+    assert Y.shape[1] == 1
+    Y_win = Y.argmax(2).reshape(Y.shape[0])
+    t = []
+    blank = True
+    for y in Y_win:
+        if blank is True and y != 0:
+            t.append(y - 1)
+            blank = False
+        elif blank is False:
+            if y == 0:
+                blank = True
+            elif y - 1 != t[-1]:
+                t.append(y - 1)
+    return t
