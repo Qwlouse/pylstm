@@ -5,6 +5,59 @@ from __future__ import division, print_function, unicode_literals
 
 import unittest
 from pylstm.structure.buffer_manager import BufferManager
+from pylstm.structure.buffers2 import get_forward_closure
+
+
+def generate_architecture(spec):
+    """
+    Generate a very basic architecture given a spec like this:
+       "A>B B>C A>D D>C"
+    """
+    architecture = {}
+    empty_layer = {
+        'name': "",
+        'targets': [],
+        'sources': [],
+        'size': 0
+    }
+    for con in spec.split():
+        source, _, target = con.partition('>')
+        if source not in architecture:
+            architecture[source] = empty_layer
+            architecture[source]['name'] = source
+        if target not in architecture:
+            architecture[target] = empty_layer
+            architecture[target]['name'] = target
+        architecture[source]['targets'].append(target)
+        architecture[target]['sources'].append(source)
+    return architecture
+
+
+class BufferConstructionTest(unittest.TestCase):
+    def setUp(self):
+        self.forward_closure_tests = [
+            # (architecture spec,
+            #  {sources}, {sinks})
+            ("A>B",
+             {'A'}, {'B'}),
+            ("A>B A>C",
+             {'A'}, {'B', 'C'}),
+            ("A>B C>B",
+             {'A', 'C'}, {'B'}),
+            ("A>B B>C A>C",
+             {'A', 'B'}, {'B', 'C'}),
+            ("A>B C>B C>D",
+             {'A', 'C'}, {'B', 'D'}),
+            ("A>B C>B C>D B>E D>E F>A G>C I>F I>G",
+             {'A', 'C'}, {'B', 'D'}),
+        ]
+
+    def test_get_forward_closure(self):
+        for spec, sources_expected, sinks_expected in self.forward_closure_tests:
+            architecture = generate_architecture(spec)
+            sources, sinks = get_forward_closure('A', architecture)
+            self.assertSetEqual(sources, sources_expected)
+            self.assertSetEqual(sinks, sinks_expected)
 
 
 class BufferManagerTest(unittest.TestCase):
