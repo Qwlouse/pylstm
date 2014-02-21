@@ -2,6 +2,7 @@
 # coding=utf-8
 
 from __future__ import division, print_function, unicode_literals
+from copy import deepcopy
 
 import unittest
 from pylstm.structure.buffer_manager import BufferManager
@@ -23,10 +24,10 @@ def generate_architecture(spec):
     for con in spec.split():
         source, _, target = con.partition('>')
         if source not in architecture:
-            architecture[source] = empty_layer
+            architecture[source] = deepcopy(empty_layer)
             architecture[source]['name'] = source
         if target not in architecture:
-            architecture[target] = empty_layer
+            architecture[target] = deepcopy(empty_layer)
             architecture[target]['name'] = target
         architecture[source]['targets'].append(target)
         architecture[target]['sources'].append(source)
@@ -39,6 +40,8 @@ class BufferConstructionTest(unittest.TestCase):
             # (architecture spec,
             #  {sources}, {sinks})
             ("A>B",
+             {'A'}, {'B'}),
+            ("A>B B>O I>A",
              {'A'}, {'B'}),
             ("A>B A>C",
              {'A'}, {'B', 'C'}),
