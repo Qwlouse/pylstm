@@ -163,11 +163,11 @@ class SparseInputs(Seedable):
         assert shape[0] == 1  # weights don't have a time axis
         assert shape[1] >= self.connections
 
-        M = np.zeros(shape)
-        M[0, :self.connections, :] = 1.
+        connection_mask = np.zeros(shape)
+        connection_mask[0, :self.connections, :] = 1.
         for i in range(shape[2]):
-            self.rnd.shuffle(M[0, :, i])
-        return res * M
+            self.rnd.shuffle(connection_mask[0, :, i])
+        return res * connection_mask
 
 
 class SparseOutputs(Seedable):
@@ -192,11 +192,11 @@ class SparseOutputs(Seedable):
             return res
         assert shape[0] == 1  # weights don't have a time axis
         assert shape[2] >= self.connections
-        M = np.zeros(shape)
-        M[0, :, :self.connections] = 1.
+        connection_mask = np.zeros(shape)
+        connection_mask[0, :, :self.connections] = 1.
         for i in range(shape[1]):
-            self.rnd.shuffle(M[0, i, :])
-        return res * M
+            self.rnd.shuffle(connection_mask[0, i, :])
+        return res * connection_mask
 
 
 class EchoState(Seedable):
