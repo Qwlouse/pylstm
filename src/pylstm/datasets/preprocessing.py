@@ -115,22 +115,28 @@ def normalize_data(X_train, M_train, X_test, M_test):
     return means, stds
 
 
-def shuffle_data(X, T, M=None, seed=None):
+def shuffle_data(input_data, targets, seed=None):
     """
     Shuffles the samples of the data.
-    @param X:
-    @param T:
-    @param M:
-    @return:
-    """
-    T = create_targets_object(T)
-    indices = np.arange(X.shape[1])
-    global_rnd['preprocessing'].get_new_random_state(seed).shuffle(indices)
-    X_s = X[:, indices, :]
-    T_s = T[indices]
-    M_s = M[:, indices, :] if M is not None else None
 
-    return X_s, T_s, M_s, indices
+    @param input_data: Batch of sequences
+    @type input_data: ndarray
+    @type targets: pylstm.targets.Targets
+    @param targets: Targets for the sequences
+    @type seed: int | None
+
+    @return: A tuple (input_data_shuffled, targets_shuffled, indices), where
+             input_data_shuffled and targets_shuffled are the shuffled
+             input_data and targets respectively, and indices is the list
+             of shuffling indices.
+    """
+    assert isinstance(targets, Targets)
+    indices = np.arange(input_data.shape[1])
+    global_rnd['preprocessing'].get_new_random_state(seed).shuffle(indices)
+    input_data_shuffled = input_data[:, indices, :]
+    targets_shuffled = targets[indices]
+
+    return input_data_shuffled, targets_shuffled, indices
 
 
 def mid_pool_outputs(T, size=3):

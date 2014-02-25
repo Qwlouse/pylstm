@@ -22,25 +22,24 @@ class Undivided(object):
     """
      Iterates through the data in one block (only one iteration). But it can
      shuffle the data.
-     :param X: Data: Batch of sequences. shape = (time, sample, feature)
-     :param T: Targets: Batch of sequences[shape = (time, sample, targets)]
-                        or list of labels
-     :param M: Masks: Batch of sequences. shape = (time, sample, 1).
-                      Can be None(default).
+     :param input_data: Batch of sequences. shape = (time, sample, feature)
+     :param targets: Batch of sequences[shape = (time, sample, targets)]
+        or list of labels
+     :param mask: Masks: Batch of sequences. shape = (time, sample, 1).
+        Can be None(default).
      :param shuffle: if this is true(default) then the data will be shuffled.
     """
-    def __init__(self, X, T, M=None, shuffle=True):
-        self.X = X
-        self.T = create_targets_object(T)
-        self.M = M
+    def __init__(self, input_data, targets, mask=None, shuffle=True):
+        self.input_data = input_data
+        self.targets = create_targets_object(targets, mask)
         self.shuffle = shuffle
 
     def __call__(self):
         if self.shuffle:
-            X, T, M, _ = shuffle_data(self.X, self.T, self.M)
+            input_data, targets, _ = shuffle_data(self.input_data, self.targets)
         else:
-            X, T, M = self.X, self.T, self.M
-        yield X, T, M
+            input_data, targets = self.input_data, self.targets
+        yield input_data, targets
 
 
 class Minibatches(object):
