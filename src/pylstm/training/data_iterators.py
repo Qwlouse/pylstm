@@ -1,9 +1,9 @@
 #!/usr/bin/python
 # coding=utf-8
 """
-Data iterators take the data X, the targets T and optionally the mask M and
-provide a unified way of iterating through them. They can divide the data into
-Minibatches, single samples or leave it as one block, and they can shuffle it.
+Data iterators take the data X, the targets T and provide a unified way of
+iterating through them. They can divide the data into Minibatches, single
+samples or leave it as one block, and they can shuffle it.
 
 There are also modificators which can be stacked with a data iterator and which
 modify or augment the data.
@@ -13,103 +13,108 @@ from __future__ import division, print_function, unicode_literals
 import sys
 
 import numpy as np
+from pylstm.randomness import Seedable
 
-from pylstm import shuffle_data, global_rnd
-from pylstm.targets import create_targets_object
+from pylstm import shuffle_data
+from pylstm.targets import Targets
 
 
-class Undivided(object):
+class Undivided(Seedable):
     """
-     Iterates through the data in one block (only one iteration). But it can
-     shuffle the data.
-     :param input_data: Batch of sequences. shape = (time, sample, feature)
-     :param targets: Batch of sequences[shape = (time, sample, targets)]
-        or list of labels
-     :param mask: Masks: Batch of sequences. shape = (time, sample, 1).
-        Can be None(default).
-     :param shuffle: if this is true(default) then the data will be shuffled.
+    Processes the data in one block (only one iteration).
+    It can shuffle the data.
     """
-    def __init__(self, input_data, targets, mask=None, shuffle=True):
+
+    def __init__(self, input_data, targets, shuffle=True, seed=None):
+        """
+        @param input_data: Batch of sequences. shape = (time, sample, feature)
+        @type input_data: ndarray
+        @param targets: Batch of sequences[shape = (time, sample, targets)]
+           or list of labels
+        @type targets: pylstm.targets.Target
+        @param shuffle: if this is true(default) then the data will be shuffled.
+        @type shuffle: bool
+        @param seed: if set this drives the randomness of the shuffle.
+        @type seed: int | None
+        """
+        super(Undivided, self).__init__(seed=seed, category='data_iterator')
+        assert isinstance(targets, Targets)
         self.input_data = input_data
-        self.targets = create_targets_object(targets, mask)
+        self.targets = targets
         self.shuffle = shuffle
 
     def __call__(self):
         if self.shuffle:
-            input_data, targets, _ = shuffle_data(self.input_data, self.targets)
+            input_data, targets, _ = shuffle_data(self.input_data, self.targets,
+                                                  seed=self.rnd.generate_seed())
         else:
             input_data, targets = self.input_data, self.targets
         yield input_data, targets
 
 
-class Minibatches(object):
+class Minibatches(Seedable):
     """
-    Minibatch (batch_size samples at a time) iterator for inputs, targets and masks.
+    Minibatch (batch_size samples at a time) iterator for inputs and targets.
     Argument verbose=True enables a progress bar.
     """
-    def __init__(self, X, T, M=None, batch_size=1, shuffle=True, verbose=True):
-        self.X = X
-        self.T = create_targets_object(T)
-        self.M = M
+    def __init__(self, input_data, targets, batch_size=4, shuffle=True,
+                 verbose=True, seed=None):
+        super(Minibatches, self).__init__(seed=seed, category='data_iterator')
+        self.input_data = input_data
+        assert isinstance(targets, Targets)
+        self.targets = targets
         self.batch_size = batch_size
         self.shuffle = shuffle
-        self.rnd = global_rnd['data_iterators'].get_new_random_state()
         self.verbose = verbose
 
     def __call__(self):
         if self.verbose:
             _update_progress(0)
-        nr_sequences = self.X.shape[1]
+        nr_sequences = self.input_data.shape[1]
 
         if self.shuffle:
-            X, T, M, _ = shuffle_data(self.X, self.T, self.M,
-                                      seed=self.rnd.generate_seed())
+            input_data, targets, _ = shuffle_data(self.input_data, self.targets,
+                                                  seed=self.rnd.generate_seed())
         else:
-            X, T, M = self.X, self.T, self.M
+            input_data, targets = self.input_data, self.targets
 
         for i in range(0, nr_sequences, self.batch_size):
             j = min(i + self.batch_size, nr_sequences)
-            x = X[:, i:j, :]
-            t = T[i:j]
-            m = None if M is None else M[:, i:j, :]
-            yield x, t, m
+            t = targets[i:j]
+            new_end = input_data.shape[0] - t.trim()
+            x = input_data[:new_end, i:j, :]
+            yield x, t
             if self.verbose:
                 _update_progress(j/nr_sequences)
 
 
-class Online(object):
+class Online(Seedable):
     """
     Online (one sample at a time) iterator for inputs, targets and masks.
     Argument verbose=True enables a progress bar.
     """
-    def __init__(self, X, T, M=None, shuffle=True, verbose=True):
-        self.X = X
-        self.T = create_targets_object(T)
-        self.M = M
+
+    def __init__(self, input_data, targets, shuffle=True, verbose=True,
+                 seed=None):
+        super(Online, self).__init__(seed=seed, category='data_iterator')
+        self.input_data = input_data
+        assert isinstance(targets, Targets)
+        self.targets = targets
         self.shuffle = shuffle
-        self.rnd = global_rnd['data_iterators'].get_new_random_state()
         self.verbose = verbose
 
     def __call__(self):
         if self.verbose:
             _update_progress(0)
-        nr_sequences = self.X.shape[1]
+        nr_sequences = self.input_data.shape[1]
         indices = np.arange(nr_sequences)
         if self.shuffle:
             self.rnd.shuffle(indices)
         for i, idx in enumerate(indices):
-            x = self.X[:, idx:idx+1, :]
-            t = self.T[idx:idx+1]
-            m = None
-            if self.M is not None:
-                m = self.M[:, idx:idx+1, :]
-                for k in range(m.shape[0] - 1, -1, -1):
-                    if m[k, 0, 0] != 0:
-                        x = x[:k + 1, :, :]
-                        t = t.crop_time(k + 1)
-                        m = m[:k + 1, :, :]
-                        break
-            yield x, t, m
+            targets = self.targets[idx:idx+1]
+            new_end = self.input_data.shape[0] - targets.trim()
+            input_data = self.input_data[:new_end, idx:idx+1, :]
+            yield input_data, targets
             if self.verbose:
                 _update_progress((i+1)/nr_sequences)
 
