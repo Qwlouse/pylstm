@@ -1,9 +1,10 @@
 #!/usr/bin/python
 # coding=utf-8
 """
-Quantities like learning_rate and momentum in SgdStep, NesterovStep, MomentumStep etc.
-can be changed according to schedules instead of being constants.
-These common schedulers are provided for convenience.
+Quantities like learning_rate and momentum in SgdStep, NesterovStep,
+MomentumStep etc.can be changed according to schedules instead of being
+constants.
+Some common schedulers are provided for convenience.
 """
 from __future__ import division, print_function, unicode_literals
 import numpy as np
