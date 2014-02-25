@@ -100,7 +100,7 @@ class FramewiseTargets(Targets):
 
     def trim(self):
         k = Targets.trim(self)
-        self.data = self.data[:-k, :, :]
+        self.data = self.data[:self.data.shape[0] - k, :, :]
         return k
 
     def validate_for_output_shape(self, timesteps, batchsize, out_size):

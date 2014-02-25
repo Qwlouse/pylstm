@@ -8,6 +8,7 @@ from pylstm import Gaussian
 from pylstm.randomness import HierarchicalRandomState
 
 import numpy as np
+from pylstm.targets import create_targets_object
 
 
 class HierarchicalRandomStateTest(unittest.TestCase):
@@ -101,31 +102,28 @@ class GlobalRndTest(unittest.TestCase):
 
     def test_shuffle_is_random(self):
         X = np.arange(10).reshape(1, -1, 1)
-        T = np.arange(10).reshape(1, -1, 1)
-        M = None
+        T = create_targets_object(np.arange(10).reshape(1, -1, 1))
         global_rnd.set_seed(1)
-        _, _, _, s1 = shuffle_data(X, T, M)
-        _, _, _, s2 = shuffle_data(X, T, M)
+        _, _, s1 = shuffle_data(X, T)
+        _, _, s2 = shuffle_data(X, T)
         self.assertFalse(np.all(s1 == s2))
 
     def test_shuffle_depends_on_global_seed(self):
         X = np.arange(10).reshape(1, -1, 1)
-        T = np.arange(10).reshape(1, -1, 1)
-        M = None
+        T = create_targets_object(np.arange(10).reshape(1, -1, 1))
         global_rnd.set_seed(1)
-        _, _, _, s1 = shuffle_data(X, T, M)
+        _, _, s1 = shuffle_data(X, T)
         global_rnd.set_seed(1)
-        _, _, _, s2 = shuffle_data(X, T, M)
+        _, _, s2 = shuffle_data(X, T)
         np.testing.assert_array_equal(s1.flat, s2.flat)
 
     def test_shuffle_seed_overwrites_global_seed(self):
         X = np.arange(10).reshape(1, -1, 1)
-        T = np.arange(10).reshape(1, -1, 1)
-        M = None
+        T = create_targets_object(np.arange(10).reshape(1, -1, 1))
         global_rnd.set_seed(1)
-        _, _, _, s1 = shuffle_data(X, T, M, seed=1)
+        _, _, s1 = shuffle_data(X, T, seed=1)
         global_rnd.set_seed(1)
-        _, _, _, s2 = shuffle_data(X, T, M, seed=2)
+        _, _, s2 = shuffle_data(X, T, seed=2)
         self.assertFalse(np.all(s1 == s2))
 
     def test_initialize_is_random(self):

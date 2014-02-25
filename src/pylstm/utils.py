@@ -3,6 +3,7 @@
 
 from __future__ import division, print_function, unicode_literals
 import numpy as np
+from pylstm.targets import create_targets_object
 
 
 def approx_fprime(xk,f,epsilon,*args):
@@ -24,7 +25,7 @@ def check_gradient(net, X=None, T=None, n_timesteps=3, n_batches=5,
         T = rnd.randn(n_timesteps, n_batches, net.get_output_size())
         # normalize targets to sum to one
         T = T / T.sum(2).reshape(n_timesteps, n_batches, 1)
-
+    T = create_targets_object(T)
     weights = net.param_buffer.copy()
 
     ######### calculate gradient ##########
@@ -50,7 +51,7 @@ def check_deltas(net, X=None, T=None, n_timesteps=3, n_batches=5,
         T = rnd.randn(n_timesteps, n_batches, net.get_output_size())
         # normalize targets to sum to one
         T = T / T.sum(2).reshape(n_timesteps, n_batches, 1)
-
+    T = create_targets_object(T)
     ######### calculate gradient ##########
     net.forward_pass(X)
     delta_calc = net.backward_pass(T).flatten()

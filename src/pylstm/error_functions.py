@@ -3,6 +3,7 @@
 from __future__ import division, print_function, unicode_literals
 import numpy as np
 from pylstm import binarize_array
+from pylstm.targets import create_targets_object
 from .training.data_iterators import Online
 from .wrapper import ctcpp
 
@@ -158,7 +159,8 @@ def _LabelingBinarizingCTC(Y, T, M):
     deltas = np.zeros((time_size, batch_size, label_count))
     deltas[:] = float('-inf')
     errors = np.zeros(batch_size)
-    for b, (y, t, m) in enumerate(Online(Y, T, M, verbose=False)()):
+    T = create_targets_object(T)
+    for b, (y, t) in enumerate(Online(Y, T, verbose=False)()):
         err, delt = ctcpp(y, list(t.data[0]))
         errors[b] = err
         deltas[:y.shape[0], b:b+1, :] = delt.as_array()
