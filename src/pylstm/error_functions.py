@@ -161,7 +161,7 @@ def _LabelingBinarizingCTC(Y, T, M):
     for b, (y, t, m) in enumerate(Online(Y, T, M, verbose=False)()):
         err, delt = ctcpp(y, list(t.data[0]))
         errors[b] = err
-        deltas[:, b:b+1, :] = delt.as_array()
+        deltas[:y.shape[0], b:b+1, :] = delt.as_array()
 
     return np.mean(errors), -deltas / batch_size
 
@@ -179,26 +179,6 @@ CTC_implementations = {
 def CTC(Y, T, M=None):
     T.validate_for_output_shape(*Y.shape)
     return CTC_implementations[T.targets_type](Y, T, M)
-
-
-################################################################################
-# Best path decoding for monitoring Phoneme Errors
-
-def ctc_best_path_decoding(Y):
-    assert Y.shape[1] == 1
-    Y_win = Y.argmax(2).reshape(Y.shape[0])
-    t = []
-    blank = True
-    for y in Y_win:
-        if blank is True and y != 0:
-            t.append(y - 1)
-            blank = False
-        elif blank is False:
-            if y == 0:
-                blank = True
-            elif y - 1 != t[-1]:
-                t.append(y - 1)
-    return t
 
 
 ################################################################################

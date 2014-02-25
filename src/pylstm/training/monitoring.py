@@ -2,6 +2,7 @@
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 import numpy as np
+from pylstm.utils import ctc_best_path_decoding
 
 
 def MonitorFunction(timescale='epoch', interval=1):
@@ -200,23 +201,6 @@ class MonitorPhonemeError(object):
                          (error_fraction, total_errors, total_length))
 
 
-def ctc_best_path_decoding(Y):
-    assert Y.shape[1] == 1
-    Y_win = Y.argmax(2).reshape(Y.shape[0])
-    t = []
-    blank = True
-    for y in Y_win:
-        if blank is True and y != 0:
-            t.append(y - 1)
-            blank = False
-        elif blank is False:
-            if y == 0:
-                blank = True
-            elif y - 1 != t[-1]:
-                t.append(y - 1)
-    return t
-
-
 def levenshtein(seq1, seq2):
     oneago = None
     thisrow = range(1, len(seq2) + 1) + [0]
@@ -262,15 +246,16 @@ class PlotErrors(object):
             if training_errors:
                 self.t_line, = self.ax.plot(training_errors, 'g-',
                                             label='Training Error')
-                min_ep, min_err = self._get_min_err(validation_errors)
-                self.v_dot, = self.ax.plot([min_ep], min_err, 'bo')
+                if validation_errors:
+                    min_ep, min_err = self._get_min_err(validation_errors)
+                    self.v_dot, = self.ax.plot([min_ep], min_err, 'bo')
             self.ax.legend()
             self.fig.canvas.draw()
             return
 
         self.t_line.set_ydata(training_errors)
         self.t_line.set_xdata(range(len(training_errors)))
-        if self.v_line is not None:
+        if self.v_line is not None and validation_errors:
             self.v_line.set_ydata(validation_errors)
             self.v_line.set_xdata(range(len(validation_errors)))
             min_ep, min_err = self._get_min_err(validation_errors)

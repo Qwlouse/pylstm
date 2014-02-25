@@ -10,5 +10,5 @@ setup(
     packages=['pylstm', 'pylstm.wrapper', 'pylstm.structure', 'pylstm.datasets',
               'pylstm.regularization', 'pylstm.training'],
     package_data={'pylstm.wrapper': ['*.so']},
-    requires=['numpy', 'scipy'],
+    requires=['numpy'],
 )

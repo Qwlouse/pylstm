@@ -50,9 +50,17 @@ class ForwardStep(TrainingStep):
     """
     Only runs the forward pass and returns the error. Does not train the
     network at all.
+    This step is usually used for validation. If this step is used during
+    training it should be initialized with the use_training_pass flag set to
+    true.
     """
+
+    def __init__(self, use_training_pass=False):
+        super(ForwardStep, self).__init__()
+        self.use_training_pass = use_training_pass
+
     def run(self, x, t, m):
-        self.net.forward_pass(x)
+        self.net.forward_pass(x, training_pass=self.use_training_pass)
         return self.net.calculate_error(t, m)
 
 
@@ -66,7 +74,7 @@ class SgdStep(TrainingStep):
 
     def run(self, x, t, m):
         learning_rate = self.learning_rate_schedule()
-        self.net.forward_pass(x)
+        self.net.forward_pass(x, training_pass=True)
         error = self.net.calculate_error(t, m)
         self.net.backward_pass(t, m)
         self.net.param_buffer -= (learning_rate *
@@ -77,12 +85,18 @@ class SgdStep(TrainingStep):
 class MomentumStep(TrainingStep):
     """
     Stochastic Gradient Descent with a momentum term.
+    learning_rate and momentum can be scheduled using pylstm.training.schedules
+    If scale_learning_rate is True (default),
+    learning_rate is multiplied by (1 - momentum) when used.
     """
-    def __init__(self, learning_rate=0.1, momentum=0.0):
+    def __init__(self, learning_rate=0.1, momentum=0.0, scale_learning_rate=True):
         super(MomentumStep, self).__init__()
         self.velocity = None
         self.momentum_schedule = get_schedule(momentum)
         self.learning_rate_schedule = get_schedule(learning_rate)
+        assert (scale_learning_rate is True) or (scale_learning_rate is False),\
+            "scale_learning_rate must be True or False"
+        self.scale_learning_rate = scale_learning_rate
 
     def _initialize(self):
         self.velocity = np.zeros(self.net.get_param_size())
@@ -91,37 +105,39 @@ class MomentumStep(TrainingStep):
         learning_rate = self.learning_rate_schedule()
         momentum = self.momentum_schedule()
         self.velocity *= momentum
-        self.net.forward_pass(x)
+        self.net.forward_pass(x, training_pass=True)
         error = self.net.calculate_error(t, m)
         self.net.backward_pass(t, m)
-        dv = learning_rate * self.net.calc_gradient().flatten()
+        if self.scale_learning_rate:
+            dv = (1 - momentum) * learning_rate * self.net.calc_gradient().flatten()
+        else:
+            dv = learning_rate * self.net.calc_gradient().flatten()
+
         self.velocity -= dv
         self.net.param_buffer += self.velocity
         return error
 
 
-class NesterovStep(TrainingStep):
+class NesterovStep(MomentumStep):
     """
     Stochastic Gradient Descent with a Nesterov-style momentum term.
+    learning_rate and momentum can be scheduled using pylstm.training.schedules
+    If scale_learning_rate is True (default),
+    learning_rate is multiplied by (1 - momentum) when used.
     """
-    def __init__(self, learning_rate=0.1, momentum=0.0):
-        super(NesterovStep, self).__init__()
-        self.velocity = None
-        self.momentum_schedule = get_schedule(momentum)
-        self.learning_rate_schedule = get_schedule(learning_rate)
-
-    def _initialize(self):
-        self.velocity = np.zeros(self.net.get_param_size())
-
     def run(self, x, t, m):
         learning_rate = self.learning_rate_schedule()
         momentum = self.momentum_schedule()
         self.velocity *= momentum
         self.net.param_buffer += self.velocity
-        self.net.forward_pass(x)
+        self.net.forward_pass(x, training_pass=True)
         error = self.net.calculate_error(t, m)
         self.net.backward_pass(t, m)
-        dv = learning_rate * self.net.calc_gradient().flatten()
+        if self.scale_learning_rate:
+            dv = (1 - momentum) * learning_rate * self.net.calc_gradient().flatten()
+        else:
+            dv = learning_rate * self.net.calc_gradient().flatten()
+
         self.velocity -= dv
         self.net.param_buffer -= dv
         return error
@@ -162,7 +178,7 @@ class RPropStep(TrainingStep):
         self.initialized = True
 
     def run(self, x, t, m):
-        self.net.forward_pass(x)
+        self.net.forward_pass(x, training_pass=True)
         error = self.net.calculate_error(t, m)
         self.net.backward_pass(t, m)
         grad = self.net.calc_gradient()
@@ -216,7 +232,7 @@ class RmsPropStep(TrainingStep):
         self.scaling_factor = np.zeros(self.net.get_param_size())
 
     def run(self, x, t, m):
-        self.net.forward_pass(x)
+        self.net.forward_pass(x, training_pass=True)
         error = self.net.calculate_error(t, m)
         self.net.backward_pass(t, m)
         grad = self.net.calc_gradient()
@@ -232,7 +248,7 @@ def calculate_gradient(net, data_iter):
         grad = np.zeros_like(net.param_buffer.flatten())
         error = []
         for x, t, m in data_iter():
-            net.forward_pass(x)
+            net.forward_pass(x, training_pass=True)
             net.backward_pass(t, m)
             error.append(net.calculate_error(t, m))
             grad += net.calc_gradient().flatten()
@@ -241,13 +257,15 @@ def calculate_gradient(net, data_iter):
 
 
 class CgStep(TrainingStep, Seedable):
-    def __init__(self, minibatch_size=32, mu=1. / 30, maxiter=300, seed=None):
+    def __init__(self, minibatch_size=32, mu=1. / 30, maxiter=300, seed=None, matching_loss=True):
         TrainingStep.__init__(self)
         Seedable.__init__(self, seed, category='trainer')
         self.minibatch_size = minibatch_size
         self.mu = mu
         self.lambda_ = 0.1
         self.maxiter = maxiter
+        self.matching_loss = matching_loss
+
 
     def _initialize(self):
         self.lambda_ = 0.1
@@ -267,18 +285,22 @@ class CgStep(TrainingStep, Seedable):
 
         ## initialize v
         #v = np.zeros(net.get_param_size())
-        v = .01 * self.rnd.randn(self.net.get_param_size())
+        try:
+            v = self.new_v
+        except:
+            v = .000001 * self.rnd.randn(self.net.get_param_size())
 
         # select a random subset of the data for the CG
         x, t, m = self._get_random_subset(X, T, M, self.minibatch_size)
 
         ## define hessian pass
         def fhess_p(v):
-            return self.net.hessian_pass(x, v, self.mu, self.lambda_).copy().\
-                       flatten()
+            return self.net.hessian_pass(x, v, t, m, self.mu, self.lambda_, self.matching_loss).copy().\
+                       flatten() + self.lambda_*v
 
         ## run CG
         all_v = conjgrad3(grad, v.copy(), fhess_p, maxiter=self.maxiter)
+        self.new_v = all_v[-1]
 
         ## backtrack #1
         lowError = float('Inf')
@@ -286,7 +308,7 @@ class CgStep(TrainingStep, Seedable):
         weights = self.net.param_buffer.copy()
         for i, testW in reversed(list(enumerate(all_v))):
             self.net.param_buffer = weights - testW
-            self.net.forward_pass(x)
+            self.net.forward_pass(x, training_pass=True)
             tmpError = self.net.calculate_error(t, m)
             if tmpError < lowError:
                 lowError = tmpError
@@ -298,7 +320,7 @@ class CgStep(TrainingStep, Seedable):
         for j in np.arange(0, 1.0, 0.1):
             tmpDW = j * bestDW
             self.net.param_buffer = weights - tmpDW
-            self.net.forward_pass(x)
+            self.net.forward_pass(x, training_pass=True)
             tmpError = self.net.calculate_error(t, m)
             if tmpError < lowError:
                 finalDW = tmpDW
@@ -307,8 +329,8 @@ class CgStep(TrainingStep, Seedable):
         ## Levenberg-Marquardt heuristic
         boost = 3.0 / 2.0
         self.net.param_buffer = weights
-        denom = 0.5 * (np.dot(finalDW, fhess_p(finalDW))) + np.dot(
-            np.squeeze(grad), finalDW) + error
+        denom = 0.5 * (np.dot(finalDW, fhess_p(finalDW))) - np.dot(
+            np.squeeze(grad), finalDW)
         rho = (lowError - error) / denom
         if rho < 0.25:
             self.lambda_ *= boost

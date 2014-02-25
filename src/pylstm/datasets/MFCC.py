@@ -17,7 +17,7 @@
 
 from numpy import *
 from numpy.linalg import *
-from matplotlib.pyplot import *
+#from matplotlib.pyplot import *
 
 
 def hamming(n):

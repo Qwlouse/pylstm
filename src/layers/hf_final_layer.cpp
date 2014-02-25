@@ -1,4 +1,4 @@
-#include "forward_layer.h"
+#include "hf_final_layer.h"
 
 #include <vector>
 
@@ -7,21 +7,21 @@
 
 using std::vector;
 
-ForwardLayer::ForwardLayer():
+HfFinalLayer::HfFinalLayer():
 	f(&Sigmoid),
 	use_bias(true)
 { }
 
-ForwardLayer::ForwardLayer(const ActivationFunction* f):
+HfFinalLayer::HfFinalLayer(const ActivationFunction* f):
 	f(f),
     use_bias(true)
 { }
 
-ForwardLayer::~ForwardLayer()
+HfFinalLayer::~HfFinalLayer()
 {
 }
 
-ForwardLayer::Parameters::Parameters(size_t n_inputs, size_t n_cells) :
+HfFinalLayer::Parameters::Parameters(size_t n_inputs, size_t n_cells) :
     HX(NULL, n_cells, n_inputs, 1),
     H_bias(NULL, n_cells, 1, 1)
 {
@@ -31,7 +31,7 @@ ForwardLayer::Parameters::Parameters(size_t n_inputs, size_t n_cells) :
 
 ////////////////////// Fwd Buffer /////////////////////////////////////////////
 
-ForwardLayer::FwdState::FwdState(size_t, size_t n_cells, size_t n_batches, size_t time) :
+HfFinalLayer::FwdState::FwdState(size_t, size_t n_cells, size_t n_batches, size_t time) :
     Ha(NULL, n_cells, n_batches, time)
 {
 	add_view("Ha", &Ha);
@@ -39,14 +39,14 @@ ForwardLayer::FwdState::FwdState(size_t, size_t n_cells, size_t n_batches, size_
 
 ////////////////////// Bwd Buffer /////////////////////////////////////////////
 
-ForwardLayer::BwdState::BwdState(size_t, size_t n_cells, size_t n_batches, size_t time) :
+HfFinalLayer::BwdState::BwdState(size_t, size_t n_cells, size_t n_batches, size_t time) :
     Ha(NULL, n_cells, n_batches, time)
 {
 	add_view("Ha", &Ha);
 }
 
 ////////////////////// Methods /////////////////////////////////////////////
-void ForwardLayer::forward(ForwardLayer::Parameters &w, ForwardLayer::FwdState &b, Matrix &x, Matrix &y, bool) {
+void HfFinalLayer::forward(HfFinalLayer::Parameters &w, HfFinalLayer::FwdState &b, Matrix &x, Matrix &y, bool) {
 	mult(w.HX, x.flatten_time(), b.Ha.flatten_time());
 
     if (use_bias)
@@ -54,19 +54,19 @@ void ForwardLayer::forward(ForwardLayer::Parameters &w, ForwardLayer::FwdState &
 	f->apply(b.Ha, y);
 }
 
-void ForwardLayer::backward(ForwardLayer::Parameters &w, ForwardLayer::FwdState &, ForwardLayer::BwdState &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas) {
+void HfFinalLayer::backward(HfFinalLayer::Parameters &w, HfFinalLayer::FwdState &, HfFinalLayer::BwdState &d, Matrix &y, Matrix &in_deltas, Matrix &out_deltas) {
     f->apply_deriv(y, out_deltas, d.Ha);
     mult_add(w.HX.T(), d.Ha.flatten_time(), in_deltas.flatten_time());
 }
 
-void ForwardLayer::gradient(ForwardLayer::Parameters&, ForwardLayer::Parameters& grad, ForwardLayer::FwdState&, ForwardLayer::BwdState& d, Matrix&, Matrix& x, Matrix&)
+void HfFinalLayer::gradient(HfFinalLayer::Parameters&, HfFinalLayer::Parameters& grad, HfFinalLayer::FwdState&, HfFinalLayer::BwdState& d, Matrix&, Matrix& x, Matrix&)
 {
 	mult_add(d.Ha.flatten_time(), x.flatten_time().T(), grad.HX);
 	if (use_bias)
         squash(d.Ha, grad.H_bias);
 }
 
-void ForwardLayer::Rpass(Parameters &w, Parameters &v,  FwdState &, FwdState &Rb, Matrix &x, Matrix &y, Matrix& Rx, Matrix &Ry)
+void HfFinalLayer::Rpass(Parameters &w, Parameters &v,  FwdState &, FwdState &Rb, Matrix &x, Matrix&, Matrix& Rx, Matrix &Ry)
 {
     // Rb.Ha = W Rx + V x
     mult(v.HX, x.flatten_time(), Rb.Ha.flatten_time());
@@ -76,10 +76,11 @@ void ForwardLayer::Rpass(Parameters &w, Parameters &v,  FwdState &, FwdState &Rb
         add_vector_into(v.H_bias, Rb.Ha);
 
 	// Ry = f'(b.Ha)*Rb.Ha
-    f->apply_deriv(y, Rb.Ha, Ry);
+    //f->apply_deriv(y, Rb.Ha, Ry);
+    copy(Rb.Ha, Ry);
 }
 
-void ForwardLayer::dampened_backward(Parameters& w, FwdState& b, BwdState& d, Matrix& y, Matrix& in_deltas, Matrix& out_deltas, FwdState&, double, double)
+void HfFinalLayer::dampened_backward(Parameters& w, FwdState& b, BwdState& d, Matrix& y, Matrix& in_deltas, Matrix& out_deltas, FwdState&, double, double)
 {
     backward(w, b, d, y, in_deltas, out_deltas);
 }

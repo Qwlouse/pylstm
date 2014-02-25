@@ -71,8 +71,8 @@ cdef class BaseLayer:
         cdef cm.MatrixContainer* bwd_state = self.layer.create_bwd_state_view(bwd_state_buffer.c_obj, batch_size, time_length)
         return create_MatrixContainer(bwd_state)
 
-    def forward(self, MatrixContainer param, MatrixContainer fwd_state, Matrix in_view, Matrix out_view):
-        self.layer.forward_pass(deref(param.this_ptr), deref(fwd_state.this_ptr), in_view.c_obj, out_view.c_obj)
+    def forward(self, MatrixContainer param, MatrixContainer fwd_state, Matrix in_view, Matrix out_view, bool training_pass):
+        self.layer.forward_pass(deref(param.this_ptr), deref(fwd_state.this_ptr), in_view.c_obj, out_view.c_obj, training_pass)
 
     def backward(self, MatrixContainer param, MatrixContainer fwd_state, MatrixContainer err, Matrix out_view, Matrix in_deltas, Matrix out_deltas):
         self.layer.backward_pass(deref(param.this_ptr), deref(fwd_state.this_ptr), deref(err.this_ptr), out_view.c_obj, in_deltas.c_obj, out_deltas.c_obj)
@@ -136,6 +136,10 @@ def create_layer(name, in_size, out_size, **kwargs):
         expected_kwargs |= {'delta_range'}
     if name_lower == "forwardlayer":
         expected_kwargs |= {'use_bias'}
+    if name_lower == "dropoutlayer":
+        expected_kwargs |= {'dropout_prob'}
+    if name_lower == "lwtalayer":
+        expected_kwargs |= {'block_size'}
     unexpected_kwargs = [k for k in kwargs if k not in expected_kwargs]
     if unexpected_kwargs:
         import warnings
@@ -155,20 +159,28 @@ def create_layer(name, in_size, out_size, **kwargs):
             act_fct = <cm.ActivationFunction*> &cm.Linear
         elif af_name == "softmax":
             act_fct = <cm.ActivationFunction*> &cm.Softmax
-        elif af_name == "winout":
-            act_fct = <cm.ActivationFunction*> &cm.Winout
+        # elif af_name == "winout":
+        #     act_fct = <cm.ActivationFunction*> &cm.Winout
         elif af_name == "tanhscaled":
             act_fct = <cm.ActivationFunction*> &cm.TanhScaled
 
     cdef cl.Lstm97Layer lstm97
     cdef cl.LstmLayer lstm_layer
     cdef cl.ForwardLayer forward_layer
+    cdef cl.HfFinalLayer hf_final_layer
+    cdef cl.DropoutLayer dropout_layer
+    cdef cl.LWTALayer lwta_layer
 
     if name_lower == "forwardlayer":
         forward_layer = cl.ForwardLayer(act_fct)
         if 'use_bias' in kwargs:
             forward_layer.use_bias = kwargs['use_bias']
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.ForwardLayer](in_size, out_size, forward_layer))
+    elif name_lower == "hffinallayer":
+        hf_final_layer = cl.HfFinalLayer(act_fct)
+        if 'use_bias' in kwargs:
+            hf_final_layer.use_bias = kwargs['use_bias']
+        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.HfFinalLayer](in_size, out_size, hf_final_layer))
     elif name_lower == "rnnlayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.RnnLayer](in_size, out_size, cl.RnnLayer(act_fct)))
     elif name_lower == "arnnlayer":
@@ -199,6 +211,22 @@ def create_layer(name, in_size, out_size, **kwargs):
     elif name_lower == "reverselayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.ReverseLayer](in_size, out_size, cl.ReverseLayer()))
         l.skip_training = True
+    elif name_lower == "dropoutlayer":
+        if 'dropout_prob' in kwargs:
+            dropout_layer.drop_prob = kwargs['dropout_prob']
+        else:
+            dropout_layer.drop_prob = 0.5
+        if 'initial_state' in kwargs:
+            dropout_layer.rnd_state = kwargs['initial_state']
+        else:
+            dropout_layer.rnd_state = 42
+        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.DropoutLayer](in_size, out_size, dropout_layer))
+    elif name_lower == "lwtalayer":
+        if 'block_size' in kwargs:
+            lwta_layer.block_size = kwargs['block_size']
+        else:
+            lwta_layer.block_size = 2
+        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.LWTALayer](in_size, out_size, lwta_layer))
     else :
         raise AttributeError("No layer with name " + name)
 

@@ -9,7 +9,7 @@ import numpy as np
 from pylstm import Gaussian
 
 from pylstm.structure import LstmLayer, Lstm97Layer, RnnLayer, MrnnLayer
-from pylstm.structure import build_net, ForwardLayer, InputLayer
+from pylstm.structure import build_net, ForwardLayer, InputLayer, LWTALayer
 from pylstm.utils import check_gradient, check_deltas, check_rpass
 from pylstm.wrapper import Matrix
 
@@ -22,6 +22,15 @@ class NetworkTests(unittest.TestCase):
         prev_layer = InputLayer(self.input_size)
         for l in range(layers):
             prev_layer = prev_layer >> layer_type(self.output_size, act_func=activation_function)
+        net = build_net(prev_layer)
+        net.initialize(Gaussian(std=0.1))
+        return net
+
+    def build_lwta_network(self, input_size, activation_function, block_sizes=[1, 2, 4, 8]):
+        prev_layer = InputLayer(input_size)
+        for l in range(len(block_sizes)):
+            prev_layer = prev_layer >> ForwardLayer(input_size, act_func=activation_function)
+            prev_layer = prev_layer >> LWTALayer(block_size=block_sizes[l])
         net = build_net(prev_layer)
         net.initialize(Gaussian(std=0.1))
         return net
@@ -101,6 +110,25 @@ class NetworkTests(unittest.TestCase):
                     print(q)
 
             print("Checking Gradient of %s with %s = %0.4f" % (l(3), a, e))
+        self.assertTrue(np.all(np.array(check_errors) < 1e-4))
+
+    def test_lwta_gradient_finite_differences(self):
+        check_errors = []
+        for a in self.activation_functions:
+            net = self.build_lwta_network(8, a)
+            e, grad_calc, grad_approx = check_gradient(net, n_batches=5,
+                                                       n_timesteps=7, rnd=rnd)
+            check_errors.append(e)
+            if e > 1e-4:
+                # construct a weight view and break down the differences
+                layer = net.layers.values()[1]  # the only layer
+                b = Matrix(grad_approx - grad_calc)
+                diff = layer.create_param_view(b)
+                for n, q in diff.items():
+                    print("====== %s ======" % n)
+                    print(q)
+
+            print("Checking Gradient of %s with LWTA = %0.4f" % (a, e))
         self.assertTrue(np.all(np.array(check_errors) < 1e-4))
 
     def test_rforward_finite_differences(self):

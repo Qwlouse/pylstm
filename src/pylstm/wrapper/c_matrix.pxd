@@ -28,6 +28,7 @@ cdef extern from "matrix.h":
         Matrix row_slice(size_t start_row, size_t stop_row) except +
         void set_all_elements_to(d_type value) except +
         void print_me() except +
+        Matrix copy() except +
 
 
 cdef extern from "matrix_operation.h":
@@ -36,8 +37,8 @@ cdef extern from "matrix_operation.h":
         pass
     cppclass SoftmaxLayerActivation(ActivationFunction):
         pass
-    cppclass WinoutActivation(ActivationFunction):
-        pass
+    # cppclass WinoutActivation(ActivationFunction):
+    #     pass
 
     ActivationFunction Sigmoid
     ActivationFunction Tanh
@@ -45,7 +46,7 @@ cdef extern from "matrix_operation.h":
     ActivationFunction Linear
     ActivationFunction RectifiedLinear
     SoftmaxLayerActivation Softmax
-    WinoutActivation Winout
+    # WinoutActivation Winout
     ActivationFunction TanhScaled
 
 
@@ -57,6 +58,8 @@ cdef extern from "matrix_operation.h":
     void mult(Matrix a, Matrix b, Matrix out) except +
 
     void mult_add(Matrix a, Matrix b, Matrix out) except +
+
+    void hard_compete_locally(Matrix mask, Matrix x, Matrix out, unsigned int block_size) except +
 
     void dot(Matrix a, Matrix b, Matrix out) except +
 
@@ -81,5 +84,5 @@ cdef extern from "matrix_container.h":
         vector[string] get_view_names() except +
         size_t get_size() except +
         string get_typename() except +
-        MatrixContainerSlice* slice(size_t start, size_t stop) except +
+        MatrixContainerSlice* copy_slice(size_t start, size_t stop) except +
         void set_values(MatrixContainerSlice* slice, size_t start) except +
