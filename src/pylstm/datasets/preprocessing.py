@@ -3,7 +3,7 @@
 from __future__ import division, print_function, unicode_literals
 import numpy as np
 from pylstm.randomness import global_rnd
-from pylstm.targets import create_targets_object
+from pylstm.targets import create_targets_object, Targets
 
 
 def binarize_sequence(seq, alphabet=None):
@@ -49,9 +49,9 @@ def get_mean_masked(X, M):
     """
     Get the mean values for every feature in the batch of sequences X by
     considering only masked-in entries.
-    :param X: Batch of sequences. shape = (time, sample, feature)
-    :param M: Mask for the sequences. shape = (time, sample, 1)
-    :returns: mean value for each feature. shape = (features, )
+    @param X: Batch of sequences. shape = (time, sample, feature)
+    @param M: Mask for the sequences. shape = (time, sample, 1)
+    @return: mean value for each feature. shape = (features, )
     """
     return X.reshape(-1, X.shape[2])[M.flatten() == 1].mean(0)
 
@@ -60,9 +60,9 @@ def get_std_masked(X, M):
     """
     Get the standard deviation for every feature in the batch of sequences X by
     considering only masked-in entries.
-    :param X: Batch of sequences. shape = (time, sample, feature)
-    :param M: Mask for the sequences. shape = (time, sample, 1)
-    :returns: standard deviation of each feature. shape = (features, )
+    @param X: Batch of sequences. shape = (time, sample, feature)
+    @param M: Mask for the sequences. shape = (time, sample, 1)
+    @return: standard deviation of each feature. shape = (features, )
     """
     return X.reshape(-1, X.shape[2])[M.flatten() == 1].std(0)
 
@@ -71,9 +71,9 @@ def subtract_mean_masked(X, M, means):
     """
     Subtract the means from the masked-in entries of a batch of sequences X.
 
-    :param X: Batch of sequences. shape = (time, sample, feature)
-    :param M: Mask for the sequences. shape = (time, sample, 1)
-    :param means: The means to subtract. shape = (features, )
+    @param X: Batch of sequences. shape = (time, sample, feature)
+    @param M: Mask for the sequences. shape = (time, sample, 1)
+    @param means: The means to subtract. shape = (features, )
     """
     for i in range(X.shape[2]):
         X[:, :, i][M[:, :, 0] == 1] -= means[i]
@@ -83,15 +83,28 @@ def divide_by_std_masked(X, M, stds):
     """
     Divide masked-in entries of X by the standard deviations stds.
 
-    :param X: Batch of sequences. shape = (time, sample, feature)
-    :param M: Mask for the sequences. shape = (time, sample, 1)
-    :param stds: The standard deviations for every feature. shape = (features, )
+    @param X: Batch of sequences. shape = (time, sample, feature)
+    @param M: Mask for the sequences. shape = (time, sample, 1)
+    @param stds: The standard deviations for every feature. shape = (features, )
     """
     for i in range(X.shape[2]):
         X[:, :, i][M[:, :, 0] == 1] /= stds[i]
 
 
 def normalize_data(X_train, M_train, X_test, M_test):
+    """
+    why does this shit not work?
+
+
+    @param X_train: the training input data
+    @type X_train ndarray
+    @param M_train:
+    @type M_train ndarray
+    @param X_test:
+    @param M_test:
+
+    @rtype : (ndarray, ndarray)
+    """
     means = get_mean_masked(X_train, M_train)
     subtract_mean_masked(X_train, M_train, means)
     subtract_mean_masked(X_test, M_test, means)
@@ -105,10 +118,10 @@ def normalize_data(X_train, M_train, X_test, M_test):
 def shuffle_data(X, T, M=None, seed=None):
     """
     Shuffles the samples of the data.
-    :param X:
-    :param T:
-    :param M:
-    :return:
+    @param X:
+    @param T:
+    @param M:
+    @return:
     """
     T = create_targets_object(T)
     indices = np.arange(X.shape[1])
