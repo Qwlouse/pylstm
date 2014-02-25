@@ -63,6 +63,9 @@ class Targets(object):
     def __str__(self):
         return "<%s-Targets>" % str(self.targets_type)
 
+    def is_framewise(self):
+        return self.targets_type[0] == 'F'
+
 
 def assert_shape_equals(s1, s2):
     assert s1 == s2, "targets shape error: %s != %s" % (str(s1), str(s2))
@@ -88,6 +91,11 @@ class FramewiseTargets(Targets):
     def __getitem__(self, item):
         t = self.data[:, item, :]
         m = self.mask[:, item, :] if self.mask is not None else None
+        return FramewiseTargets(t, m, binarize_to=self.binarize_to)
+
+    def index_time(self, item):
+        t = self.data[item]
+        m = self.mask[item] if self.mask is not None else None
         return FramewiseTargets(t, m, binarize_to=self.binarize_to)
 
     def trim(self):

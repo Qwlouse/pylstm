@@ -146,45 +146,44 @@ def _update_progress(progress):
 
 
 ################## Dataset Modifications ######################
-class Noisy(object):
+class Noisy(Seedable):
     """
     Adds noise to each input sample.
     Can be applied to any iterator (Online, Minibatches or Undivided).
     """
-    def __init__(self, data_iter, std=0.1, rnd=np.random.RandomState()):
+
+    def __init__(self, data_iter, std=0.1, seed=None):
+        super(Noisy, self).__init__(seed=seed, category='data_iterator')
         self.f = data_iter
-        self.rnd = rnd
         self.std = std
 
     def __call__(self):
-        for x, t, m in self.f():
+        for x, t in self.f():
             x_noisy = x + self.rnd.randn(*x.shape) * self.std
-            yield x_noisy, t, m
+            yield x_noisy, t
 
 
-class FrameDrop(object):
+class FrameDrop(Seedable):
     """
     Retains only a fraction of time frames of the time fraction.
     Thus, the lengths of sequences are changed.
-    Uses a fixed seed by default to keep reproducibility
 
     NOTE: Designed for use with the Online iterator only.
     If you use it with other iterators, keep in mind that the dropped frames
     will be the same ones for each sequence in your batches.
     """
-    def __init__(self, data_iter, keep_fraction=0.9, rnd=np.random.RandomState(42), drop_targets=True):
+
+    def __init__(self, data_iter, keep_fraction=0.9, seed=None):
+        super(FrameDrop, self).__init__(seed=seed, category='data_iterator')
         self.data_iter = data_iter
         self.fraction = keep_fraction
-        self.rnd = rnd
-        self.drop_targets = drop_targets
 
     def __call__(self):
-        for x, t, m in self.data_iter():
-            mask = np.random.random_sample(x.shape[0]) < self.fraction
-            x_drop = x[mask, :, :]
-            if self.drop_targets:
-                t_drop = t[mask, :, :]
+        for x, t in self.data_iter():
+            drop_mask = self.rnd.random_sample(x.shape[0]) < self.fraction
+            x_drop = x[drop_mask, :, :]
+            if t.is_framewise():
+                t_drop = t.index_time(drop_mask)
             else:
                 t_drop = t
-            m_drop = m[mask, :, :]
-            yield x_drop, t_drop, m_drop
+            yield x_drop, t_drop
