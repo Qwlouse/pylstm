@@ -392,7 +392,7 @@ class Network(Seedable):
         return self.in_delta_buffer
 
     def hessian_pass(self, input_buffer, v_buffer, T, M=None, lambda_=0., mu=0., matching_loss=True):
-        self.forward_pass(input_buffer)
+        y = self.forward_pass(input_buffer)
         self.r_forward_pass(input_buffer, v_buffer)
         if matching_loss:
             self.r_backward_pass(self.r_out_buffer, lambda_, mu)
@@ -404,9 +404,10 @@ class Network(Seedable):
                                                           self.T, M)
 
             rval = self.r_in_out_manager.get_source_view(self.out_layer).as_array()
-            for t in range(rval.shape[0]):
+            for t in range(rval.shape[0]-1):
                 for b in range(rval.shape[1]):
-                    rval[t, b, :] = self.deltas[t, b] * np.inner(self.deltas[t, b], rval[t, b])
+                    #rval[t+1, b, :] = self.deltas[t, b] * np.inner(self.deltas[t, b], rval[t+1, b])
+                    rval[t+1, b, :] = ((np.diag(y[t,b])- np.outer(y[t,b], y[t,b]))).dot(rval[t+1, b])
             self.r_backward_pass(rval, lambda_, mu)
         return self.calc_gradient()
 

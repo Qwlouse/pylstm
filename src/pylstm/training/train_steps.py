@@ -285,18 +285,19 @@ class CgStep(TrainingStep, Seedable):
 
         ## initialize v
         #v = np.zeros(net.get_param_size())
-        try:
-            v = self.new_v
-        except:
-            v = .000001 * self.rnd.randn(self.net.get_param_size())
+        #try:
+        #    v = self.new_v
+        #except:
+        #    v = .000001 * self.rnd.randn(self.net.get_param_size())
+        v = .000001 * self.rnd.randn(self.net.get_param_size())
 
         # select a random subset of the data for the CG
         x, t, m = self._get_random_subset(X, T, M, self.minibatch_size)
 
         ## define hessian pass
         def fhess_p(v):
-            return self.net.hessian_pass(x, v, t, m, self.mu, self.lambda_, self.matching_loss).copy().\
-                       flatten() + self.lambda_*v
+            return (self.net.hessian_pass(x, v, t, m, self.mu, self.lambda_, self.matching_loss).copy().\
+                       flatten() + self.lambda_*v) / self.minibatch_size
 
         ## run CG
         all_v = conjgrad3(grad, v.copy(), fhess_p, maxiter=self.maxiter)
@@ -317,7 +318,9 @@ class CgStep(TrainingStep, Seedable):
 
         ## backtrack #2
         finalDW = bestDW
-        for j in np.arange(0, 1.0, 0.1):
+        #for j in np.arange(0, 40, 1):
+        #    tmpDW = bestDW * (.9 ** j)
+        for j in np.arange(0, 1.0, 0.02):
             tmpDW = j * bestDW
             self.net.param_buffer = weights - tmpDW
             self.net.forward_pass(x, training_pass=True)
