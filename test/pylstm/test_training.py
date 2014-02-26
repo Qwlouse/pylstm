@@ -9,6 +9,7 @@ from pylstm import Gaussian
 
 from pylstm.structure import LstmLayer, Lstm97Layer, RnnLayer, MrnnLayer
 from pylstm.structure import build_net, ForwardLayer, InputLayer
+from pylstm.targets import create_targets_object
 from pylstm.training import (ForwardStep, SgdStep, MomentumStep, NesterovStep,
                              RmsPropStep, RPropStep, Trainer, Minibatches,
                              MaxEpochsSeen)
@@ -36,6 +37,7 @@ class TrainingTests(unittest.TestCase):
         self.X = rnd.randn(n_timesteps, n_batches, self.input_size)
         self.T = rnd.randn(n_timesteps, n_batches, self.output_size)
         self.T = self.T / self.T.sum(2).reshape(n_timesteps, n_batches, 1)
+        self.T = create_targets_object(self.T)
 
     def test_steps(self):
         """

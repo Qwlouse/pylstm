@@ -5,12 +5,12 @@ import numpy as np
 from pylstm.utils import ctc_best_path_decoding
 
 
-def MonitorFunction(timescale='epoch', interval=1):
+def monitor_function(timescale='epoch', interval=1):
     """
     Decorator to adjust the interval and timescale for a monitoring function.
     Example:
 
-    @MonitorFunction('update', 5)
+    @monitor_function('update', 5)
     def foo(*args, **kwargs):
         print('bar')
     """
@@ -92,9 +92,9 @@ class MonitorError(object):
 
     def __call__(self, net, **_):
         errors = []
-        for x, t, m in self.data_iter():
+        for x, t in self.data_iter():
             y = net.forward_pass(x)
-            error, _ = self.error_func(y, t, m)
+            error, _ = self.error_func(y, t)
             errors.append(error)
 
         mean_error = np.mean(errors)
@@ -117,7 +117,7 @@ class MonitorClassificationError(object):
     def __call__(self, net, **_):
         total_errors = 0
         total = 0
-        for x, t, m in self.data_iter():
+        for x, t in self.data_iter():
             assert t.targets_type in [('F', False), ('F', True), ('S', False), ('S', True)], \
                 "Target type not suitable for classification error monitoring."
             y = net.forward_pass(x)
@@ -127,9 +127,9 @@ class MonitorClassificationError(object):
             else:
                 t_win = t.data.argmax(2)
 
-            if m is not None:
-                total_errors += np.sum((y_win != t_win) * m[:, :, 0])
-                total += np.sum(m)
+            if t.mask is not None:
+                total_errors += np.sum((y_win != t_win) * t.mask[:, :, 0])
+                total += np.sum(t.mask)
             else:
                 total_errors += np.sum((y_win != t_win))
                 total += t.data.shape[0] * t.data.shape[1]
@@ -156,16 +156,16 @@ class MonitorPooledClassificationError(object):
     def __call__(self, net, **_):
         total_errors = 0
         total = 0
-        for x, t, m in self.data_iter():
+        for x, t in self.data_iter():
             relevant_from = (t.data.shape[2] / self.pool_size) * (self.pool_size // 2)
             relevant_to = relevant_from + (t.shape[2] / self.pool_size)
             t = t[:, :, relevant_from: relevant_to]
             y = net.forward_pass(x)
             y_win = y.argmax(2)
             t_win = t.argmax(2)
-            if m is not None:
-                total_errors += np.sum((y_win != t_win) * m[:, :, 0])
-                total += np.sum(m)
+            if t.mask is not None:
+                total_errors += np.sum((y_win != t_win) * t.mask[:, :, 0])
+                total += np.sum(t.mask)
             else:
                 total_errors += np.sum((y_win != t_win))
                 total += t.data.shape[0] * t.data.shape[1]
@@ -190,7 +190,7 @@ class MonitorPhonemeError(object):
     def __call__(self, net, **_):
         total_errors = 0
         total_length = 0
-        for x, t, m in self.data_iter():
+        for x, t in self.data_iter():
             y = net.forward_pass(x)
             lab = ctc_best_path_decoding(y)
             total_errors += levenshtein(lab, t.data[0])

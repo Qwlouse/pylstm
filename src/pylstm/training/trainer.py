@@ -78,8 +78,8 @@ class Trainer(object):
                 print('\n\n', 15*'- ', " Epoch ", (self.epochs_seen + 1), 15*' -')
                 print("Training ...")
             start = time.time()
-            for i, (x, t, m) in enumerate(training_data_getter()):
-                train_errors.append(self.stepper.run(x, t, m))
+            for i, (x, t) in enumerate(training_data_getter()):
+                train_errors.append(self.stepper.run(x, t))
                 self.emit_monitoring_batchwise(i + 1)
 
             if verbose:
@@ -93,8 +93,8 @@ class Trainer(object):
                 if verbose:
                     print("Validating ...")
                 start = time.time()
-                for x, t, m in validation_data_getter():
-                    valid_errors.append(self.validation_stepper.run(x, t, m))
+                for x, t in validation_data_getter():
+                    valid_errors.append(self.validation_stepper.run(x, t))
                 if verbose:
                     print("Wall Time taken: ", time.time() - start)
 

@@ -6,7 +6,7 @@ import itertools
 import unittest
 
 import numpy as np
-from pylstm import Gaussian
+from pylstm import Gaussian, create_targets_object
 
 from pylstm.structure import LstmLayer, Lstm97Layer, RnnLayer, MrnnLayer
 from pylstm.structure import build_net, ForwardLayer, InputLayer, LWTALayer
@@ -54,7 +54,8 @@ class NetworkTests(unittest.TestCase):
         net = self.build_network(LstmLayer, "tanh")
         net.clear_internal_state()
         out1 = net.forward_pass(self.X).copy()
-        deltas1 = net.backward_pass(np.zeros_like(out1)).copy()
+        targets = create_targets_object(np.zeros_like(out1))
+        deltas1 = net.backward_pass(targets).copy()
         bwstate1 = net.get_bwd_state_for('LstmLayer')
         b1 = {}
         for h in bwstate1.keys():
@@ -62,8 +63,8 @@ class NetworkTests(unittest.TestCase):
 
         net.bwd_state_manager.initialize_buffer(Matrix(rnd.randn(
             net.bwd_state_manager.calculate_size())))
-        out2 = net.forward_pass(self.X).copy()
-        deltas2 = net.backward_pass(np.zeros_like(out2)).copy()
+        net.forward_pass(self.X).copy()
+        deltas2 = net.backward_pass(targets).copy()
         bwstate2 = net.get_bwd_state_for('LstmLayer')
         b2 = {}
         for h in bwstate2.keys():

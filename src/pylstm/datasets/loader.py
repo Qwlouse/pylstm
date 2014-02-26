@@ -6,7 +6,7 @@ from __future__ import division, print_function, unicode_literals
 import os
 import numpy as np
 import cPickle
-from pylstm.targets import SequencewiseTargets
+from pylstm.targets import SequencewiseTargets, create_targets_object
 
 
 def get_files_containing(file_list, search_string, ignore_case=False):
@@ -18,7 +18,7 @@ def get_files_containing(file_list, search_string, ignore_case=False):
 
 def load_data(files):
     """
-    Picks the shortest filename among the options and loads it if it has a
+    Picks the shortest filename among files and loads it if it has a
     .npy or .pickle ending.
     """
     filename = None
@@ -30,21 +30,22 @@ def load_data(files):
     print('loading "%s"' % filename)
     if filename.endswith('.npy'):
         return np.load(filename)
-    if filename.endswith('.pickle'):
+    elif filename.endswith('.pickle'):
         with open(filename, 'r') as f:
             return cPickle.load(f)
     return None
 
 
 def read_data(candidates, targets='T'):
-    X = load_data(get_files_containing(candidates, 'X'))
-    T = load_data(get_files_containing(candidates, targets))
-    M_candidates = get_files_containing(candidates, 'M')
-    if M_candidates:
-        M = load_data(M_candidates)
+    input_data = load_data(get_files_containing(candidates, 'X'))
+    targets_data = load_data(get_files_containing(candidates, targets))
+    mask_candidates = get_files_containing(candidates, 'M')
+    if mask_candidates:
+        mask = load_data(mask_candidates)
     else:
-        M = np.ones((T.shape[0], T.shape[1], 1))
-    return X, T, M
+        mask = None
+    targets = create_targets_object(targets_data, mask)
+    return input_data, targets
 
 
 def load_dataset(dataset_path, subset='', targets='T'):
@@ -56,7 +57,8 @@ def load_dataset(dataset_path, subset='', targets='T'):
     In case of ambiguity it will load the file with the shortest filename.
     """
     candidates = [os.path.join(dataset_path, p)
-                  for p in os.listdir(dataset_path)]
+                  for p in os.listdir(dataset_path)
+                  if os.path.isfile(p)]
     if subset:
         candidates = get_files_containing(candidates, subset)
 
@@ -80,42 +82,7 @@ def transform_ds_to_nsp(ds):
     for use in ds:
         if ds[use] is None:
             continue
+        nsp_targets = create_targets_object(ds[use][0][1:])
         ds_nsp[use] = (ds[use][0][:-1, :, :],
-                       ds[use][0][1:, :, :],
-                       ds[use][2][:-1, :, :])
+                       nsp_targets)
     return ds_nsp
-
-
-def transform_ds_to_seq_classification(ds):
-    """
-    Takes a dataset dictionary like the one returned from load_dataset
-    and transforms it into a sequence classification task.
-    """
-    classes = list(np.lib.arraysetops.unique(ds['train'][1]))
-    ds_seq_class = {}
-    for use in ds:
-        if ds[use] is None:
-            continue
-        T = np.array([classes.index(t) for t in ds[use][1].flatten()])
-        ds_seq_class[use] = (ds[use][0],
-                             SequencewiseTargets(T, binarize_to=len(classes)),
-                             ds[use][2])
-
-    return ds_seq_class, len(classes)
-
-
-def mask_features(ds, feature_mask):
-    """
-    Can be used to remove some features from a dataset.
-    :param ds: dataset dictionary
-    :param feature_mask: binary mask with shape = (# features, )
-    :return: new ds dictionary
-    """
-    masked_ds = {}
-    for usage in ds:
-        if ds[usage] is None:
-            continue
-        X, T, M = ds[usage]
-        X = X[:, :, feature_mask == 1]
-        masked_ds[usage] = X, T, M
-    return masked_ds

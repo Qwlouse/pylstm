@@ -3,6 +3,7 @@
 
 from __future__ import division, print_function, unicode_literals
 import numpy as np
+from pylstm.targets import create_targets_object
 
 
 def approx_fprime(xk,f,epsilon,*args):
@@ -24,7 +25,7 @@ def check_gradient(net, X=None, T=None, n_timesteps=3, n_batches=5,
         T = rnd.randn(n_timesteps, n_batches, net.get_output_size())
         # normalize targets to sum to one
         T = T / T.sum(2).reshape(n_timesteps, n_batches, 1)
-
+    T = create_targets_object(T)
     weights = net.param_buffer.copy()
 
     ######### calculate gradient ##########
@@ -50,7 +51,7 @@ def check_deltas(net, X=None, T=None, n_timesteps=3, n_batches=5,
         T = rnd.randn(n_timesteps, n_batches, net.get_output_size())
         # normalize targets to sum to one
         T = T / T.sum(2).reshape(n_timesteps, n_batches, 1)
-
+    T = create_targets_object(T)
     ######### calculate gradient ##########
     net.forward_pass(X)
     delta_calc = net.backward_pass(T).flatten()
@@ -143,15 +144,15 @@ def construct_period_mask(periods):
     return D
 
 
-def get_sequence_lengths(M):
+def get_sequence_lengths(mask):
     """
-    Given a mask M it returns a list of the lengths of all sequences. Note: this
+    Given a mask it returns a list of the lengths of all sequences. Note: this
     assumes, that the mask has only values 0 and 1. It returns for each sequence
     the last index such that the mask is 1 there.
-    :param M: mask of 0s and 1s with shape=(t, b, 1)
+    :param mask: mask of 0s and 1s with shape=(t, b, 1)
     :return: array of sequence lengths with shape=(b,)
     """
-    return M.shape[0] - M[::-1, :, 0].argmax(axis=0)
+    return mask.shape[0] - mask[::-1, :, 0].argmax(axis=0)
 
 
 ################################################################################

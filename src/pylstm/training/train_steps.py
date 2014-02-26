@@ -24,7 +24,7 @@ class TrainingStep(object):
     def _initialize(self):
         pass
 
-    def run(self, x, t, m):
+    def run(self, input_data, targets):
         pass
 
 
@@ -36,13 +36,10 @@ class DiagnosticStep(TrainingStep):
     def _initialize(self):
         print("start DiagnosticStep with net=", self.net)
 
-    def run(self, x, t, m):
-        print("DiagnosticStep: x.shape=", x.shape)
-        if isinstance(t, Targets):
-            print("DiagnosticStep: t=", t)
-        else:
-            print("DiagnosticStep: t.shape=", t.shape)
-        print("DiagnosticStep: m.shape=", m.shape if m is not None else None)
+    def run(self, input_data, targets):
+        print("DiagnosticStep: x.shape=", input_data.shape)
+        assert isinstance(targets, Targets)
+        print("DiagnosticStep: t=", targets)
         return 15
 
 
@@ -59,9 +56,9 @@ class ForwardStep(TrainingStep):
         super(ForwardStep, self).__init__()
         self.use_training_pass = use_training_pass
 
-    def run(self, x, t, m):
-        self.net.forward_pass(x, training_pass=self.use_training_pass)
-        return self.net.calculate_error(t, m)
+    def run(self, input_data, targets):
+        self.net.forward_pass(input_data, training_pass=self.use_training_pass)
+        return self.net.calculate_error(targets)
 
 
 class SgdStep(TrainingStep):
@@ -72,11 +69,11 @@ class SgdStep(TrainingStep):
         super(SgdStep, self).__init__()
         self.learning_rate_schedule = get_schedule(learning_rate)
 
-    def run(self, x, t, m):
+    def run(self, input_data, targets):
         learning_rate = self.learning_rate_schedule()
-        self.net.forward_pass(x, training_pass=True)
-        error = self.net.calculate_error(t, m)
-        self.net.backward_pass(t, m)
+        self.net.forward_pass(input_data, training_pass=True)
+        error = self.net.calculate_error(targets)
+        self.net.backward_pass(targets)
         self.net.param_buffer -= (learning_rate *
                                   self.net.calc_gradient().flatten())
         return error
@@ -101,13 +98,13 @@ class MomentumStep(TrainingStep):
     def _initialize(self):
         self.velocity = np.zeros(self.net.get_param_size())
 
-    def run(self, x, t, m):
+    def run(self, input_data, targets):
         learning_rate = self.learning_rate_schedule()
         momentum = self.momentum_schedule()
         self.velocity *= momentum
-        self.net.forward_pass(x, training_pass=True)
-        error = self.net.calculate_error(t, m)
-        self.net.backward_pass(t, m)
+        self.net.forward_pass(input_data, training_pass=True)
+        error = self.net.calculate_error(targets)
+        self.net.backward_pass(targets)
         if self.scale_learning_rate:
             dv = (1 - momentum) * learning_rate * self.net.calc_gradient().flatten()
         else:
@@ -125,14 +122,14 @@ class NesterovStep(MomentumStep):
     If scale_learning_rate is True (default),
     learning_rate is multiplied by (1 - momentum) when used.
     """
-    def run(self, x, t, m):
+    def run(self, input_data, targets):
         learning_rate = self.learning_rate_schedule()
         momentum = self.momentum_schedule()
         self.velocity *= momentum
         self.net.param_buffer += self.velocity
-        self.net.forward_pass(x, training_pass=True)
-        error = self.net.calculate_error(t, m)
-        self.net.backward_pass(t, m)
+        self.net.forward_pass(input_data, training_pass=True)
+        error = self.net.calculate_error(targets)
+        self.net.backward_pass(targets)
         if self.scale_learning_rate:
             dv = (1 - momentum) * learning_rate * self.net.calc_gradient().flatten()
         else:
@@ -177,10 +174,10 @@ class RPropStep(TrainingStep):
         self.last_error = np.Inf
         self.initialized = True
 
-    def run(self, x, t, m):
-        self.net.forward_pass(x, training_pass=True)
-        error = self.net.calculate_error(t, m)
-        self.net.backward_pass(t, m)
+    def run(self, input_data, targets):
+        self.net.forward_pass(input_data, training_pass=True)
+        error = self.net.calculate_error(targets)
+        self.net.backward_pass(targets)
         grad = self.net.calc_gradient()
 
         grad_sign = np.sign(grad)
@@ -231,16 +228,16 @@ class RmsPropStep(TrainingStep):
     def _initialize(self):
         self.scaling_factor = np.zeros(self.net.get_param_size())
 
-    def run(self, x, t, m):
-        self.net.forward_pass(x, training_pass=True)
-        error = self.net.calculate_error(t, m)
-        self.net.backward_pass(t, m)
+    def run(self, input_data, targets):
+        self.net.forward_pass(input_data, training_pass=True)
+        error = self.net.calculate_error(targets)
+        self.net.backward_pass(targets)
         grad = self.net.calc_gradient()
 
         self.scaling_factor = ((1 - self.decay) * grad**2 +
                                self.decay * self.scaling_factor)
         update = (self.step_rate / self.scaling_factor) * grad
-        self.net.param_buffer += update.flatten()
+        #self.net.param_buffer += update.flatten()
         return error
 
 
@@ -266,21 +263,20 @@ class CgStep(TrainingStep, Seedable):
         self.maxiter = maxiter
         self.matching_loss = matching_loss
 
-
     def _initialize(self):
         self.lambda_ = 0.1
 
-    def _get_random_subset(self, X, T, M, subset_size):
-        subset_idx = self.rnd.choice(X.shape[1], subset_size, replace=False)
-        x = X[:, subset_idx, :]
-        t = T[subset_idx]
-        m = M[:, subset_idx, :] if M is not None else None
-        return x, t, m
+    def _get_random_subset(self, input_data, targets, subset_size):
+        subset_idx = self.rnd.choice(input_data.shape[1], subset_size,
+                                     replace=False)
+        x = input_data[:, subset_idx, :]
+        t = targets[subset_idx]
+        return x, t
 
-    def run(self, X, T, M):
+    def run(self, input_data, targets):
         ## calculate the gradient and initial error
-        data_iter = Minibatches(X, T, M, self.minibatch_size, verbose=False,
-                                shuffle=False)
+        data_iter = Minibatches(input_data, targets, self.minibatch_size,
+                                verbose=False, shuffle=False)
         error, grad = calculate_gradient(self.net, data_iter)
 
         ## initialize v
@@ -292,11 +288,11 @@ class CgStep(TrainingStep, Seedable):
         v = .000001 * self.rnd.randn(self.net.get_param_size())
 
         # select a random subset of the data for the CG
-        x, t, m = self._get_random_subset(X, T, M, self.minibatch_size)
+        x, t = self._get_random_subset(input_data, targets, self.minibatch_size)
 
         ## define hessian pass
         def fhess_p(v):
-            return (self.net.hessian_pass(x, v, t, m, self.mu, self.lambda_, self.matching_loss).copy().\
+            return (self.net.hessian_pass(x, v, t, self.mu, self.lambda_, self.matching_loss).copy().\
                        flatten() + self.lambda_*v) / self.minibatch_size
 
         ## run CG
@@ -310,7 +306,7 @@ class CgStep(TrainingStep, Seedable):
         for i, testW in reversed(list(enumerate(all_v))):
             self.net.param_buffer = weights - testW
             self.net.forward_pass(x, training_pass=True)
-            tmpError = self.net.calculate_error(t, m)
+            tmpError = self.net.calculate_error(t)
             if tmpError < lowError:
                 lowError = tmpError
                 lowIdx = i
@@ -324,7 +320,7 @@ class CgStep(TrainingStep, Seedable):
             tmpDW = j * bestDW
             self.net.param_buffer = weights - tmpDW
             self.net.forward_pass(x, training_pass=True)
-            tmpError = self.net.calculate_error(t, m)
+            tmpError = self.net.calculate_error(t)
             if tmpError < lowError:
                 finalDW = tmpDW
                 lowError = tmpError

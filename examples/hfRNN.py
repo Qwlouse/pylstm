@@ -30,7 +30,7 @@ def print_lambda(epoch, stepper, **_):
 
 # MAKE 5 BIT PROBLEM
 X, T = generate_memo_task(5,  2, 32, 50)
-
+T = create_targets_object(T)
 # Set up an SGD trainer that stops after 10 epochs
 #tr = Trainer(net, SgdStep(learning_rate=.01))
 #tr.stopping_criteria.append(MaxEpochsSeen(100))
@@ -45,4 +45,4 @@ tr.stopping_criteria.append(MaxEpochsSeen(5000))
 tr.monitor[''] = MonitorClassificationError(Online(X,T))
 tr.monitor['err'] = print_error_per_epoch
 tr.monitor['lambda'] = print_lambda
-tr.train(Undivided(X, T, shuffle=False))
+tr.train(Undivided(X, T))

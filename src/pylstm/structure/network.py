@@ -5,7 +5,7 @@ from copy import deepcopy
 from .. import wrapper as pw
 from pylstm.randomness import reseeding_copy, Seedable
 from pylstm.regularization.initializer import _evaluate_initializer
-from pylstm.targets import create_targets_object
+from pylstm.targets import Targets
 import numpy as np
 
 
@@ -32,7 +32,6 @@ class Network(Seedable):
         self.architecture = architecture
 
         self.targets = None
-        self.mask = None
         self.error = None
         self.deltas = None
 
@@ -237,7 +236,6 @@ class Network(Seedable):
 
     def forward_pass(self, input_buffer, reset=True, training_pass=False):
         self.targets = None
-        self.mask = None
         self.error = None
         self.deltas = None
         context = None
@@ -267,12 +265,15 @@ class Network(Seedable):
         # read the output buffer
         return self.out_buffer
 
-    def calculate_error(self, T, M=None):
+    def _calculate_deltas_and_error(self, targets):
         if self.error is None:
-            self.targets = create_targets_object(T)
-            self.mask = M
-            self.error, self.deltas = self.error_func(self.out_buffer, 
-                                                      self.targets, M)
+            assert isinstance(targets, Targets)
+            self.targets = targets
+            self.error, self.deltas = self.error_func(self.out_buffer,
+                                                      self.targets)
+
+    def calculate_error(self, targets):
+        self._calculate_deltas_and_error(targets)
         return self.error
 
     def pure_backpass(self, deltas):
@@ -297,12 +298,8 @@ class Network(Seedable):
         # read the final delta buffer
         return self.in_delta_buffer
 
-    def backward_pass(self, T, M=None):
-        if self.error is None:
-            self.targets = create_targets_object(T)
-            self.mask = M
-            self.error, self.deltas = self.error_func(self.out_buffer, 
-                                                      self.targets, M)
+    def backward_pass(self, targets):
+        self._calculate_deltas_and_error(targets)
         return self.pure_backpass(self.deltas)
 
     def calc_gradient(self):
@@ -391,17 +388,13 @@ class Network(Seedable):
         # read the final delta buffer
         return self.in_delta_buffer
 
-    def hessian_pass(self, input_buffer, v_buffer, T, M=None, lambda_=0., mu=0., matching_loss=True):
-        y = self.forward_pass(input_buffer)
+    def hessian_pass(self, input_buffer, v_buffer, targets, lambda_=0., mu=0., matching_loss=True):
+        self.forward_pass(input_buffer)
         self.r_forward_pass(input_buffer, v_buffer)
         if matching_loss:
             self.r_backward_pass(self.r_out_buffer, lambda_, mu)
         else:
-            if self.error is None:
-                self.T = create_targets_object(T)
-                self.M = M
-                self.error, self.deltas = self.error_func(self.out_buffer,
-                                                          self.T, M)
+            self._calculate_deltas_and_error(targets)
 
             rval = self.r_in_out_manager.get_source_view(self.out_layer).as_array()
             for t in range(rval.shape[0]-1):

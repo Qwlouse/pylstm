@@ -3,6 +3,7 @@
 from __future__ import division, print_function, unicode_literals
 import numpy as np
 from pylstm import binarize_array
+from pylstm.targets import create_targets_object
 from .training.data_iterators import Online
 from .wrapper import ctcpp
 
@@ -19,22 +20,23 @@ def _illegal_combination(*_):
 # Mean Squared Error Implementations
 # (Gaussian Cross Entropy)
 
-def _FramewiseMSE(Y, T, M):
-    diff = Y - T
-    if M is not None:
-        diff *= M
-    norm = Y.shape[1]  # normalize by number of sequences
+def _FramewiseMSE(outputs, targets, mask):
+    diff = outputs - targets
+    if mask is not None:
+        diff *= mask
+    norm = outputs.shape[1]  # normalize by number of sequences
     error = 0.5 * np.sum(diff ** 2) / norm
     return error, (diff / norm)
 
 
-def _SequencewiseBinarizingMSE(Y, T, M):
-    diff = Y.copy()
-    for b in range(Y.shape[1]):
-        diff[:, b, T[b, 0]] -= 1
-    if M is not None:
-        diff *= M
-    norm = Y.shape[1]  # normalize by number of sequences
+def _SequencewiseBinarizingMSE(outputs, targets, mask):
+    # TODO change behavior for mask = None to only inject at last timestep
+    diff = outputs.copy()
+    for b in range(outputs.shape[1]):
+        diff[:, b, targets[b, 0]] -= 1
+    if mask is not None:
+        diff *= mask
+    norm = outputs.shape[1]  # normalize by number of sequences
     error = 0.5 * np.sum(diff ** 2) / norm
     return error, (diff / norm)
 
@@ -48,35 +50,39 @@ MSE_implementations = {
 }
 
 
-def MeanSquaredError(Y, T, M=None):
-    T.validate_for_output_shape(*Y.shape)
-    return MSE_implementations[T.targets_type](Y, T.data, M)
+def MeanSquaredError(outputs, targets):
+    targets.validate_for_output_shape(*outputs.shape)
+    return MSE_implementations[targets.targets_type](outputs, targets.data,
+                                                     targets.mask)
 
 
 ################################################################################
 # Cross Entropy Error Implementations
 # (Independent Binomial Cross Entropy)
 
-def _FramewiseCEE(y_m, T, M):
-    cee = T * np.log(y_m) + (1 - T) * np.log(1 - y_m)
-    ceed = (T - y_m) / (y_m * (y_m - 1))
-    if M is not None:
-        cee *= M
-        ceed *= M
-    norm = y_m.shape[1]  # normalize by number of sequences
+def _FramewiseCEE(clipped_outputs, targets, mask):
+    cee = targets * np.log(clipped_outputs) + \
+        (1 - targets) * np.log(1 - clipped_outputs)
+    ceed = (targets - clipped_outputs) /\
+           (clipped_outputs * (clipped_outputs - 1))
+    if mask is not None:
+        cee *= mask
+        ceed *= mask
+    norm = clipped_outputs.shape[1]  # normalize by number of sequences
     return (-np.sum(cee) / norm), (ceed / norm)
 
 
-def _SequencewiseBinarizingCEE(y_m, T, M):
-    cee = np.log(1 - y_m)
-    ceed = 1. / (y_m - 1)
-    for b in range(y_m.shape[1]):
-        cee[:, b, T[b, 0]] = np.log(y_m[:, b, T[b, 0]])
-        ceed[:, b, T[b, 0]] = 1. / y_m[:, b, T[b, 0]]
-    norm = y_m.shape[1]  # normalize by number of sequences
-    if M is not None:
-        cee *= M
-        ceed *= M
+def _SequencewiseBinarizingCEE(clipped_outputs, targets, mask):
+    # TODO change behavior for mask = None to only inject at last timestep
+    cee = np.log(1 - clipped_outputs)
+    ceed = 1. / (clipped_outputs - 1)
+    for b in range(clipped_outputs.shape[1]):
+        cee[:, b, targets[b, 0]] = np.log(clipped_outputs[:, b, targets[b, 0]])
+        ceed[:, b, targets[b, 0]] = 1. / clipped_outputs[:, b, targets[b, 0]]
+    norm = clipped_outputs.shape[1]  # normalize by number of sequences
+    if mask is not None:
+        cee *= mask
+        ceed *= mask
     return (-np.sum(cee) / norm), (-ceed / norm)
 
 
@@ -90,43 +96,45 @@ CEE_implementations = {
 }
 
 
-def CrossEntropyError(Y, T, M=None):
-    T.validate_for_output_shape(*Y.shape)
-    y_m = np.clip(Y, 1e-6, 1.0-1e-6)  # do not modify original Y
-    return CEE_implementations[T.targets_type](y_m, T.data, M)
+def CrossEntropyError(outputs, targets):
+    targets.validate_for_output_shape(*outputs.shape)
+    clipped_outputs = np.clip(outputs, 1e-6, 1.0-1e-6)  # do not modify original Y
+    return CEE_implementations[targets.targets_type](clipped_outputs,
+                                                     targets.data, targets.mask)
 
 
 ################################################################################
 # Multi-Class (Multi-Label) Cross Entropy Error Implementations
 # (Multinomial/softmax cross entropy)
 
-def _FramewiseMCCEE(y_m, T, M):
-    cee = T * np.log(y_m)
-    quot = T / y_m
-    norm = y_m.shape[1]  # normalize by number of sequences
-    if M is not None:
-        cee *= M
-        quot *= M
+def _FramewiseMCCEE(clipped_outputs, targets, mask):
+    cee = targets * np.log(clipped_outputs)
+    quot = targets / clipped_outputs
+    norm = clipped_outputs.shape[1]  # normalize by number of sequences
+    if mask is not None:
+        cee *= mask
+        quot *= mask
     return (- np.sum(cee) / norm), (- quot / norm)
 
 
-def _FramewiseBinarizingMCCEE(y_m, T, M):
-    T_b = binarize_array(T, range(y_m.shape[2]))
+def _FramewiseBinarizingMCCEE(clipped_outputs, targets, mask):
+    T_b = binarize_array(targets, range(clipped_outputs.shape[2]))
 
-    return _FramewiseMCCEE(y_m, T_b, M)
+    return _FramewiseMCCEE(clipped_outputs, T_b, mask)
 
 
-def _SequencewiseBinarizingMCCEE(y_m, T, M):
-    cee = np.zeros_like(y_m)
-    quot = np.zeros_like(y_m)
-    for b in range(y_m.shape[1]):
-        cee[:, b, T[b, 0]] = np.log(y_m[:, b, T[b, 0]])
-        quot[:, b, T[b, 0]] = 1.0 / y_m[:, b, T[b, 0]]
+def _SequencewiseBinarizingMCCEE(clipped_outputs, targets, mask):
+    # TODO change behavior for mask = None to only inject at last timestep
+    cee = np.zeros_like(clipped_outputs)
+    quot = np.zeros_like(clipped_outputs)
+    for b in range(clipped_outputs.shape[1]):
+        cee[:, b, targets[b, 0]] = np.log(clipped_outputs[:, b, targets[b, 0]])
+        quot[:, b, targets[b, 0]] = 1.0 / clipped_outputs[:, b, targets[b, 0]]
 
-    norm = y_m.shape[1]  # normalize by number of sequences
-    if M is not None:
-        cee *= M
-        quot *= M
+    norm = clipped_outputs.shape[1]  # normalize by number of sequences
+    if mask is not None:
+        cee *= mask
+        quot *= mask
     return (- np.sum(cee) / norm), (- quot / norm)
 
 
@@ -140,21 +148,25 @@ MCCEE_implementations = {
 }
 
 
-def MultiClassCrossEntropyError(Y, T, M=None):
-    T.validate_for_output_shape(*Y.shape)
-    y_m = np.clip(Y, 1e-6, 1.0)  # do not modify original Y
-    return MCCEE_implementations[T.targets_type](y_m, T.data, M)
+def MultiClassCrossEntropyError(outputs, targets):
+    targets.validate_for_output_shape(*outputs.shape)
+    clipped_outputs = np.clip(outputs, 1e-6, 1.0)  # do not modify original Y
+    return MCCEE_implementations[targets.targets_type](clipped_outputs,
+                                                       targets.data,
+                                                       targets.mask)
 
 
 ################################################################################
 # CTC error implementations for labellings
 
-def _LabelingBinarizingCTC(Y, T, M):
-    time_size, batch_size, label_count = Y.shape
+def _LabelingBinarizingCTC(outputs, targets, mask):
+    # TODO: use mask to mask deltas
+    time_size, batch_size, label_count = outputs.shape
     deltas = np.zeros((time_size, batch_size, label_count))
     deltas[:] = float('-inf')
     errors = np.zeros(batch_size)
-    for b, (y, t, m) in enumerate(Online(Y, T, M, verbose=False)()):
+    targets = create_targets_object(targets)
+    for b, (y, t) in enumerate(Online(outputs, targets, verbose=False)()):
         err, delt = ctcpp(y, list(t.data[0]))
         errors[b] = err
         deltas[:y.shape[0], b:b+1, :] = delt.as_array()
@@ -172,9 +184,10 @@ CTC_implementations = {
 }
 
 
-def CTC(Y, T, M=None):
-    T.validate_for_output_shape(*Y.shape)
-    return CTC_implementations[T.targets_type](Y, T, M)
+def CTC(outputs, targets):
+    targets.validate_for_output_shape(*outputs.shape)
+    return CTC_implementations[targets.targets_type](outputs, targets,
+                                                     targets.mask)
 
 
 ################################################################################
@@ -190,6 +203,7 @@ ClassificationError_implementations = {
 }
 
 
-def ClassificationError(Y, T, M=None):
-    T.validate_for_output_shape(*Y.shape)
-    return ClassificationError_implementations[T.targets_type](Y, T, M)
+def ClassificationError(outputs, targets):
+    targets.validate_for_output_shape(*outputs.shape)
+    return ClassificationError_implementations[targets.targets_type](
+        outputs, targets, targets.mask)
