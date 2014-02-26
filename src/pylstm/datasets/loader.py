@@ -58,7 +58,7 @@ def load_dataset(dataset_path, subset='', targets='T'):
     """
     candidates = [os.path.join(dataset_path, p)
                   for p in os.listdir(dataset_path)
-                  if os.path.isfile(p)]
+                  if os.path.isfile(os.path.join(dataset_path, p))]
     if subset:
         candidates = get_files_containing(candidates, subset)
 
