@@ -5,7 +5,7 @@ from __future__ import division, print_function, unicode_literals
 import numpy as np
 
 
-def create_targets_object(targets, mask=None):
+def create_targets_object(targets, mask=None, targets_type=None):
     """
     Try to create a suitable targets object from given targets and optionally
     mask. If targets is already a targets object then do nothing.
@@ -13,10 +13,21 @@ def create_targets_object(targets, mask=None):
     If the dimensionality of the targets is 2 assume sequencewise targets.
     If targets is a list assume labelling targets.
     """
+    if targets_type is not None:
+        if targets_type == 'F':
+            return FramewiseTargets(targets, mask)
+        elif targets_type == 'L':
+            return LabelingTargets(targets, mask)
+        elif targets_type == 'S':
+            return SequencewiseTargets(targets, mask)
+        else:
+            raise ValueError('Not a valid targets_type: "%s"' % targets_type)
+
     if isinstance(targets, Targets):
+        assert mask is None, "Can't combine Targets object and mask"
         return targets
 
-    if isinstance(targets, np.ndarray):
+    elif isinstance(targets, np.ndarray):
         if targets.ndim == 3:
             return FramewiseTargets(targets, mask)
         if targets.ndim == 2:
@@ -123,6 +134,7 @@ class LabelingTargets(Targets):
     def __init__(self, labels, mask=None, binarize_to=None):
         super(LabelingTargets, self).__init__('L', binarize_to is not None,
                                               mask)
+        assert isinstance(labels, list)
         self.data = labels
         self.binarize_to = binarize_to
 

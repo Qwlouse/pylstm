@@ -5,6 +5,7 @@ from __future__ import division, print_function, unicode_literals
 import os
 import numpy as np
 from pylstm.datasets import MFCC
+from pylstm.targets import FramewiseTargets
 
 TIMIT_DIR = '.'
 
@@ -190,7 +191,8 @@ def get_features_and_labels_for(samples, timit_dir=TIMIT_DIR, normalize=True,
     features = np.dstack(padded_features).swapaxes(1, 2)
     labels = np.vstack(padded_labels).T.reshape(maxlen, -1, 1)
     masks = np.vstack(masks).T.reshape(maxlen, -1, 1)
-    return features, labels, masks
+    targets = FramewiseTargets(labels, mask=masks, binarize_to=61)
+    return features, targets
 
 
 if __name__ == '__main__':
@@ -207,9 +209,10 @@ if __name__ == '__main__':
     # np.save(str('timit_train_M.numpy'), M)
 
     test = filter_samples(samples, usage='test')
-    X, T, M = get_features_and_labels_for(test[:24], timit_dir=timit_dir)
+    input_data, targets = get_features_and_labels_for(test[:24],
+                                                      timit_dir=timit_dir)
     print(time.time() - start)
-    print(X.shape)
+    print(input_data.shape)
     # np.save(str('timit_test_X.numpy'), X)
     # np.save(str('timit_test_T.numpy'), T)
     # np.save(str('timit_test_M.numpy'), M)

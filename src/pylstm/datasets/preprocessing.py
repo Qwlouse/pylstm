@@ -152,4 +152,18 @@ def mid_pool_outputs(T, size=3):
     return T_pooled
 
 
-
+def mask_features(ds, feature_mask):
+    """
+    Can be used to remove some features from a dataset.
+    @param ds: dataset dictionary
+    @param feature_mask: binary mask with shape = (# features, )
+    @return: new ds dictionary
+    """
+    masked_ds = {}
+    for usage in ds:
+        if ds[usage] is None:
+            continue
+        input_data, targets = ds[usage]
+        input_data = input_data[:, :, feature_mask == 1]
+        masked_ds[usage] = input_data, targets
+    return masked_ds

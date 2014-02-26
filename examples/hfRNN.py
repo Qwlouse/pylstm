@@ -29,7 +29,7 @@ tr = Trainer(net, CgStep())
 
 # Train with weight updates after each sample
 tr.stopping_criteria.append(MaxEpochsSeen(5000))
-tr.monitor[''] = MonitorClassificationError(Online(X,T))
+tr.monitor[''] = MonitorClassificationError(Online(input_data,targets))
 tr.monitor['err'] = print_error_per_epoch
 tr.monitor['lambda'] = print_lambda
-tr.train(Undivided(X, T))
+tr.train(Undivided(input_data, targets))
