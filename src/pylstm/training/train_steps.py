@@ -244,10 +244,10 @@ class RmsPropStep(TrainingStep):
 def calculate_gradient(net, data_iter):
         grad = np.zeros_like(net.param_buffer.flatten())
         error = []
-        for x, t, m in data_iter():
+        for x, t in data_iter():
             net.forward_pass(x, training_pass=True)
-            net.backward_pass(t, m)
-            error.append(net.calculate_error(t, m))
+            net.backward_pass(t)
+            error.append(net.calculate_error(t))
             grad += net.calc_gradient().flatten()
         error = np.mean(error)
         return error, grad
