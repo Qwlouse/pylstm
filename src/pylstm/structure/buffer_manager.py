@@ -11,6 +11,15 @@ class BufferHub(object):
         self.sources = sources
         self.sinks = sinks
         self.con_table = con_table
+        self.full_sink = None
+        if con_table and sinks:
+            # find a sink that connects to all sources
+            # this will later speed up the size computation
+            nr_sources = con_table.shape[0]  # == len(sources)
+            full_sinks = np.flatnonzero(np.sum(con_table, axis=0) == nr_sources)
+            if len(full_sinks):
+                self.full_sink = self.sinks.values[full_sinks[0]]
+
         self.buffer = None
         self.views = None
         self.slice_count = None
@@ -29,14 +38,13 @@ class BufferHub(object):
         self.size = None
 
     def get_size(self):
-        # with full connections the size is determined by the sum of all sources
-        # or by the size of any single sink
+        # The size is determined by the sum of all sources
+        # or by the size of a single full sink
         assert self.slice_count is not None
         assert self.batch_count is not None
         if self.size is None:
-            if len(self.sinks) > 0:
-                # get a sink
-                sg, vf = self.sinks.values()[0]
+            if self.full_sink is not None:
+                sg, vf = self.full_sink
                 self.size = sg(self.slice_count, self.batch_count)
             else:
                 self.size = sum(sg(self.slice_count, self.batch_count)
@@ -56,6 +64,7 @@ class BufferHub(object):
         assert self.batch_count is not None
         assert self.buffer is not None
         start = 0
+        intervals = [0]
         for n, (sg, vf) in self.sources.items():
             s = sg(self.slice_count, self.batch_count)
             assert s % (self.slice_count * self.batch_count) == 0, \
@@ -68,20 +77,29 @@ class BufferHub(object):
             self.views[n] = vf(self.buffer.feature_slice(start, start + size),
                                self.slice_count, self.batch_count)
             start += size
-        return start * self.slice_count * self.batch_count
+            intervals.append(start)
+        source_size = start * self.slice_count * self.batch_count
+        assert source_size == 0 or (source_size == self.get_size())
+        return intervals
+
+    def _lay_out_sink_buffers(self, intervals):
+        for i, (n, (sg, vf)) in enumerate(self.sinks.items()):
+            connectivity = self.con_table[:, i]
+            start_idx = np.argmax(connectivity)
+            stop_idx = len(connectivity) - int(np.argmax(connectivity[::-1]))
+            start, stop = intervals[start_idx], intervals[stop_idx]
+            self.views[n] = vf(self.buffer.feature_slice(start, stop),
+                               self.slice_count, self.batch_count)
+            size = sg(self.slice_count, self.batch_count)
+            assert size == (stop - start) * self.slice_count * self.batch_count
 
     def create_views(self):
         assert self.slice_count is not None
         assert self.batch_count is not None
         assert self.buffer is not None
         self.views = {}
-        source_size = self._lay_out_source_buffers()
-        assert source_size == 0 or (source_size == self.get_size())
-
-        for n, (sg, vf) in self.sinks.items():
-            size = sg(self.slice_count, self.batch_count)
-            assert size == source_size
-            self.views[n] = vf(self.buffer, self.slice_count, self.batch_count)
+        intervals = self._lay_out_source_buffers()
+        self._lay_out_sink_buffers(intervals)
 
     def get_buffer(self, name):
         assert self.buffer is not None
