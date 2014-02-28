@@ -4,7 +4,6 @@
 #include <iostream>
 
 #include "Core.h"
-#include "cblas_wrapper.h"
 
 using std::cout;
 
@@ -239,13 +238,13 @@ Matrix Matrix::copy() {
     Matrix duplicate(n_rows, n_columns, n_slices, state);
 
     // copy data
-    if (stride == 0) {
-        cblas_dcopy(static_cast<int>(size), get_data(), 1, duplicate.get_data(), 1);
-    } else {
+    //if (stride == 0) {
+    //    cblas_dcopy(static_cast<int>(size), get_data(), 1, duplicate.get_data(), 1);
+    //} else {
         for (auto ita = begin(), itb = duplicate.begin(); ita != end(); ++ita, ++itb) {
             *itb = *ita;
         }
-    }
+    //}
     return duplicate;
 }
 
