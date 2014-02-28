@@ -10,21 +10,18 @@ def get_forward_closure(layer, architecture):
       - the sink_set contains all the target layers of the source_set
       - the source_set contains all the source layers of the sink_set
 
-    Parameters
-        :type layer: unicode
-        :param layer: The name of the layer to start the forward closure from.
-        :type architecture: dict
-        :param architecture: Extended architecture of the network mapping the
-            layer name to the layer description. The description has to be a
-            dictionary containing lists for 'sources' and 'targets'.
+    @type layer: unicode
+    @param layer: The name of the layer to start the forward closure from.
+    @type architecture: dict
+    @param architecture: Extended architecture of the network mapping the
+        layer name to the layer description. The description has to be a
+        dictionary containing lists for 'sources' and 'targets'.
 
-    Returns
-        :rtype: (set, set)
-        :return:
-            :source_set: A set of layer names containing the initial layer and
-                all sources of all layers in the sink_set.
-            :sink_set: A set of layer names containing all the targets for all
-                the layers from the source_set.
+    @rtype: (set, set)
+    @return: A tuple (source_set, sink_set) where source_set is set of
+        layer names containing the initial layer and all sources of all layers
+        in the sink_set. And sink_set is a set of layer names containing all the
+        targets for all the layers from the source_set.
     """
     source_set = {layer}
     sink_set = set(architecture[layer]['targets'])
@@ -47,6 +44,11 @@ def set_up_connection_table(sources, sinks, architecture):
     """
     Given a forward closure and the architecture constructs the
     connection table.
+    @type sources: set[unicode]
+    @type sinks: set[unicode]
+    @type architecture: dict
+
+    @rtype: (list, list, ndarray)
     """
     # turn into sorted lists
     source_list = sorted([l for l in sources])
@@ -64,6 +66,8 @@ def permute_rows(connection_table):
     """
     Given a list of sources and a connection table, find a permutation of the
     sources, such that they can be connected to the sinks via a single buffer.
+    @type connection_table: ndarray
+    @rtype: list[int]
     """
     # systematically try all permutations until one satisfies the condition
     final_permutation = None
@@ -88,6 +92,8 @@ def can_be_connected_with_single_buffer(connection_table):
     Check for a connection table if it represents a layout that can be realized
     by a single buffer. This is equivalent to checking if in every column of the
     table all the ones form a connected block.
+    @type connection_table: ndarray
+    @rtype: bool
     """
     for i in range(connection_table.shape[1]):
         region_started = False
