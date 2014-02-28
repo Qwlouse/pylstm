@@ -12,13 +12,13 @@ class BufferHub(object):
         self.sinks = sinks
         self.con_table = con_table
         self.full_sink = None
-        if con_table and sinks:
+        if con_table is not None and sinks:
             # find a sink that connects to all sources
             # this will later speed up the size computation
             nr_sources = con_table.shape[0]  # == len(sources)
             full_sinks = np.flatnonzero(np.sum(con_table, axis=0) == nr_sources)
             if len(full_sinks):
-                self.full_sink = self.sinks.values[full_sinks[0]]
+                self.full_sink = self.sinks.values()[full_sinks[0]]
 
         self.buffer = None
         self.views = None
@@ -122,6 +122,7 @@ class BufferManager(object):
         self.buffer_hubs = []
 
     def add(self, sources, sinks, con_table=None):
+        assert sources
         self.buffer = None
         bh = BufferHub(sources, sinks, con_table)
         self.buffer_hubs.append(bh)

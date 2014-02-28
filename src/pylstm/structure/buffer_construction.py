@@ -58,7 +58,7 @@ def create_in_out_manager(extended_architecture, layers):
             source_set, sink_set, extended_architecture)
         perm = permute_rows(connection_table)
         source_list = [source_list[i] for i in perm]
-        connection_table = connection_table[perm]
+        connection_table = np.atleast_2d(connection_table[perm])
 
         source_getters = OrderedDict()
         for n in source_list:
@@ -143,7 +143,7 @@ def permute_rows(connection_table):
     # systematically try all permutations until one satisfies the condition
     final_permutation = None
     for perm in itertools.permutations(range(connection_table.shape[0])):
-        ct = connection_table[perm]
+        ct = np.atleast_2d(connection_table[perm])
         if can_be_connected_with_single_buffer(ct):
             final_permutation = perm
             break

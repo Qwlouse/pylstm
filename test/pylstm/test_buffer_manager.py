@@ -103,10 +103,6 @@ class BufferConstructionTest(unittest.TestCase):
             self.assertFalse(can_be_connected_with_single_buffer(table))
 
 
-
-
-
-
 class BufferManagerTest(unittest.TestCase):
     def test_calculate_size_with_one_source_size_getter(self):
         bm = BufferManager()
@@ -120,17 +116,12 @@ class BufferManagerTest(unittest.TestCase):
         bm.set_dimensions(2, 3)
         self.assertEqual(bm.calculate_size(), 23)
 
-    def test_calculate_size_with_one_sink_size_getter(self):
+    def test_no_source_raises(self):
         bm = BufferManager()
         size_getter = lambda t, b: 10 * t + b
         view_factory = lambda x, t, b: x
-        bm.add({}, {'foo': (size_getter, view_factory)})
-        bm.set_dimensions(1, 1)
-        self.assertEqual(bm.calculate_size(), 11)
-        bm.set_dimensions(10, 5)
-        self.assertEqual(bm.calculate_size(), 105)
-        bm.set_dimensions(2, 3)
-        self.assertEqual(bm.calculate_size(), 23)
+        with self.assertRaises(AssertionError):
+            bm.add({}, {'foo': (size_getter, view_factory)})
 
     def test_calculate_size_with_one_sink_and_one_source_size_getter(self):
         bm = BufferManager()
@@ -153,7 +144,7 @@ class BufferManagerTest(unittest.TestCase):
         view_factory = lambda x, t, b: x
         bm.add({'foo1': (sg1, view_factory)}, {})
         bm.add({'foo2': (sg2, view_factory)}, {})
-        bm.add({}, {'foo3': (sg3, view_factory)})
+        bm.add({'foo3': (sg3, view_factory)}, {})
         bm.set_dimensions(1, 1)
         self.assertEqual(bm.calculate_size(), 111111)
         bm.set_dimensions(2, 3)
