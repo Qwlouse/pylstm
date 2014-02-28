@@ -3,8 +3,9 @@
 from __future__ import division, print_function, unicode_literals
 from collections import OrderedDict
 from copy import deepcopy
-from pylstm.structure.buffer_manager import create_param_manager, create_fwd_state_manager
-from pylstm.structure.buffer_manager import create_bwd_state_manager, create_in_out_manager
+from pylstm.structure.buffer_construction import (
+    create_param_manager, create_fwd_state_manager,
+    create_bwd_state_manager, create_in_out_manager)
 from pylstm.structure.network import Network
 from pylstm.error_functions import MeanSquaredError
 from pylstm.structure.construction_layer import instantiate_layer
