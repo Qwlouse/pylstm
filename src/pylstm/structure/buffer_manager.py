@@ -8,11 +8,9 @@ from .. import wrapper
 
 class BufferHub(object):
     def __init__(self, sources, sinks, con_table=None):
-        # only full connection supported so far
-        assert con_table is None or np.all(con_table == 1), \
-            "Only full connections supported so far."
         self.sources = sources
         self.sinks = sinks
+        self.con_table = con_table
         self.buffer = None
         self.views = None
         self.slice_count = None
@@ -49,7 +47,8 @@ class BufferHub(object):
         assert self.slice_count is not None
         assert self.batch_count is not None
         self.buffer = buffer_view
-        self.buffer = buffer_view.reshape(self.slice_count, self.batch_count, -1)
+        self.buffer = buffer_view.reshape(self.slice_count,
+                                          self.batch_count, -1)
         self.views = None
 
     def _lay_out_source_buffers(self):
@@ -59,7 +58,12 @@ class BufferHub(object):
         start = 0
         for n, (sg, vf) in self.sources.items():
             s = sg(self.slice_count, self.batch_count)
-            assert s % (self.slice_count * self.batch_count) == 0, "buffer: %s with %d %d needs %d"%(self.buffer.shape(), self.slice_count, self.batch_count,  sg(self.slice_count, self.batch_count))
+            assert s % (self.slice_count * self.batch_count) == 0, \
+                "buffer: %s with %d %d needs %d" % (self.buffer.shape(),
+                                                    self.slice_count,
+                                                    self.batch_count,
+                                                    sg(self.slice_count,
+                                                       self.batch_count))
             size = s / self.slice_count / self.batch_count
             self.views[n] = vf(self.buffer.feature_slice(start, start + size),
                                self.slice_count, self.batch_count)
@@ -95,8 +99,8 @@ class BufferManager(object):
         self.buffer = None
         self.views_ready = False
 
-        self.buffers_by_source = {}
-        self.buffers_by_sinks = {}
+        self.buffer_hubs_by_source = {}
+        self.buffer_hubs_by_sink = {}
         self.buffer_hubs = []
 
     def add(self, sources, sinks, con_table=None):
@@ -104,9 +108,9 @@ class BufferManager(object):
         bh = BufferHub(sources, sinks, con_table)
         self.buffer_hubs.append(bh)
         for n in sources:
-            self.buffers_by_source[n] = bh
+            self.buffer_hubs_by_source[n] = bh
         for n in sinks:
-            self.buffers_by_sinks[n] = bh
+            self.buffer_hubs_by_sink[n] = bh
 
     def set_dimensions(self, slice_count, batch_count, force_resize=False):
         if (slice_count == self.slice_count and
@@ -154,11 +158,11 @@ class BufferManager(object):
 
     def get_source_view(self, name):
         self.ensure_initialization()
-        return self.buffers_by_source[name].get_buffer(name)
+        return self.buffer_hubs_by_source[name].get_buffer(name)
 
     def get_sink_view(self, name):
         self.ensure_initialization()
-        return self.buffers_by_sinks[name].get_buffer(name)
+        return self.buffer_hubs_by_sink[name].get_buffer(name)
 
     def clear_buffer(self):
         self.ensure_initialization()
@@ -197,6 +201,3 @@ def get_forward_closure(layer, extended_architecture):
             connection_table[i, sink_list.index(sink)] = 1
     # convert to lists of names
     return source_list, sink_list, connection_table
-
-
-
