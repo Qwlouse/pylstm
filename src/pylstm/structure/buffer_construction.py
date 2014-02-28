@@ -1,6 +1,77 @@
 from __future__ import division, print_function, unicode_literals
+from collections import OrderedDict
 import numpy as np
 import itertools
+from buffer_manager import BufferManager
+
+
+def create_param_manager(layers):
+    """
+    @type layers: dict[unicode, pylstm.wrapper.py_layers.BaseLayer]
+    @rtype: buffer_manager.BufferManager
+    """
+    param_manager = BufferManager()
+    for name, l in layers.items()[1:]:
+        sources = {name: (l.get_parameter_size, l.create_param_view)}
+        param_manager.add(sources, {})
+    return param_manager
+
+
+def create_fwd_state_manager(layers):
+    """
+    @type layers: dict[unicode, pylstm.wrapper.py_layers.BaseLayer]
+    @rtype: buffer_manager.BufferManager
+    """
+    fwd_state_manager = BufferManager()
+    for name, l in layers.items()[1:]:
+        sources = {name: (l.get_fwd_state_size,
+                          l.create_fwd_state)}
+        fwd_state_manager.add(sources, {})
+
+    return fwd_state_manager
+
+
+def create_bwd_state_manager(layers):
+    """
+    @type layers: dict[unicode, pylstm.wrapper.py_layers.BaseLayer]
+    @rtype: buffer_manager.BufferManager
+    """
+    bwd_state_manager = BufferManager()
+    for name, l in layers.items()[1:]:
+        sources = {name: (l.get_bwd_state_size,
+                          l.create_bwd_state)}
+        bwd_state_manager.add(sources, {})
+    return bwd_state_manager
+
+
+def create_in_out_manager(extended_architecture, layers):
+    """
+    @type extended_architecture: dict
+    @type layers: dict[unicode, pylstm.wrapper.py_layers.BaseLayer]
+    @rtype: buffer_manager.BufferManager
+    """
+    in_out_manager = BufferManager()
+
+    for layer in extended_architecture.keys():
+        source_set, sink_set = get_forward_closure(layer, extended_architecture)
+        source_list, sink_list, connection_table = set_up_connection_table(
+            source_set, sink_set, extended_architecture)
+        perm = permute_rows(connection_table)
+        source_list = [source_list[i] for i in perm]
+        connection_table = connection_table[perm]
+
+        source_getters = OrderedDict()
+        for n in source_list:
+            source_getters[n] = (layers[n].get_output_buffer_size,
+                                 layers[n].create_output_view)
+
+        sink_getters = OrderedDict()
+        for n in sink_list:
+            sink_getters[n] = (layers[n].get_input_buffer_size,
+                               layers[n].create_input_view)
+
+        in_out_manager.add(source_getters, sink_getters, connection_table)
+    return in_out_manager
 
 
 def get_forward_closure(layer, architecture):
@@ -48,7 +119,7 @@ def set_up_connection_table(sources, sinks, architecture):
     @type sinks: set[unicode]
     @type architecture: dict
 
-    @rtype: (list, list, ndarray)
+    @rtype: (list, list, np.ndarray)
     """
     # turn into sorted lists
     source_list = sorted([l for l in sources])
@@ -66,7 +137,7 @@ def permute_rows(connection_table):
     """
     Given a list of sources and a connection table, find a permutation of the
     sources, such that they can be connected to the sinks via a single buffer.
-    @type connection_table: ndarray
+    @type connection_table: np.ndarray
     @rtype: list[int]
     """
     # systematically try all permutations until one satisfies the condition
@@ -81,18 +152,13 @@ def permute_rows(connection_table):
 
     return final_permutation
 
-    # apply the permutation
-    # source_list = [source_list[i] for i in final_permutation]
-    # connection_table = connection_table[final_permutation]
-    # return source_list, connection_table
-
 
 def can_be_connected_with_single_buffer(connection_table):
     """
     Check for a connection table if it represents a layout that can be realized
     by a single buffer. This is equivalent to checking if in every column of the
     table all the ones form a connected block.
-    @type connection_table: ndarray
+    @type connection_table: np.ndarray
     @rtype: bool
     """
     for i in range(connection_table.shape[1]):

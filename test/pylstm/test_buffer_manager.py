@@ -8,7 +8,7 @@ import numpy as np
 from numpy.testing import assert_array_equal
 import unittest
 from pylstm.structure.buffer_manager import BufferManager
-from pylstm.structure.buffers2 import get_forward_closure, set_up_connection_table, can_be_connected_with_single_buffer
+from pylstm.structure.buffer_construction import get_forward_closure, set_up_connection_table, can_be_connected_with_single_buffer
 
 
 def generate_architecture(spec):
