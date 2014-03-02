@@ -6,7 +6,8 @@ from __future__ import division, print_function, unicode_literals
 import os
 import numpy as np
 import cPickle
-from pylstm.targets import SequencewiseTargets, create_targets_object
+from pylstm.targets import SequencewiseTargets, create_targets_object, \
+    FramewiseTargets
 
 
 def get_files_containing(file_list, search_string, ignore_case=False):
@@ -48,7 +49,7 @@ def read_data(candidates, targets='T'):
     return input_data, targets
 
 
-def load_dataset(dataset_path, subset='', targets='T'):
+def load_dataset_collection(dataset_path, subset='', targets='T'):
     """
     Tries to load a dataset from the given path. It will look for the filenames
     to populate a dictionary with 'train', 'val' and 'test' sets. Each set
@@ -86,3 +87,34 @@ def transform_ds_to_nsp(ds):
         ds_nsp[use] = (ds[use][0][:-1, :, :],
                        nsp_targets)
     return ds_nsp
+
+
+def load_dataset(filename):
+    import h5py
+    ds = dict()
+    with h5py.File(filename, "r") as f:
+        for usage in ['train', 'validate', 'test']:
+            if usage not in f:
+                continue
+            grp = f[usage]
+            input_data = grp['input_data'][:]
+
+            targets_data = grp['targets'][:]
+            targets_type = grp['targets'].attrs['targets_type']
+            if 'binarize_to' in grp['targets'].attrs:
+                binarize_to = grp['targets'].attrs['binarize_to']
+                if binarize_to == 0:
+                    binarize_to = None
+            else:
+                binarize_to = None
+
+            mask = grp['mask'][:] if 'mask' in grp else None
+            if targets_type == 'F':
+                targets = FramewiseTargets(targets_data, mask, binarize_to)
+            elif targets_type == 'S':
+                targets = SequencewiseTargets(targets_data, mask, binarize_to)
+            else:
+                raise ValueError('Unsupported targets_type "%s"' % targets_type)
+
+            ds[usage] = input_data, targets
+    return ds
