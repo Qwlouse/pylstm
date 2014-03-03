@@ -7,7 +7,7 @@ import os
 import numpy as np
 import cPickle
 from pylstm.targets import SequencewiseTargets, create_targets_object, \
-    FramewiseTargets
+    FramewiseTargets, LabelingTargets
 
 
 def get_files_containing(file_list, search_string, ignore_case=False):
@@ -93,17 +93,26 @@ def load_dataset(filename):
     import h5py
     ds = dict()
     with h5py.File(filename, "r") as f:
-        for usage in ['train', 'validate', 'test']:
+        for usage in ['training', 'validation', 'test']:
             if usage not in f:
                 continue
             grp = f[usage]
+            # read input_data from group
+            assert 'input_data' in grp, "Did not find input_data for " + usage
             input_data = grp['input_data'][:]
 
-            targets_data = grp['targets'][:]
-            targets_type = grp['targets'].attrs['targets_type']
-            if 'binarize_to' in grp['targets'].attrs:
-                binarize_to = grp['targets'].attrs['binarize_to']
-                if binarize_to == 0:
+            # read targets from group
+            assert 'targets' in grp, "Did not find targets for " + usage
+            targets_ds = grp['targets']
+            targets_data = targets_ds[:]
+            if 'targets_type' in targets_ds.attrs:
+                targets_type = targets_ds.attrs['targets_type']
+            else:
+                targets_type = None
+
+            if 'binarize_to' in targets_ds.attrs:
+                binarize_to = targets_ds.attrs['binarize_to']
+                if binarize_to <= 0:
                     binarize_to = None
             else:
                 binarize_to = None
@@ -111,8 +120,20 @@ def load_dataset(filename):
             mask = grp['mask'][:] if 'mask' in grp else None
             if targets_type == 'F':
                 targets = FramewiseTargets(targets_data, mask, binarize_to)
+            elif targets_type == 'L':
+                # convert targets_data to list of lists
+                assert 'split_points' in targets_ds.attrs
+                split_points = targets_ds.attrs['split_points']
+                targets_list = []
+                start = 0
+                for sp in split_points:
+                    targets_list.append(list(targets_data[start:sp]))
+                    start = sp
+                targets = LabelingTargets(targets_list, mask, binarize_to)
             elif targets_type == 'S':
                 targets = SequencewiseTargets(targets_data, mask, binarize_to)
+            elif targets_type is None:
+                targets = create_targets_object(targets_data, mask)
             else:
                 raise ValueError('Unsupported targets_type "%s"' % targets_type)
 
