@@ -89,14 +89,22 @@ def transform_ds_to_nsp(ds):
     return ds_nsp
 
 
-def load_dataset(filename):
+def load_dataset(filename, variant=''):
     import h5py
     ds = dict()
     with h5py.File(filename, "r") as f:
+        if variant:
+            assert variant in f
+            v = f[variant]
+        elif 'default' in f:
+            v = f['default']
+        else:
+            v = f
+
         for usage in ['training', 'validation', 'test']:
-            if usage not in f:
+            if usage not in v:
                 continue
-            grp = f[usage]
+            grp = v[usage]
             # read input_data from group
             assert 'input_data' in grp, "Did not find input_data for " + usage
             input_data = grp['input_data'][:]
@@ -104,11 +112,10 @@ def load_dataset(filename):
             # read targets from group
             assert 'targets' in grp, "Did not find targets for " + usage
             targets_ds = grp['targets']
-            targets_data = targets_ds[:]
             if 'targets_type' in targets_ds.attrs:
                 targets_type = targets_ds.attrs['targets_type']
             else:
-                targets_type = None
+                raise RuntimeError('No targets_type attribute found!')
 
             if 'binarize_to' in targets_ds.attrs:
                 binarize_to = targets_ds.attrs['binarize_to']
@@ -119,21 +126,13 @@ def load_dataset(filename):
 
             mask = grp['mask'][:] if 'mask' in grp else None
             if targets_type == 'F':
-                targets = FramewiseTargets(targets_data, mask, binarize_to)
+                targets = FramewiseTargets(targets_ds[:], mask, binarize_to)
             elif targets_type == 'L':
                 # convert targets_data to list of lists
-                assert 'split_points' in targets_ds.attrs
-                split_points = targets_ds.attrs['split_points']
-                targets_list = []
-                start = 0
-                for sp in split_points:
-                    targets_list.append(list(targets_data[start:sp]))
-                    start = sp
+                targets_list = cPickle.loads(str(targets_ds.value))
                 targets = LabelingTargets(targets_list, mask, binarize_to)
             elif targets_type == 'S':
-                targets = SequencewiseTargets(targets_data, mask, binarize_to)
-            elif targets_type is None:
-                targets = create_targets_object(targets_data, mask)
+                targets = SequencewiseTargets(targets_ds[:], mask, binarize_to)
             else:
                 raise ValueError('Unsupported targets_type "%s"' % targets_type)
 
