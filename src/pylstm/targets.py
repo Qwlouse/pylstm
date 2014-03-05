@@ -44,9 +44,11 @@ class Targets(object):
     Baseclass for all targets objects. A targets object holds all the desired
     outputs and the corresponding mask (if any).
     """
-    def __init__(self, targets_type, binarizing, mask):
-        self.targets_type = (targets_type, binarizing)
+    def __init__(self, targets_type, binarize_to, mask):
+        self.targets_type = (targets_type, binarize_to is not None)
+        self.binarize_to = binarize_to
         self.mask = None
+        self.data = None
         if mask is not None:
             assert (mask.ndim == 3 and mask.shape[2] == 1) or (mask.ndim == 2)
             self.mask = mask.reshape(mask.shape[0], mask.shape[1], 1)
@@ -69,7 +71,10 @@ class Targets(object):
         return k
 
     def validate_for_output_shape(self, timesteps, batchsize, out_size):
-        raise NotImplementedError()
+        if self.mask is not None:
+            assert_shape_equals(self.mask.shape, (timesteps, batchsize, 1))
+        if self.binarize_to is not None:
+            assert self.binarize_to == out_size
 
     def __str__(self):
         return "<%s-Targets>" % str(self.targets_type)
@@ -91,10 +96,8 @@ class FramewiseTargets(Targets):
     might be masked out.
     """
     def __init__(self, targets, mask=None, binarize_to=None):
-        super(FramewiseTargets, self).__init__('F', binarize_to is not None,
-                                               mask)
+        super(FramewiseTargets, self).__init__('F', binarize_to, mask)
         assert (targets.ndim == 3) or (binarize_to and targets.ndim == 2)
-        self.binarize_to = binarize_to
         self.data = targets.reshape(targets.shape[0], targets.shape[1], -1)
         if binarize_to:
             self.data = np.array(self.data, dtype=np.int)
@@ -118,9 +121,9 @@ class FramewiseTargets(Targets):
         return k
 
     def validate_for_output_shape(self, timesteps, batchsize, out_size):
+        Targets.validate_for_output_shape(self, timesteps, batchsize, out_size)
         if self.binarize_to:
             assert_shape_equals(self.data.shape, (timesteps, batchsize, 1))
-            assert self.binarize_to == out_size
         else:
             assert_shape_equals(self.data.shape,
                                 (timesteps, batchsize, out_size))
@@ -135,11 +138,9 @@ class LabelingTargets(Targets):
     resulting deltas will be masked.
     """
     def __init__(self, labels, mask=None, binarize_to=None):
-        super(LabelingTargets, self).__init__('L', binarize_to is not None,
-                                              mask)
+        super(LabelingTargets, self).__init__('L', binarize_to, mask)
         assert isinstance(labels, list)
         self.data = labels
-        self.binarize_to = binarize_to
 
     def __getitem__(self, item):
         if isinstance(item, slice) or isinstance(item, int):
@@ -154,11 +155,8 @@ class LabelingTargets(Targets):
             raise ValueError("Indexing with type '%s' unsupported" % type(item))
 
     def validate_for_output_shape(self, timesteps, batchsize, out_size):
+        Targets.validate_for_output_shape(self, timesteps, batchsize, out_size)
         assert len(self.data) == batchsize
-        if self.mask is not None:
-            assert_shape_equals(self.mask.shape, (timesteps, batchsize, 1))
-        if self.binarize_to is not None:
-            assert self.binarize_to == out_size
 
     def __str__(self):
         return "<LabelingTargets len=%d>" % len(self.data)
@@ -171,11 +169,9 @@ class SequencewiseTargets(Targets):
     timesteps will receive deltas.
     """
     def __init__(self, sequence_targets, mask=None, binarize_to=None):
-        super(SequencewiseTargets, self).__init__('S', binarize_to is not None,
-                                                  mask)
+        super(SequencewiseTargets, self).__init__('S', binarize_to, mask)
         assert sequence_targets.ndim == 2 or \
             (binarize_to and sequence_targets.ndim == 1)
-        self.binarize_to = binarize_to
         self.data = sequence_targets.reshape(sequence_targets.shape[0], -1)
 
     def __getitem__(self, item):
@@ -184,14 +180,11 @@ class SequencewiseTargets(Targets):
         return SequencewiseTargets(s, m, binarize_to=self.binarize_to)
 
     def validate_for_output_shape(self, timesteps, batchsize, out_size):
+        Targets.validate_for_output_shape(self, timesteps, batchsize, out_size)
         if self.binarize_to:
             assert_shape_equals(self.data.shape, (batchsize, 1))
-            assert self.binarize_to == out_size
         else:
             assert_shape_equals(self.data.shape, (batchsize, out_size))
-
-        if self.mask is not None:
-            assert_shape_equals(self.mask.shape, (timesteps, batchsize, 1))
 
     def __str__(self):
         return "<SequencewiseTargets dim=%s>" % str(self.data.shape)
