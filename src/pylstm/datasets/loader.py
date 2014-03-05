@@ -89,9 +89,27 @@ def transform_ds_to_nsp(ds):
     return ds_nsp
 
 
+class Dataset(dict):
+    @property
+    def descr(self):
+        return self['description']
+
+    @property
+    def train(self):
+        return self['training']
+
+    @property
+    def val(self):
+        return self['validation']
+
+    @property
+    def test(self):
+        return self['test']
+
+
 def load_dataset(filename, variant=''):
     import h5py
-    ds = dict()
+    ds = Dataset()
     with h5py.File(filename, "r") as f:
         if variant:
             assert variant in f
@@ -100,6 +118,13 @@ def load_dataset(filename, variant=''):
             v = f['default']
         else:
             v = f
+
+        # get description
+        if 'description' in f.attrs:
+            ds['description'] = f.attrs['description']
+        if v != f and 'description' in v.attrs:
+            ds['description'] += "\nVariant: %s\n=============\n\n" % variant +\
+                                 v.attrs['description']
 
         for usage in ['training', 'validation', 'test']:
             if usage not in v:
@@ -123,8 +148,10 @@ def load_dataset(filename, variant=''):
                     binarize_to = None
             else:
                 binarize_to = None
-
+            # read mask
             mask = grp['mask'][:] if 'mask' in grp else None
+
+            # create targets object
             if targets_type == 'F':
                 targets = FramewiseTargets(targets_ds[:], mask, binarize_to)
             elif targets_type == 'L':
