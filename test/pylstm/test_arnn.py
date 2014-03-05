@@ -12,7 +12,7 @@ from pylstm.utils import check_gradient, check_deltas
 from pylstm.wrapper import Matrix
 
 
-rnd = np.random.RandomState(213998106)
+rnd = np.random.RandomState(213106)
 
 
 class ArnnTests(unittest.TestCase):
