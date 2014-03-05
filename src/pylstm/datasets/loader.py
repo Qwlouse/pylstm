@@ -91,15 +91,15 @@ def transform_ds_to_nsp(ds):
 
 class Dataset(dict):
     @property
-    def descr(self):
+    def description(self):
         return self['description']
 
     @property
-    def train(self):
+    def training(self):
         return self['training']
 
     @property
-    def val(self):
+    def validation(self):
         return self['validation']
 
     @property
@@ -165,3 +165,51 @@ def load_dataset(filename, variant=''):
 
             ds[usage] = input_data, targets
     return ds
+
+
+def save_dataset_as_hdf5(dataset, filename, chunksize=None):
+    """
+    Method to write simple datasets to an HDF5 file.
+
+    :param dataset: The dataset to be stored as a dictionary of tuples.
+        Each entry is one usage and contains (input_data, targets)
+    :type dataset: dict[unicode, (numpy.ndarray, pylstm.targets.Targets)]
+
+    :param filename: Filename/path of the file that should be written.
+        Will overwrite if it already exists.
+    :type filename: unicode
+
+    :param chunksize: The chunksize used for storing the input data. If not
+        specified the method automatically chooses one.
+    :type chunksize: (int, int, int)
+
+    :rtype: None
+    """
+    import h5py
+    with h5py.File(filename, "w") as hdffile:
+        if 'description' in dataset:
+            hdffile.attrs['description'] = dataset['description']
+        for usage in ['training', 'validation', 'test']:
+            if usage not in dataset:
+                continue
+            input_data, targets = dataset[usage]
+            grp = hdffile.create_group(usage)
+
+            if chunksize is None:
+                t, b, f = input_data.shape
+                size_of_sequence = t*f*8
+                seqs_per_chunk = min((10240 // size_of_sequence) + 1, b)
+                chunksize = (t, seqs_per_chunk, f)
+
+            grp.create_dataset('input_data', data=input_data, chunks=chunksize,
+                               compression="gzip")
+
+            if targets.is_labeling():
+                targets_encoded = np.void(cPickle.dumps(targets.data))
+                targets_ds = grp.create_dataset('targets', targets_encoded)
+            else:
+                targets_ds = grp.create_dataset('targets', data=targets.data)
+            targets_ds.attrs.create('targets_type', targets.targets_type[0])
+            targets_ds.attrs.create('binarize_to', targets.binarize_to or 0)
+            if targets.mask is not None:
+                grp.create_dataset('mask', data=targets.mask, dtype='u1')

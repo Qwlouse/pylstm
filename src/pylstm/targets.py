@@ -77,6 +77,9 @@ class Targets(object):
     def is_framewise(self):
         return self.targets_type[0] == 'F'
 
+    def is_labeling(self):
+        return self.targets_type[0] == 'L'
+
 
 def assert_shape_equals(s1, s2):
     assert s1 == s2, "targets shape error: %s != %s" % (str(s1), str(s2))
