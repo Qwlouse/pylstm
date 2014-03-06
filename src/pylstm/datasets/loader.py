@@ -80,8 +80,8 @@ def transform_ds_to_nsp(ds):
     and transforms it into a next-step-prediction task.
     """
     ds_nsp = {}
-    for use in ds:
-        if ds[use] is None:
+    for use in ['training', 'validation', 'test']:
+        if use not in ds or ds[use] is None:
             continue
         nsp_targets = create_targets_object(ds[use][0][1:])
         ds_nsp[use] = (ds[use][0][:-1, :, :],
