@@ -45,73 +45,92 @@ def binarize_array(A, alphabet=None):
     return result
 
 
-def get_mean_masked(X, M):
+def get_means(input_data, mask=None):
     """
     Get the mean values for every feature in the batch of sequences X by
     considering only masked-in entries.
-    @param X: Batch of sequences. shape = (time, sample, feature)
-    @param M: Mask for the sequences. shape = (time, sample, 1)
+    @param input_data: Batch of sequences. shape = (time, sample, feature)
+    @param mask: Optional mask for the sequences. shape = (time, sample, 1)
     @return: mean value for each feature. shape = (features, )
     """
-    return X.reshape(-1, X.shape[2])[M.flatten() == 1].mean(0)
+    if mask is not None:
+        return input_data.reshape(-1, input_data.shape[2])[mask.flatten() == 1].mean(0)
+    else:
+        return input_data.mean((0,1))
 
 
-def get_std_masked(X, M):
+def get_stds(input_data, mask=None):
     """
     Get the standard deviation for every feature in the batch of sequences X by
     considering only masked-in entries.
-    @param X: Batch of sequences. shape = (time, sample, feature)
-    @param M: Mask for the sequences. shape = (time, sample, 1)
+    @param input_data: Batch of sequences. shape = (time, sample, feature)
+    @param mask: Optional mask for the sequences. shape = (time, sample, 1)
     @return: standard deviation of each feature. shape = (features, )
     """
-    return X.reshape(-1, X.shape[2])[M.flatten() == 1].std(0)
+    if mask is not None:
+        return input_data.reshape(-1, input_data.shape[2])[mask.flatten() == 1].std(0)
+    else:
+        return input_data.std((0, 1))
 
 
-def subtract_mean_masked(X, M, means):
+def subtract_means(input_data, means, mask=None):
     """
     Subtract the means from the masked-in entries of a batch of sequences X.
+    This operation is performed in-place, i.e. the input_data will be modified.
 
-    @param X: Batch of sequences. shape = (time, sample, feature)
-    @param M: Mask for the sequences. shape = (time, sample, 1)
+    @param input_data: Batch of sequences. shape = (time, sample, feature)
     @param means: The means to subtract. shape = (features, )
+    @param mask: Optional mask for the sequences. shape = (time, sample, 1)
     """
-    for i in range(X.shape[2]):
-        X[:, :, i][M[:, :, 0] == 1] -= means[i]
+    if mask is not None:
+        for i in range(input_data.shape[2]):
+            input_data[:, :, i][mask[:, :, 0] == 1] -= means[i]
+    else:
+        input_data -= means
 
 
-def divide_by_std_masked(X, M, stds):
+def divide_by_stds(input_data, stds, mask=None):
     """
-    Divide masked-in entries of X by the standard deviations stds.
+    Divide masked-in entries of input_data by the stds.
 
-    @param X: Batch of sequences. shape = (time, sample, feature)
-    @param M: Mask for the sequences. shape = (time, sample, 1)
+    @param input_data: Batch of sequences. shape = (time, sample, feature)
     @param stds: The standard deviations for every feature. shape = (features, )
+    @param mask: Optional mask for the sequences. shape = (time, sample, 1)
     """
-    for i in range(X.shape[2]):
-        X[:, :, i][M[:, :, 0] == 1] /= stds[i]
+    if mask is not None:
+        for i in range(X.shape[2]):
+            X[:, :, i][M[:, :, 0] == 1] /= stds[i]
+    else:
+        input_data /= stds
 
 
-def normalize_data(X_train, M_train, X_test, M_test):
-    """
-    why does this shit not work?
+def center_dataset(ds):
+    """make the mean of each channel 0 over the training-set"""
+    train = ds['training']
+    means = get_means(train[0], train[1].mask)
+    subtract_means(train[0], means, train[1].mask)
+    if 'validation' in ds:
+        subtract_means(ds['validation'][0], means, ds['validation'][1].mask)
+    if 'test' in ds:
+        subtract_means(ds['test'][0], means, ds['test'][1].mask)
+    return means
 
 
-    @param X_train: the training input data
-    @type X_train ndarray
-    @param M_train:
-    @type M_train ndarray
-    @param X_test:
-    @param M_test:
+def scale_std_of_dataset(ds):
+    """make the std of each channel 1 over the training-set"""
+    train = ds['training']
+    stds = get_stds(train[0], train[1].mask)
+    divide_by_stds(train[0], stds, train[1].mask)
+    if 'validation' in ds:
+        divide_by_stds(ds['validation'][0], stds, ds['validation'][1].mask)
+    if 'test' in ds:
+        divide_by_stds(ds['test'][0], stds, ds['test'][1].mask)
+    return stds
 
-    @rtype : (ndarray, ndarray)
-    """
-    means = get_mean_masked(X_train, M_train)
-    subtract_mean_masked(X_train, M_train, means)
-    subtract_mean_masked(X_test, M_test, means)
 
-    stds = get_std_masked(X_train, M_train)
-    divide_by_std_masked(X_train, M_train, stds)
-    divide_by_std_masked(X_test, M_test, stds)
+def normalize_dataset(ds):
+    means = center_dataset(ds)
+    stds = scale_std_of_dataset(ds)
     return means, stds
 
 
