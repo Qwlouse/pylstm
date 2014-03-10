@@ -5,7 +5,7 @@ from __future__ import division, print_function, unicode_literals
 import unittest
 
 import numpy as np
-from pylstm.structure import ArnnLayer, InputLayer
+from pylstm.structure import ClockworkLayer, InputLayer
 
 from pylstm.structure.netbuilder import build_net
 from pylstm.utils import check_gradient, check_deltas
@@ -15,7 +15,7 @@ from pylstm.wrapper import Matrix
 rnd = np.random.RandomState(213106)
 
 
-class ArnnTests(unittest.TestCase):
+class ClockworkTests(unittest.TestCase):
     def build_network(self, layer_type, activation_function, layers=1):
         prev_layer = InputLayer(self.input_size)
         for l in range(layers):
@@ -32,9 +32,9 @@ class ArnnTests(unittest.TestCase):
 
         self.batch_size = 4
 
-        self.net = build_net(InputLayer(self.input_size) >> ArnnLayer(self.output_size))
+        self.net = build_net(InputLayer(self.input_size) >> ClockworkLayer(self.output_size))
         self.net.param_buffer = np.ones(self.net.get_param_size())*2 #rnd.randn(self.net.get_param_size()) * 0.1
-        self.net.get_param_view_for('ArnnLayer')['Timing'][:] = [1, 2, 3]
+        self.net.get_param_view_for('ClockworkLayer')['Timing'][:] = [1, 2, 3]
         self.X = rnd.randn(self.timesteps, self.batch_size, self.input_size)
 
     def test_deltas_finite_differences(self):
@@ -52,7 +52,7 @@ class ArnnTests(unittest.TestCase):
             print("diff")
             print(diff[t])
             print(np.sum(diff[t]**2))
-        print("Checking Deltas of ArnnLayer with sigmoid = %0.4f" % e)
+        print("Checking Deltas of ClockworkLayer with sigmoid = %0.4f" % e)
 
         self.assertTrue(e < 1e-6)
 
@@ -85,7 +85,7 @@ class ArnnTests(unittest.TestCase):
             print(err)
             E += err
 
-        print("Checking Gradient of ArnnLayer with sigmoid = %0.4f" % E)
+        print("Checking Gradient of ClockworkLayer with sigmoid = %0.4f" % E)
         self.assertTrue(E < 1e-6)
 
 

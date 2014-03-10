@@ -131,8 +131,8 @@ def check_gn_pass(net, X=None, v=None, r=1e-7, nr_timesteps=3, nr_batches=5,
 
 def construct_period_mask(periods):
     """
-    Construct a mask for the recurrent matrix of an ArnnLayer, to ensure that
-    connections only go to units of higher frequency, but not back.
+    Construct a mask for the recurrent matrix of an ClockworkLayer, to ensure
+    that connections only go to units of higher frequency, but not back.
     """
     unique_ps = sorted(set(periods))
     D = np.zeros((len(periods), len(periods)), dtype=np.float64)

@@ -1,4 +1,4 @@
-#include "arnn_layer.h"
+#include "clockwork_layer.h"
 
 #include <cmath>
 #include <vector>
@@ -8,19 +8,19 @@
 
 using std::vector;
 
-ArnnLayer::ArnnLayer():
+ClockworkLayer::ClockworkLayer():
 	f(&Sigmoid)
 { }
 
-ArnnLayer::ArnnLayer(const ActivationFunction* f):
+ClockworkLayer::ClockworkLayer(const ActivationFunction* f):
 	f(f)
 { }
 
-ArnnLayer::~ArnnLayer()
+ClockworkLayer::~ClockworkLayer()
 {
 }
 
-ArnnLayer::Parameters::Parameters(size_t n_inputs, size_t n_cells) :
+ClockworkLayer::Parameters::Parameters(size_t n_inputs, size_t n_cells) :
   HX(NULL, n_cells, n_inputs, 1),
   HR(NULL, n_cells, n_cells, 1),
   Timing(NULL, n_cells, 1, 1),
@@ -34,7 +34,7 @@ ArnnLayer::Parameters::Parameters(size_t n_inputs, size_t n_cells) :
 
 ////////////////////// Fwd Buffer /////////////////////////////////////////////
 
-ArnnLayer::FwdState::FwdState(size_t, size_t n_cells, size_t n_batches, size_t time) :
+ClockworkLayer::FwdState::FwdState(size_t, size_t n_cells, size_t n_batches, size_t time) :
   Ha(NULL, n_cells, n_batches, time)
 {
 	add_view("Ha", &Ha);
@@ -42,7 +42,7 @@ ArnnLayer::FwdState::FwdState(size_t, size_t n_cells, size_t n_batches, size_t t
 
 ////////////////////// Bwd Buffer /////////////////////////////////////////////
 
-ArnnLayer::BwdState::BwdState(size_t, size_t n_cells, size_t n_batches, size_t time) :
+ClockworkLayer::BwdState::BwdState(size_t, size_t n_cells, size_t n_batches, size_t time) :
     Ha(NULL, n_cells, n_batches, time),
     Hb(NULL, n_cells, n_batches, time),
     tmp(NULL, n_cells, n_batches, time)
@@ -85,21 +85,20 @@ void copy_errors_of_inactive_nodes(Matrix y_old, const Matrix& y, const Matrix& 
 
 
 ////////////////////// Methods /////////////////////////////////////////////
-void ArnnLayer::forward(ArnnLayer::Parameters& w, ArnnLayer::FwdState& b, Matrix& x, Matrix& y, bool) {
+void ClockworkLayer::forward(ClockworkLayer::Parameters& w, ClockworkLayer::FwdState& b, Matrix& x, Matrix& y, bool) {
     size_t n_slices = x.n_slices;
     mult(w.HX, x.slice(1,x.n_slices).flatten_time(), b.Ha.slice(1,b.Ha.n_slices).flatten_time());
     for (int t = 1; t < n_slices; ++t) {
-      mult_add(w.HR, y.slice(t-1), b.Ha.slice(t));
-      
-      add_vector_into(w.H_bias, b.Ha.slice(t));
-      f->apply(b.Ha.slice(t), y.slice(t));
- 
-      undo_inactive_nodes(y.slice(t-1), y.slice(t), w.Timing, t);
- 
+        mult_add(w.HR, y.slice(t-1), b.Ha.slice(t));
+
+        add_vector_into(w.H_bias, b.Ha.slice(t));
+        f->apply(b.Ha.slice(t), y.slice(t));
+
+        undo_inactive_nodes(y.slice(t-1), y.slice(t), w.Timing, t);
     }
 }
 
-void ArnnLayer::backward(ArnnLayer::Parameters& w, ArnnLayer::FwdState&, ArnnLayer::BwdState& d, Matrix& y, Matrix& in_deltas, Matrix& out_deltas) {
+void ClockworkLayer::backward(ClockworkLayer::Parameters& w, ClockworkLayer::FwdState&, ClockworkLayer::BwdState& d, Matrix& y, Matrix& in_deltas, Matrix& out_deltas) {
         size_t n_slices = y.n_slices;
     f->apply_deriv(y.slice(n_slices-1), out_deltas.slice(n_slices-1), d.Ha.slice(n_slices-1));
     copy(out_deltas.slice(n_slices-1), d.Hb.slice(n_slices-1));
@@ -115,7 +114,7 @@ void ArnnLayer::backward(ArnnLayer::Parameters& w, ArnnLayer::FwdState&, ArnnLay
     mult_add(w.HX.T(), d.Ha.slice(1,d.Ha.n_slices).flatten_time(), in_deltas.slice(1,in_deltas.n_slices).flatten_time());
 }
 
-void ArnnLayer::gradient(ArnnLayer::Parameters&, ArnnLayer::Parameters& grad, ArnnLayer::FwdState& , ArnnLayer::BwdState& d, Matrix& y, Matrix& x, Matrix&) {
+void ClockworkLayer::gradient(ClockworkLayer::Parameters&, ClockworkLayer::Parameters& grad, ClockworkLayer::FwdState& , ClockworkLayer::BwdState& d, Matrix& y, Matrix& x, Matrix&) {
     size_t n_slices = x.n_slices;
     //mult_add(d.Ha.slice(0), x.slice(0).T(), grad.HX);
     for (int t = 1; t < n_slices; ++t) {
@@ -126,7 +125,7 @@ void ArnnLayer::gradient(ArnnLayer::Parameters&, ArnnLayer::Parameters& grad, Ar
     grad.Timing.set_all_elements_to(0.0);
 }
 
-void ArnnLayer::Rpass(Parameters& w, Parameters& v,  FwdState&, FwdState& Rb, Matrix& x, Matrix& y, Matrix& Rx, Matrix& Ry)
+void ClockworkLayer::Rpass(Parameters& w, Parameters& v,  FwdState&, FwdState& Rb, Matrix& x, Matrix& y, Matrix& Rx, Matrix& Ry)
 {
     // NOT IMPLEMENTED YET
     size_t n_slices = x.n_slices;
@@ -142,7 +141,7 @@ void ArnnLayer::Rpass(Parameters& w, Parameters& v,  FwdState&, FwdState& Rb, Ma
     // NOT IMPLEMENTED YET
 }
 
-void ArnnLayer::dampened_backward(Parameters& w, FwdState& b, BwdState& d, Matrix& y, Matrix& in_deltas, Matrix& out_deltas, FwdState&, double, double)
+void ClockworkLayer::dampened_backward(Parameters& w, FwdState& b, BwdState& d, Matrix& y, Matrix& in_deltas, Matrix& out_deltas, FwdState&, double, double)
 {
     backward(w, b, d, y, in_deltas, out_deltas);
 }

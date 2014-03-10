@@ -183,8 +183,8 @@ def create_layer(name, in_size, out_size, **kwargs):
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.HfFinalLayer](in_size, out_size, hf_final_layer))
     elif name_lower == "rnnlayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.RnnLayer](in_size, out_size, cl.RnnLayer(act_fct)))
-    elif name_lower == "arnnlayer":
-        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.ArnnLayer](in_size, out_size, cl.ArnnLayer(act_fct)))
+    elif name_lower == "clockworklayer":
+        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.ClockworkLayer](in_size, out_size, cl.ClockworkLayer(act_fct)))
     elif name_lower == "mrnnlayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.MrnnLayer](in_size, out_size, cl.MrnnLayer(act_fct)))
     elif name_lower == "lstmlayer":

@@ -6,12 +6,12 @@
 #include "matrix/matrix_operation.h"
 #include "matrix/matrix_container.h"
 
-class ArnnLayer {
+class ClockworkLayer {
 public:
     const ActivationFunction* f;
-    ArnnLayer();
-    explicit ArnnLayer(const ActivationFunction* f);
-    ~ArnnLayer();
+    ClockworkLayer();
+    explicit ClockworkLayer(const ActivationFunction* f);
+    ~ClockworkLayer();
 
     class Parameters : public ::MatrixContainer {
     public:
