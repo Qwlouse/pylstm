@@ -2,14 +2,43 @@
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 import numpy as np
-from pylstm.randomness import Seedable
+from pylstm.randomness import Seedable, SEEDABLE_MEMBERS
 
 
-class InitializationFailedError(Exception):
+class InitializationError(Exception):
     pass
 
 
-class Gaussian(Seedable):
+def create_initializer(description):
+    if isinstance(description, dict):
+        name = description['$type']
+        for initializer in Initializer.__subclasses__():
+            if initializer.__name__ == name:
+                instance = initializer.__new__(initializer)
+                instance.__init_from_description__(description)
+                return instance
+        raise InitializationError('Initializer "%s" not found!' % name)
+    elif isinstance(description, (list, int, long, float)):
+        return description
+    else:
+        raise InitializationError('illegal description type "%s"' %
+                                  type(description))
+
+
+class Initializer(Seedable):
+    def __get_description__(self):
+        description = {k: v for k, v in self.__dict__.items()
+                       if k not in SEEDABLE_MEMBERS}
+        description['$type'] = self.__class__.__name__
+        return description
+
+    def __init_from_description__(self, description):
+        assert self.__class__.__name__ == description['$type']
+        self.__dict__.update({k: v for k, v in description.items()
+                              if k != '$type'})
+
+
+class Gaussian(Initializer):
     """
     Initializes the weights randomly according to a normal distribution of
     given mean and standard deviation.
@@ -25,7 +54,7 @@ class Gaussian(Seedable):
         return self.rnd.randn(size).reshape(*shape) * self.std + self.mean
 
 
-class Uniform(Seedable):
+class Uniform(Initializer):
     """
     Initializes the weights randomly according to a uniform distribution over
     the interval [low; high].
@@ -43,10 +72,11 @@ class Uniform(Seedable):
         return v
 
 
-class DenseSqrtFanIn(Seedable):
+class DenseSqrtFanIn(Initializer):
     """
     Initializes the weights randomly according to a uniform distribution over
-    the interval [-1/sqrt(n), 1/sqrt(n)] where n is the number of inputs to each neuron.
+    the interval [-1/sqrt(n), 1/sqrt(n)] where n is the number of inputs to each
+    neuron.
     """
 
     def __init__(self, scale=1.0):
@@ -59,12 +89,13 @@ class DenseSqrtFanIn(Seedable):
             np.sqrt(shape[1])
 
 
-class DenseSqrtFanInOut(Seedable):
+class DenseSqrtFanInOut(Initializer):
     """
     Initializes the weights randomly according to a uniform distribution over
-    the interval [-1/sqrt(n1+n2), 1/sqrt(n1+n2)] where n1 is the number of inputs to each neuron
-    and n2 is the number of neurons in the current layer.
-    Use scaling = 4*sqrt(6) (used by default) for sigmoid units and sqrt(6) for tanh units.
+    the interval [-1/sqrt(n1+n2), 1/sqrt(n1+n2)] where n1 is the number of
+    inputs to each neuron and n2 is the number of neurons in the current layer.
+    Use scaling = 4*sqrt(6) (used by default) for sigmoid units and sqrt(6) for
+    tanh units.
     """
 
     def __init__(self, scale=4 * np.sqrt(6)):
@@ -77,7 +108,7 @@ class DenseSqrtFanInOut(Seedable):
             np.sqrt(shape[1] + shape[2])
 
 
-class CopyFromNetwork(Seedable):
+class CopyFromNetwork(Initializer):
     """
     Initializes the weights by copying them from a target network.
 
@@ -126,7 +157,7 @@ class CopyFromNetwork(Seedable):
                     return _evaluate_initializer(self.on_shape_mismatch,
                                                  layer_name, view_name, shape)
                 else:
-                    raise InitializationFailedError('Shape mismatch %s != %s '
+                    raise InitializationError('Shape mismatch %s != %s '
                                                     'in view %s of %s.' %
                                                     (view.shape, shape,
                                                      view_name, layer_name))
@@ -134,13 +165,17 @@ class CopyFromNetwork(Seedable):
                 return _evaluate_initializer(self.on_missing_view,
                                              layer_name, view_name, shape)
             else:
-                raise InitializationFailedError('View %s not found in layer %s.'
+                raise InitializationError('View %s not found in layer %s.'
                                                 % (view_name, layer_name))
         else:
-            raise InitializationFailedError('Layer %s not found.' % layer_name)
+            raise InitializationError('Layer %s not found.' % layer_name)
+
+    def __get_description__(self):
+        raise NotImplementedError('CopyFromNetwork can not be turned into a '
+                                  'description!')
 
 
-class SparseInputs(Seedable):
+class SparseInputs(Initializer):
     """
     Makes sure every neuron only gets activation from a certain number of input
     neurons and the rest of the weights are 0.
@@ -169,8 +204,20 @@ class SparseInputs(Seedable):
             self.rnd.shuffle(connection_mask[0, :, i])
         return res * connection_mask
 
+    def __get_description__(self):
+        return {
+            '$type': self.__class__.__name__,
+            'init': self.init.__get_description__(),
+            'connections': self.connections
+        }
 
-class SparseOutputs(Seedable):
+    def __init_from_description__(self, description):
+        assert self.__class__.__name__ == description['$type']
+        self.init = create_initializer(description['init'])
+        self.connections = description['connections']
+
+
+class SparseOutputs(Initializer):
     """
     Makes sure every neuron is propagating its activation only to a certain
     number of output neurons, and the rest of the weights are 0.
@@ -198,15 +245,27 @@ class SparseOutputs(Seedable):
             self.rnd.shuffle(connection_mask[0, i, :])
         return res * connection_mask
 
+    def __get_description__(self):
+        return {
+            '$type': self.__class__.__name__,
+            'init': self.init.__get_description(),
+            'connections': self.connections
+        }
 
-class EchoState(Seedable):
+    def __init_from_description__(self, description):
+        assert self.__class__.__name__ == description['$type']
+        self.init = create_initializer(description['init'])
+        self.connections = description['connections']
+
+
+class EchoState(Initializer):
     """
     Classic echo state initialization. Creates a matrix with a fixed spectral
     radius (default=1.25). Spectral radius should be < 1 to satisfy ES-property.
     Only works for square matrices.
 
     Example usage:
-    >> net = build_net(InputLayer(5) >> RnnLayer(20, act_func='tanh') >> ForwardLayer(3))
+    >> net = build_net(InputLayer(5) >> RnnLayer(20, act_func='tanh'))
     >> net.initialize(default=Gaussian(), RnnLayer={'HR': EchoState(0.77)})
     """
 
@@ -216,7 +275,8 @@ class EchoState(Seedable):
 
     def __call__(self, layer_name, view_name,  shape):
         assert shape[0] == 1, "Shape should be 2D but was: %s" % str(shape)
-        assert shape[1] == shape[2], "Matrix should be square but was: %s" % str(shape)
+        assert shape[1] == shape[2], \
+            "Matrix should be square but was: %s" % str(shape)
         n = shape[1]
         W = self.rnd.rand(n, n) - 0.5
         # normalizing and setting spectral radius (correct, slow):
@@ -229,5 +289,3 @@ def _evaluate_initializer(initializer, layer_name, view_name, shape):
         return initializer(layer_name, view_name, shape)
     else:
         return np.array(initializer)
-
-
