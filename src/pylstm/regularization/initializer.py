@@ -15,8 +15,8 @@ class Gaussian(Seedable):
     given mean and standard deviation.
     """
 
-    def __init__(self, mean=0.0, std=1.0, seed=None):
-        super(Gaussian, self).__init__(seed)
+    def __init__(self, mean=0.0, std=1.0):
+        super(Gaussian, self).__init__()
         self.mean = mean
         self.std = std
 
@@ -31,8 +31,8 @@ class Uniform(Seedable):
     the interval [low; high].
     """
 
-    def __init__(self, low=-0.1, high=0.1, seed=None):
-        super(Uniform, self).__init__(seed)
+    def __init__(self, low=-0.1, high=0.1):
+        super(Uniform, self).__init__()
         self.low = low
         self.high = high
 
@@ -49,8 +49,8 @@ class DenseSqrtFanIn(Seedable):
     the interval [-1/sqrt(n), 1/sqrt(n)] where n is the number of inputs to each neuron.
     """
 
-    def __init__(self, scale=1.0, seed=None):
-        super(DenseSqrtFanIn, self).__init__(seed)
+    def __init__(self, scale=1.0):
+        super(DenseSqrtFanIn, self).__init__()
         self.scale = scale
 
     def __call__(self, layer_name, view_name,  shape):
@@ -67,8 +67,8 @@ class DenseSqrtFanInOut(Seedable):
     Use scaling = 4*sqrt(6) (used by default) for sigmoid units and sqrt(6) for tanh units.
     """
 
-    def __init__(self, scale=4 * np.sqrt(6), seed=None):
-        super(DenseSqrtFanInOut, self).__init__(seed)
+    def __init__(self, scale=4 * np.sqrt(6)):
+        super(DenseSqrtFanInOut, self).__init__()
         self.scale = scale
 
     def __call__(self, layer_name, view_name,  shape):
@@ -104,8 +104,8 @@ class CopyFromNetwork(Seedable):
     """
 
     def __init__(self, net, layer_name=None, view_name=None,
-                 on_missing_view=None, on_shape_mismatch=None, seed=None):
-        super(CopyFromNetwork, self).__init__(seed)
+                 on_missing_view=None, on_shape_mismatch=None):
+        super(CopyFromNetwork, self).__init__()
         self.net = net
         self.layer_name = layer_name
         self.view_name = view_name
@@ -151,8 +151,8 @@ class SparseInputs(Seedable):
     >> net.initialize(ForwardLayer=SparseInputs(Gaussian(), connections=10))
     """
 
-    def __init__(self, init, connections=15, seed=None):
-        super(SparseInputs, self).__init__(seed)
+    def __init__(self, init, connections=15):
+        super(SparseInputs, self).__init__()
         self.init = init
         self.connections = connections
 
@@ -181,8 +181,8 @@ class SparseOutputs(Seedable):
     >> net.initialize(ForwardLayer=SparseOutputs(Gaussian(), connections=10))
     """
 
-    def __init__(self, init, connections=15, seed=None):
-        super(SparseOutputs, self).__init__(seed)
+    def __init__(self, init, connections=15):
+        super(SparseOutputs, self).__init__()
         self.init = init
         self.connections = connections
 
