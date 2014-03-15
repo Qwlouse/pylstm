@@ -9,20 +9,30 @@ class InitializationError(Exception):
     pass
 
 
-def create_initializer(description):
+def create_initializer_from_description(description):
     if isinstance(description, dict):
-        name = description['$type']
-        for initializer in Initializer.__subclasses__():
-            if initializer.__name__ == name:
-                instance = initializer.__new__(initializer)
-                instance.__init_from_description__(description)
-                return instance
-        raise InitializationError('Initializer "%s" not found!' % name)
+        if '$type' in description:
+            name = description['$type']
+            for initializer in Initializer.__subclasses__():
+                if initializer.__name__ == name:
+                    instance = initializer.__new__(initializer)
+                    instance.__init_from_description__(description)
+                    return instance
+            raise InitializationError('Initializer "%s" not found!' % name)
+        else:
+            return {k: create_initializer_from_description(v) for k, v in description.items()}
     elif isinstance(description, (list, int, long, float)):
         return description
     else:
         raise InitializationError('illegal description type "%s"' %
                                   type(description))
+
+
+def get_initializer_description(initializer):
+    if isinstance(initializer, dict):
+        return {k: get_initializer_description(v) for k, v in initializer.items()}
+    else:
+        return initializer
 
 
 class Initializer(Seedable):
@@ -213,7 +223,7 @@ class SparseInputs(Initializer):
 
     def __init_from_description__(self, description):
         assert self.__class__.__name__ == description['$type']
-        self.init = create_initializer(description['init'])
+        self.init = create_initializer_from_description(description['init'])
         self.connections = description['connections']
 
 
@@ -254,7 +264,7 @@ class SparseOutputs(Initializer):
 
     def __init_from_description__(self, description):
         assert self.__class__.__name__ == description['$type']
-        self.init = create_initializer(description['init'])
+        self.init = create_initializer_from_description(description['init'])
         self.connections = description['connections']
 
 

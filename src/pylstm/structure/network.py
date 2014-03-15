@@ -4,7 +4,8 @@ from __future__ import division, print_function, unicode_literals
 from copy import deepcopy
 from .. import wrapper as pw
 from pylstm.randomness import reseeding_copy, Seedable
-from pylstm.regularization.initializer import _evaluate_initializer
+from pylstm.regularization.initializer import (_evaluate_initializer,
+                                               get_initializer_description)
 from pylstm.targets import Targets
 import numpy as np
 
@@ -441,6 +442,7 @@ class Network(Seedable):
         """
         initializers = _update_references_with_dict(init_dict, kwargs)
         self._assert_view_reference_wellformed(initializers)
+        self.initializers = get_initializer_description(initializers)
         rnd = self.rnd['initialize'].get_new_random_state(seed)
 
         for layer_name, layer in self.layers.items()[1:]:
