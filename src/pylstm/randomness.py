@@ -5,6 +5,8 @@ from __future__ import division, print_function, unicode_literals
 from copy import deepcopy, copy
 import numpy as np
 
+SEED_RANGE = (0, 1000000000)
+
 
 class HierarchicalRandomState(np.random.RandomState):
     """
@@ -17,12 +19,11 @@ class HierarchicalRandomState(np.random.RandomState):
     is only dependent on the seed of the creator and on it's name, not on the
     random state of the creator.
     """
-    def __init__(self, seed=None, seed_range=(0, 1000000000)):
+    def __init__(self, seed=None):
         if seed is None:
-            seed = np.random.randint(*seed_range)
+            seed = np.random.randint(*SEED_RANGE)
         super(HierarchicalRandomState, self).__init__(seed)
         self._seed = seed
-        self._default_seed_range = seed_range
         self.categories = dict()
 
     def seed(self, seed=None):
@@ -46,7 +47,7 @@ class HierarchicalRandomState(np.random.RandomState):
 
     def generate_seed(self, seed_range=None):
         if seed_range is None:
-            seed_range = self._default_seed_range
+            seed_range = SEED_RANGE
         return self.randint(*seed_range)
 
     def get_new_random_state(self, seed=None):
@@ -79,6 +80,8 @@ class Seedable(object):
         self.rnd.set_seed(seed)
         self.seed = seed
 
+SEEDABLE_MEMBERS = set(Seedable().__dict__.keys())
+
 
 def reseeding_deepcopy(values, seed):
     r = deepcopy(values)
@@ -102,10 +105,6 @@ def reseeding_copy(values, seed):
 #   * set_regularizers
 # - trainer
 # - data_iterator
-global_rnd = HierarchicalRandomState(np.random.randint(0, 1000000000))
+global_rnd = HierarchicalRandomState(np.random.randint(*SEED_RANGE))
 
 set_global_seed = global_rnd.set_seed
-
-
-
-
