@@ -186,37 +186,3 @@ class BufferManager(object):
     def clear_buffer(self):
         self.ensure_initialization()
         self.buffer.set_all_elements_to(0.0)
-
-
-def get_forward_closure(layer, extended_architecture):
-    """
-    For a given layer return two sorted lists of layer names such that:
-      * the given layer is in the source_set
-      * the sink_set contains all the target layers of the source_set
-      * the source_set contains all the source layers of the sink_set
-    """
-    # grow the two sets
-    source_set = {layer}
-    sink_set = set(extended_architecture[layer]['targets'])
-    growing = True
-    while growing:
-        growing = False
-        new_source_set = {s for l in sink_set
-                          for s in extended_architecture[l]['sources']}
-        new_sink_set = {t for l in source_set
-                        for t in extended_architecture[l]['targets']}
-        if len(new_source_set) > len(source_set) or\
-                len(new_sink_set) > len(sink_set):
-            growing = True
-            source_set = new_source_set
-            sink_set = new_sink_set
-    # turn into sorted lists
-    source_list = sorted([l for l in source_set])
-    sink_list = sorted([l for l in sink_set])
-    # set up connection table
-    connection_table = np.zeros((len(source_list), len(sink_list)))
-    for i, source in enumerate(source_list):
-        for sink in extended_architecture[source]['targets']:
-            connection_table[i, sink_list.index(sink)] = 1
-    # convert to lists of names
-    return source_list, sink_list, connection_table
