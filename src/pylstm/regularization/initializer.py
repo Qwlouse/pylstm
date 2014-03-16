@@ -10,6 +10,16 @@ class InitializationError(Exception):
 
 
 def create_initializer_from_description(description):
+    """
+    Turn an initialization-description into a initialization dictionary, that
+    can be used with Network.initialize.
+
+    :param description: initialization-description
+    :type description: dict
+
+    :return: initialization-dictionary
+    :rtype: dict
+    """
     if isinstance(description, dict):
         if '$type' in description:
             name = description['$type']
@@ -29,6 +39,15 @@ def create_initializer_from_description(description):
 
 
 def get_initializer_description(initializer):
+    """
+    Turn a initialization-dictionary as used in the Network.initialize method
+    into a description dictionary. This description is json serializable.
+
+    :param initializer: initialization-dictionary
+    :type initializer: dict
+    :return: description
+    :rtype: dict
+    """
     if isinstance(initializer, dict):
         return {k: get_initializer_description(v) for k, v in initializer.items()}
     else:
@@ -36,13 +55,40 @@ def get_initializer_description(initializer):
 
 
 class Initializer(Seedable):
+    """
+    Base Class for all initializers. It inherits from Seedable, so every
+    sub-class has access to self.rnd, and it provides basic methods for
+    converting from and to a description.
+    """
     def __get_description__(self):
+        """
+        Returns a description of the initializer. That is a dictionary
+        containing the name of the class as '$type' and all members of the
+        class. It does not contain the members of Seedable though.
+
+        If a sub-class of Initializer contains
+        non-simple (numerical, string, list[numerical]) fields it has to
+        override this method to specify how they should be described.
+
+        :rtype: dict
+        """
         description = {k: v for k, v in self.__dict__.items()
                        if k not in SEEDABLE_MEMBERS}
         description['$type'] = self.__class__.__name__
         return description
 
     def __init_from_description__(self, description):
+        """
+        Initializes an initializer from a given description.
+
+        Again if a sub-class of Initializer contains
+        non-simple (numerical, string, list[numerical]) fields it has to
+        override this method to specify how they should be initialized from
+        their description.
+
+        :param description: description of this Initializer object
+        :type description: dict
+        """
         assert self.__class__.__name__ == description['$type']
         self.__dict__.update({k: v for k, v in description.items()
                               if k != '$type'})
