@@ -38,6 +38,7 @@ class Network(Seedable):
 
         self.regularizers = {}
         self.constraints = {}
+        self.initializers = None
 
         self.out_layer = self.layers.keys()[-1]
 
@@ -389,19 +390,24 @@ class Network(Seedable):
         # read the final delta buffer
         return self.in_delta_buffer
 
-    def hessian_pass(self, input_buffer, v_buffer, targets, lambda_=0., mu=0., matching_loss=True):
-        self.forward_pass(input_buffer)
+    def hessian_pass(self, input_buffer, v_buffer, targets, lambda_=0., mu=0.,
+                     matching_loss=True):
+        y = self.forward_pass(input_buffer)
         self.r_forward_pass(input_buffer, v_buffer)
         if matching_loss:
             self.r_backward_pass(self.r_out_buffer, lambda_, mu)
         else:
             self._calculate_deltas_and_error(targets)
 
-            rval = self.r_in_out_manager.get_source_view(self.out_layer).as_array()
+            rval = self.r_out_buffer
             for t in range(rval.shape[0]-1):
                 for b in range(rval.shape[1]):
-                    #rval[t+1, b, :] = self.deltas[t, b] * np.inner(self.deltas[t, b], rval[t+1, b])
-                    rval[t+1, b, :] = ((np.diag(y[t,b])- np.outer(y[t,b], y[t,b]))).dot(rval[t+1, b])
+                    #rval[t+1, b, :] = self.deltas[t, b] *
+                    #   np.inner(self.deltas[t, b], rval[t+1, b])
+                    rval[t+1, b, :] = (np.diag(y[t, b]) -
+                                       np.outer(y[t, b], y[t, b])).dot(
+                                           rval[t+1, b])
+
             self.r_backward_pass(rval, lambda_, mu)
         return self.calc_gradient()
 
@@ -456,7 +462,6 @@ class Network(Seedable):
                                                 view_name, view.shape)
 
         self.enforce_constraints()
-        # TODO: implement serialization of initializer
 
     def set_regularizers(self, reg_dict=None, seed=None, **kwargs):
         """
