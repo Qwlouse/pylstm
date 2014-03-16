@@ -5,7 +5,38 @@ from __future__ import division, print_function, unicode_literals
 import numpy as np
 
 
-class L1(object):
+class Regularizer(object):
+    def __get_description__(self):
+        description = self.__dict__.items()
+        description['$type'] = self.__class__.__name__
+        return description
+
+    def __init_from_description__(self, description):
+        assert self.__class__.__name__ == description['$type']
+        self.__dict__.update({k: v for k, v in description.items()
+                              if k != '$type'})
+
+
+def get_regularization_description(regularizer):
+    """
+    Turn a regularization-dictionary as used in the Network.set_regularizers
+    method into a description dictionary. This description is json serializable.
+
+    :param regularizer: regularization-dictionary
+    :type regularizer: dict
+    :return: description
+    :rtype: dict
+    """
+    if isinstance(regularizer, Regularizer):
+        return regularizer.__get_description__()
+    elif isinstance(regularizer, dict):
+        return {k: get_regularization_description(v)
+                for k, v in regularizer.items()}
+    else:
+        return regularizer
+
+
+class L1(Regularizer):
     """
     L1-norm weight regularization. Schould be added to the network via the
     set_regularizers method like so:
@@ -23,7 +54,7 @@ class L1(object):
         return "<L1 %0.4f>" % self.reg_coeff
         
 
-class L2(object):
+class L2(Regularizer):
     """
     L2-norm weight regularization (aka Weight-Decay). Schould be added to the
     network via the set_regularizers method like so:
@@ -41,7 +72,7 @@ class L2(object):
         return "<L2 %0.4f>" % self.reg_coeff
 
 
-class ClipGradient(object):
+class ClipGradient(Regularizer):
     """
     Clips (limits) the gradient to be between low and high.
     Defaults to low=-1 and high=1.
@@ -59,4 +90,3 @@ class ClipGradient(object):
 
     def __repr__(self):
         return "<ClipGradient [%0.4f; %0.4f]>" % (self.low, self.high)
-

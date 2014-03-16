@@ -6,7 +6,41 @@ import numpy as np
 from pylstm.randomness import Seedable
 
 
-class RescaleIncomingWeights(object):
+class Constraint(object):
+    def __get_description__(self):
+        description = self.__dict__.items()
+        description['$type'] = self.__class__.__name__
+        return description
+
+    def __init_from_description__(self, description):
+        assert self.__class__.__name__ == description['$type']
+        self.__dict__.update({k: v for k, v in description.items()
+                              if k != '$type'})
+
+    def __call__(self, view):
+        raise NotImplementedError()
+
+
+def get_constraints_description(constraint):
+    """
+    Turn a constraints-dictionary as used in the Network.set_constraints method
+    into a description dictionary. This description is json serializable.
+
+    :param constraint: constraints-dictionary
+    :type constraint: dict
+    :return: description
+    :rtype: dict
+    """
+    if isinstance(constraint, Constraint):
+        return constraint.__get_description__()
+    elif isinstance(constraint, dict):
+        return {k: get_constraints_description(v)
+                for k, v in constraint.items()}
+    else:
+        return constraint
+
+
+class RescaleIncomingWeights(Constraint):
     """
     Rescales the incoming weights for every neuron to sum to one (target_sum).
     Ignores Biases.
@@ -28,10 +62,10 @@ class RescaleIncomingWeights(object):
         return "<RescaleIncomingWeights %0.4f>" % self.target_sum
 
 
-class LimitIncomingWeightsSquared(object):
+class LimitIncomingWeightsSquared(Constraint):
     """
-    Limits the squares of incoming weights for every neuron to sum to one (target_sum).
-    Ignores Biases.
+    Limits the squares of incoming weights for every neuron to sum to one
+    (target_sum). Ignores Biases.
 
     Should be added to the network via the set_constraints method like so:
     >> net.set_constraints(RnnLayer={'HX': LimitIncomingWeightsSquared()})
@@ -45,14 +79,15 @@ class LimitIncomingWeightsSquared(object):
         if view.shape[1] == 1:  # Just one input: probably bias => ignore
             return view
         sums = (view*view).sum(1)
-        sums = (sums < self.target_sum) + (sums/self.target_sum)*(sums >= self.target_sum)
+        sums = (sums < self.target_sum) + \
+               (sums / self.target_sum) * (sums >= self.target_sum)
         return view / np.sqrt(sums)
 
     def __repr__(self):
         return "<LimitIncomingWeightsSquared %0.4f>" % self.target_sum
 
 
-class ClipWeights(object):
+class ClipWeights(Constraint):
     """
     Clips (limits) the weights to be between low and high.
     Defaults to low=-1 and high=1.
@@ -73,7 +108,7 @@ class ClipWeights(object):
         return "<ClipWeights [%0.4f; %0.4f]>" % (self.low, self.high)
 
 
-class MaskWeights(object):
+class MaskWeights(Constraint):
     """
     Multiplies the weights with the mask. This can be used to clamp some of
     the weights to zero.
@@ -84,6 +119,7 @@ class MaskWeights(object):
     weights to affect.
     """
     def __init__(self, mask):
+        assert isinstance(mask, np.ndarray)
         self.mask = mask
 
     def __call__(self, view):
@@ -92,8 +128,18 @@ class MaskWeights(object):
     def __repr__(self):
         return "<MaskWeights>"
 
+    def __get_description__(self):
+        return {
+            '$type': self.__class__.__name__,
+            'mask': self.mask.tolist()
+        }
 
-class FreezeWeights(object):
+    def __init_from_description__(self, description):
+        assert self.__class__.__name__ == description['$type']
+        self.mask = np.array(description['mask'])
+
+
+class FreezeWeights(Constraint):
     """
     Prevents the weights from changing at all. So it will remember the first
     weights it sees and resets them to that every time. This means it should
@@ -115,8 +161,15 @@ class FreezeWeights(object):
     def __repr__(self):
         return "<FreezeWeights>"
 
+    def __get_description__(self):
+        return {'$type': self.__class__.__name__}
 
-class NoisyWeights(Seedable):
+    def __init_from_description__(self, description):
+        assert self.__class__.__name__ == description['$type']
+        self.weights = None
+
+
+class NoisyWeights(Seedable, Constraint):
     """
     Adds a small amount of normal-distributed noise (mean=0, std=std) to all the
     weights of a network every time they are set. This means that you get
@@ -129,8 +182,8 @@ class NoisyWeights(Seedable):
     weights to affect.
     """
 
-    def __init__(self, std=0.01, seed=None):
-        super(NoisyWeights, self).__init__(seed)
+    def __init__(self, std=0.01):
+        super(NoisyWeights, self).__init__()
         self.std = std
         self.noise = None
 
@@ -142,5 +195,15 @@ class NoisyWeights(Seedable):
         return view - old_noise + self.noise
 
     def __repr__(self):
-        return "<NoisyWeights std=%0.4f seed=%d>" % (self.std,
-                                                     self.rnd.get_seed())
+        return "<NoisyWeights std=%0.4f>" % self.std
+
+    def __get_description__(self):
+        return {
+            '$type': self.__class__.__name__,
+            'std': self.std
+        }
+
+    def __init_from_description__(self, description):
+        assert self.__class__.__name__ == description['$type']
+        self.std = description['std']
+        self.noise = None

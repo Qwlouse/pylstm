@@ -49,7 +49,9 @@ def get_initializer_description(initializer):
     :return: description
     :rtype: dict
     """
-    if isinstance(initializer, dict):
+    if isinstance(initializer, Initializer):
+        return initializer.__get_description__()
+    elif isinstance(initializer, dict):
         return {k: get_initializer_description(v)
                 for k, v in initializer.items()}
     elif isinstance(initializer, np.ndarray):
@@ -348,7 +350,7 @@ class EchoState(Initializer):
 
 
 def _evaluate_initializer(initializer, layer_name, view_name, shape):
-    if isinstance(layer_name, Initializer):
+    if isinstance(initializer, Initializer):
         return initializer(layer_name, view_name, shape)
     else:
         return np.array(initializer)

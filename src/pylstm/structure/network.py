@@ -6,6 +6,9 @@ from .. import wrapper as pw
 from pylstm.randomness import reseeding_copy, Seedable
 from pylstm.regularization.initializer import (_evaluate_initializer,
                                                get_initializer_description)
+from pylstm.regularization.gradient_modifiers import \
+    get_regularization_description
+from pylstm.regularization.weight_constraints import get_constraints_description
 from pylstm.targets import Targets
 import numpy as np
 
@@ -30,7 +33,14 @@ class Network(Seedable):
 
         self.error_func = error_func
 
-        self.architecture = architecture
+        self.description = {
+            'architecture': architecture,
+            'initializers': {},
+            'constraints': {},
+            'regularizers': {}
+        }
+        if seed is not None:
+            self.description['$seed'] = seed
 
         self.targets = None
         self.error = None
@@ -38,7 +48,6 @@ class Network(Seedable):
 
         self.regularizers = {}
         self.constraints = {}
-        self.initializers = None
 
         self.out_layer = self.layers.keys()[-1]
 
@@ -448,7 +457,8 @@ class Network(Seedable):
         """
         initializers = _update_references_with_dict(init_dict, kwargs)
         self._assert_view_reference_wellformed(initializers)
-        self.initializers = get_initializer_description(initializers)
+        self.description['initializers'] = \
+            get_initializer_description(initializers)
         rnd = self.rnd['initialize'].get_new_random_state(seed)
 
         for layer_name, layer in self.layers.items()[1:]:
@@ -494,6 +504,8 @@ class Network(Seedable):
         """
         rnd = self.rnd['set_regularizers'].get_new_random_state(seed)
         regularizers = _update_references_with_dict(reg_dict, kwargs)
+        self.description['regularizers'] = \
+            get_regularization_description(regularizers)
         self.regularizers = self._flatten_view_references(regularizers, rnd)
         _prune_view_references(self.regularizers)
         _ensure_all_references_are_lists(self.regularizers)
@@ -502,6 +514,8 @@ class Network(Seedable):
         rnd = self.rnd['set_constraints'].get_new_random_state(seed)
         assert self.is_initialized()
         constraints = _update_references_with_dict(constraint_dict, kwargs)
+        self.description['constraints'] = \
+            get_constraints_description(constraints)
         self.constraints = self._flatten_view_references(constraints, rnd)
         _prune_view_references(self.constraints)
         _ensure_all_references_are_lists(self.constraints)
