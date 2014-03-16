@@ -35,9 +35,9 @@ class Network(Seedable):
 
         self.description = {
             'architecture': architecture,
-            'initializers': {},
+            'initialization': {},
             'constraints': {},
-            'regularizers': {}
+            'regularization': {}
         }
         if seed is not None:
             self.description['$seed'] = seed
@@ -457,7 +457,7 @@ class Network(Seedable):
         """
         initializers = _update_references_with_dict(init_dict, kwargs)
         self._assert_view_reference_wellformed(initializers)
-        self.description['initializers'] = \
+        self.description['initialization'] = \
             get_initializer_description(initializers)
         rnd = self.rnd['initialize'].get_new_random_state(seed)
 
@@ -504,7 +504,7 @@ class Network(Seedable):
         """
         rnd = self.rnd['set_regularizers'].get_new_random_state(seed)
         regularizers = _update_references_with_dict(reg_dict, kwargs)
-        self.description['regularizers'] = \
+        self.description['regularization'] = \
             get_regularization_description(regularizers)
         self.regularizers = self._flatten_view_references(regularizers, rnd)
         _prune_view_references(self.regularizers)

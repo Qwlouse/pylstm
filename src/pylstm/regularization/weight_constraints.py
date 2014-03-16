@@ -40,6 +40,34 @@ def get_constraints_description(constraint):
         return constraint
 
 
+def create_constraint_from_description(description):
+    """
+    Turn an constraint-description into a constraint dictionary, that
+    can be used with Network.set_constraints.
+
+    :param description: constraint-description
+    :type description: dict
+
+    :return: constraint-dictionary
+    :rtype: dict
+    """
+    if isinstance(description, dict):
+        if '$type' in description:
+            name = description['$type']
+            for initializer in Constraint.__subclasses__():
+                if initializer.__name__ == name:
+                    instance = initializer.__new__(initializer)
+                    instance.__init_from_description__(description)
+                    return instance
+            raise RuntimeError('Constraint "%s" not found!' % name)
+        else:
+            return {k: create_constraint_from_description(v)
+                    for k, v in description.items()}
+    else:
+        raise RuntimeError('illegal description type "%s"' %
+                           type(description))
+
+
 class RescaleIncomingWeights(Constraint):
     """
     Rescales the incoming weights for every neuron to sum to one (target_sum).

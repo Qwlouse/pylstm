@@ -36,6 +36,34 @@ def get_regularization_description(regularizer):
         return regularizer
 
 
+def create_regularizer_from_description(description):
+    """
+    Turn an regularization-description into a regularization dictionary, that
+    can be used with Network.set_regularizers.
+
+    :param description: regularization-description
+    :type description: dict
+
+    :return: regularization-dictionary
+    :rtype: dict
+    """
+    if isinstance(description, dict):
+        if '$type' in description:
+            name = description['$type']
+            for initializer in Regularizer.__subclasses__():
+                if initializer.__name__ == name:
+                    instance = initializer.__new__(initializer)
+                    instance.__init_from_description__(description)
+                    return instance
+            raise RuntimeError('Regularizer "%s" not found!' % name)
+        else:
+            return {k: create_regularizer_from_description(v)
+                    for k, v in description.items()}
+    else:
+        raise RuntimeError('illegal description type "%s"' %
+                           type(description))
+
+
 class L1(Regularizer):
     """
     L1-norm weight regularization. Schould be added to the network via the
