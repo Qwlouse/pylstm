@@ -30,7 +30,8 @@ def create_initializer_from_description(description):
                     return instance
             raise InitializationError('Initializer "%s" not found!' % name)
         else:
-            return {k: create_initializer_from_description(v) for k, v in description.items()}
+            return {k: create_initializer_from_description(v)
+                    for k, v in description.items()}
     elif isinstance(description, (list, int, long, float)):
         return description
     else:
@@ -49,7 +50,10 @@ def get_initializer_description(initializer):
     :rtype: dict
     """
     if isinstance(initializer, dict):
-        return {k: get_initializer_description(v) for k, v in initializer.items()}
+        return {k: get_initializer_description(v)
+                for k, v in initializer.items()}
+    elif isinstance(initializer, np.ndarray):
+        return initializer.tolist()
     else:
         return initializer
 
@@ -92,6 +96,9 @@ class Initializer(Seedable):
         assert self.__class__.__name__ == description['$type']
         self.__dict__.update({k: v for k, v in description.items()
                               if k != '$type'})
+
+    def __call__(self, layer_name, view_name,  shape):
+        raise NotImplementedError()
 
 
 class Gaussian(Initializer):
@@ -213,16 +220,16 @@ class CopyFromNetwork(Initializer):
                     return _evaluate_initializer(self.on_shape_mismatch,
                                                  layer_name, view_name, shape)
                 else:
-                    raise InitializationError('Shape mismatch %s != %s '
-                                                    'in view %s of %s.' %
-                                                    (view.shape, shape,
-                                                     view_name, layer_name))
+                    raise InitializationError('Shape mismatch %s != %s in view'
+                                              ' %s of %s.' % (view.shape,
+                                                              shape, view_name,
+                                                              layer_name))
             elif self.on_missing_view is not None:
                 return _evaluate_initializer(self.on_missing_view,
                                              layer_name, view_name, shape)
             else:
-                raise InitializationError('View %s not found in layer %s.'
-                                                % (view_name, layer_name))
+                raise InitializationError('View %s not found in layer %s.' %
+                                          (view_name, layer_name))
         else:
             raise InitializationError('Layer %s not found.' % layer_name)
 
@@ -334,14 +341,14 @@ class EchoState(Initializer):
         assert shape[1] == shape[2], \
             "Matrix should be square but was: %s" % str(shape)
         n = shape[1]
-        W = self.rnd.rand(n, n) - 0.5
+        weights = self.rnd.uniform(-0.5, 0.5, size=(n, n))
         # normalizing and setting spectral radius (correct, slow):
-        rhoW = max(abs(np.linalg.eig(W)[0]))
-        return (W * (self.spectral_radius / rhoW)).reshape(1, n, n)
+        rho_weights = max(abs(np.linalg.eig(weights)[0]))
+        return weights.reshape(1, n, n) * (self.spectral_radius / rho_weights)
 
 
 def _evaluate_initializer(initializer, layer_name, view_name, shape):
-    if callable(initializer):
+    if isinstance(layer_name, Initializer):
         return initializer(layer_name, view_name, shape)
     else:
         return np.array(initializer)
