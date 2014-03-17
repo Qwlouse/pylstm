@@ -1,9 +1,8 @@
 #!/usr/bin/python
 # coding=utf-8
-
 from __future__ import division, print_function, unicode_literals
 import numpy as np
-from pylstm.randomness import Seedable, global_rnd
+from pylstm.randomness import Seedable
 from pylstm.training.schedules import get_schedule
 from pylstm.training.data_iterators import Minibatches
 from pylstm.targets import Targets
@@ -86,13 +85,14 @@ class MomentumStep(TrainingStep):
     If scale_learning_rate is True (default),
     learning_rate is multiplied by (1 - momentum) when used.
     """
-    def __init__(self, learning_rate=0.1, momentum=0.0, scale_learning_rate=True):
+    def __init__(self, learning_rate=0.1, momentum=0.0,
+                 scale_learning_rate=True):
         super(MomentumStep, self).__init__()
         self.velocity = None
         self.momentum_schedule = get_schedule(momentum)
         self.learning_rate_schedule = get_schedule(learning_rate)
-        assert (scale_learning_rate is True) or (scale_learning_rate is False),\
-            "scale_learning_rate must be True or False"
+        assert scale_learning_rate in (True, False), \
+            "scale_learning_rate must be boolen"
         self.scale_learning_rate = scale_learning_rate
 
     def _initialize(self):
@@ -106,7 +106,8 @@ class MomentumStep(TrainingStep):
         error = self.net.calculate_error(targets)
         self.net.backward_pass(targets)
         if self.scale_learning_rate:
-            dv = (1 - momentum) * learning_rate * self.net.calc_gradient().flatten()
+            dv = (1 - momentum) * learning_rate * \
+                self.net.calc_gradient().flatten()
         else:
             dv = learning_rate * self.net.calc_gradient().flatten()
 
@@ -131,7 +132,8 @@ class NesterovStep(MomentumStep):
         error = self.net.calculate_error(targets)
         self.net.backward_pass(targets)
         if self.scale_learning_rate:
-            dv = (1 - momentum) * learning_rate * self.net.calc_gradient().flatten()
+            dv = (1 - momentum) * learning_rate * \
+                self.net.calc_gradient().flatten()
         else:
             dv = learning_rate * self.net.calc_gradient().flatten()
 
@@ -254,7 +256,8 @@ def calculate_gradient(net, data_iter):
 
 
 class CgStep(TrainingStep, Seedable):
-    def __init__(self, minibatch_size=32, mu=1. / 30, maxiter=300, seed=None, matching_loss=True):
+    def __init__(self, minibatch_size=32, mu=1. / 30, maxiter=300, seed=None,
+                 matching_loss=True):
         TrainingStep.__init__(self)
         Seedable.__init__(self, seed, category='trainer')
         self.minibatch_size = minibatch_size
@@ -280,63 +283,58 @@ class CgStep(TrainingStep, Seedable):
         error, grad = calculate_gradient(self.net, data_iter)
 
         ## initialize v
-        #v = np.zeros(net.get_param_size())
-        #try:
-        #    v = self.new_v
-        #except:
-        #    v = .000001 * self.rnd.randn(self.net.get_param_size())
-        v = .000001 * self.rnd.randn(self.net.get_param_size())
+        v_init = .000001 * self.rnd.randn(self.net.get_param_size())
 
         # select a random subset of the data for the CG
         x, t = self._get_random_subset(input_data, targets, self.minibatch_size)
 
         ## define hessian pass
         def fhess_p(v):
-            return (self.net.hessian_pass(x, v, t, self.mu, self.lambda_, self.matching_loss).copy().\
-                       flatten() + self.lambda_*v) / self.minibatch_size
+            return (self.net.hessian_pass(x, v, t, self.mu, self.lambda_,
+                                          self.matching_loss).copy()
+                    .flatten() + self.lambda_*v) / self.minibatch_size
 
         ## run CG
-        all_v = conjgrad3(grad, v.copy(), fhess_p, maxiter=self.maxiter)
-        self.new_v = all_v[-1]
+        all_v = conjgrad3(grad, v_init.copy(), fhess_p, maxiter=self.maxiter)
 
         ## backtrack #1
-        lowError = float('Inf')
-        lowIdx = 0
+        low_error = float('Inf')
+        low_idx = 0
         weights = self.net.param_buffer.copy()
         for i, testW in reversed(list(enumerate(all_v))):
             self.net.param_buffer = weights - testW
             self.net.forward_pass(x, training_pass=True)
-            tmpError = self.net.calculate_error(t)
-            if tmpError < lowError:
-                lowError = tmpError
-                lowIdx = i
-        bestDW = all_v[lowIdx]
+            tmp_error = self.net.calculate_error(t)
+            if tmp_error < low_error:
+                low_error = tmp_error
+                low_idx = i
+        best_dw = all_v[low_idx]
 
         ## backtrack #2
-        finalDW = bestDW
+        final_dw = best_dw
         #for j in np.arange(0, 40, 1):
-        #    tmpDW = bestDW * (.9 ** j)
+        #    tmp_dw = best_dw * (.9 ** j)
         for j in np.arange(0, 1.0, 0.02):
-            tmpDW = j * bestDW
-            self.net.param_buffer = weights - tmpDW
+            tmp_dw = j * best_dw
+            self.net.param_buffer = weights - tmp_dw
             self.net.forward_pass(x, training_pass=True)
-            tmpError = self.net.calculate_error(t)
-            if tmpError < lowError:
-                finalDW = tmpDW
-                lowError = tmpError
+            tmp_error = self.net.calculate_error(t)
+            if tmp_error < low_error:
+                final_dw = tmp_dw
+                low_error = tmp_error
 
         ## Levenberg-Marquardt heuristic
         boost = 3.0 / 2.0
         self.net.param_buffer = weights
-        denom = 0.5 * (np.dot(finalDW, fhess_p(finalDW))) - np.dot(
-            np.squeeze(grad), finalDW)
-        rho = (lowError - error) / denom
+        denom = 0.5 * (np.dot(final_dw, fhess_p(final_dw))) - np.dot(
+            np.squeeze(grad), final_dw)
+        rho = (low_error - error) / denom
         if rho < 0.25:
             self.lambda_ *= boost
         elif rho > 0.75:
             self.lambda_ /= boost
 
         ## update weights
-        self.net.param_buffer = weights - finalDW
+        self.net.param_buffer = weights - final_dw
 
-        return lowError
+        return low_error
