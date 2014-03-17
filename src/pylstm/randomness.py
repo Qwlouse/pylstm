@@ -4,6 +4,7 @@
 from __future__ import division, print_function, unicode_literals
 from copy import deepcopy, copy
 import numpy as np
+from pylstm.describable import Describable
 
 SEED_RANGE = (0, 1000000000)
 
@@ -63,12 +64,14 @@ class HierarchicalRandomState(np.random.RandomState):
         return self.categories[item]
 
 
-class Seedable(object):
+class Seedable(Describable):
     """
     Baseclass for all objects that use randomness. It helps to make sure all the
     results are reproducible.
     It offers a self.rnd which is a HierarchicalRandomState.
     """
+    __undescribed__ = {'rnd', 'seed'}
+
     def __init__(self, seed=None, category=None):
         if category is None:
             self.rnd = HierarchicalRandomState(seed)
@@ -80,7 +83,9 @@ class Seedable(object):
         self.rnd.set_seed(seed)
         self.seed = seed
 
-SEEDABLE_MEMBERS = set(Seedable().__dict__.keys())
+    def __init_from_description__(self, description):
+        self.rnd = HierarchicalRandomState()
+        self.seed = self.rnd.get_seed()
 
 
 def reseeding_deepcopy(values, seed):

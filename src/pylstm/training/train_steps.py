@@ -7,12 +7,18 @@ from pylstm.training.schedules import get_schedule
 from pylstm.training.data_iterators import Minibatches
 from pylstm.targets import Targets
 from pylstm.training.cg_trainer import conjgrad3
+from pylstm.describable import Describable
 
 
-class TrainingStep(object):
+############################ Base Class ########################################
+
+
+class TrainingStep(Describable):
     """
     Base class for all training steps. Defines the common interface
     """
+    __undescribed__ = {'net'}
+
     def __init__(self):
         self.net = None
 
@@ -26,6 +32,8 @@ class TrainingStep(object):
     def run(self, input_data, targets):
         pass
 
+
+############################ Training Steps ####################################
 
 class DiagnosticStep(TrainingStep):
     """
@@ -77,6 +85,10 @@ class SgdStep(TrainingStep):
                                   self.net.calc_gradient().flatten())
         return error
 
+    def __init_from_description__(self, description):
+        super(self, SgdStep).__init_from_description__(description)
+        self.learning_rate_schedule = get_schedule(self.learning_rate_schedule)
+
 
 class MomentumStep(TrainingStep):
     """
@@ -85,6 +97,8 @@ class MomentumStep(TrainingStep):
     If scale_learning_rate is True (default),
     learning_rate is multiplied by (1 - momentum) when used.
     """
+    __undescribed__ = {'velocity'}
+
     def __init__(self, learning_rate=0.1, momentum=0.0,
                  scale_learning_rate=True):
         super(MomentumStep, self).__init__()
@@ -114,6 +128,11 @@ class MomentumStep(TrainingStep):
         self.velocity -= dv
         self.net.param_buffer += self.velocity
         return error
+
+    def __init_from_description__(self, description):
+        super(self, MomentumStep).__init_from_description__(description)
+        self.learning_rate_schedule = get_schedule(self.learning_rate_schedule)
+        self.momentum_schedule = get_schedule(self.momentum_schedule)
 
 
 class NesterovStep(MomentumStep):
@@ -154,6 +173,13 @@ class RPropStep(TrainingStep):
     iRprop+ can be obtained by setting backtracking = True but
     backtrack_on_error_drop = False
     """
+
+    __undescribed__ = {
+        'initialized': False,
+        'last_grad_sign': 0,
+        'last_update': 0,
+        'last_error': np.Inf
+    }
 
     def __init__(self, eta_minus=0.5, eta_plus=1.2, delta_0=0.1, delta_min=1e-6,
                  delta_max=50, backtracking=True, backtrack_on_error_drop=True):
@@ -216,6 +242,8 @@ class RPropStep(TrainingStep):
 
 
 class RmsPropStep(TrainingStep):
+    __undescribed__ = {'scaling_factor'}
+
     def __init__(self, step_rate=0.1, decay=0.9, momentum=0.0, step_adapt=False,
                  step_rate_min=0, step_rate_max=np.inf):
         super(RmsPropStep, self).__init__()
@@ -256,6 +284,10 @@ def calculate_gradient(net, data_iter):
 
 
 class CgStep(TrainingStep, Seedable):
+    __undescribed__ = {
+        'lambda': 0.1
+    }
+
     def __init__(self, minibatch_size=32, mu=1. / 30, maxiter=300, seed=None,
                  matching_loss=True):
         TrainingStep.__init__(self)
@@ -338,3 +370,7 @@ class CgStep(TrainingStep, Seedable):
         self.net.param_buffer = weights - final_dw
 
         return low_error
+
+    def __init_from_description__(self, description):
+        TrainingStep.__init_from_description__(self, description)
+        Seedable.__init__(self, category='trainer')

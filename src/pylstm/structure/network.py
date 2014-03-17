@@ -3,12 +3,9 @@
 from __future__ import division, print_function, unicode_literals
 from copy import deepcopy
 from .. import wrapper as pw
+from pylstm.describable import get_description
 from pylstm.randomness import reseeding_copy, Seedable
-from pylstm.regularization.initializer import (_evaluate_initializer,
-                                               _get_initializer_description)
-from pylstm.regularization.gradient_modifiers import \
-    _get_regularization_description
-from pylstm.regularization.weight_constraints import _get_constraints_description
+from pylstm.regularization.initializer import _evaluate_initializer
 from pylstm.targets import Targets
 import numpy as np
 
@@ -457,8 +454,7 @@ class Network(Seedable):
         """
         initializers = _update_references_with_dict(init_dict, kwargs)
         self._assert_view_reference_wellformed(initializers)
-        self.description['initialization'] = \
-            _get_initializer_description(initializers)
+        self.description['initialization'] = get_description(initializers)
         rnd = self.rnd['initialize'].get_new_random_state(seed)
 
         for layer_name, layer in self.layers.items()[1:]:
@@ -504,8 +500,7 @@ class Network(Seedable):
         """
         rnd = self.rnd['set_regularizers'].get_new_random_state(seed)
         regularizers = _update_references_with_dict(reg_dict, kwargs)
-        self.description['regularization'] = \
-            _get_regularization_description(regularizers)
+        self.description['regularization'] = get_description(regularizers)
         self.regularizers = self._flatten_view_references(regularizers, rnd)
         _prune_view_references(self.regularizers)
         _ensure_all_references_are_lists(self.regularizers)
@@ -514,8 +509,7 @@ class Network(Seedable):
         rnd = self.rnd['set_constraints'].get_new_random_state(seed)
         assert self.is_initialized()
         constraints = _update_references_with_dict(constraint_dict, kwargs)
-        self.description['constraints'] = \
-            _get_constraints_description(constraints)
+        self.description['constraints'] = get_description(constraints)
         self.constraints = self._flatten_view_references(constraints, rnd)
         _prune_view_references(self.constraints)
         _ensure_all_references_are_lists(self.constraints)

@@ -3,12 +3,7 @@
 from __future__ import division, print_function, unicode_literals
 from collections import OrderedDict
 from copy import deepcopy
-from pylstm.regularization.initializer import \
-    _create_initializer_from_description
-from pylstm.regularization.gradient_modifiers import \
-    _create_regularizer_from_description
-from pylstm.regularization.weight_constraints import \
-    _create_constraint_from_description
+from pylstm.describable import create_object_from_description
 from pylstm.structure.buffer_construction import (
     create_param_manager, create_fwd_state_manager,
     create_bwd_state_manager, create_in_out_manager)
@@ -198,12 +193,12 @@ def build_net(some_layer, seed=None):
 def build_network_from_description(description):
     seed = description['$seed'] if '$seed' in description else None
     net = build_network_from_architecture(description['architecture'], seed)
-    init = _create_initializer_from_description(description['initialization'])
+    init = create_object_from_description(description['initialization'])
     net.initialize(init)
     if 'regularization' in description and description['regularization']:
-        reg = _create_regularizer_from_description(description['regularization'])
+        reg = create_object_from_description(description['regularization'])
         net.set_regularizers(reg)
     if 'constraints' in description and description['constraints']:
-        con = _create_constraint_from_description(description['constraints'])
+        con = create_object_from_description(description['constraints'])
         net.set_constraints(con)
     return net

@@ -2,7 +2,8 @@
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 import numpy as np
-from pylstm.randomness import Seedable, SEEDABLE_MEMBERS
+from pylstm.randomness import Seedable
+from pylstm.describable import Describable
 
 
 ############################ Support Classes ###################################
@@ -11,28 +12,12 @@ class InitializationError(Exception):
     pass
 
 
-class Initializer(Seedable):
+class Initializer(Seedable, Describable):
     """
     Base Class for all initializers. It inherits from Seedable, so every
     sub-class has access to self.rnd, and it provides basic methods for
     converting from and to a description.
     """
-    def __get_description__(self):
-        """
-        Returns a description of the initializer. That is a dictionary
-        containing the name of the class as '$type' and all members of the
-        class. It does not contain the members of Seedable though.
-
-        If a sub-class of Initializer contains
-        non-simple (numerical, string, list[numerical]) fields it has to
-        override this method to specify how they should be described.
-
-        :rtype: dict
-        """
-        description = {k: v for k, v in self.__dict__.items()
-                       if k not in SEEDABLE_MEMBERS}
-        description['$type'] = self.__class__.__name__
-        return description
 
     def __init_from_description__(self, description):
         """
@@ -46,10 +31,8 @@ class Initializer(Seedable):
         :param description: description of this Initializer object
         :type description: dict
         """
-        assert self.__class__.__name__ == description['$type']
+        Describable.__init_from_description__(self, description)
         Seedable.__init__(self)
-        self.__dict__.update({k: v for k, v in description.items()
-                              if k != '$type'})
 
     def __call__(self, layer_name, view_name,  shape):
         raise NotImplementedError()
@@ -189,7 +172,7 @@ class CopyFromNetwork(Initializer):
         else:
             raise InitializationError('Layer %s not found.' % layer_name)
 
-    def __get_description__(self):
+    def __describe__(self):
         raise NotImplementedError('CopyFromNetwork can not be turned into a '
                                   'description!')
 
@@ -223,18 +206,6 @@ class SparseInputs(Initializer):
             self.rnd.shuffle(connection_mask[0, :, i])
         return res * connection_mask
 
-    def __get_description__(self):
-        return {
-            '$type': self.__class__.__name__,
-            'init': self.init.__get_description__(),
-            'connections': self.connections
-        }
-
-    def __init_from_description__(self, description):
-        assert self.__class__.__name__ == description['$type']
-        self.init = _create_initializer_from_description(description['init'])
-        self.connections = description['connections']
-
 
 class SparseOutputs(Initializer):
     """
@@ -263,18 +234,6 @@ class SparseOutputs(Initializer):
         for i in range(shape[1]):
             self.rnd.shuffle(connection_mask[0, i, :])
         return res * connection_mask
-
-    def __get_description__(self):
-        return {
-            '$type': self.__class__.__name__,
-            'init': self.init.__get_description(),
-            'connections': self.connections
-        }
-
-    def __init_from_description__(self, description):
-        assert self.__class__.__name__ == description['$type']
-        self.init = _create_initializer_from_description(description['init'])
-        self.connections = description['connections']
 
 
 class EchoState(Initializer):
@@ -310,54 +269,3 @@ def _evaluate_initializer(initializer, layer_name, view_name, shape):
         return initializer(layer_name, view_name, shape)
     else:
         return np.array(initializer)
-
-
-def _create_initializer_from_description(description):
-    """
-    Turn an initialization-description into a initialization dictionary, that
-    can be used with Network.initialize.
-
-    :param description: initialization-description
-    :type description: dict
-
-    :return: initialization-dictionary
-    :rtype: dict
-    """
-    if isinstance(description, dict):
-        if '$type' in description:
-            name = description['$type']
-            for initializer in Initializer.__subclasses__():
-                if initializer.__name__ == name:
-                    instance = initializer.__new__(initializer)
-                    instance.__init_from_description__(description)
-                    return instance
-            raise InitializationError('Initializer "%s" not found!' % name)
-        else:
-            return {k: _create_initializer_from_description(v)
-                    for k, v in description.items()}
-    elif isinstance(description, (list, int, float)):
-        return description
-    else:
-        raise InitializationError('illegal description type "%s"' %
-                                  type(description))
-
-
-def _get_initializer_description(initializer):
-    """
-    Turn a initialization-dictionary as used in the Network.initialize method
-    into a description dictionary. This description is json serializable.
-
-    :param initializer: initialization-dictionary
-    :type initializer: dict
-    :return: description
-    :rtype: dict
-    """
-    if isinstance(initializer, Initializer):
-        return initializer.__get_description__()
-    elif isinstance(initializer, dict):
-        return {k: _get_initializer_description(v)
-                for k, v in initializer.items()}
-    elif isinstance(initializer, np.ndarray):
-        return initializer.tolist()
-    else:
-        return initializer

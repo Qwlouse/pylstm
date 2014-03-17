@@ -1,29 +1,20 @@
 #!/usr/bin/python
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
-from copy import copy
 import numpy as np
 from pylstm.randomness import Seedable
+from pylstm.describable import Describable
 
 
 ############################ Base Class ########################################
 
-class Constraint(object):
-    def __get_description__(self):
-        description = copy(self.__dict__)
-        description['$type'] = self.__class__.__name__
-        return description
-
-    def __init_from_description__(self, description):
-        assert self.__class__.__name__ == description['$type']
-        self.__dict__.update({k: v for k, v in description.items()
-                              if k != '$type'})
-
+class Constraint(Describable):
     def __call__(self, view):
         raise NotImplementedError()
 
 
 ############################ Constraints #######################################
+
 class RescaleIncomingWeights(Constraint):
     """
     Rescales the incoming weights for every neuron to sum to one (target_sum).
@@ -112,16 +103,6 @@ class MaskWeights(Constraint):
     def __repr__(self):
         return "<MaskWeights>"
 
-    def __get_description__(self):
-        return {
-            '$type': self.__class__.__name__,
-            'mask': self.mask.tolist()
-        }
-
-    def __init_from_description__(self, description):
-        assert self.__class__.__name__ == description['$type']
-        self.mask = np.array(description['mask'])
-
 
 class FreezeWeights(Constraint):
     """
@@ -134,6 +115,8 @@ class FreezeWeights(Constraint):
     See Network.set_constraints for more information on how to control which
     weights to affect.
     """
+    __undescribed__ = {'weights'}
+
     def __init__(self):
         self.weights = None
 
@@ -144,13 +127,6 @@ class FreezeWeights(Constraint):
 
     def __repr__(self):
         return "<FreezeWeights>"
-
-    def __get_description__(self):
-        return {'$type': self.__class__.__name__}
-
-    def __init_from_description__(self, description):
-        assert self.__class__.__name__ == description['$type']
-        self.weights = None
 
 
 class NoisyWeights(Seedable, Constraint):
@@ -165,6 +141,7 @@ class NoisyWeights(Seedable, Constraint):
     See Network.set_constraints for more information on how to control which
     weights to affect.
     """
+    __undescribed__ = {'noise'}
 
     def __init__(self, std=0.01):
         super(NoisyWeights, self).__init__()
@@ -181,63 +158,6 @@ class NoisyWeights(Seedable, Constraint):
     def __repr__(self):
         return "<NoisyWeights std=%0.4f>" % self.std
 
-    def __get_description__(self):
-        return {
-            '$type': self.__class__.__name__,
-            'std': self.std
-        }
-
     def __init_from_description__(self, description):
-        assert self.__class__.__name__ == description['$type']
+        Constraint.__init_from_description__(self, description)
         Seedable.__init__(self)
-        self.std = description['std']
-        self.noise = None
-
-
-############################ helper methods ####################################
-
-def _get_constraints_description(constraint):
-    """
-    Turn a constraints-dictionary as used in the Network.set_constraints method
-    into a description dictionary. This description is json serializable.
-
-    :param constraint: constraints-dictionary
-    :type constraint: dict
-    :return: description
-    :rtype: dict
-    """
-    if isinstance(constraint, Constraint):
-        return constraint.__get_description__()
-    elif isinstance(constraint, dict):
-        return {k: _get_constraints_description(v)
-                for k, v in constraint.items()}
-    else:
-        return constraint
-
-
-def _create_constraint_from_description(description):
-    """
-    Turn an constraint-description into a constraint dictionary, that
-    can be used with Network.set_constraints.
-
-    :param description: constraint-description
-    :type description: dict
-
-    :return: constraint-dictionary
-    :rtype: dict
-    """
-    if isinstance(description, dict):
-        if '$type' in description:
-            name = description['$type']
-            for initializer in Constraint.__subclasses__():
-                if initializer.__name__ == name:
-                    instance = initializer.__new__(initializer)
-                    instance.__init_from_description__(description)
-                    return instance
-            raise RuntimeError('Constraint "%s" not found!' % name)
-        else:
-            return {k: _create_constraint_from_description(v)
-                    for k, v in description.items()}
-    else:
-        raise RuntimeError('illegal description type "%s"' %
-                           type(description))
