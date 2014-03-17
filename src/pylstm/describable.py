@@ -3,53 +3,7 @@
 from __future__ import division, print_function, unicode_literals
 import numpy as np
 import sys
-
-if sys.version < '3':
-    numerical_types = (int, long, float)
-    text_type = basestring
-else:
-    numerical_types = (int, float)
-    text_type = str
-
-
-def get_description(this):
-    if isinstance(this, Describable):
-        return this.__describe__()
-    elif isinstance(this, list):
-        return [get_description(v) for v in this]
-    elif isinstance(this, np.ndarray):
-        return this.tolist()
-    elif isinstance(this, dict):
-        return {k: get_description(v) for k, v in this.items()}
-    elif (isinstance(this, bool) or
-          isinstance(this, numerical_types) or
-          isinstance(this, text_type)):
-        return this
-    else:
-        raise TypeError('Type: "%s" is not describable' % type(this))
-
-
-def create_object_from_description(description):
-    if isinstance(description, dict):
-        if '$type' in description:
-            name = description['$type']
-            for describable in Describable.__subclasses__():
-                if describable.__name__ == name:
-                    instance = describable.__new__(describable)
-                    instance.__init_from_description__(description)
-                    return instance
-            raise ValueError('No describable class "%s" found!' % name)
-        else:
-            return {k: create_object_from_description(v)
-                    for k, v in description.items()}
-    elif (isinstance(description, bool) or
-          isinstance(description, numerical_types) or
-          isinstance(description, text_type)):
-        return description
-    elif isinstance(description, list):
-        return [get_description(d) for d in description]
-
-    return None
+from copy import deepcopy
 
 
 class Describable(object):
@@ -107,10 +61,70 @@ class Describable(object):
             "Description for '%s' has wrong type '%s'" % (
                 self.__class__.__name__, description['$type'])
 
+        for member, default_val in self.__get_all_undescribed__():
+            self.__dict__[member] = deepcopy(default_val)
+
         for member, descr in description.items():
             if member == '$type':
                 continue
             self.__dict__[member] = create_object_from_description(descr)
 
-        for member, default_val in self.__get_all_undescribed__():
-            self.__dict__[member] = default_val
+
+def get_description(this):
+    if isinstance(this, Describable):
+        return this.__describe__()
+    elif isinstance(this, list):
+        return [get_description(v) for v in this]
+    elif isinstance(this, np.ndarray):
+        return this.tolist()
+    elif isinstance(this, dict):
+        return {k: get_description(v) for k, v in this.items()}
+    elif (isinstance(this, bool) or
+          isinstance(this, numerical_types) or
+          isinstance(this, text_type)):
+        return this
+    else:
+        raise TypeError('Type: "%s" is not describable' % type(this))
+
+
+def create_object_from_description(description):
+    if isinstance(description, dict):
+        if '$type' in description:
+            name = description['$type']
+            for describable in _get_inheritors(Describable):
+                if describable.__name__ == name:
+                    instance = describable.__new__(describable)
+                    instance.__init_from_description__(description)
+                    return instance
+            raise ValueError('No describable class "%s" found!' % name)
+        else:
+            return {k: create_object_from_description(v)
+                    for k, v in description.items()}
+    elif (isinstance(description, bool) or
+          isinstance(description, numerical_types) or
+          isinstance(description, text_type)):
+        return description
+    elif isinstance(description, list):
+        return [get_description(d) for d in description]
+
+    return None
+
+
+def _get_inheritors(cls):
+    subclasses = set()
+    work = [cls]
+    while work:
+        parent = work.pop()
+        for child in parent.__subclasses__():
+            if child not in subclasses:
+                subclasses.add(child)
+                work.append(child)
+    return subclasses
+
+
+if sys.version < '3':
+    numerical_types = (int, long, float)
+    text_type = basestring
+else:
+    numerical_types = (int, float)
+    text_type = str
