@@ -153,7 +153,7 @@ class MonitorPooledClassificationError(Monitor):
         with pooled targets with an odd pool size.
         """
     __undescribed__ = {
-        {'classification_error': []}
+        'log': {'classification_error': []}
     }
 
     def __init__(self, data_iter, pool_size, name="", timescale='epoch',

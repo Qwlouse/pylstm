@@ -61,7 +61,7 @@ class Describable(object):
             "Description for '%s' has wrong type '%s'" % (
                 self.__class__.__name__, description['$type'])
 
-        for member, default_val in self.__get_all_undescribed__():
+        for member, default_val in self.__get_all_undescribed__().items():
             self.__dict__[member] = deepcopy(default_val)
 
         for member, descr in description.items():

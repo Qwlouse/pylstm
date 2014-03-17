@@ -22,7 +22,8 @@ class TrainingTests(unittest.TestCase):
     def build_network(self, layer_type, activation_function, layers=1):
         prev_layer = InputLayer(self.input_size)
         for l in range(layers):
-            prev_layer = prev_layer >> layer_type(self.output_size, act_func=activation_function)
+            prev_layer = prev_layer >> layer_type(self.output_size,
+                                                  act_func=activation_function)
         net = build_net(prev_layer)
         net.initialize(Gaussian(std=0.1))
         return net
@@ -30,25 +31,32 @@ class TrainingTests(unittest.TestCase):
     def setUp(self):
         self.input_size = 2
         self.output_size = 3
-        self.layer_types = [ForwardLayer, RnnLayer, MrnnLayer, LstmLayer, Lstm97Layer]
-        self.activation_functions = ["linear", "tanh", "tanhx2", "sigmoid", "softmax"]
+        self.layer_types = [ForwardLayer, RnnLayer, MrnnLayer, LstmLayer,
+                            Lstm97Layer]
+        self.activation_functions = ["linear", "tanh", "tanhx2", "sigmoid",
+                                     "softmax"]
         n_timesteps = 5
         n_batches = 6
-        self.X = rnd.randn(n_timesteps, n_batches, self.input_size)
-        self.T = rnd.randn(n_timesteps, n_batches, self.output_size)
-        self.T = self.T / self.T.sum(2).reshape(n_timesteps, n_batches, 1)
-        self.T = create_targets_object(self.T)
+        self.input_data = rnd.randn(n_timesteps, n_batches, self.input_size)
+        self.targets = rnd.randn(n_timesteps, n_batches, self.output_size)
+        self.targets = self.targets / self.targets.sum(2).reshape(n_timesteps,
+                                                                  n_batches,
+                                                                  1)
+        self.targets = create_targets_object(self.targets)
 
     def test_steps(self):
         """
-        This test checks if one epoch of training works for a tanh LSTM network for all types of steps.
+        This test checks if one epoch of training works for a tanh LSTM network
+        for all types of steps.
         """
-        steps = (ForwardStep(), SgdStep(), MomentumStep(), NesterovStep(), RmsPropStep(), RPropStep())
+        steps = (ForwardStep(), SgdStep(), MomentumStep(), NesterovStep(),
+                 RmsPropStep(), RPropStep())
         net = self.build_network(LstmLayer, "tanh")
 
         for step in steps:
-            trainer = Trainer(net, step)
+            trainer = Trainer(step, verbose=False)
             trainer.stopping_criteria.append(MaxEpochsSeen(max_epochs=1))
-            trainer.train(Minibatches(self.X, self.T, batch_size=4, verbose=False), verbose=False)
+            trainer.train(net, Minibatches(self.input_data, self.targets,
+                                           batch_size=4, verbose=False))
 
         # This test passes as long as training succeeds
