@@ -4,6 +4,7 @@ from __future__ import division, print_function, unicode_literals
 import numpy as np
 from pylstm.utils import ctc_best_path_decoding
 from pylstm.describable import Describable
+from .utils import levenshtein, get_min_err
 
 
 class Monitor(Describable):
@@ -215,19 +216,6 @@ class MonitorPhonemeError(Monitor):
                          (error_fraction, total_errors, total_length))
 
 
-def levenshtein(seq1, seq2):
-    oneago = None
-    thisrow = range(1, len(seq2) + 1) + [0]
-    for x in xrange(len(seq1)):
-        twoago, oneago, thisrow = oneago, thisrow, [0] * len(seq2) + [x + 1]
-        for y in xrange(len(seq2)):
-            delcost = oneago[y] + 1
-            addcost = thisrow[y - 1] + 1
-            subcost = oneago[y - 1] + (seq1[x] != seq2[y])
-            thisrow[y] = min(delcost, addcost, subcost)
-    return thisrow[len(seq2) - 1]
-
-
 class PlotErrors(Monitor):
     """
     Open a window and plot the training and validation errors while training.
@@ -249,10 +237,6 @@ class PlotErrors(Monitor):
         self.v_dot = None
         self.plt.show()
 
-    def _get_min_err(self, errors):
-        min_epoch = np.argmin(errors)
-        return min_epoch, errors[min_epoch]
-
     def __call__(self, training_errors, validation_errors, **_):
         if self.v_line is None and validation_errors:
                 self.v_line, = self.ax.plot(validation_errors, 'b-',
@@ -263,7 +247,7 @@ class PlotErrors(Monitor):
                 self.t_line, = self.ax.plot(training_errors, 'g-',
                                             label='Training Error')
                 if validation_errors:
-                    min_ep, min_err = self._get_min_err(validation_errors)
+                    min_ep, min_err = get_min_err(validation_errors)
                     self.v_dot, = self.ax.plot([min_ep], min_err, 'bo')
             self.ax.legend()
             self.fig.canvas.draw()
@@ -274,7 +258,7 @@ class PlotErrors(Monitor):
         if self.v_line is not None and validation_errors:
             self.v_line.set_ydata(validation_errors)
             self.v_line.set_xdata(range(len(validation_errors)))
-            min_ep, min_err = self._get_min_err(validation_errors)
+            min_ep, min_err = get_min_err(validation_errors)
             self.v_dot.set_ydata([min_err])
             self.v_dot.set_xdata([min_ep])
         self.ax.relim()

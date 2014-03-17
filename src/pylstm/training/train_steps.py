@@ -2,16 +2,15 @@
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 import numpy as np
-from pylstm.randomness import Seedable
-from pylstm.training.schedules import get_schedule
-from pylstm.training.data_iterators import Minibatches
-from pylstm.targets import Targets
-from pylstm.training.cg_trainer import conjgrad3
 from pylstm.describable import Describable
+from pylstm.randomness import Seedable
+from pylstm.targets import Targets
+from .data_iterators import Minibatches
+from .schedules import get_schedule
+from .utils import conjugate_gradient
 
 
 ############################ Base Class ########################################
-
 
 class TrainingStep(Describable):
     """
@@ -233,9 +232,9 @@ class RPropStep(TrainingStep):
         self.net.param_buffer += update.flatten()
 
         if self.backtracking:
-            self.last_grad_sign = grad_sign.copy() * (sign_flip >= 0)
+            self.last_grad_sign = grad_sign * (sign_flip >= 0)
         else:
-            self.last_grad_sign = grad_sign.copy()
+            self.last_grad_sign = grad_sign
         self.last_update = update.copy()
         self.last_error = error
         return error
@@ -266,8 +265,8 @@ class RmsPropStep(TrainingStep):
 
         self.scaling_factor = ((1 - self.decay) * grad**2 +
                                self.decay * self.scaling_factor)
-        update = (self.step_rate / self.scaling_factor) * grad
-        #self.net.param_buffer += update.flatten()
+        # update = (self.step_rate / self.scaling_factor) * grad
+        # self.net.param_buffer += update.flatten()
         return error
 
 
@@ -315,7 +314,7 @@ class CgStep(TrainingStep, Seedable):
         error, grad = calculate_gradient(self.net, data_iter)
 
         ## initialize v
-        v_init = .000001 * self.rnd.randn(self.net.get_param_size())
+        v_init = np.array(.000001 * self.rnd.randn(self.net.get_param_size()))
 
         # select a random subset of the data for the CG
         x, t = self._get_random_subset(input_data, targets, self.minibatch_size)
@@ -327,7 +326,8 @@ class CgStep(TrainingStep, Seedable):
                     .flatten() + self.lambda_*v) / self.minibatch_size
 
         ## run CG
-        all_v = conjgrad3(grad, v_init.copy(), fhess_p, maxiter=self.maxiter)
+        all_v = conjugate_gradient(grad, v_init.copy(), fhess_p,
+                                   maxiter=self.maxiter)
 
         ## backtrack #1
         low_error = float('Inf')
@@ -344,8 +344,6 @@ class CgStep(TrainingStep, Seedable):
 
         ## backtrack #2
         final_dw = best_dw
-        #for j in np.arange(0, 40, 1):
-        #    tmp_dw = best_dw * (.9 ** j)
         for j in np.arange(0, 1.0, 0.02):
             tmp_dw = j * best_dw
             self.net.param_buffer = weights - tmp_dw
