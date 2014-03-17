@@ -5,7 +5,7 @@ from __future__ import division, print_function, unicode_literals
 import unittest
 
 from pylstm.structure.netbuilder import build_net
-from pylstm.regularization.initializer import (create_initializer_from_description, Gaussian,
+from pylstm.regularization.initializer import (_create_initializer_from_description, Gaussian,
                                                SparseInputs, Initializer)
 from pylstm.structure.layers import InputLayer, ForwardLayer
 
@@ -15,14 +15,14 @@ class InitializerTest(unittest.TestCase):
         self.net = build_net(InputLayer(1) >> ForwardLayer())
 
     def test_create_initializer_from_plain_number(self):
-        self.assertEqual(create_initializer_from_description(0.0), 0.0)
-        self.assertEqual(create_initializer_from_description(1.0), 1.0)
-        self.assertEqual(create_initializer_from_description(5), 5)
+        self.assertEqual(_create_initializer_from_description(0.0), 0.0)
+        self.assertEqual(_create_initializer_from_description(1.0), 1.0)
+        self.assertEqual(_create_initializer_from_description(5), 5)
 
     def test_create_initializer_from_list(self):
-        self.assertListEqual(create_initializer_from_description([1]), [1])
-        self.assertListEqual(create_initializer_from_description([1, 2, 3]), [1, 2, 3])
-        self.assertListEqual(create_initializer_from_description([1.0, -1.0]), [1.0, -1.0])
+        self.assertListEqual(_create_initializer_from_description([1]), [1])
+        self.assertListEqual(_create_initializer_from_description([1, 2, 3]), [1, 2, 3])
+        self.assertListEqual(_create_initializer_from_description([1.0, -1.0]), [1.0, -1.0])
 
     def test_create_gaussian_initializer_from_dict(self):
         description = {
@@ -30,7 +30,7 @@ class InitializerTest(unittest.TestCase):
             'std': 23.0,
             'mean': 7.0
         }
-        init = create_initializer_from_description(description)
+        init = _create_initializer_from_description(description)
         self.assertIsInstance(init, Gaussian)
         self.assertEqual(init.mean, 7.0)
         self.assertEqual(init.std, 23.0)
@@ -59,7 +59,7 @@ class InitializerTest(unittest.TestCase):
                      'std': 23.0,
                      'mean': 7.0}
         }
-        init = create_initializer_from_description(description)
+        init = _create_initializer_from_description(description)
         self.assertIsInstance(init, SparseInputs)
         self.assertEqual(init.connections, 69)
         self.assertIsInstance(init.init, Gaussian)
@@ -77,7 +77,7 @@ class InitializerTest(unittest.TestCase):
         self.assertDictEqual(descr, {'$type': 'Custom',
                                      'foo': 'bar'})
 
-        c2 = create_initializer_from_description(descr)
+        c2 = _create_initializer_from_description(descr)
         self.assertNotEqual(c, c2)
         self.assertIsInstance(c2, Custom)
         self.assertEqual(c2.foo, 'bar')

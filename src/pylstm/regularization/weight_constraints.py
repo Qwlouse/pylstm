@@ -1,11 +1,12 @@
 #!/usr/bin/python
 # coding=utf-8
-
 from __future__ import division, print_function, unicode_literals
 from copy import copy
 import numpy as np
 from pylstm.randomness import Seedable
 
+
+############################ Base Class ########################################
 
 class Constraint(object):
     def __get_description__(self):
@@ -22,53 +23,7 @@ class Constraint(object):
         raise NotImplementedError()
 
 
-def get_constraints_description(constraint):
-    """
-    Turn a constraints-dictionary as used in the Network.set_constraints method
-    into a description dictionary. This description is json serializable.
-
-    :param constraint: constraints-dictionary
-    :type constraint: dict
-    :return: description
-    :rtype: dict
-    """
-    if isinstance(constraint, Constraint):
-        return constraint.__get_description__()
-    elif isinstance(constraint, dict):
-        return {k: get_constraints_description(v)
-                for k, v in constraint.items()}
-    else:
-        return constraint
-
-
-def create_constraint_from_description(description):
-    """
-    Turn an constraint-description into a constraint dictionary, that
-    can be used with Network.set_constraints.
-
-    :param description: constraint-description
-    :type description: dict
-
-    :return: constraint-dictionary
-    :rtype: dict
-    """
-    if isinstance(description, dict):
-        if '$type' in description:
-            name = description['$type']
-            for initializer in Constraint.__subclasses__():
-                if initializer.__name__ == name:
-                    instance = initializer.__new__(initializer)
-                    instance.__init_from_description__(description)
-                    return instance
-            raise RuntimeError('Constraint "%s" not found!' % name)
-        else:
-            return {k: create_constraint_from_description(v)
-                    for k, v in description.items()}
-    else:
-        raise RuntimeError('illegal description type "%s"' %
-                           type(description))
-
-
+############################ Constraints #######################################
 class RescaleIncomingWeights(Constraint):
     """
     Rescales the incoming weights for every neuron to sum to one (target_sum).
@@ -237,3 +192,52 @@ class NoisyWeights(Seedable, Constraint):
         Seedable.__init__(self)
         self.std = description['std']
         self.noise = None
+
+
+############################ helper methods ####################################
+
+def _get_constraints_description(constraint):
+    """
+    Turn a constraints-dictionary as used in the Network.set_constraints method
+    into a description dictionary. This description is json serializable.
+
+    :param constraint: constraints-dictionary
+    :type constraint: dict
+    :return: description
+    :rtype: dict
+    """
+    if isinstance(constraint, Constraint):
+        return constraint.__get_description__()
+    elif isinstance(constraint, dict):
+        return {k: _get_constraints_description(v)
+                for k, v in constraint.items()}
+    else:
+        return constraint
+
+
+def _create_constraint_from_description(description):
+    """
+    Turn an constraint-description into a constraint dictionary, that
+    can be used with Network.set_constraints.
+
+    :param description: constraint-description
+    :type description: dict
+
+    :return: constraint-dictionary
+    :rtype: dict
+    """
+    if isinstance(description, dict):
+        if '$type' in description:
+            name = description['$type']
+            for initializer in Constraint.__subclasses__():
+                if initializer.__name__ == name:
+                    instance = initializer.__new__(initializer)
+                    instance.__init_from_description__(description)
+                    return instance
+            raise RuntimeError('Constraint "%s" not found!' % name)
+        else:
+            return {k: _create_constraint_from_description(v)
+                    for k, v in description.items()}
+    else:
+        raise RuntimeError('illegal description type "%s"' %
+                           type(description))

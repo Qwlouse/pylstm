@@ -5,59 +5,10 @@ import numpy as np
 from pylstm.randomness import Seedable, SEEDABLE_MEMBERS
 
 
+############################ Support Classes ###################################
+
 class InitializationError(Exception):
     pass
-
-
-def create_initializer_from_description(description):
-    """
-    Turn an initialization-description into a initialization dictionary, that
-    can be used with Network.initialize.
-
-    :param description: initialization-description
-    :type description: dict
-
-    :return: initialization-dictionary
-    :rtype: dict
-    """
-    if isinstance(description, dict):
-        if '$type' in description:
-            name = description['$type']
-            for initializer in Initializer.__subclasses__():
-                if initializer.__name__ == name:
-                    instance = initializer.__new__(initializer)
-                    instance.__init_from_description__(description)
-                    return instance
-            raise InitializationError('Initializer "%s" not found!' % name)
-        else:
-            return {k: create_initializer_from_description(v)
-                    for k, v in description.items()}
-    elif isinstance(description, (list, int, long, float)):
-        return description
-    else:
-        raise InitializationError('illegal description type "%s"' %
-                                  type(description))
-
-
-def get_initializer_description(initializer):
-    """
-    Turn a initialization-dictionary as used in the Network.initialize method
-    into a description dictionary. This description is json serializable.
-
-    :param initializer: initialization-dictionary
-    :type initializer: dict
-    :return: description
-    :rtype: dict
-    """
-    if isinstance(initializer, Initializer):
-        return initializer.__get_description__()
-    elif isinstance(initializer, dict):
-        return {k: get_initializer_description(v)
-                for k, v in initializer.items()}
-    elif isinstance(initializer, np.ndarray):
-        return initializer.tolist()
-    else:
-        return initializer
 
 
 class Initializer(Seedable):
@@ -103,6 +54,8 @@ class Initializer(Seedable):
     def __call__(self, layer_name, view_name,  shape):
         raise NotImplementedError()
 
+
+############################ Initializers ######################################
 
 class Gaussian(Initializer):
     """
@@ -279,7 +232,7 @@ class SparseInputs(Initializer):
 
     def __init_from_description__(self, description):
         assert self.__class__.__name__ == description['$type']
-        self.init = create_initializer_from_description(description['init'])
+        self.init = _create_initializer_from_description(description['init'])
         self.connections = description['connections']
 
 
@@ -320,7 +273,7 @@ class SparseOutputs(Initializer):
 
     def __init_from_description__(self, description):
         assert self.__class__.__name__ == description['$type']
-        self.init = create_initializer_from_description(description['init'])
+        self.init = _create_initializer_from_description(description['init'])
         self.connections = description['connections']
 
 
@@ -350,8 +303,61 @@ class EchoState(Initializer):
         return weights.reshape(1, n, n) * (self.spectral_radius / rho_weights)
 
 
+############################ helper methods ####################################
+
 def _evaluate_initializer(initializer, layer_name, view_name, shape):
     if isinstance(initializer, Initializer):
         return initializer(layer_name, view_name, shape)
     else:
         return np.array(initializer)
+
+
+def _create_initializer_from_description(description):
+    """
+    Turn an initialization-description into a initialization dictionary, that
+    can be used with Network.initialize.
+
+    :param description: initialization-description
+    :type description: dict
+
+    :return: initialization-dictionary
+    :rtype: dict
+    """
+    if isinstance(description, dict):
+        if '$type' in description:
+            name = description['$type']
+            for initializer in Initializer.__subclasses__():
+                if initializer.__name__ == name:
+                    instance = initializer.__new__(initializer)
+                    instance.__init_from_description__(description)
+                    return instance
+            raise InitializationError('Initializer "%s" not found!' % name)
+        else:
+            return {k: _create_initializer_from_description(v)
+                    for k, v in description.items()}
+    elif isinstance(description, (list, int, float)):
+        return description
+    else:
+        raise InitializationError('illegal description type "%s"' %
+                                  type(description))
+
+
+def _get_initializer_description(initializer):
+    """
+    Turn a initialization-dictionary as used in the Network.initialize method
+    into a description dictionary. This description is json serializable.
+
+    :param initializer: initialization-dictionary
+    :type initializer: dict
+    :return: description
+    :rtype: dict
+    """
+    if isinstance(initializer, Initializer):
+        return initializer.__get_description__()
+    elif isinstance(initializer, dict):
+        return {k: _get_initializer_description(v)
+                for k, v in initializer.items()}
+    elif isinstance(initializer, np.ndarray):
+        return initializer.tolist()
+    else:
+        return initializer

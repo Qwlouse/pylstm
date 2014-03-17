@@ -1,10 +1,11 @@
 #!/usr/bin/python
 # coding=utf-8
-
 from __future__ import division, print_function, unicode_literals
 from copy import copy
 import numpy as np
 
+
+############################ Base Class ########################################
 
 class Regularizer(object):
     def __get_description__(self):
@@ -18,52 +19,7 @@ class Regularizer(object):
                               if k != '$type'})
 
 
-def get_regularization_description(regularizer):
-    """
-    Turn a regularization-dictionary as used in the Network.set_regularizers
-    method into a description dictionary. This description is json serializable.
-
-    :param regularizer: regularization-dictionary
-    :type regularizer: dict
-    :return: description
-    :rtype: dict
-    """
-    if isinstance(regularizer, Regularizer):
-        return regularizer.__get_description__()
-    elif isinstance(regularizer, dict):
-        return {k: get_regularization_description(v)
-                for k, v in regularizer.items()}
-    else:
-        return regularizer
-
-
-def create_regularizer_from_description(description):
-    """
-    Turn an regularization-description into a regularization dictionary, that
-    can be used with Network.set_regularizers.
-
-    :param description: regularization-description
-    :type description: dict
-
-    :return: regularization-dictionary
-    :rtype: dict
-    """
-    if isinstance(description, dict):
-        if '$type' in description:
-            name = description['$type']
-            for initializer in Regularizer.__subclasses__():
-                if initializer.__name__ == name:
-                    instance = initializer.__new__(initializer)
-                    instance.__init_from_description__(description)
-                    return instance
-            raise RuntimeError('Regularizer "%s" not found!' % name)
-        else:
-            return {k: create_regularizer_from_description(v)
-                    for k, v in description.items()}
-    else:
-        raise RuntimeError('illegal description type "%s"' %
-                           type(description))
-
+############################ Regularizers ######################################
 
 class L1(Regularizer):
     """
@@ -119,3 +75,52 @@ class ClipGradient(Regularizer):
 
     def __repr__(self):
         return "<ClipGradient [%0.4f; %0.4f]>" % (self.low, self.high)
+
+
+############################ helper methods ####################################
+
+def _get_regularization_description(regularizer):
+    """
+    Turn a regularization-dictionary as used in the Network.set_regularizers
+    method into a description dictionary. This description is json serializable.
+
+    :param regularizer: regularization-dictionary
+    :type regularizer: dict
+    :return: description
+    :rtype: dict
+    """
+    if isinstance(regularizer, Regularizer):
+        return regularizer.__get_description__()
+    elif isinstance(regularizer, dict):
+        return {k: _get_regularization_description(v)
+                for k, v in regularizer.items()}
+    else:
+        return regularizer
+
+
+def _create_regularizer_from_description(description):
+    """
+    Turn an regularization-description into a regularization dictionary, that
+    can be used with Network.set_regularizers.
+
+    :param description: regularization-description
+    :type description: dict
+
+    :return: regularization-dictionary
+    :rtype: dict
+    """
+    if isinstance(description, dict):
+        if '$type' in description:
+            name = description['$type']
+            for initializer in Regularizer.__subclasses__():
+                if initializer.__name__ == name:
+                    instance = initializer.__new__(initializer)
+                    instance.__init_from_description__(description)
+                    return instance
+            raise RuntimeError('Regularizer "%s" not found!' % name)
+        else:
+            return {k: _create_regularizer_from_description(v)
+                    for k, v in description.items()}
+    else:
+        raise RuntimeError('illegal description type "%s"' %
+                           type(description))
