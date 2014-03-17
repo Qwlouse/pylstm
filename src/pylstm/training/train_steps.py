@@ -85,7 +85,6 @@ class SgdStep(TrainingStep):
         return error
 
     def __init_from_description__(self, description):
-        super(self, SgdStep).__init_from_description__(description)
         self.learning_rate_schedule = get_schedule(self.learning_rate_schedule)
 
 
@@ -129,7 +128,6 @@ class MomentumStep(TrainingStep):
         return error
 
     def __init_from_description__(self, description):
-        super(self, MomentumStep).__init_from_description__(description)
         self.learning_rate_schedule = get_schedule(self.learning_rate_schedule)
         self.momentum_schedule = get_schedule(self.momentum_schedule)
 
@@ -282,7 +280,7 @@ def calculate_gradient(net, data_iter):
         return error, grad
 
 
-class CgStep(TrainingStep, Seedable):
+class CgStep(Seedable, TrainingStep):
     __undescribed__ = {
         'lambda': 0.1
     }
@@ -290,7 +288,7 @@ class CgStep(TrainingStep, Seedable):
     def __init__(self, minibatch_size=32, mu=1. / 30, maxiter=300, seed=None,
                  matching_loss=True):
         TrainingStep.__init__(self)
-        Seedable.__init__(self, seed, category='trainer')
+        Seedable.__init__(self, seed)
         self.minibatch_size = minibatch_size
         self.mu = mu
         self.lambda_ = 0.1
@@ -368,7 +366,3 @@ class CgStep(TrainingStep, Seedable):
         self.net.param_buffer = weights - final_dw
 
         return low_error
-
-    def __init_from_description__(self, description):
-        TrainingStep.__init_from_description__(self, description)
-        Seedable.__init__(self, category='trainer')

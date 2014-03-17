@@ -46,9 +46,10 @@ class Describable(object):
         description['$type'] = self.__class__.__name__
         return description
 
-    def __init_from_description__(self, description):
+    @classmethod
+    def __new_from_description__(cls, description):
         """
-        Initializes this object from a given description.
+        Creates a new object from a given description.
 
         If a sub-class of Describable contains non-describable fields, it has to
         override this method to specify how they should be initialized from
@@ -57,17 +58,28 @@ class Describable(object):
         :param description: description of this object
         :type description: dict
         """
-        assert self.__class__.__name__ == description['$type'], \
+        assert cls.__name__ == description['$type'], \
             "Description for '%s' has wrong type '%s'" % (
-                self.__class__.__name__, description['$type'])
+                cls.__name__, description['$type'])
+        instance = cls.__new__(cls)
 
-        for member, default_val in self.__get_all_undescribed__().items():
-            self.__dict__[member] = deepcopy(default_val)
+        for member, default_val in cls.__get_all_undescribed__().items():
+            instance.__dict__[member] = deepcopy(default_val)
 
         for member, descr in description.items():
             if member == '$type':
                 continue
-            self.__dict__[member] = create_object_from_description(descr)
+            instance.__dict__[member] = create_object_from_description(descr)
+
+        cls.__init_from_description__(instance, description)
+        return instance
+
+    def __init_from_description__(self, description):
+        """
+        Subclasses can override this to provide additional initialization when
+        created from a description.
+        """
+        pass
 
 
 def get_description(this):
@@ -93,9 +105,7 @@ def create_object_from_description(description):
             name = description['$type']
             for describable in _get_inheritors(Describable):
                 if describable.__name__ == name:
-                    instance = describable.__new__(describable)
-                    instance.__init_from_description__(description)
-                    return instance
+                    return describable.__new_from_description__(description)
             raise ValueError('No describable class "%s" found!' % name)
         else:
             return {k: create_object_from_description(v)

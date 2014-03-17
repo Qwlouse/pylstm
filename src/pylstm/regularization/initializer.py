@@ -19,21 +19,6 @@ class Initializer(Seedable, Describable):
     converting from and to a description.
     """
 
-    def __init_from_description__(self, description):
-        """
-        Initializes an initializer from a given description.
-
-        Again if a sub-class of Initializer contains
-        non-simple (numerical, string, list[numerical]) fields it has to
-        override this method to specify how they should be initialized from
-        their description.
-
-        :param description: description of this Initializer object
-        :type description: dict
-        """
-        Describable.__init_from_description__(self, description)
-        Seedable.__init__(self)
-
     def __call__(self, layer_name, view_name,  shape):
         raise NotImplementedError()
 

@@ -84,8 +84,7 @@ class Seedable(Describable):
         self.seed = seed
 
     def __init_from_description__(self, description):
-        self.rnd = HierarchicalRandomState()
-        self.seed = self.rnd.get_seed()
+        Seedable.__init__(self)
 
 
 def reseeding_deepcopy(values, seed):

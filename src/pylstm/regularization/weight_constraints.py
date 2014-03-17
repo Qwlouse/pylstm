@@ -157,7 +157,3 @@ class NoisyWeights(Seedable, Constraint):
 
     def __repr__(self):
         return "<NoisyWeights std=%0.4f>" % self.std
-
-    def __init_from_description__(self, description):
-        Constraint.__init_from_description__(self, description)
-        Seedable.__init__(self)

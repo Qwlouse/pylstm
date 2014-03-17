@@ -554,10 +554,11 @@ class Network(Seedable, Describable):
         description['error_function'] = self.error_func.__name__
         return description
 
-    def __init_from_description__(self, description):
+    @classmethod
+    def __new_from_description__(cls, description):
         from .netbuilder import build_network_from_description
         net = build_network_from_description(description)
-        self.__dict__ = net.__dict__
+        return net
 
 
 def _prune_view_references(references):
