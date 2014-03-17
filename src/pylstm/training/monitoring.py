@@ -3,34 +3,29 @@
 from __future__ import division, print_function, unicode_literals
 import numpy as np
 from pylstm.utils import ctc_best_path_decoding
+from pylstm.describable import Describable
 
 
-def monitor_function(timescale='epoch', interval=1):
-    """
-    Decorator to adjust the interval and timescale for a monitoring function.
-    Example:
-
-    @monitor_function('update', 5)
-    def foo(*args, **kwargs):
-        print('bar')
-    """
-    def decorator(f):
-        f.timescale = timescale
-        f.interval = interval
-        return f
-    return decorator
+class Monitor(Describable):
+    def __call__(self, epoch, net, steppe, training_errors, validation_errors):
+        pass
 
 
-def print_error_per_epoch(epoch, training_errors, validation_errors, **_):
-    if len(validation_errors) == 0:
-        print("\nEpoch %d:\tTraining error = %0.4f" % (epoch,
-                                                       training_errors[-1]))
-    else:
-        print("\nEpoch %d:\tTraining error = %0.4f Validation error = %0.4f" %
-              (epoch, training_errors[-1], validation_errors[-1]))
+class PrintError(Monitor):
+    def __init__(self, timescale='epoch', interval=1):
+        self.timescale = timescale
+        self.interval = interval
+
+    def __call__(self, epoch, training_errors, validation_errors, **_):
+        if validation_errors:
+            print("\nEpoch %d:\tTraining error = %0.4f Validation error = %0.4f"
+                  % (epoch, training_errors[-1], validation_errors[-1]))
+        else:
+            print("\nEpoch %d:\tTraining error = %0.4f"
+                  % (epoch, training_errors[-1]))
 
 
-class SaveWeights(object):
+class SaveWeights(Monitor):
     """
     Save the weights of the network to the given file on every call.
     Default is to save them once per epoch, but this can be configured using
@@ -48,12 +43,16 @@ class SaveWeights(object):
         return np.load(self.filename)
 
 
-class SaveBestWeights(object):
+class SaveBestWeights(Monitor):
     """
     Check every epoch to see if the validation error (or training error if there
     is no validation error) is at it's minimum and if so, save the weights to
     the specified file.
     """
+    __undescribed__ = {
+        'weights': None
+    }
+
     def __init__(self, filename=None, verbose=True):
         self.timescale = 'epoch'
         self.interval = 1
@@ -74,21 +73,26 @@ class SaveBestWeights(object):
                 self.weights = net.param_buffer.copy()
 
     def load_weights(self):
-        return np.load(self.filename) if self.filename is not None else self.weights
+        return np.load(self.filename) if self.filename is not None \
+            else self.weights
 
 
-class MonitorError(object):
+class MonitorError(Monitor):
     """
     Monitor the given error (averaged over all sequences).
     """
-    def __init__(self, data_iter, error, name="", timescale='epoch', interval=1):
+    __undescribed__ = {
+        'log': {'error': []}
+    }
+
+    def __init__(self, data_iter, error, name="", timescale='epoch',
+                 interval=1):
         self.timescale = timescale
         self.interval = interval
         self.data_iter = data_iter
         self.error_func = error
         self.name = name
-        self.log = dict()
-        self.log['error'] = []
+        self.log = {'error': []}
 
     def __call__(self, net, **_):
         errors = []
@@ -102,23 +106,27 @@ class MonitorError(object):
         print(self.name, "= %0.4f" % mean_error)
 
 
-class MonitorClassificationError(object):
+class MonitorClassificationError(Monitor):
     """
     Monitor the classification error assuming one-hot encoding of targets.
     """
+    __undescribed__ = {
+        'log': {'classification_error': []}
+    }
+
     def __init__(self, data_iter, name="", timescale='epoch', interval=1):
         self.timescale = timescale
         self.interval = interval
         self.data_iter = data_iter
         self.name = name
-        self.log = dict()
-        self.log['classification_error'] = []
+        self.log = {'classification_error': []}
 
     def __call__(self, net, **_):
         total_errors = 0
         total = 0
         for x, t in self.data_iter():
-            assert t.targets_type in [('F', False), ('F', True), ('S', False), ('S', True)], \
+            assert t.targets_type in [('F', False), ('F', True),
+                                      ('S', False), ('S', True)], \
                 "Target type not suitable for classification error monitoring."
             y = net.forward_pass(x)
             y_win = y.argmax(2)
@@ -139,25 +147,30 @@ class MonitorClassificationError(object):
                          (error_fraction, total_errors, total))
 
 
-class MonitorPooledClassificationError(object):
+class MonitorPooledClassificationError(Monitor):
     """
         Monitor the classification error assuming one-hot encoding of targets
         with pooled targets with an odd pool size.
         """
-    def __init__(self, data_iter, pool_size, name="", timescale='epoch', interval=1):
+    __undescribed__ = {
+        {'classification_error': []}
+    }
+
+    def __init__(self, data_iter, pool_size, name="", timescale='epoch',
+                 interval=1):
         self.timescale = timescale
         self.interval = interval
         self.data_iter = data_iter
         self.pool_size = pool_size
         self.name = name
-        self.log = dict()
-        self.log['classification_error'] = []
+        self.log = {'classification_error': []}
     
     def __call__(self, net, **_):
         total_errors = 0
         total = 0
         for x, t in self.data_iter():
-            relevant_from = (t.data.shape[2] / self.pool_size) * (self.pool_size // 2)
+            relevant_from = (t.data.shape[2] / self.pool_size) * \
+                            (self.pool_size // 2)
             relevant_to = relevant_from + (t.shape[2] / self.pool_size)
             t = t[:, :, relevant_from: relevant_to]
             y = net.forward_pass(x)
@@ -175,17 +188,18 @@ class MonitorPooledClassificationError(object):
               (error_fraction, total_errors, total))
 
 
-class MonitorPhonemeError(object):
+class MonitorPhonemeError(Monitor):
     """
     Monitor the classification error assuming one-hot encoding of targets.
     """
+    __undescribed__ = {'phoneme_error': []}
+
     def __init__(self, data_iter, name="", timescale='epoch', interval=1):
         self.timescale = timescale
         self.interval = interval
         self.data_iter = data_iter
         self.name = name
-        self.log = dict()
-        self.log['phoneme_error'] = []
+        self.log = {'phoneme_error': []}
 
     def __call__(self, net, **_):
         total_errors = 0
@@ -214,10 +228,12 @@ def levenshtein(seq1, seq2):
     return thisrow[len(seq2) - 1]
 
 
-class PlotErrors(object):
+class PlotErrors(Monitor):
     """
     Open a window and plot the training and validation errors while training.
     """
+    __undescribed__ = {'plt', 'fig', 'ax', 't_line', 'v_line', 'v_dot'}
+
     def __init__(self, timescale='epoch', interval=1):
         self.timescale = timescale
         self.interval = interval
@@ -266,10 +282,17 @@ class PlotErrors(object):
         self.fig.canvas.draw()
 
 
-class PlotMonitors(object):
+class PlotMonitors(Monitor):
     """
     Open a window and plot the log entries of the given monitors.
     """
+    __undescribed__ = {
+        'plt': None,
+        'fig': None,
+        'ax': None,
+        'line_dict': dict()
+    }
+
     def __init__(self, monitors, timescale='epoch', interval=1):
         self.timescale = timescale
         self.interval = interval
@@ -285,12 +308,11 @@ class PlotMonitors(object):
         self.plt.show()
 
     def __call__(self, **_):
-
         for m in self.monitors:
             for k in m.log:
                 n = m.name + '.' + k
                 if n not in self.line_dict and m.log[k]:
-                        self.line_dict[n], = self.ax.plot(m.log[k], '-', label=n)
+                    self.line_dict[n], = self.ax.plot(m.log[k], '-', label=n)
 
             self.ax.legend()
             self.fig.canvas.draw()
