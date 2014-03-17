@@ -207,3 +207,15 @@ def ClassificationError(outputs, targets):
     targets.validate_for_output_shape(*outputs.shape)
     return ClassificationError_implementations[targets.targets_type](
         outputs, targets, targets.mask)
+
+
+def get_error_function_by_name(name):
+    error_functions = [
+        MeanSquaredError, CrossEntropyError, MultiClassCrossEntropyError,
+        CTC, ClassificationError
+    ]
+    for e in error_functions:
+        if e.__name__ == name:
+            return e
+
+    raise ValueError('Error Function "%s" not found!' % name)

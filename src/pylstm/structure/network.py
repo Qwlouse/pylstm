@@ -2,15 +2,15 @@
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 from copy import deepcopy
-from .. import wrapper as pw
-from pylstm.describable import get_description
+import numpy as np
+from pylstm import wrapper as pw
+from pylstm.describable import Describable, get_description
 from pylstm.randomness import reseeding_copy, Seedable
 from pylstm.regularization.initializer import _evaluate_initializer
 from pylstm.targets import Targets
-import numpy as np
 
 
-class Network(Seedable):
+class Network(Seedable, Describable):
     def __init__(self, layers, param_manager, fwd_state_manager, in_out_manager,
                  bwd_state_manager, error_func, architecture, seed=None):
         super(Network, self).__init__(seed=seed, category='network')
@@ -454,7 +454,7 @@ class Network(Seedable):
         """
         initializers = _update_references_with_dict(init_dict, kwargs)
         self._assert_view_reference_wellformed(initializers)
-        self.description['initialization'] = get_description(initializers)
+        self.description['initialization'] = initializers
         rnd = self.rnd['initialize'].get_new_random_state(seed)
 
         for layer_name, layer in self.layers.items()[1:]:
@@ -500,7 +500,7 @@ class Network(Seedable):
         """
         rnd = self.rnd['set_regularizers'].get_new_random_state(seed)
         regularizers = _update_references_with_dict(reg_dict, kwargs)
-        self.description['regularization'] = get_description(regularizers)
+        self.description['regularization'] = regularizers
         self.regularizers = self._flatten_view_references(regularizers, rnd)
         _prune_view_references(self.regularizers)
         _ensure_all_references_are_lists(self.regularizers)
@@ -509,7 +509,7 @@ class Network(Seedable):
         rnd = self.rnd['set_constraints'].get_new_random_state(seed)
         assert self.is_initialized()
         constraints = _update_references_with_dict(constraint_dict, kwargs)
-        self.description['constraints'] = get_description(constraints)
+        self.description['constraints'] = constraints
         self.constraints = self._flatten_view_references(constraints, rnd)
         _prune_view_references(self.constraints)
         _ensure_all_references_are_lists(self.constraints)
@@ -549,11 +549,20 @@ class Network(Seedable):
                                        rnd, default=default)
         return flattened
 
+    def __describe__(self):
+        description = get_description(self.description)
+        description['error_function'] = self.error_func.__name__
+        return description
+
+    def __init_from_description__(self, description):
+        from .netbuilder import build_network_from_description
+        net = build_network_from_description(description)
+        self.__dict__ = net.__dict__
+
 
 def _prune_view_references(references):
     """
-    Delete all view references that point to prune_value, and also delete
-    now empty layer references.
+    Delete all now empty layer references.
     """
     for lname, l in references.items():
         for vname in list(l.keys()):

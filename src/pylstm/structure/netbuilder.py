@@ -8,7 +8,7 @@ from pylstm.structure.buffer_construction import (
     create_param_manager, create_fwd_state_manager,
     create_bwd_state_manager, create_in_out_manager)
 from pylstm.structure.network import Network
-from pylstm.error_functions import MeanSquaredError
+from pylstm.error_functions import MeanSquaredError, get_error_function_by_name
 from pylstm.structure.construction_layer import instantiate_layer
 
 
@@ -201,4 +201,7 @@ def build_network_from_description(description):
     if 'constraints' in description and description['constraints']:
         con = create_object_from_description(description['constraints'])
         net.set_constraints(con)
+    if 'error_function' in description and description['error_function']:
+        net.error_func = get_error_function_by_name(
+            description['error_function'])
     return net
