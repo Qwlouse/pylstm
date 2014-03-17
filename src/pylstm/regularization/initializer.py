@@ -96,6 +96,7 @@ class Initializer(Seedable):
         :type description: dict
         """
         assert self.__class__.__name__ == description['$type']
+        Seedable.__init__(self)
         self.__dict__.update({k: v for k, v in description.items()
                               if k != '$type'})
 

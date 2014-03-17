@@ -2,12 +2,13 @@
 # coding=utf-8
 
 from __future__ import division, print_function, unicode_literals
+from copy import copy
 import numpy as np
 
 
 class Regularizer(object):
     def __get_description__(self):
-        description = self.__dict__.items()
+        description = copy(self.__dict__)
         description['$type'] = self.__class__.__name__
         return description
 

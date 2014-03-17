@@ -2,13 +2,14 @@
 # coding=utf-8
 
 from __future__ import division, print_function, unicode_literals
+from copy import copy
 import numpy as np
 from pylstm.randomness import Seedable
 
 
 class Constraint(object):
     def __get_description__(self):
-        description = self.__dict__.items()
+        description = copy(self.__dict__)
         description['$type'] = self.__class__.__name__
         return description
 
@@ -233,5 +234,6 @@ class NoisyWeights(Seedable, Constraint):
 
     def __init_from_description__(self, description):
         assert self.__class__.__name__ == description['$type']
+        Seedable.__init__(self)
         self.std = description['std']
         self.noise = None
