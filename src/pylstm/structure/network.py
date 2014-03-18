@@ -31,6 +31,7 @@ class Network(Seedable, Describable):
         self.error_func = error_func
 
         self.description = {
+            '$type': 'Network',
             'architecture': architecture,
             'initialization': {},
             'constraints': {},
