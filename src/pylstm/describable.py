@@ -69,7 +69,7 @@ class Describable(object):
         for member, descr in description.items():
             if member == '$type':
                 continue
-            instance.__dict__[member] = create_object_from_description(descr)
+            instance.__dict__[member] = create_from_description(descr)
 
         cls.__init_from_description__(instance, description)
         return instance
@@ -92,14 +92,14 @@ def get_description(this):
     elif isinstance(this, dict):
         return {k: get_description(v) for k, v in this.items()}
     elif (isinstance(this, bool) or
-          isinstance(this, numerical_types) or
-          isinstance(this, text_type)):
+          isinstance(this, _numerical_types) or
+          isinstance(this, _text_type)):
         return this
     else:
         raise TypeError('Type: "%s" is not describable' % type(this))
 
 
-def create_object_from_description(description):
+def create_from_description(description):
     if isinstance(description, dict):
         if '$type' in description:
             name = description['$type']
@@ -108,11 +108,11 @@ def create_object_from_description(description):
                     return describable.__new_from_description__(description)
             raise ValueError('No describable class "%s" found!' % name)
         else:
-            return {k: create_object_from_description(v)
+            return {k: create_from_description(v)
                     for k, v in description.items()}
     elif (isinstance(description, bool) or
-          isinstance(description, numerical_types) or
-          isinstance(description, text_type)):
+          isinstance(description, _numerical_types) or
+          isinstance(description, _text_type)):
         return description
     elif isinstance(description, list):
         return [get_description(d) for d in description]
@@ -133,8 +133,8 @@ def _get_inheritors(cls):
 
 
 if sys.version < '3':
-    numerical_types = (int, long, float)
-    text_type = basestring
+    _numerical_types = (int, long, float)
+    _text_type = basestring
 else:
-    numerical_types = (int, float)
-    text_type = str
+    _numerical_types = (int, float)
+    _text_type = str

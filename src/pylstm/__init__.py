@@ -10,3 +10,4 @@ from .targets import (
     create_targets_object, FramewiseTargets, LabelingTargets,
     SequencewiseTargets)
 from .randomness import global_rnd, set_global_seed
+from .describable import get_description, create_from_description
