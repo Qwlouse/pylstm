@@ -163,6 +163,8 @@ def create_layer(name, in_size, out_size, **kwargs):
         #     act_fct = <cm.ActivationFunction*> &cm.Winout
         elif af_name == "tanhscaled":
             act_fct = <cm.ActivationFunction*> &cm.TanhScaled
+        else:
+            raise AttributeError("No activation function called '%s'" % af_name)
 
     cdef cl.Lstm97Layer lstm97
     cdef cl.LstmLayer lstm_layer

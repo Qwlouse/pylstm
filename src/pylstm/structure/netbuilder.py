@@ -2,7 +2,7 @@
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 from collections import OrderedDict
-from copy import deepcopy
+from copy import copy
 from pylstm.describable import create_from_description
 from pylstm.structure.buffer_construction import (
     create_param_manager, create_fwd_state_manager,
@@ -147,13 +147,19 @@ def extend_architecture_info(architecture):
     extended_architecture = OrderedDict()
     layer_order = canonical_architecture_sort(architecture)
     for name in layer_order:
-        extended_architecture[name] = deepcopy(architecture[name])
+        layer = architecture[name]
+        kwargs = {k: copy(v) for k, v in layer.items()
+                  if k not in ['$type', 'size', 'targets']}
+        extended_architecture[name] = {
+            '$type': layer['$type'],
+            'size': layer['size'],
+            'targets': copy(layer['targets']),
+            'kwargs': kwargs
+        }
 
     for n, l in extended_architecture.items():
         l['in_size'] = 0
         l['sources'] = []
-        if 'kwargs' not in l:
-            l['kwargs'] = {}
 
     for n, l in extended_architecture.items():
         for target_name in l['targets']:
