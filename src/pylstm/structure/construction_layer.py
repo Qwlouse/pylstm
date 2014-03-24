@@ -21,21 +21,31 @@ class ConstructionLayer(object):
         self.sources = []
         self.layer_type = layer_type
         self.layer_kwargs = layer_kwargs
-        self.depth = None
         self.traversing = False
-
-    def instantiate(self):
-        return instantiate_layer(self.layer_type, self.get_input_size(),
-                                 self.out_size, self.layer_kwargs)
 
     def get_input_size(self):
         return sum(s.out_size for s in self.sources)
 
-    def get_depth(self):
-        if self.depth is None:
-            self.depth = float('inf')  # marker for "get_depth" in progress
-            self.depth = max(s.get_depth() for s in self.sources) + 1
-        return self.depth
+    def get_name(self):
+        if self.name:
+            return self.name
+        elif isinstance(self.layer_type, basestring):
+            return self.layer_type
+        else:
+            return self.layer_type.__name__
+
+    def collect_all_connected_layers(self):
+        # FIXME: One of the two methods collect_all_connected_layers and
+        # FIXME: traverse_targets_tree could be removed I guess
+        old_size = 0
+        connectom = {self}
+        while old_size < len(connectom):
+            old_size = len(connectom)
+            new_layers = set()
+            for l in connectom:
+                new_layers |= set(l.targets) | set(l.sources)
+            connectom |= new_layers
+        return connectom
 
     def traverse_targets_tree(self):
         if self.traversing:
@@ -47,32 +57,16 @@ class ConstructionLayer(object):
                 yield t
         self.traversing = False
 
-    def collect_all_connected_layers(self):
-        old_size = 0
-        connectom = {self}
-        while old_size < len(connectom):
-            old_size = len(connectom)
-            for l in connectom:
-                connectom = connectom | set(l.targets) | set(l.sources)
-        return connectom
-
     def _add_source(self, other):
         self.sources.append(other)
         if not self.size_set:  # if size was not set, out_size should be in_size
             self.out_size = self.get_input_size()
 
     def __rshift__(self, other):
+        assert isinstance(other, ConstructionLayer)
         self.targets.append(other)
         other._add_source(self)
         return other
-
-    def get_name(self):
-        if self.name:
-            return self.name
-        elif isinstance(self.layer_type, basestring):
-            return self.layer_type
-        else:
-            return self.layer_type.__name__
 
     def __repr__(self):
         return "<ConstructionLayer: %s>" % (self.get_name())
@@ -91,4 +85,3 @@ def instantiate_layer(name, input_size, output_size, kwargs):
         return LayerType(input_size, output_size, **kwargs)
     else:
         return create_c_layer(name, input_size, output_size, **kwargs)
-

@@ -30,12 +30,6 @@ def find_input_layer(some_layer):
     return input_layers[0]
 
 
-def get_topologically_sorted_layers(input_layer):
-    layers = set(input_layer.traverse_targets_tree())
-    input_layer.depth = 0
-    return sorted(layers, key=lambda l: l.get_depth())
-
-
 def ensure_unique_output_layer(layers):
     output_layers = [l for l in layers if len(l.targets) == 0]
     assert len(output_layers) == 1,\
@@ -83,7 +77,7 @@ def build_architecture_from_layers_list(layers):
 
 def create_architecture_from_layers(some_layer):
     input_layer = find_input_layer(some_layer)
-    layers = get_topologically_sorted_layers(input_layer)
+    layers = list(input_layer.traverse_targets_tree())
     ensure_unique_output_layer(layers)
     ensure_unique_names_for_layers(layers)
     architecture = build_architecture_from_layers_list(layers)

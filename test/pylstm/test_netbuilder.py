@@ -44,26 +44,11 @@ class ConstructionLayerTests(unittest.TestCase):
         self.assertIn(l2, l0.sources)
         self.assertIn(l3, l0.sources)
 
-    def test_get_depth_linear_architecture(self):
-        layers = [FooLayer(10) for _ in range(5)]
-        for i in range(4):
-            layers[i] >> layers[i+1]
-        layers[0].depth = 0
-        self.assertListEqual([l.get_depth() for l in layers], list(range(5)))
-
     def test_traverse_targets_tree_linear_architecture(self):
         layers = [FooLayer(10) for _ in range(5)]
         for i in range(4):
             layers[i] >> layers[i+1]
         self.assertListEqual(list(layers[0].traverse_targets_tree()), layers)
-
-    def test_get_depth_more_complicated(self):
-        layers = [FooLayer(10) for _ in range(5)]
-        l0, l1, l2, l3, l4 = layers
-        l0 >> l1 >> l2 >> l3
-        l0 >> l4 >> l3
-        l0.depth = 0
-        self.assertListEqual([l.get_depth() for l in layers], [0, 1, 2, 3, 1])
 
     def test_traverse_more_complicated(self):
         layers = [FooLayer(10) for _ in range(5)]
@@ -75,10 +60,5 @@ class ConstructionLayerTests(unittest.TestCase):
     def test_traverse_circle_raises_error(self):
         l0, l1, l2 = [FooLayer(10) for _ in range(3)]
         l0 >> l1 >> l2 >> l0
-        try:
+        with self.assertRaises(InvalidArchitectureError):
             list(l0.traverse_targets_tree())
-            self.fail('Should have thrown')
-        except InvalidArchitectureError:
-            return
-        except:
-            self.fail('Wrong Exception')
