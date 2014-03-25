@@ -45,7 +45,7 @@ SET(CMAKE_MODULE_PATH "${PY_LSTM_PATH}/cmake")
 # Options settings (including optional packages)
 #==============================================================================
 
-OPTION(USE_MATLAB_BLAS "Use Matlab BLAS Libraries (requires Matlab)" ON)
+OPTION(USE_MATLAB_BLAS "Use Matlab BLAS Libraries (requires Matlab)" OFF)
 IF (USE_MATLAB_BLAS)
     FIND_PACKAGE(Matlab2 REQUIRED)
     SET(BLAS_LIBRARIES ${MATLAB_LIBRARIES})
