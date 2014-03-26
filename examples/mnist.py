@@ -42,11 +42,11 @@ print(train_targets.shape, valid_targets.shape, test_targets.shape)
 # DropoutLayer(drop_prob=0.5) >>
 network = build_net(InputLayer(784) >>
                     ForwardLayer(100, act_func="relu", name="h1") >>
-                    ForwardLayer(10, act_func="softmax", name="o"))
+                    ForwardLayer(10, act_func="softmax", name="out"))
 network.error_func = MultiClassCrossEntropyError
 network.initialize({"default":Gaussian(0.0, 0.03)}, seed=25)
 network.set_constraints({"h1": {"HX":LimitIncomingWeightsSquared(5)},
-                         "o": {"HX":LimitIncomingWeightsSquared(5)},
+                         "out": {"HX":LimitIncomingWeightsSquared(5)},
                          })
 
 # Build trainer
@@ -59,11 +59,14 @@ trainer.monitor["validation error"] = MonitorClassificationError(data_iter=
                                                                  Minibatches(valid_inputs,
                                                                              FramewiseTargets(valid_targets), 
                                                                              batch_size=1000, verbose=False, shuffle=False),
-                                                                 name='classification error on validation set')
+                                                                 name='Validation Set')
 trainer.monitor["test error"] = MonitorClassificationError(data_iter=Minibatches(test_inputs,
                                                                        FramewiseTargets(test_targets), 
                                                                        batch_size=1000, verbose=False, shuffle=False),
-                                                   name='classification error on test set')
+                                                   name='Test Set')
+for layer_name in network.layers.keys():
+    if layer_name != 'InputLayer':
+        trainer.monitor[layer_name + " monitor"] = MonitorLayerProperties(network, layer_name)
 trainer.monitor["printing"] = PrintError()
 
 train_getter = Minibatches(train_inputs, FramewiseTargets(train_targets), batch_size=20, verbose=False)
