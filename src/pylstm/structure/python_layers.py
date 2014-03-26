@@ -16,6 +16,9 @@ class LayerBase(object):
         self.out_size = out_size
         self.skip_training = True
 
+    def get_typename(self):
+        return ""
+
     def get_input_buffer_size(self, time_length=1, batch_size=1):
         return self.in_size * time_length * batch_size
 
@@ -62,7 +65,9 @@ class LayerBase(object):
         pass
 
 
-InputLayer = LayerBase
+class InputLayer(LayerBase):
+    def get_typename(self):
+        return 'InputLayer'
 
 
 class NoOpLayer(LayerBase):
@@ -70,6 +75,9 @@ class NoOpLayer(LayerBase):
     This is essentially a no-op layer.
     It just copies its input into its output.
     """
+    def get_typename(self):
+        return 'NoOpLayer'
+
     def forward(self, param, fwd_state, in_view, out_view, training_pass):
         out_view.as_array()[:] = in_view.as_array()
 
@@ -81,6 +89,9 @@ class SquareLayer(LayerBase):
     """
     This layer squares every element.
     """
+    def get_typename(self):
+        return 'SquareLayer'
+
     def forward(self, param, fwd_state, in_view, out_view, training_pass):
         out_view.as_array()[:] = np.square(in_view.as_array())
 

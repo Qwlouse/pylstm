@@ -5,6 +5,7 @@ import numpy as np
 from pylstm.utils import ctc_best_path_decoding
 from pylstm.describable import Describable
 from .utils import levenshtein, get_min_err
+from collections import OrderedDict
 
 
 class Monitor(Describable):
@@ -144,8 +145,8 @@ class MonitorClassificationError(Monitor):
                 total += t.data.shape[0] * t.data.shape[1]
         error_fraction = total_errors / total
         self.log['classification_error'].append(error_fraction)
-        print(self.name, ":\tClassification Error = %0.4f\t (%d / %d)" %
-                         (error_fraction, total_errors, total))
+        print("{0:40}: Classification Error = {1:0.4f}\t ({2} / {3})".format(
+            self.name, error_fraction, total_errors, total))
 
 
 class MonitorPooledClassificationError(Monitor):
@@ -315,9 +316,10 @@ class PlotMonitors(Monitor):
 class MonitorLayerProperties(Monitor):
     """
     Monitor some properties of a layer.
+    Also logs the initial values of the properties at creating time (before training).
     """
     __undescribed__ = {
-        "log": dict()
+        "log": OrderedDict()
     }
 
     def __init__(self, net, layer_name, display=True, timescale='epoch', interval=1):
@@ -325,35 +327,27 @@ class MonitorLayerProperties(Monitor):
         self.interval = interval
         self.layer_name = layer_name
         self.display = display
-        self.layer_type = net.layers[layer_name].__unicode__()
-        # Getting type the ugly way
-        self.layer_type = self.layer_type.split("<")[1].split(":")[0]
-        self.log = dict()
+        self.layer_type = net.layers[layer_name].get_typename()
+        self.log = OrderedDict()
 
         for key, value in net.get_param_view_for(self.layer_name).items():
-            # Initialize logs
-            self.log['min_' + key] = []
-            self.log['max_' + key] = []
-            if key.split('_')[-1] != 'bias':
-                self.log['min_sq_norm_' + key] = []
-                self.log['max_sq_norm_' + key] = []
 
             # Log initial values
-            self.log['min_' + key].append(value.min())
-            self.log['max_' + key].append(value.max())
+            self.log[self.layer_name + '_min_' + key] = [value.min()]
+            self.log[self.layer_name + '_max_' + key] = [value.max()]
             if key.split('_')[-1] != 'bias':
-                self.log['min_sq_norm_' + key].append(((value**2).sum(1)).min())
-                self.log['max_sq_norm_' + key].append(((value**2).sum(1)).max())
+                self.log[self.layer_name + '_min_sq_norm_' + key] = [((value**2).sum(1)).min()]
+                self.log[self.layer_name + '_max_sq_norm_' + key] = [((value**2).sum(1)).max()]
 
     def __call__(self, net, **_):
         for key, value in net.get_param_view_for(self.layer_name).items():
-            self.log['min_' + key].append(value.min())
-            self.log['max_' + key].append(value.max())
+            self.log[self.layer_name + '_min_' + key].append(value.min())
+            self.log[self.layer_name + '_max_' + key].append(value.max())
             if key.split('_')[-1] != 'bias':
-                self.log['min_sq_norm_' + key].append(((value**2).sum(1)).min())
-                self.log['max_sq_norm_' + key].append(((value**2).sum(1)).max())
+                self.log[self.layer_name + '_min_sq_norm_' + key].append(((value**2).sum(1)).min())
+                self.log[self.layer_name + '_max_sq_norm_' + key].append(((value**2).sum(1)).max())
 
         if self.display:
-            for key, value in self.log:
-                print(key, ": ", value[-1])
+            for key, value in self.log.items():
+                print('{0:40}: {1}'.format(key, value[-1]))
 

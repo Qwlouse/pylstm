@@ -87,6 +87,9 @@ cdef class BaseLayer:
         self.layer.dampened_backward(deref(param.this_ptr), deref(fwd_state.this_ptr), deref(bwd_state.this_ptr), y.c_obj, in_deltas.c_obj, out_deltas.c_obj, deref(r_fwd_state.this_ptr), _lambda, mu)
 
 
+    def get_typename(self):
+        return self.layer.get_typename()
+
     def __unicode__(self):
         return "<" + self.layer.get_typename() + ": in_size=%d out_size=%d>"%(int(self.layer.in_size), int(self.layer.out_size))
 
