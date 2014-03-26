@@ -8,7 +8,7 @@ from .utils import levenshtein, get_min_err
 
 
 class Monitor(Describable):
-    def __call__(self, epoch, net, steppe, training_errors, validation_errors):
+    def __call__(self, epoch, net, stepper, training_errors, validation_errors):
         pass
 
 
@@ -310,3 +310,50 @@ class PlotMonitors(Monitor):
         self.ax.relim()
         self.ax.autoscale_view()
         self.fig.canvas.draw()
+
+
+class MonitorLayerProperties(Monitor):
+    """
+    Monitor some properties of a layer.
+    """
+    __undescribed__ = {
+        "log": dict()
+    }
+
+    def __init__(self, net, layer_name, display=True, timescale='epoch', interval=1):
+        self.timescale = timescale
+        self.interval = interval
+        self.layer_name = layer_name
+        self.display = display
+        self.layer_type = net.layers[layer_name].__unicode__()
+        # Getting type the ugly way
+        self.layer_type = self.layer_type.split("<")[1].split(":")[0]
+        self.log = dict()
+
+        for key, value in net.get_param_view_for(self.layer_name).items():
+            # Initialize logs
+            self.log['min_' + key] = []
+            self.log['max_' + key] = []
+            if key.split('_')[-1] != 'bias':
+                self.log['min_sq_norm_' + key] = []
+                self.log['max_sq_norm_' + key] = []
+
+            # Log initial values
+            self.log['min_' + key].append(value.min())
+            self.log['max_' + key].append(value.max())
+            if key.split('_')[-1] != 'bias':
+                self.log['min_sq_norm_' + key].append(((value**2).sum(1)).min())
+                self.log['max_sq_norm_' + key].append(((value**2).sum(1)).max())
+
+    def __call__(self, net, **_):
+        for key, value in net.get_param_view_for(self.layer_name).items():
+            self.log['min_' + key].append(value.min())
+            self.log['max_' + key].append(value.max())
+            if key.split('_')[-1] != 'bias':
+                self.log['min_sq_norm_' + key].append(((value**2).sum(1)).min())
+                self.log['max_sq_norm_' + key].append(((value**2).sum(1)).max())
+
+        if self.display:
+            for key, value in self.log:
+                print(key, ": ", value[-1])
+

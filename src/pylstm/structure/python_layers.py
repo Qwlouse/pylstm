@@ -5,7 +5,7 @@ This File contains all layer types that are implemented in python.
 See wrapper/py_layers.pyx for python wrappers around c++ layers.
 """
 from __future__ import division, print_function, unicode_literals
-
+import numpy as np
 
 class LayerBase(object):
     """
@@ -68,7 +68,7 @@ InputLayer = LayerBase
 class NoOpLayer(LayerBase):
     """
     This is essentially a no-op layer.
-    It just copies it's input into it's output.
+    It just copies its input into its output.
     """
     def forward(self, param, fwd_state, in_view, out_view, training_pass):
         out_view.as_array()[:] = in_view.as_array()
@@ -76,3 +76,14 @@ class NoOpLayer(LayerBase):
     def backward(self, param, fwd_state, bwd_state, out_view, in_deltas,
                  out_deltas):
         in_deltas.as_array()[:] = out_deltas.as_array()
+
+class SquareLayer(LayerBase):
+    """
+    This layer squares every element.
+    """
+    def forward(self, param, fwd_state, in_view, out_view, training_pass):
+        out_view.as_array()[:] = np.square(in_view.as_array())
+
+    def backward(self, param, fwd_state, bwd_state, out_view, in_deltas,
+                 out_deltas):
+        in_deltas.as_array()[:] = 2*fwd_state.as_array()*out_deltas.as_array()
