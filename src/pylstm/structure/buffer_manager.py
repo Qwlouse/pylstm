@@ -116,6 +116,7 @@ class BufferManager(object):
         self.batch_count = None
         self.buffer = None
         self.views_ready = False
+        self.size = 0
 
         self.buffer_hubs_by_source = {}
         self.buffer_hubs_by_sink = {}
@@ -142,8 +143,8 @@ class BufferManager(object):
         self.batch_count = batch_count
         for bh in self.buffer_hubs:
             bh.set_dimensions(slice_count, batch_count)
-        new_size = self.calculate_size()
-        if self.buffer and (new_size > len(self.buffer) or force_resize):
+        self.size = self.calculate_size()
+        if self.buffer and (self.size > len(self.buffer) or force_resize):
             self.buffer = None
         self.views_ready = False
 
@@ -151,11 +152,11 @@ class BufferManager(object):
         return sum(bh.get_size() for bh in self.buffer_hubs)
 
     def initialize_buffer(self, buffer_view=None):
-        total_size = self.calculate_size()
+        self.size = self.calculate_size()
         if buffer_view is None:
-            self.buffer = wrapper.Matrix(total_size)
+            self.buffer = wrapper.Matrix(self.size)
         else:
-            assert len(buffer_view) >= total_size
+            assert len(buffer_view) >= self.size
             self.buffer = buffer_view.reshape(-1, 1, 1)
         self.views_ready = False
 
@@ -185,4 +186,4 @@ class BufferManager(object):
 
     def clear_buffer(self):
         self.ensure_initialization()
-        self.buffer.set_all_elements_to(0.0)
+        self.buffer.time_slice(0, self.size).set_all_elements_to(0.0)

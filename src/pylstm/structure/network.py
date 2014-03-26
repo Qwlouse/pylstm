@@ -184,6 +184,7 @@ class Network(Seedable, Describable):
         )[1:, :, :]  # remove context slice
 
     def clear_internal_state(self):
+        # TODO: Optimization: we only need to clear the context slice
         if self.fwd_state_manager.buffer:
             self.fwd_state_manager.clear_buffer()
         if self.bwd_state_manager.buffer:
