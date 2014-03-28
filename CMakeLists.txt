@@ -75,7 +75,7 @@ OPTION(ASSERTS_ENABLED "Enable asserts" ON)
 # Compile the tests
 OPTION(UNIT_TESTS "Compile the unit tests (fetches GTest)" ON)
 IF (UNIT_TESTS)
-    INCLUDE(GetGTest)
+    # INCLUDE(GetGTest)
 ENDIF(UNIT_TESTS)
 
 # Build the Documentation using Doxygen
@@ -143,6 +143,7 @@ ADD_SUBDIRECTORY(src)
 # Testing
 #==============================================================================
 IF (UNIT_TESTS)
+    ADD_SUBDIRECTORY (gtest-1.7.0)
     ENABLE_TESTING()
     ADD_SUBDIRECTORY(test)
     ADD_CUSTOM_TARGET(pytest
