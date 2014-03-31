@@ -73,10 +73,7 @@ ENDIF (NOT USE_MATLAB_BLAS)
 OPTION(ASSERTS_ENABLED "Enable asserts" ON)
 
 # Compile the tests
-OPTION(UNIT_TESTS "Compile the unit tests (fetches GTest)" ON)
-IF (UNIT_TESTS)
-    # INCLUDE(GetGTest)
-ENDIF(UNIT_TESTS)
+OPTION(UNIT_TESTS "Compile the unit tests" ON)
 
 # Build the Documentation using Doxygen
 OPTION(DOCUMENTATION "Build the Documentation using Doxygen" OFF)
