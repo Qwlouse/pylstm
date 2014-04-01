@@ -77,7 +77,7 @@ def build_architecture_from_layers_list(layers):
 
 def create_architecture_from_layers(some_layer):
     input_layer = find_input_layer(some_layer)
-    layers = list(input_layer.traverse_targets_tree())
+    layers = list(set(input_layer.traverse_targets_tree()))
     ensure_unique_output_layer(layers)
     ensure_unique_names_for_layers(layers)
     architecture = build_architecture_from_layers_list(layers)

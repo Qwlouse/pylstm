@@ -4,6 +4,7 @@
 import unittest
 from pylstm.structure import build_net, InvalidArchitectureError
 from pylstm.structure.layers import InputLayer, create_construction_layer
+from pylstm.structure.netbuilder import create_architecture_from_layers
 
 
 class Foo(): pass
@@ -69,4 +70,4 @@ class ConstructionLayerTests(unittest.TestCase):
         l1, l2, l3 = [FooLayer(10) for _ in range(3)]
         i >> l1 >> l3
         i >> l2 >> l3
-        build_net(i)
+        create_architecture_from_layers(i)
