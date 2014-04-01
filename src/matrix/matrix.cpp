@@ -202,7 +202,7 @@ Matrix Matrix::flatten_time() {
 
 void Matrix::set_all_elements_to(d_type value) {
     if (stride == 0 && value == 0) { // speedy version for this common case
-        memset(static_cast<void*>(data.get()), 0, size * sizeof(d_type));
+        memset(reinterpret_cast<void*>(&get(0, 0, 0)), 0, size * sizeof(d_type));
     } else {
         for (d_type& v : *this)
             v = value;
