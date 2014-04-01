@@ -2,8 +2,8 @@
 # coding=utf-8
 
 import unittest
-from pylstm.structure import InvalidArchitectureError
-from pylstm.structure.layers import create_construction_layer
+from pylstm.structure import build_net, InvalidArchitectureError
+from pylstm.structure.layers import InputLayer, create_construction_layer
 
 
 class Foo(): pass
@@ -62,3 +62,11 @@ class ConstructionLayerTests(unittest.TestCase):
         l0 >> l1 >> l2 >> l0
         with self.assertRaises(InvalidArchitectureError):
             list(l0.traverse_targets_tree())
+
+    def test_building_forked_architectures(self):
+        # This test passes if building forked networks succeeds
+        i = InputLayer(10)
+        l1, l2, l3 = [FooLayer(10) for _ in range(3)]
+        i >> l1 >> l3
+        i >> l2 >> l3
+        build_net(i)
