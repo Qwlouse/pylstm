@@ -143,6 +143,7 @@ def permute_rows(connection_table):
     # systematically try all permutations until one satisfies the condition
     final_permutation = None
     for perm in itertools.permutations(range(connection_table.shape[0])):
+        perm = list(perm)
         ct = np.atleast_2d(connection_table[perm])
         if can_be_connected_with_single_buffer(ct):
             final_permutation = perm
