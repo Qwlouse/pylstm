@@ -26,7 +26,7 @@ class InitializerTest(unittest.TestCase):
 
     def test_create_gaussian_initializer_from_dict(self):
         description = {
-            '$type': 'Gaussian',
+            '@type': 'Gaussian',
             'std': 23.0,
             'mean': 7.0
         }
@@ -38,24 +38,24 @@ class InitializerTest(unittest.TestCase):
     def test_get_description_of_gaussian_initializer(self):
         init = Gaussian(mean=9.0, std=42.0)
         description = init.__describe__()
-        self.assertEqual(description['$type'], 'Gaussian')
+        self.assertEqual(description['@type'], 'Gaussian')
         self.assertEqual(description['mean'], 9.0)
         self.assertEqual(description['std'], 42.0)
 
     def test_sparse_inputs_initalizer_description(self):
         init = SparseInputs(Gaussian(mean=3.0, std=4.0), 7)
         description = init.__describe__()
-        self.assertEqual(description['$type'], 'SparseInputs')
+        self.assertEqual(description['@type'], 'SparseInputs')
         self.assertEqual(description['connections'], 7)
-        self.assertDictEqual(description['init'], {'$type': 'Gaussian',
+        self.assertDictEqual(description['init'], {'@type': 'Gaussian',
                                                    'std': 4.0,
                                                    'mean': 3.0})
 
     def test_sparse_inputs_initalizer_from_description(self):
         description = {
-            '$type': 'SparseInputs',
+            '@type': 'SparseInputs',
             'connections': 69,
-            'init': {'$type': 'Gaussian',
+            'init': {'@type': 'Gaussian',
                      'std': 23.0,
                      'mean': 7.0}
         }
@@ -74,7 +74,7 @@ class InitializerTest(unittest.TestCase):
 
         c = Custom('bar')
         descr = c.__describe__()
-        self.assertDictEqual(descr, {'$type': 'Custom',
+        self.assertDictEqual(descr, {'@type': 'Custom',
                                      'foo': 'bar'})
 
         c2 = create_from_description(descr)

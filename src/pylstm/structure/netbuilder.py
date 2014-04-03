@@ -66,7 +66,7 @@ def build_architecture_from_layers_list(layers):
     for l in layers:
         layer_entry = {
             'size': l.out_size,
-            '$type': l.layer_type,
+            '@type': l.layer_type,
             'targets': [t.get_name() for t in l.targets],
         }
         if l.layer_kwargs:
@@ -89,7 +89,7 @@ def validate_architecture(architecture):
     for name, layer in architecture.items():
         assert isinstance(name, basestring)
         assert 'size' in layer and isinstance(layer['size'], int)
-        assert '$type' in layer and isinstance(layer['$type'], basestring)
+        assert '@type' in layer and isinstance(layer['@type'], basestring)
         assert 'targets' in layer and isinstance(layer['targets'], list)
 
     # no layer is called 'default'
@@ -97,11 +97,11 @@ def validate_architecture(architecture):
 
     # has InputLayer
     assert 'InputLayer' in architecture
-    assert architecture['InputLayer']['$type'] == 'InputLayer'
+    assert architecture['InputLayer']['@type'] == 'InputLayer'
 
     # has only one InputLayer
     inputs_by_type = [l for l in architecture.values()
-                      if l['$type'] == 'InputLayer']
+                      if l['@type'] == 'InputLayer']
     assert len(inputs_by_type) == 1
 
     # no sources for InputLayer
@@ -143,9 +143,9 @@ def extend_architecture_info(architecture):
     for name in layer_order:
         layer = architecture[name]
         kwargs = {k: copy(v) for k, v in layer.items()
-                  if k not in ['$type', 'size', 'targets']}
+                  if k not in ['@type', 'size', 'targets']}
         extended_architecture[name] = {
-            '$type': layer['$type'],
+            '@type': layer['@type'],
             'size': layer['size'],
             'targets': copy(layer['targets']),
             'kwargs': kwargs
@@ -167,7 +167,7 @@ def instantiate_layers_from_architecture(architecture):
     # instantiate layers
     layers = OrderedDict()
     for name, prop in architecture.items():
-        layer = instantiate_layer(prop['$type'], prop['in_size'], prop['size'],
+        layer = instantiate_layer(prop['@type'], prop['in_size'], prop['size'],
                                   prop['kwargs'])
         layers[name] = layer
 

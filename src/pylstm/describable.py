@@ -28,7 +28,7 @@ class Describable(object):
     def __describe__(self):
         """
         Returns a description of this object. That is a dictionary
-        containing the name of the class as '$type' and all members of the
+        containing the name of the class as '@type' and all members of the
         class. This description is json-serializable.
 
         If a sub-class of Describable contains non-describable members, it has
@@ -43,7 +43,7 @@ class Describable(object):
                 continue
             description[member] = get_description(value)
 
-        description['$type'] = self.__class__.__name__
+        description['@type'] = self.__class__.__name__
         return description
 
     @classmethod
@@ -58,16 +58,16 @@ class Describable(object):
         :param description: description of this object
         :type description: dict
         """
-        assert cls.__name__ == description['$type'], \
+        assert cls.__name__ == description['@type'], \
             "Description for '%s' has wrong type '%s'" % (
-                cls.__name__, description['$type'])
+                cls.__name__, description['@type'])
         instance = cls.__new__(cls)
 
         for member, default_val in cls.__get_all_undescribed__().items():
             instance.__dict__[member] = deepcopy(default_val)
 
         for member, descr in description.items():
-            if member == '$type':
+            if member == '@type':
                 continue
             instance.__dict__[member] = create_from_description(descr)
 
@@ -101,8 +101,8 @@ def get_description(this):
 
 def create_from_description(description):
     if isinstance(description, dict):
-        if '$type' in description:
-            name = description['$type']
+        if '@type' in description:
+            name = description['@type']
             for describable in _get_inheritors(Describable):
                 if describable.__name__ == name:
                     return describable.__new_from_description__(description)
