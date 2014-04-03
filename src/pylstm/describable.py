@@ -115,7 +115,7 @@ def create_from_description(description):
           isinstance(description, _text_type)):
         return description
     elif isinstance(description, list):
-        return [get_description(d) for d in description]
+        return [create_from_description(d) for d in description]
 
     return None
 
