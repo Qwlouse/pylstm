@@ -209,7 +209,7 @@ def save_dataset_as_hdf5(dataset, filename, chunksize=None):
                 targets_ds = grp.create_dataset('targets', targets_encoded)
             else:
                 targets_ds = grp.create_dataset('targets', data=targets.data)
-            targets_ds.attrs.create('targets_type', targets.targets_type[0])
+            targets_ds.attrs.create('targets_type', str(targets.targets_type[0]))
             targets_ds.attrs.create('binarize_to', targets.binarize_to or 0)
             if targets.mask is not None:
                 grp.create_dataset('mask', data=targets.mask, dtype='u1')
