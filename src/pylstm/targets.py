@@ -67,7 +67,8 @@ class Targets(object):
             return 0
         # get trim amount
         k = np.min(self.mask[::-1, :, 0].argmax(axis=0))
-        self.mask = self.mask[:-k, :, :]
+        if k > 0:
+            self.mask = self.mask[:-k, :, :]
         return k
 
     def validate_for_output_shape(self, timesteps, batchsize, out_size):
