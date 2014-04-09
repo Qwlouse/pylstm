@@ -155,7 +155,8 @@ class LabelingTargets(Targets):
             raise ValueError("Indexing with type '%s' unsupported" % type(item))
 
     def validate_for_output_shape(self, timesteps, batchsize, out_size):
-        Targets.validate_for_output_shape(self, timesteps, batchsize, out_size)
+        if self.mask is not None:
+            assert_shape_equals(self.mask.shape, (timesteps, batchsize, 1))
         assert len(self.data) == batchsize
 
     def __str__(self):
