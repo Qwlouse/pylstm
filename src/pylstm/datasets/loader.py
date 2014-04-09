@@ -156,7 +156,7 @@ def load_dataset(filename, variant=''):
                 targets = FramewiseTargets(targets_ds[:], mask, binarize_to)
             elif targets_type == 'L':
                 # convert targets_data to list of lists
-                targets_list = cPickle.loads(str(targets_ds.value))
+                targets_list = cPickle.loads(targets_ds.value.tostring())
                 targets = LabelingTargets(targets_list, mask, binarize_to)
             elif targets_type == 'S':
                 targets = SequencewiseTargets(targets_ds[:], mask, binarize_to)
@@ -165,6 +165,14 @@ def load_dataset(filename, variant=''):
 
             ds[usage] = input_data, targets
     return ds
+
+
+def get_chunksize(data):
+    t, b, f = data.shape
+    size_of_sequence = t*f*8
+    seqs_per_chunk = min((10240 // size_of_sequence) + 1, b)
+    chunksize = (t, seqs_per_chunk, f)
+    return chunksize
 
 
 def save_dataset_as_hdf5(dataset, filename, chunksize=None):
@@ -195,20 +203,22 @@ def save_dataset_as_hdf5(dataset, filename, chunksize=None):
             input_data, targets = dataset[usage]
             grp = hdffile.create_group(usage)
 
-            if chunksize is None:
-                t, b, f = input_data.shape
-                size_of_sequence = t*f*8
-                seqs_per_chunk = min((10240 // size_of_sequence) + 1, b)
-                chunksize = (t, seqs_per_chunk, f)
-
-            grp.create_dataset('input_data', data=input_data, chunks=chunksize,
+            grp.create_dataset('input_data', data=input_data,
+                               chunks=get_chunksize(input_data),
                                compression="gzip")
 
             if targets.is_labeling():
                 targets_encoded = np.void(cPickle.dumps(targets.data))
-                targets_ds = grp.create_dataset('targets', targets_encoded)
+                targets_ds = grp.create_dataset('targets',
+                                                data=targets_encoded,
+                                                dtype=targets_encoded.dtype)
             else:
-                targets_ds = grp.create_dataset('targets', data=targets.data)
+                targets_ds = grp.create_dataset(
+                    'targets',
+                    data=targets.data,
+                    chunksize=get_chunksize(targets.data),
+                    compression="gzip"
+                )
             targets_ds.attrs.create('targets_type', str(targets.targets_type[0]))
             targets_ds.attrs.create('binarize_to', targets.binarize_to or 0)
             if targets.mask is not None:
