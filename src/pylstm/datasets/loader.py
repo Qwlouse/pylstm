@@ -175,7 +175,7 @@ def get_chunksize(data):
     return chunksize
 
 
-def save_dataset_as_hdf5(dataset, filename, chunksize=None):
+def save_dataset_as_hdf5(dataset, filename=None, variant=None):
     """
     Method to write simple datasets to an HDF5 file.
 
@@ -184,42 +184,58 @@ def save_dataset_as_hdf5(dataset, filename, chunksize=None):
     :type dataset: dict[unicode, (numpy.ndarray, pylstm.targets.Targets)]
 
     :param filename: Filename/path of the file that should be written.
-        Will overwrite if it already exists.
+        Will overwrite if it already exists. Can be None if variant is given.
     :type filename: unicode
 
-    :param chunksize: The chunksize used for storing the input data. If not
-        specified the method automatically chooses one.
-    :type chunksize: (int, int, int)
+    :param variant: hdf5 group object the dataset will be saved to instead of
+        writing it to a new file. Either this or filename has to be set.
 
     :rtype: None
     """
+    hdffile = None
+    if variant is None:
+        assert filename is not None
+        import h5py
+        hdffile = h5py.File(filename, "w")
+        variant = hdffile
+
+    if 'description' in dataset:
+        variant.attrs['description'] = dataset['description']
+    for usage in ['training', 'validation', 'test']:
+        if usage not in dataset:
+            continue
+        input_data, targets = dataset[usage]
+        grp = variant.create_group(usage)
+
+        grp.create_dataset('input_data', data=input_data,
+                           chunks=get_chunksize(input_data),
+                           compression="gzip")
+
+        if targets.is_labeling():
+            targets_encoded = np.void(cPickle.dumps(targets.data))
+            targets_ds = grp.create_dataset('targets',
+                                            data=targets_encoded,
+                                            dtype=targets_encoded.dtype)
+        else:
+            targets_ds = grp.create_dataset(
+                'targets',
+                data=targets.data,
+                chunksize=get_chunksize(targets.data),
+                compression="gzip"
+            )
+        targets_ds.attrs.create('targets_type', str(targets.targets_type[0]))
+        targets_ds.attrs.create('binarize_to', targets.binarize_to or 0)
+        if targets.mask is not None:
+            grp.create_dataset('mask', data=targets.mask, dtype='u1')
+
+    if hdffile is not None:
+        hdffile.close()
+
+
+def save_dataset_varianst_as_hdf5(variants, filename):
     import h5py
-    with h5py.File(filename, "w") as hdffile:
-        if 'description' in dataset:
-            hdffile.attrs['description'] = dataset['description']
-        for usage in ['training', 'validation', 'test']:
-            if usage not in dataset:
-                continue
-            input_data, targets = dataset[usage]
-            grp = hdffile.create_group(usage)
-
-            grp.create_dataset('input_data', data=input_data,
-                               chunks=get_chunksize(input_data),
-                               compression="gzip")
-
-            if targets.is_labeling():
-                targets_encoded = np.void(cPickle.dumps(targets.data))
-                targets_ds = grp.create_dataset('targets',
-                                                data=targets_encoded,
-                                                dtype=targets_encoded.dtype)
-            else:
-                targets_ds = grp.create_dataset(
-                    'targets',
-                    data=targets.data,
-                    chunksize=get_chunksize(targets.data),
-                    compression="gzip"
-                )
-            targets_ds.attrs.create('targets_type', str(targets.targets_type[0]))
-            targets_ds.attrs.create('binarize_to', targets.binarize_to or 0)
-            if targets.mask is not None:
-                grp.create_dataset('mask', data=targets.mask, dtype='u1')
+    hdffile = h5py.File(filename, "w")
+    for var, ds in variants.items():
+        variant = hdffile.create_group(var)
+        save_dataset_as_hdf5(ds, variant=variant)
+    hdffile.close()
