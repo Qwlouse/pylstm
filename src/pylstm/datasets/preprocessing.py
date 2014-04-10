@@ -98,8 +98,8 @@ def divide_by_stds(input_data, stds, mask=None):
     @param mask: Optional mask for the sequences. shape = (time, sample, 1)
     """
     if mask is not None:
-        for i in range(X.shape[2]):
-            X[:, :, i][M[:, :, 0] == 1] /= stds[i]
+        for i in range(input_data.shape[2]):
+            input_data[:, :, i][mask[:, :, 0] == 1] /= stds[i]
     else:
         input_data /= stds
 
