@@ -3,6 +3,7 @@
 
 from __future__ import division, print_function, unicode_literals
 import numpy as np
+from pylstm import global_rnd
 from pylstm.targets import create_targets_object
 
 
@@ -129,6 +130,19 @@ def check_gn_pass(net, X=None, v=None, r=1e-7, nr_timesteps=3, nr_batches=5,
     return np.sum((calc - estimated) ** 2), calc, estimated
 
 
+def get_sequence_lengths(mask):
+    """
+    Given a mask it returns a list of the lengths of all sequences. Note: this
+    assumes, that the mask has only values 0 and 1. It returns for each sequence
+    the last index such that the mask is 1 there.
+    :param mask: mask of 0s and 1s with shape=(t, b, 1)
+    :return: array of sequence lengths with shape=(b,)
+    """
+    return mask.shape[0] - mask[::-1, :, 0].argmax(axis=0)
+
+
+####################### Clockwork helpers ######################################
+
 def construct_period_mask(periods):
     """
     Construct a mask for the recurrent matrix of an ClockworkLayer, to ensure
@@ -144,15 +158,40 @@ def construct_period_mask(periods):
     return D
 
 
-def get_sequence_lengths(mask):
-    """
-    Given a mask it returns a list of the lengths of all sequences. Note: this
-    assumes, that the mask has only values 0 and 1. It returns for each sequence
-    the last index such that the mask is 1 there.
-    :param mask: mask of 0s and 1s with shape=(t, b, 1)
-    :return: array of sequence lengths with shape=(b,)
-    """
-    return mask.shape[0] - mask[::-1, :, 0].argmax(axis=0)
+primes = (1, 2, 3, 5, 7, 11, 13, 17, 19, 23, 29,
+          31, 37, 41, 43, 47, 53, 59, 61, 67, 71,
+          73, 79, 83, 89, 97, 101, 103, 107, 109, 113,
+          127, 131, 137, 139, 149, 151, 157, 163, 167, 173,
+          179, 181, 191, 193, 197, 199, 211, 223, 227, 229)
+
+expprimes = (1, 2, 5, 11, 17, 37, 67, 131, 257, 521,
+             1031, 2053, 4099, 8209, 16411, 32771, 65537)
+
+fibs = (1, 2, 3, 5, 8, 13, 21, 34, 55, 89,
+        144, 233, 377)
+
+
+def get_periods(period_type, nr_groups, nr_neurons, step_size):
+    random_periods = sorted(global_rnd['periods'].randint(1, 161, nr_groups))
+    get_next_period = {
+        "exp": lambda x: 2**x,
+        "prime": lambda x: primes[x],
+        "expprime": lambda x: expprimes[x],
+        "fib": lambda x: fibs[x],
+        "rand": lambda x: random_periods[x],
+        "lin": lambda x: 1 + x*step_size,
+    }[period_type]
+
+    periods = []
+    group_size = nr_neurons // nr_groups
+    residual = nr_neurons % nr_groups
+
+    for g in range(nr_groups):
+        p = get_next_period(g)
+        periods.extend([p] * group_size)
+        if g < residual:
+            periods.append(p)
+    return periods
 
 
 ################################################################################
