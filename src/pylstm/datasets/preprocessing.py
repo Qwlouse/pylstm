@@ -3,7 +3,7 @@
 from __future__ import division, print_function, unicode_literals
 import numpy as np
 from pylstm.randomness import global_rnd
-from pylstm.targets import create_targets_object, Targets
+from pylstm.targets import Targets
 
 
 def binarize_sequence(seq, alphabet=None):
@@ -56,7 +56,7 @@ def get_means(input_data, mask=None):
     if mask is not None:
         return input_data.reshape(-1, input_data.shape[2])[mask.flatten() == 1].mean(0)
     else:
-        return input_data.mean((0,1))
+        return input_data.mean((0, 1))
 
 
 def get_stds(input_data, mask=None):
@@ -104,33 +104,59 @@ def divide_by_stds(input_data, stds, mask=None):
         input_data /= stds
 
 
-def center_dataset(ds):
-    """make the mean of each channel 0 over the training-set"""
+def center_dataset(ds, channels_mask=None):
+    """make the mean of each channel 0 over the training-set.
+    If channels_mask is given, only consider the masked-in channels.
+    """
     train = ds['training']
-    means = get_means(train[0], train[1].mask)
-    subtract_means(train[0], means, train[1].mask)
+    if channels_mask is None:
+        channels_mask = np.ones(train[0].shape[2], dtype=np.bool)
+    assert channels_mask.shape == (train[0].shape[2], )
+    assert channels_mask.dtype == np.bool
+
+    input_data = train[0][:, :, channels_mask]
+    means = get_means(input_data, train[1].mask)
+    subtract_means(input_data, train[1].mask)
+
     if 'validation' in ds:
-        subtract_means(ds['validation'][0], means, ds['validation'][1].mask)
+        subtract_means(ds['validation'][0][:, :, channels_mask],
+                       means,
+                       ds['validation'][1].mask)
     if 'test' in ds:
-        subtract_means(ds['test'][0], means, ds['test'][1].mask)
+        subtract_means(ds['test'][0][:, :, channels_mask],
+                       means,
+                       ds['test'][1].mask)
     return means
 
 
-def scale_std_of_dataset(ds):
-    """make the std of each channel 1 over the training-set"""
+def scale_std_of_dataset(ds, channels_mask=None):
+    """make the std of each channel 1 over the training-set
+    If channels_mask is given, only consider the masked-in channels.
+    """
     train = ds['training']
-    stds = get_stds(train[0], train[1].mask)
-    divide_by_stds(train[0], stds, train[1].mask)
+    if channels_mask is None:
+        channels_mask = np.ones(train[0].shape[2], dtype=np.bool)
+
+    assert channels_mask.shape == (train[0].shape[2], )
+    assert channels_mask.dtype == np.bool
+
+    input_data = train[0][:, :, channels_mask]
+    stds = get_stds(input_data, train[1].mask)
+    divide_by_stds(input_data, stds, train[1].mask)
     if 'validation' in ds:
-        divide_by_stds(ds['validation'][0], stds, ds['validation'][1].mask)
+        divide_by_stds(ds['validation'][0][:, :, channels_mask],
+                       stds,
+                       ds['validation'][1].mask)
     if 'test' in ds:
-        divide_by_stds(ds['test'][0], stds, ds['test'][1].mask)
+        divide_by_stds(ds['test'][0][:, :, channels_mask],
+                       stds,
+                       ds['test'][1].mask)
     return stds
 
 
-def normalize_dataset(ds):
-    means = center_dataset(ds)
-    stds = scale_std_of_dataset(ds)
+def normalize_dataset(ds, channels_mask=None):
+    means = center_dataset(ds, channels_mask=channels_mask)
+    stds = scale_std_of_dataset(ds, channels_mask=channels_mask)
     return means, stds
 
 
