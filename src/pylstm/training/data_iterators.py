@@ -58,7 +58,7 @@ class Minibatches(Seedable):
     Argument verbose=True enables a progress bar.
     """
     def __init__(self, input_data, targets, batch_size=4, shuffle=True,
-                 verbose=True, seed=None):
+                 verbose=False, seed=None):
         super(Minibatches, self).__init__(seed=seed, category='data_iterator')
         self.input_data = input_data
         assert isinstance(targets, Targets)
@@ -94,7 +94,7 @@ class Online(Seedable):
     Argument verbose=True enables a progress bar.
     """
 
-    def __init__(self, input_data, targets, shuffle=True, verbose=True,
+    def __init__(self, input_data, targets, shuffle=True, verbose=False,
                  seed=None):
         super(Online, self).__init__(seed=seed, category='data_iterator')
         self.input_data = input_data
