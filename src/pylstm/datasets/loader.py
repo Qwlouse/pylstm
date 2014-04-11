@@ -90,6 +90,10 @@ def transform_ds_to_nsp(ds):
 
 
 class Dataset(dict):
+    def __init__(self):
+        super(Dataset, self).__init__()
+        self['description'] = ''
+
     @property
     def description(self):
         return self['description']
