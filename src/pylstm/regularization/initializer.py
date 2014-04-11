@@ -31,10 +31,10 @@ class Gaussian(Initializer):
     given mean and standard deviation.
     """
 
-    def __init__(self, mean=0.0, std=1.0):
+    def __init__(self, std=0.1, mean=0.0):
         super(Gaussian, self).__init__()
-        self.mean = mean
         self.std = std
+        self.mean = mean
 
     def __call__(self, layer_name, view_name,  shape):
         size = reduce(np.multiply, shape)
