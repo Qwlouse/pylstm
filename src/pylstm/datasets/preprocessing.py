@@ -186,9 +186,9 @@ def shuffle_data(input_data, targets, seed=None):
 
 def mid_pool_outputs(T, size=3):
     """
-        Make pools of size=size (must be odd) such that targets of equal frames
-        before and after are also available while training.
-        """
+    Make pools of size=size (must be odd) such that targets of equal frames
+    before and after are also available while training.
+    """
     T_pooled = np.zeros((T.shape[0], T.shape[1], size*T.shape[2]))
     T = np.concatenate((np.zeros((size//2, T.shape[1], T.shape[2])), T, np.zeros((size//2, T.shape[1], T.shape[2]))), axis=0)
     for t in range(T.shape[0]-(size-1)):
@@ -212,3 +212,20 @@ def mask_features(ds, feature_mask):
         input_data = input_data[:, :, feature_mask == 1]
         masked_ds[usage] = input_data, targets
     return masked_ds
+
+
+def get_random_subset(ds, fraction=0.1):
+    """
+    Return a reduced dataset with only a fraction (default=0.1) of the data.
+    """
+    reduced_dataset = dict()
+    for usage in ['training', 'validation', 'test']:
+        input_data, targets = ds[usage]
+        t, b, f = input_data.shape
+        indices = np.arange(b)
+        global_rnd['preprocessing'].shuffle(indices)
+        reduced_size = round(fraction * b)
+        reduced_indices = indices[:reduced_size]
+        reduced_dataset[usage] = (input_data[:, reduced_indices, :],
+                                  targets[reduced_indices])
+    return reduced_dataset
