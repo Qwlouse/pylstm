@@ -45,35 +45,45 @@ def binarize_array(A, alphabet=None):
     return result
 
 
-def get_means(input_data, mask=None):
+def get_means(input_data, mask=None, channel_mask=None):
     """
     Get the mean values for every feature in the batch of sequences X by
     considering only masked-in entries.
     @param input_data: Batch of sequences. shape = (time, sample, feature)
     @param mask: Optional mask for the sequences. shape = (time, sample, 1)
+    @param channel_mask: Optional mask for the channels. shape = (feature,)
     @return: mean value for each feature. shape = (features, )
     """
+    if channel_mask is None:
+        channel_mask = np.ones(input_data.shape[2], dtype=np.bool)
+
     if mask is not None:
-        return input_data.reshape(-1, input_data.shape[2])[mask.flatten() == 1].mean(0)
+        return input_data[:, :, channel_mask].reshape(-1, np.sum(channel_mask))[
+            mask.flatten() == 1].mean(0)
     else:
-        return input_data.mean((0, 1))
+        return input_data[:, :, channel_mask].mean((0, 1))
 
 
-def get_stds(input_data, mask=None):
+def get_stds(input_data, mask=None, channel_mask=None):
     """
     Get the standard deviation for every feature in the batch of sequences X by
     considering only masked-in entries.
     @param input_data: Batch of sequences. shape = (time, sample, feature)
     @param mask: Optional mask for the sequences. shape = (time, sample, 1)
+    @param channel_mask: Optional mask for the channels. shape = (feature,)
     @return: standard deviation of each feature. shape = (features, )
     """
+    if channel_mask is None:
+        channel_mask = np.ones(input_data.shape[2], dtype=np.bool)
+
     if mask is not None:
-        return input_data.reshape(-1, input_data.shape[2])[mask.flatten() == 1].std(0)
+        return input_data[:, :, channel_mask].reshape(-1, np.sum(channel_mask))[
+            mask.flatten() == 1].std(0)
     else:
-        return input_data.std((0, 1))
+        return input_data[:, :, channel_mask].std((0, 1))
 
 
-def subtract_means(input_data, means, mask=None):
+def subtract_means(input_data, means, mask=None, channel_mask=None):
     """
     Subtract the means from the masked-in entries of a batch of sequences X.
     This operation is performed in-place, i.e. the input_data will be modified.
@@ -83,13 +93,16 @@ def subtract_means(input_data, means, mask=None):
     @param mask: Optional mask for the sequences. shape = (time, sample, 1)
     """
     if mask is not None:
+        j = 0
         for i in range(input_data.shape[2]):
-            input_data[:, :, i][mask[:, :, 0] == 1] -= means[i]
+            if channel_mask is None or channel_mask[i]:
+                input_data[:, :, i][mask[:, :, 0] == 1] -= means[j]
+                j += 1
     else:
-        input_data -= means
+        input_data[:, :, channel_mask] -= means
 
 
-def divide_by_stds(input_data, stds, mask=None):
+def divide_by_stds(input_data, stds, mask=None, channel_mask=None):
     """
     Divide masked-in entries of input_data by the stds.
 
@@ -98,10 +111,13 @@ def divide_by_stds(input_data, stds, mask=None):
     @param mask: Optional mask for the sequences. shape = (time, sample, 1)
     """
     if mask is not None:
+        j = 0
         for i in range(input_data.shape[2]):
-            input_data[:, :, i][mask[:, :, 0] == 1] /= stds[i]
+            if channel_mask is None or channel_mask[i]:
+                input_data[:, :, i][mask[:, :, 0] == 1] /= stds[j]
+                j += 1
     else:
-        input_data /= stds
+        input_data[:, :, channel_mask] /= stds
 
 
 def center_dataset(ds, channels_mask=None):
