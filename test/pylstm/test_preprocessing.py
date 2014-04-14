@@ -7,7 +7,8 @@ import numpy as np
 from numpy.testing import *
 from pylstm import FramewiseTargets
 from pylstm.datasets.preprocessing import (get_means, subtract_means, get_stds,
-                                           divide_by_stds, center_dataset)
+                                           divide_by_stds, center_dataset,
+                                           scale_std_of_dataset)
 
 
 class PreprocessingTests(unittest.TestCase):
@@ -147,3 +148,41 @@ class PreprocessingTests(unittest.TestCase):
         assert_allclose(get_means(ds['training'][0], self.M), [0., 0.])
         assert_allclose(get_means(ds['validation'][0], self.M), [1., 1.])
         assert_allclose(get_means(ds['test'][0], self.M), [8.25, 9.25])
+
+    #################### center_dataset ####################
+
+    def test_scale_std_of_dataset(self):
+        ds = {
+            'training': (self.X, FramewiseTargets(self.X)),
+            'validation': (self.X + 1, FramewiseTargets(self.X)),
+            'test': (self.X * 2, FramewiseTargets(self.X))
+        }
+
+        assert_allclose(get_stds(ds['training'][0]), [6.90410506, 6.90410506])
+        assert_allclose(get_stds(ds['validation'][0]), [6.90410506, 6.90410506])
+        assert_allclose(get_stds(ds['test'][0]), [13.80821012,  13.80821012])
+
+        scale_std_of_dataset(ds)
+
+        assert_allclose(get_stds(ds['training'][0]), [1., 1.], atol=1e-6)
+        assert_allclose(get_stds(ds['validation'][0]), [1., 1.], atol=1e-6)
+        assert_allclose(get_stds(ds['test'][0]), [2., 2.], atol=1e-6)
+
+    def test_scale_std_of_dataset_masked(self):
+        ds = {
+            'training': (self.X, FramewiseTargets(self.X, self.M)),
+            'validation': (self.X + 1, FramewiseTargets(self.X, self.M)),
+            'test': (self.X * 2, FramewiseTargets(self.X, self.M))
+        }
+        assert_allclose(get_stds(ds['training'][0], self.M),
+                        [6.27992834, 6.27992834])
+        assert_allclose(get_stds(ds['validation'][0], self.M),
+                        [6.27992834, 6.27992834])
+        assert_allclose(get_stds(ds['test'][0], self.M),
+                        [12.55985668,  12.55985668])
+
+        scale_std_of_dataset(ds)
+
+        assert_allclose(get_stds(ds['training'][0], self.M), [1., 1.])
+        assert_allclose(get_stds(ds['validation'][0], self.M), [1., 1.])
+        assert_allclose(get_stds(ds['test'][0], self.M), [2., 2.])
