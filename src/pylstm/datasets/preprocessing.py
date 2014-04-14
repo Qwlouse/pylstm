@@ -54,6 +54,10 @@ def get_means(input_data, mask=None, channel_mask=None):
     @param channel_mask: Optional mask for the channels. shape = (feature,)
     @return: mean value for each feature. shape = (features, )
     """
+    if channel_mask is not None:
+        assert channel_mask.shape == (input_data.shape[2], )
+        assert channel_mask.dtype == np.bool
+
     if channel_mask is None:
         channel_mask = np.ones(input_data.shape[2], dtype=np.bool)
 
@@ -73,6 +77,10 @@ def get_stds(input_data, mask=None, channel_mask=None):
     @param channel_mask: Optional mask for the channels. shape = (feature,)
     @return: standard deviation of each feature. shape = (features, )
     """
+    if channel_mask is not None:
+        assert channel_mask.shape == (input_data.shape[2], )
+        assert channel_mask.dtype == np.bool
+
     if channel_mask is None:
         channel_mask = np.ones(input_data.shape[2], dtype=np.bool)
 
@@ -91,7 +99,12 @@ def subtract_means(input_data, means, mask=None, channel_mask=None):
     @param input_data: Batch of sequences. shape = (time, sample, feature)
     @param means: The means to subtract. shape = (features, )
     @param mask: Optional mask for the sequences. shape = (time, sample, 1)
+    @param channel_mask: Optional mask for the channels. shape = (feature,)
     """
+    if channel_mask is not None:
+        assert channel_mask.shape == (input_data.shape[2], )
+        assert channel_mask.dtype == np.bool
+
     if mask is not None:
         j = 0
         for i in range(input_data.shape[2]):
@@ -109,7 +122,12 @@ def divide_by_stds(input_data, stds, mask=None, channel_mask=None):
     @param input_data: Batch of sequences. shape = (time, sample, feature)
     @param stds: The standard deviations for every feature. shape = (features, )
     @param mask: Optional mask for the sequences. shape = (time, sample, 1)
+    @param channel_mask: Optional mask for the channels. shape = (feature,)
     """
+    if channel_mask is not None:
+        assert channel_mask.shape == (input_data.shape[2], )
+        assert channel_mask.dtype == np.bool
+
     if mask is not None:
         j = 0
         for i in range(input_data.shape[2]):
@@ -120,59 +138,50 @@ def divide_by_stds(input_data, stds, mask=None, channel_mask=None):
         input_data[:, :, channel_mask] /= stds
 
 
-def center_dataset(ds, channels_mask=None):
+def center_dataset(ds, channel_mask=None):
     """make the mean of each channel 0 over the training-set.
     If channels_mask is given, only consider the masked-in channels.
     """
-    train = ds['training']
-    if channels_mask is None:
-        channels_mask = np.ones(train[0].shape[2], dtype=np.bool)
-    assert channels_mask.shape == (train[0].shape[2], )
-    assert channels_mask.dtype == np.bool
+    input_data, targets = ds['training']
 
-    input_data = train[0][:, :, channels_mask]
-    means = get_means(input_data, train[1].mask)
-    subtract_means(input_data, train[1].mask)
+    means = get_means(input_data, mask=targets.mask, channel_mask=channel_mask)
+    subtract_means(input_data, means, mask=targets.mask,
+                   channel_mask=channel_mask)
 
     if 'validation' in ds:
-        subtract_means(ds['validation'][0][:, :, channels_mask],
-                       means,
-                       ds['validation'][1].mask)
+        subtract_means(ds['validation'][0], means,
+                       mask=ds['validation'][1].mask,
+                       channel_mask=channel_mask
+                       )
     if 'test' in ds:
-        subtract_means(ds['test'][0][:, :, channels_mask],
-                       means,
-                       ds['test'][1].mask)
+        subtract_means(ds['test'][0], means,
+                       mask=ds['test'][1].mask,
+                       channel_mask=channel_mask)
     return means
 
 
-def scale_std_of_dataset(ds, channels_mask=None):
+def scale_std_of_dataset(ds, channel_mask=None):
     """make the std of each channel 1 over the training-set
     If channels_mask is given, only consider the masked-in channels.
     """
-    train = ds['training']
-    if channels_mask is None:
-        channels_mask = np.ones(train[0].shape[2], dtype=np.bool)
+    input_data, targets = ds['training']
+    stds = get_stds(input_data, targets.mask)
+    divide_by_stds(input_data, stds, targets.mask)
 
-    assert channels_mask.shape == (train[0].shape[2], )
-    assert channels_mask.dtype == np.bool
-
-    input_data = train[0][:, :, channels_mask]
-    stds = get_stds(input_data, train[1].mask)
-    divide_by_stds(input_data, stds, train[1].mask)
     if 'validation' in ds:
-        divide_by_stds(ds['validation'][0][:, :, channels_mask],
-                       stds,
-                       ds['validation'][1].mask)
+        divide_by_stds(ds['validation'][0], stds,
+                       mask=ds['validation'][1].mask,
+                       channel_mask=channel_mask)
     if 'test' in ds:
-        divide_by_stds(ds['test'][0][:, :, channels_mask],
-                       stds,
-                       ds['test'][1].mask)
+        divide_by_stds(ds['test'][0], stds,
+                       mask=ds['test'][1].mask,
+                       channel_mask=channel_mask)
     return stds
 
 
-def normalize_dataset(ds, channels_mask=None):
-    means = center_dataset(ds, channels_mask=channels_mask)
-    stds = scale_std_of_dataset(ds, channels_mask=channels_mask)
+def normalize_dataset(ds, channel_mask=None):
+    means = center_dataset(ds, channel_mask=channel_mask)
+    stds = scale_std_of_dataset(ds, channel_mask=channel_mask)
     return means, stds
 
 
