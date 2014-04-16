@@ -133,7 +133,7 @@ class MonitorClassificationError(Monitor):
             y = net.forward_pass(x)
             y_win = y.argmax(2)
             if t.binarize_to is not None:
-                t_win = t.data
+                t_win = t.data[:, :, 0]
             else:
                 t_win = t.data.argmax(2)
 
