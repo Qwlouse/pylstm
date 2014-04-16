@@ -224,7 +224,7 @@ def save_dataset_as_hdf5(dataset, filename=None, variant=None):
             targets_ds = grp.create_dataset(
                 'targets',
                 data=targets.data,
-                chunksize=get_chunksize(targets.data),
+                chunks=get_chunksize(targets.data),
                 compression="gzip"
             )
         targets_ds.attrs.create('targets_type', str(targets.targets_type[0]))

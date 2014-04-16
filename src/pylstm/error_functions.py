@@ -33,7 +33,7 @@ def _SequencewiseBinarizingMSE(outputs, targets, mask):
     # TODO change behavior for mask = None to only inject at last timestep
     diff = outputs.copy()
     for b in range(outputs.shape[1]):
-        diff[:, b, targets[b, 0]] -= 1
+        diff[:, b, int(targets[b, 0])] -= 1
     if mask is not None:
         diff *= mask
     norm = outputs.shape[1]  # normalize by number of sequences

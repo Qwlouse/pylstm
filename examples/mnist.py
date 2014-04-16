@@ -44,7 +44,7 @@ network = build_net(InputLayer(784) >>
                     ForwardLayer(100, act_func="relu", name="h1") >>
                     ForwardLayer(10, act_func="softmax", name="out"))
 network.error_func = MultiClassCrossEntropyError
-network.initialize({"default": Gaussian(0.0, 0.03)}, seed=25)
+network.initialize({"default": Gaussian(0.03)}, seed=25)
 network.set_constraints({"h1": {"HX": LimitIncomingWeightsSquared(5)},
                          "out": {"HX": LimitIncomingWeightsSquared(5)},
                          })
