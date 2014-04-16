@@ -37,9 +37,9 @@ class NetworkTests(unittest.TestCase):
 
     def setUp(self):
         self.input_size = 2
-        self.output_size = 3
+        self.output_size = 4
         self.layer_types = [ForwardLayer, RnnLayer, MrnnLayer, LstmLayer, Lstm97Layer]
-        self.activation_functions = ["linear", "tanh", "tanhx2", "sigmoid", "softmax"]
+        self.activation_functions = ["linear", "relu", "lwta", "tanh", "tanhx2", "sigmoid", "softmax"]
         self.X = rnd.randn(2, 7, self.input_size)
 
     def test_lstm_forward_pass_insensitive_to_fwd_state(self):

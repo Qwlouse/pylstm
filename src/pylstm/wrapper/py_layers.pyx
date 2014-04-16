@@ -141,7 +141,7 @@ def create_layer(name, in_size, out_size, **kwargs):
         expected_kwargs |= {'use_bias'}
     if name_lower == "dropoutlayer":
         expected_kwargs |= {'dropout_prob'}
-    if name_lower == "lwtalayer":
+    if name_lower == "lwtalayer" or ("act_func" in kwargs and kwargs["act_func"].lower() == "lwta"):
         expected_kwargs |= {'block_size'}
     unexpected_kwargs = [k for k in kwargs if k not in expected_kwargs]
     if unexpected_kwargs:
@@ -162,8 +162,8 @@ def create_layer(name, in_size, out_size, **kwargs):
             act_fct = <cm.ActivationFunction*> &cm.Linear
         elif af_name == "softmax":
             act_fct = <cm.ActivationFunction*> &cm.Softmax
-        # elif af_name == "winout":
-        #     act_fct = <cm.ActivationFunction*> &cm.Winout
+        elif af_name == "lwta":
+            act_fct = <cm.ActivationFunction*> &cm.Lwta
         elif af_name == "tanhscaled":
             act_fct = <cm.ActivationFunction*> &cm.TanhScaled
         else:
