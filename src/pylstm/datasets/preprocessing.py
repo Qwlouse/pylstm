@@ -165,8 +165,8 @@ def scale_std_of_dataset(ds, channel_mask=None):
     If channels_mask is given, only consider the masked-in channels.
     """
     input_data, targets = ds['training']
-    stds = get_stds(input_data, targets.mask)
-    divide_by_stds(input_data, stds, targets.mask)
+    stds = get_stds(input_data, targets.mask, channel_mask=channel_mask)
+    divide_by_stds(input_data, stds, targets.mask, channel_mask=channel_mask)
 
     if 'validation' in ds:
         divide_by_stds(ds['validation'][0], stds,
