@@ -3,7 +3,7 @@
 
 from __future__ import division, print_function, unicode_literals
 import numpy as np
-from pylstm import global_rnd
+from pylstm.randomness import global_rnd
 from pylstm.targets import create_targets_object
 
 

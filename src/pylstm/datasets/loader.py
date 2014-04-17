@@ -6,15 +6,23 @@ from __future__ import division, print_function, unicode_literals
 import os
 import numpy as np
 import cPickle
-from pylstm.targets import SequencewiseTargets, create_targets_object, \
-    FramewiseTargets, LabelingTargets
+from pylstm.error_functions import (
+    CrossEntropyError, MultiClassCrossEntropyError, MeanSquaredError, CTC)
+
+from pylstm.targets import (
+    SequencewiseTargets, create_targets_object, FramewiseTargets,
+    LabelingTargets)
+
+from pylstm.structure.layers import InputLayer, ForwardLayer
 
 
 def get_files_containing(file_list, search_string, ignore_case=False):
     if ignore_case:
-        return [c for c in file_list if os.path.basename(c).lower().find(search_string.lower()) != -1]
+        return [c for c in file_list if
+                os.path.basename(c).lower().find(search_string.lower()) != -1]
     else:
-        return [c for c in file_list if os.path.basename(c).find(search_string) != -1]
+        return [c for c in file_list if
+                os.path.basename(c).find(search_string) != -1]
 
 
 def load_data(files):
@@ -25,7 +33,8 @@ def load_data(files):
     filename = None
     if isinstance(files, list):
         for f in sorted(files):
-            filename = f if filename is None or len(f) < len(filename) else filename
+            filename = f if filename is None or len(f) < len(filename) \
+                else filename
     else:
         filename = files
     print('loading "%s"' % filename)
@@ -243,3 +252,74 @@ def save_dataset_varianst_as_hdf5(variants, filename):
         variant = hdffile.create_group(var)
         save_dataset_as_hdf5(ds, variant=variant)
     hdffile.close()
+
+
+def get_dataset_specs(filename, variant='', usage='training'):
+    import h5py
+    with h5py.File(filename, "r") as f:
+        if variant:
+            assert variant in f
+            v = f[variant]
+        elif 'default' in f:
+            v = f['default']
+        else:
+            v = f
+        grp = v[usage]
+
+        assert 'input_data' in grp, "Did not find input_data for " + usage
+        assert 'targets' in grp, "Did not find targets for " + usage
+
+        input_size = grp['input_data'].shape[2]
+
+        targets_ds = grp['targets']
+        assert 'targets_type' in targets_ds.attrs, \
+            'No targets_type attribute found!'
+        targets_type = targets_ds.attrs['targets_type']
+
+        if 'binarize_to' in targets_ds.attrs:
+            binarize_to = targets_ds.attrs['binarize_to']
+            if binarize_to <= 0:
+                binarize_to = None
+        else:
+            binarize_to = None
+
+        assert targets_type in "FLS", \
+            'Unsupported targets_type "%s"' % targets_type
+
+        output_size = binarize_to
+        if targets_type in ['F', 'S']:
+            output_size = binarize_to or targets_ds.shape[2]
+        #elif targets_type == 'L':
+            # todo: count labels if binarize to is None
+
+        if targets_type == 'L':
+            task_type = 'labeling'
+        elif binarize_to is None:
+            task_type = 'regression'
+        else:
+            task_type = 'classification'
+        return input_size, output_size, task_type
+
+
+def setup_from_dataset(filename, variant=''):
+    input_size, output_size, task_type = get_dataset_specs(filename, variant)
+    if task_type == 'classification':
+        if output_size == 1:
+            output_act_func = 'sigmoid'
+            error_func = CrossEntropyError
+        else:
+            output_act_func = 'softmax'
+            error_func = MultiClassCrossEntropyError
+    elif task_type == 'labeling':
+        output_act_func = 'softmax'
+        output_size += 1  # for the empty label
+        error_func = CTC
+    else:  # task_type == 'regression'
+        output_act_func = 'linear'
+        error_func = MeanSquaredError
+
+    input_layer = InputLayer(input_size)
+    output_layer = ForwardLayer(output_size, act_func=output_act_func,
+                                name='OutputLayer')
+
+    return input_layer, output_layer, error_func

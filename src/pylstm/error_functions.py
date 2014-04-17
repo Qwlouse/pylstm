@@ -2,7 +2,7 @@
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 import numpy as np
-from pylstm import binarize_array
+from pylstm.datasets.preprocessing import binarize_array
 from pylstm.targets import create_targets_object
 from .training.data_iterators import Online
 from .wrapper import ctcpp
