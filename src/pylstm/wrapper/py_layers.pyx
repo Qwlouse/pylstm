@@ -5,6 +5,7 @@ cimport c_matrix as cm
 from cython.operator cimport dereference as deref
 from cpython cimport bool
 from libcpp.vector cimport vector
+import numpy as np
 
 from py_matrix cimport Matrix
 from py_matrix_container cimport create_MatrixContainer, MatrixContainer
@@ -123,6 +124,14 @@ def ctcpp(Y, T):
     deltas.c_obj.set_all_elements_to(float('-inf'))
     error = cl.ctc(Matrix(Y).c_obj, T, deltas.c_obj)
     return error, deltas
+
+def ctc_token_passing(dictionary, onegrams, bigrams, Y):
+    t, b, f = Y.shape
+    assert b == 1, "No multibatch support in ctcpp for now"
+    ln_y = np.log(Y)
+    words = cl.ctc_token_passing_decoding(dictionary, onegrams, bigrams,
+                                  Matrix(ln_y).c_obj)
+    return words
 
 def create_layer(name, in_size, out_size, **kwargs):
     l = BaseLayer()

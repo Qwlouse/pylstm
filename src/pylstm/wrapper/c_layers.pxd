@@ -1,6 +1,8 @@
 from c_matrix cimport Matrix, ActivationFunction, MatrixContainer
 from libcpp.string cimport string
 from libcpp.vector cimport vector
+from libcpp.pair cimport pair
+from libcpp.map cimport map
 from libcpp cimport bool
 
 cdef extern from "forward_layer.h":
@@ -111,3 +113,9 @@ cdef extern from "ctc.h":
     void ctc_alphas(Matrix Y_log, vector[int] T, Matrix alpha)
 
     double ctc(Matrix Y, vector[int] T, Matrix deltas)
+
+    vector[int] ctc_token_passing_decoding(
+        vector[vector[int]] dictionary,
+        vector[double] onegrams,
+        map[pair[int, int], double] bigrams,
+        Matrix ln_y)
