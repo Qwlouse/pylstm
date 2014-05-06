@@ -101,8 +101,8 @@ class MomentumStep(TrainingStep):
                  scale_learning_rate=True):
         super(MomentumStep, self).__init__()
         self.velocity = None
-        self.momentum_schedule = get_schedule(momentum)
-        self.learning_rate_schedule = get_schedule(learning_rate)
+        self.momentum = get_schedule(momentum)
+        self.learning_rate = get_schedule(learning_rate)
         assert scale_learning_rate in (True, False), \
             "scale_learning_rate must be boolen"
         self.scale_learning_rate = scale_learning_rate
@@ -111,8 +111,8 @@ class MomentumStep(TrainingStep):
         self.velocity = np.zeros(self.net.get_param_size())
 
     def run(self, input_data, targets):
-        learning_rate = self.learning_rate_schedule()
-        momentum = self.momentum_schedule()
+        learning_rate = self.learning_rate()
+        momentum = self.momentum()
         self.velocity *= momentum
         self.net.forward_pass(input_data, training_pass=True)
         error = self.net.calculate_error(targets)
@@ -128,8 +128,8 @@ class MomentumStep(TrainingStep):
         return error
 
     def __init_from_description__(self, description):
-        self.learning_rate_schedule = get_schedule(self.learning_rate_schedule)
-        self.momentum_schedule = get_schedule(self.momentum_schedule)
+        self.learning_rate = get_schedule(self.learning_rate)
+        self.momentum = get_schedule(self.momentum)
 
 
 class NesterovStep(MomentumStep):
@@ -140,8 +140,8 @@ class NesterovStep(MomentumStep):
     learning_rate is multiplied by (1 - momentum) when used.
     """
     def run(self, input_data, targets):
-        learning_rate = self.learning_rate_schedule()
-        momentum = self.momentum_schedule()
+        learning_rate = self.learning_rate()
+        momentum = self.momentum()
         self.velocity *= momentum
         self.net.param_buffer += self.velocity
         self.net.forward_pass(input_data, training_pass=True)
