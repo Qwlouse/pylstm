@@ -8,11 +8,13 @@
 using std::vector;
 
 RnnLayer::RnnLayer():
-	f(&Sigmoid)
+	f(&Sigmoid),
+	delta_range(INFINITY)
 { }
 
 RnnLayer::RnnLayer(const ActivationFunction* f):
-	f(f)
+	f(f),
+	delta_range(INFINITY)
 { }
 
 RnnLayer::~RnnLayer()
@@ -104,6 +106,12 @@ void RnnLayer::dampened_backward(Parameters& w, FwdState&, BwdState& d, Matrix& 
         f->apply_deriv(y.slice(t), Rb.Ha.slice(t), d.tmp.slice(t));
         scale_into(d.tmp.slice(t), lambda * mu);
         add_into_b(d.tmp.slice(t), d.Ha.slice(t));
+
+      //////////////////////// Alex Graves Delta Clipping ///////////////////////////
+      if (delta_range < INFINITY) {
+          clip_elements(d.Ha.slice(t), -delta_range, delta_range);
+      }
+      //////////////////////////////////////////////////////////////////////////
     }
     mult_add(w.HX.T(), d.Ha.slice(1,d.Ha.n_slices).flatten_time(), in_deltas.slice(1,in_deltas.n_slices).flatten_time());
 }

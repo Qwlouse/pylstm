@@ -9,11 +9,13 @@
 using std::vector;
 
 ClockworkLayer::ClockworkLayer():
-	f(&Sigmoid)
+	f(&Sigmoid),
+	delta_range(INFINITY)
 { }
 
 ClockworkLayer::ClockworkLayer(const ActivationFunction* f):
-	f(f)
+	f(f),
+	delta_range(INFINITY)
 { }
 
 ClockworkLayer::~ClockworkLayer()
@@ -99,7 +101,7 @@ void ClockworkLayer::forward(ClockworkLayer::Parameters& w, ClockworkLayer::FwdS
 }
 
 void ClockworkLayer::backward(ClockworkLayer::Parameters& w, ClockworkLayer::FwdState&, ClockworkLayer::BwdState& d, Matrix& y, Matrix& in_deltas, Matrix& out_deltas) {
-        size_t n_slices = y.n_slices;
+    size_t n_slices = y.n_slices;
     f->apply_deriv(y.slice(n_slices-1), out_deltas.slice(n_slices-1), d.Ha.slice(n_slices-1));
     copy(out_deltas.slice(n_slices-1), d.Hb.slice(n_slices-1));
     set_inactive_nodes_to_zero(d.Ha.slice(n_slices-1), w.Timing, n_slices-1);
@@ -109,6 +111,12 @@ void ClockworkLayer::backward(ClockworkLayer::Parameters& w, ClockworkLayer::Fwd
         mult_add(w.HR.T(), d.Ha.slice(t+1), d.Hb.slice(t));
         f->apply_deriv(y.slice(t), d.Hb.slice(t), d.Ha.slice(t));
         set_inactive_nodes_to_zero(d.Ha.slice(t), w.Timing, t);
+        //////////////////////// Alex Graves Delta Clipping ///////////////////////////
+        if (delta_range < INFINITY) {
+            clip_elements(d.Ha.slice(t), -delta_range, delta_range);
+        }
+        //////////////////////////////////////////////////////////////////////////
+
     }
 
     mult_add(w.HX.T(), d.Ha.slice(1,d.Ha.n_slices).flatten_time(), in_deltas.slice(1,in_deltas.n_slices).flatten_time());

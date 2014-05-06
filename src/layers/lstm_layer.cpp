@@ -350,10 +350,10 @@ void LstmLayer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Matri
       //dE/dx
       // if(t) because of 1-indexing
       if(t) {
-	mult_add(w.IX.T(), d.Ia.slice(t), in_deltas.slice(t));
-	mult_add(w.OX.T(), d.Oa.slice(t), in_deltas.slice(t));
-	mult_add(w.ZX.T(), d.Za.slice(t), in_deltas.slice(t));
-	mult_add(w.FX.T(), d.Fa.slice(t), in_deltas.slice(t));
+	      mult_add(w.IX.T(), d.Ia.slice(t), in_deltas.slice(t));
+	      mult_add(w.OX.T(), d.Oa.slice(t), in_deltas.slice(t));
+	      mult_add(w.ZX.T(), d.Za.slice(t), in_deltas.slice(t));
+	      mult_add(w.FX.T(), d.Fa.slice(t), in_deltas.slice(t));
       }
 
   }

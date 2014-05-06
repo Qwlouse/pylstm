@@ -39,12 +39,14 @@ cdef extern from "rnn_layer.h":
     cppclass RnnLayer:
         RnnLayer()
         RnnLayer(ActivationFunction* f)
+        double delta_range
 
 
 cdef extern from "clockwork_layer.h":
     cppclass ClockworkLayer:
         ClockworkLayer()
         ClockworkLayer(ActivationFunction* f)
+        double delta_range
 
 
 cdef extern from "mrnn_layer.h":

@@ -13,9 +13,9 @@ class InvalidArchitectureError(Exception):
 
 
 class ConstructionLayer(object):
-    def __init__(self, layer_type, out_size=None, name=None, **layer_kwargs):
-        self.size_set = out_size is not None
-        self.out_size = 0 if out_size is None else out_size
+    def __init__(self, layer_type, size=None, name=None, **layer_kwargs):
+        self.size_set = size is not None
+        self.out_size = 0 if size is None else size
         self.name = name
         self.targets = []
         self.sources = []

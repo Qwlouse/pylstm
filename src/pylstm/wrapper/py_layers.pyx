@@ -144,7 +144,7 @@ def create_layer(name, in_size, out_size, **kwargs):
         expected_kwargs |= {'full_gradient', 'peephole_connections',
                            'forget_gate', 'output_gate', 'gate_recurrence',
                            'use_bias'}
-    if name_lower == "lstmlayer":
+    if name_lower in ["lstmlayer", "rnnlayer", "clockworklayer"]:
         expected_kwargs |= {'delta_range'}
     if name_lower == "forwardlayer":
         expected_kwargs |= {'use_bias'}
@@ -178,6 +178,8 @@ def create_layer(name, in_size, out_size, **kwargs):
         else:
             raise AttributeError("No activation function called '%s'" % af_name)
 
+    cdef cl.RnnLayer rnn_layer
+    cdef cl.ClockworkLayer cw_layer
     cdef cl.Lstm97Layer lstm97
     cdef cl.LstmLayer lstm_layer
     cdef cl.ForwardLayer forward_layer
@@ -196,9 +198,15 @@ def create_layer(name, in_size, out_size, **kwargs):
             hf_final_layer.use_bias = kwargs['use_bias']
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.HfFinalLayer](in_size, out_size, hf_final_layer))
     elif name_lower == "rnnlayer":
-        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.RnnLayer](in_size, out_size, cl.RnnLayer(act_fct)))
+        rnn_layer = cl.RnnLayer(act_fct)
+        if 'delta_range' in kwargs:
+            rnn_layer.delta_range = kwargs['delta_range']
+        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.RnnLayer](in_size, out_size, rnn_layer))
     elif name_lower == "clockworklayer":
-        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.ClockworkLayer](in_size, out_size, cl.ClockworkLayer(act_fct)))
+        cw_layer = cl.ClockworkLayer(act_fct)
+        if 'delta_range' in kwargs:
+            cw_layer.delta_range = kwargs['delta_range']
+        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.ClockworkLayer](in_size, out_size, cw_layer))
     elif name_lower == "mrnnlayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.MrnnLayer](in_size, out_size, cl.MrnnLayer(act_fct)))
     elif name_lower == "lstmlayer":

@@ -9,6 +9,10 @@
 class ClockworkLayer {
 public:
     const ActivationFunction* f;
+    // this value is used for clipping the deltas in the backprop before the
+    // activation function to the range [-delta_range, delta_range].
+    float delta_range;
+
     ClockworkLayer();
     explicit ClockworkLayer(const ActivationFunction* f);
     ~ClockworkLayer();
