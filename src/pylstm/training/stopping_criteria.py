@@ -7,6 +7,14 @@ from pylstm.describable import Describable
 
 
 class StoppingCriterion(Describable):
+    __undescribed__ = {'__name__'}
+
+    def __init__(self, name=None):
+        if __name__ is None:
+            self.__name__ = self.__class__.__name__
+        else:
+            self.__name__ = name
+
     def __call__(self, epochs_seen, net, training_errors, validation_errors):
         raise NotImplementedError()
 
@@ -15,7 +23,8 @@ class StoppingCriterion(Describable):
 
 
 class ValidationErrorRises(StoppingCriterion):
-    def __init__(self, delay=1):
+    def __init__(self, delay=1, name=None):
+        super(ValidationErrorRises, self).__init__(name)
         self.delay = delay
 
     def __call__(self, epochs_seen, net, training_errors, validation_errors):
@@ -30,7 +39,8 @@ class ValidationErrorRises(StoppingCriterion):
 
 
 class MaxEpochsSeen(StoppingCriterion):
-    def __init__(self, max_epochs=100):
+    def __init__(self, max_epochs=100, name=None):
+        super(MaxEpochsSeen, self).__init__(name)
         self.max_epochs = max_epochs
 
     def __call__(self, epochs_seen, net, training_errors, validation_errors):

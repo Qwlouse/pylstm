@@ -9,12 +9,22 @@ from collections import OrderedDict
 
 
 class Monitor(Describable):
+    __undescribed__ = {'__name__'}
+
+    def __init__(self, name=None):
+        if name is None:
+            self.__name__ = self.__class__.__name__
+        else:
+            self.__name__ = name
+        self.priority = 0
+
     def __call__(self, epoch, net, stepper, training_errors, validation_errors):
         pass
 
 
 class PrintError(Monitor):
     def __init__(self, timescale='epoch', interval=1):
+        super(PrintError, self).__init__()
         self.timescale = timescale
         self.interval = interval
 
@@ -33,7 +43,9 @@ class SaveWeights(Monitor):
     Default is to save them once per epoch, but this can be configured using
     the timescale and interval parameters.
     """
-    def __init__(self, filename, timescale='epoch', interval=1):
+
+    def __init__(self, filename, name=None, timescale='epoch', interval=1):
+        super(SaveWeights, self).__init__(name)
         self.timescale = timescale
         self.interval = interval
         self.filename = filename
@@ -55,7 +67,8 @@ class SaveBestWeights(Monitor):
         'weights': None
     }
 
-    def __init__(self, filename=None, verbose=True):
+    def __init__(self, filename=None, name=None, verbose=True):
+        super(SaveBestWeights, self).__init__(name)
         self.timescale = 'epoch'
         self.interval = 1
         self.filename = filename
@@ -87,13 +100,13 @@ class MonitorError(Monitor):
         'log': {'error': []}
     }
 
-    def __init__(self, data_iter, error, name="", timescale='epoch',
+    def __init__(self, data_iter, error, name=None, timescale='epoch',
                  interval=1):
+        super(MonitorError, self).__init__(name)
         self.timescale = timescale
         self.interval = interval
         self.data_iter = data_iter
         self.error_func = error
-        self.name = name
         self.log = {'error': []}
 
     def __call__(self, net, **_):
@@ -116,11 +129,11 @@ class MonitorClassificationError(Monitor):
         'log': {'classification_error': []}
     }
 
-    def __init__(self, data_iter, name="", timescale='epoch', interval=1):
+    def __init__(self, data_iter, name=None, timescale='epoch', interval=1):
+        super(MonitorClassificationError, self).__init__(name)
         self.timescale = timescale
         self.interval = interval
         self.data_iter = data_iter
-        self.name = name
         self.log = {'classification_error': []}
 
     def __call__(self, net, **_):
@@ -158,13 +171,13 @@ class MonitorPooledClassificationError(Monitor):
         'log': {'classification_error': []}
     }
 
-    def __init__(self, data_iter, pool_size, name="", timescale='epoch',
+    def __init__(self, data_iter, pool_size, name=None, timescale='epoch',
                  interval=1):
+        super(MonitorPooledClassificationError, self).__init__(name)
         self.timescale = timescale
         self.interval = interval
         self.data_iter = data_iter
         self.pool_size = pool_size
-        self.name = name
         self.log = {'classification_error': []}
     
     def __call__(self, net, **_):
@@ -196,11 +209,11 @@ class MonitorPhonemeError(Monitor):
     """
     __undescribed__ = {'phoneme_error': []}
 
-    def __init__(self, data_iter, name="", timescale='epoch', interval=1):
+    def __init__(self, data_iter, name=None, timescale='epoch', interval=1):
+        super(MonitorPhonemeError, self).__init__(name)
         self.timescale = timescale
         self.interval = interval
         self.data_iter = data_iter
-        self.name = name
         self.log = {'phoneme_error': []}
 
     def __call__(self, net, **_):
@@ -223,10 +236,12 @@ class PlotErrors(Monitor):
     """
     __undescribed__ = {'plt', 'fig', 'ax', 't_line', 'v_line', 'v_dot'}
 
-    def __init__(self, timescale='epoch', interval=1):
+    def __init__(self, timescale='epoch', interval=1, name=None):
+        super(PlotErrors, self).__init__(name)
         self.timescale = timescale
         self.interval = interval
         import matplotlib.pyplot as plt
+
         self.plt = plt
         self.plt.ion()
         self.fig, self.ax = self.plt.subplots()
@@ -278,11 +293,13 @@ class PlotMonitors(Monitor):
         'line_dict': dict()
     }
 
-    def __init__(self, monitors, timescale='epoch', interval=1):
+    def __init__(self, monitors, timescale='epoch', interval=1, name=None):
+        super(PlotMonitors, self).__init__(name)
         self.timescale = timescale
         self.interval = interval
         self.monitors = monitors
         import matplotlib.pyplot as plt
+
         self.plt = plt
         self.plt.ion()
         self.fig, self.ax = self.plt.subplots()
@@ -322,22 +339,25 @@ class MonitorLayerProperties(Monitor):
         "log": OrderedDict()
     }
 
-    def __init__(self, net, layer_name, display=True, timescale='epoch', interval=1):
+    def __init__(self, net, layer_name, display=True, timescale='epoch',
+                 interval=1, name=None):
+        super(MonitorLayerProperties, self).__init__(name)
         self.timescale = timescale
         self.interval = interval
         self.layer_name = layer_name
         self.display = display
         self.layer_type = net.layers[layer_name].get_typename()
         self.log = OrderedDict()
-
         for key, value in net.get_param_view_for(self.layer_name).items():
 
             # Log initial values
             self.log[self.layer_name + '_min_' + key] = [value.min()]
             self.log[self.layer_name + '_max_' + key] = [value.max()]
             if key.split('_')[-1] != 'bias':
-                self.log[self.layer_name + '_min_sq_norm_' + key] = [((value**2).sum(1)).min()]
-                self.log[self.layer_name + '_max_sq_norm_' + key] = [((value**2).sum(1)).max()]
+                self.log[self.layer_name + '_min_sq_norm_' + key] = [
+                    ((value ** 2).sum(1)).min()]
+                self.log[self.layer_name + '_max_sq_norm_' + key] = [
+                    ((value ** 2).sum(1)).max()]
 
     def __call__(self, net, **_):
         for key, value in net.get_param_view_for(self.layer_name).items():

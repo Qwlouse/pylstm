@@ -54,21 +54,23 @@ network.set_constraints({"h1": {"HX": LimitIncomingWeightsSquared(5)},
 trainer = Trainer(stepper=MomentumStep(learning_rate=ExponentialSchedule(initial_value=0.1, factor=0.98, minimum=0.001, interval=3000),
                                        momentum=LinearSchedule(initial_value=0.5, final_value=0.95, num_changes=10, interval=3000)))
 #trainer.stopping_criteria.append(ValidationErrorRises(delay=10))
-trainer.stopping_criteria.append(MaxEpochsSeen(max_epochs=10))
-trainer.monitor["validation error"] = MonitorClassificationError(data_iter=
-                                                                 Minibatches(valid_inputs,
-                                                                             FramewiseTargets(valid_targets), 
-                                                                             batch_size=20, verbose=False, shuffle=False),
-                                                                 name='Validation Set', timescale='epoch', interval=1)
-trainer.monitor["test error"] = MonitorClassificationError(data_iter=
-                                                           Minibatches(test_inputs,
-                                                                       FramewiseTargets(test_targets), 
-                                                                       batch_size=20, verbose=False, shuffle=False),
-                                                           name='Test Set', timescale='epoch', interval=1)
+trainer.add_stopper(MaxEpochsSeen(max_epochs=10))
+trainer.add_monitor(MonitorClassificationError(
+    data_iter=Minibatches(valid_inputs, FramewiseTargets(valid_targets),
+                           batch_size=20, verbose=False, shuffle=False),
+    name='ValidationError', timescale='epoch', interval=1))
+
+trainer.add_monitor(MonitorClassificationError(
+    data_iter=Minibatches(test_inputs, FramewiseTargets(test_targets),
+                          batch_size=20, verbose=False, shuffle=False),
+    name='TestError', timescale='epoch', interval=1))
+
 for layer_name in network.layers.keys():
     if layer_name != 'InputLayer':
-        trainer.monitor[layer_name + " monitor"] = MonitorLayerProperties(network, layer_name)
-trainer.monitor["printing"] = PrintError()
+        trainer.add_monitor(
+            MonitorLayerProperties(network, layer_name,
+                                   name=(layer_name + "_monitor")))
+trainer.add_monitor(PrintError())
 
 train_getter = Minibatches(train_inputs, FramewiseTargets(train_targets), batch_size=20, verbose=False)
 valid_getter = Minibatches(valid_inputs, FramewiseTargets(valid_targets), batch_size=20, verbose=False)

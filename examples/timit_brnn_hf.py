@@ -40,14 +40,15 @@ ds['test'] = X, T_b, M
 
 tr = Trainer(net, CgStep(minibatch_size=100))
 
-tr.stopping_criteria.append(ValidationErrorRises(10))
-tr.stopping_criteria.append(MaxEpochsSeen(120))
+tr.add_stopper(ValidationErrorRises(10))
+tr.add_stopper(MaxEpochsSeen(120))
 
-tr.monitor['errors'] = print_error_per_epoch
-tr.monitor['class'] = MonitorClassificationError(Online(*ds['test'], shuffle=False, verbose=False), name='testError')
-tr.monitor['lambda'] = print_lambda
-tr.monitor['bestWeights'] = SaveBestWeights('timit_brnn_nf.npy')
+tr.add_monitor(PrintError())
+tr.add_monitor(MonitorClassificationError(
+    Online(*ds['test'], shuffle=False, verbose=False),
+    name='testError'))
+tr.add_monitor(print_lambda)
+tr.add_monitor(SaveBestWeights('timit_brnn_nf.npy'))
 
 tr.train(Undivided(*ds['train'], shuffle=False),
          Undivided(*ds['val'], shuffle=False))
-
