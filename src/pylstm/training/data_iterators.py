@@ -112,7 +112,7 @@ class Minibatches(Seedable):
             x = input_data[:new_end, i:j, :]
             yield x, t
             if self.verbose:
-                p.update_progress((j+1)/nr_sequences)
+                p.update_progress(j/nr_sequences)
 
 
 class Online(Seedable):
