@@ -10,7 +10,7 @@ class StoppingCriterion(Describable):
     __undescribed__ = {'__name__'}
 
     def __init__(self, name=None):
-        if __name__ is None:
+        if name is None:
             self.__name__ = self.__class__.__name__
         else:
             self.__name__ = name
