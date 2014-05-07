@@ -3,7 +3,6 @@
 from __future__ import division, print_function, unicode_literals
 from collections import OrderedDict
 import sys
-import time
 import numpy as np
 from .train_steps import SgdStep, ForwardStep
 from pylstm.describable import Describable
@@ -115,13 +114,9 @@ class Trainer(Describable):
                 print('\n\n', 15*'- ', " Epoch ", (self.epochs_seen + 1),
                       15 * ' -')
                 print("Training ...")
-            start = time.time()
             for i, (x, t) in enumerate(training_data_getter()):
                 train_errors.append(self.stepper.run(x, t))
                 self.emit_monitoring_batchwise(i + 1, net)
-
-            if self.verbose:
-                print("Wall Time taken: ", time.time() - start)
 
             train_error = np.mean(train_errors)
             self.training_errors.append(train_error)
@@ -130,11 +125,8 @@ class Trainer(Describable):
                 valid_errors = []
                 if self.verbose:
                     print("Validating ...")
-                start = time.time()
                 for x, t in validation_data_getter():
                     valid_errors.append(self.validation_stepper.run(x, t))
-                if self.verbose:
-                    print("Wall Time taken: ", time.time() - start)
 
                 valid_error = np.mean(valid_errors)
                 self.validation_errors.append(valid_error)

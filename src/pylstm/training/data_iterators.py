@@ -28,7 +28,7 @@ class ProgressBar(object):
         self.progress_string = \
             "====1====2====3====4====5====6====7====8====9====0"
         self.prefix = '['
-        self.suffix = '] Took: {0}'
+        self.suffix = '] Took: {0}\n'
         self.stream = stream
         stream.write(str(self.prefix))
         stream.flush()
