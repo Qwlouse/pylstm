@@ -12,6 +12,7 @@ modify or augment the data.
 from __future__ import division, print_function, unicode_literals
 import math
 import datetime
+import sys
 
 import numpy as np
 from pylstm.randomness import Seedable
@@ -21,25 +22,29 @@ from pylstm.targets import Targets
 
 
 class ProgressBar(object):
-    def __init__(self):
+    def __init__(self, stream=sys.stdout):
         self.start_time = datetime.datetime.utcnow()
         self.progress = 0
         self.progress_string = \
             "====1====2====3====4====5====6====7====8====9====0"
         self.prefix = '['
         self.suffix = '] Took: {0}'
-        print(self.prefix, end='')
+        self.stream = stream
+        stream.write(str(self.prefix))
+        stream.flush()
 
     def update_progress(self, fraction):
         assert 0.0 <= fraction <= 1.0
         new_progress = math.trunc(fraction * len(self.progress_string))
         if new_progress > self.progress:
-            print(self.progress_string[self.progress:new_progress], end='')
+            self.stream.write(
+                str(self.progress_string[self.progress:new_progress]))
             self.progress = new_progress
         if new_progress == len(self.progress_string):
             elapsed = datetime.datetime.utcnow() - self.start_time
             elapsed_str = str(elapsed)[:-5]
-            print(self.suffix.format(elapsed_str), end='')
+            self.stream.write(str(self.suffix.format(elapsed_str)))
+        self.stream.flush()
 
 
 class Undivided(Seedable):
