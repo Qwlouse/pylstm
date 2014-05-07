@@ -118,7 +118,7 @@ class MonitorError(Monitor):
 
         mean_error = np.mean(errors)
         self.log['error'].append(mean_error)
-        print(self.name, "= %0.4f" % mean_error)
+        print(self.__name__, "= %0.4f" % mean_error)
 
 
 class MonitorClassificationError(Monitor):
@@ -159,7 +159,7 @@ class MonitorClassificationError(Monitor):
         error_fraction = total_errors / total
         self.log['classification_error'].append(error_fraction)
         print("{0:40}: Classification Error = {1:0.4f}\t ({2} / {3})".format(
-            self.name, error_fraction, total_errors, total))
+            self.__name__, error_fraction, total_errors, total))
 
 
 class MonitorPooledClassificationError(Monitor):
@@ -199,7 +199,7 @@ class MonitorPooledClassificationError(Monitor):
                 total += t.data.shape[0] * t.data.shape[1]
         error_fraction = total_errors / total
         self.log['classification_error'].append(error_fraction)
-        print(self.name, ":\tClassification Error = %0.4f\t (%d / %d)" %
+        print(self.__name__, ":\tClassification Error = %0.4f\t (%d / %d)" %
               (error_fraction, total_errors, total))
 
 
@@ -226,7 +226,7 @@ class MonitorPhonemeError(Monitor):
             total_length += len(t.data[0])
         error_fraction = total_errors / total_length
         self.log['phoneme_error'].append(error_fraction)
-        print(self.name, ':\tPhoneme Error = %0.4f\t (%d / %d)' %
+        print(self.__name__, ':\tPhoneme Error = %0.4f\t (%d / %d)' %
                          (error_fraction, total_errors, total_length))
 
 

@@ -10,13 +10,36 @@ modify or augment the data.
 """
 
 from __future__ import division, print_function, unicode_literals
-import sys
+import math
+import datetime
 
 import numpy as np
 from pylstm.randomness import Seedable
 
 from pylstm.datasets.preprocessing import shuffle_data
 from pylstm.targets import Targets
+
+
+class ProgressBar(object):
+    def __init__(self):
+        self.start_time = datetime.datetime.utcnow()
+        self.progress = 0
+        self.progress_string = \
+            "====1====2====3====4====5====6====7====8====9====0"
+        self.prefix = '['
+        self.suffix = '] Took: {0}'
+        print(self.prefix, end='')
+
+    def update_progress(self, fraction):
+        assert 0.0 <= fraction <= 1.0
+        new_progress = math.trunc(fraction * len(self.progress_string))
+        if new_progress > self.progress:
+            print(self.progress_string[self.progress:new_progress], end='')
+            self.progress = new_progress
+        if new_progress == len(self.progress_string):
+            elapsed = datetime.datetime.utcnow() - self.start_time
+            elapsed_str = str(elapsed)[:-5]
+            print(self.suffix.format(elapsed_str), end='')
 
 
 class Undivided(Seedable):
@@ -68,8 +91,7 @@ class Minibatches(Seedable):
         self.verbose = verbose
 
     def __call__(self):
-        if self.verbose:
-            _update_progress(0)
+        p = ProgressBar() if self.verbose else None
         nr_sequences = self.input_data.shape[1]
 
         if self.shuffle:
@@ -85,7 +107,7 @@ class Minibatches(Seedable):
             x = input_data[:new_end, i:j, :]
             yield x, t
             if self.verbose:
-                _update_progress(j/nr_sequences)
+                p.update_progress((j+1)/nr_sequences)
 
 
 class Online(Seedable):
@@ -104,8 +126,7 @@ class Online(Seedable):
         self.verbose = verbose
 
     def __call__(self):
-        if self.verbose:
-            _update_progress(0)
+        p = ProgressBar() if self.verbose else None
         nr_sequences = self.input_data.shape[1]
         indices = np.arange(nr_sequences)
         if self.shuffle:
@@ -116,33 +137,7 @@ class Online(Seedable):
             input_data = self.input_data[:new_end, idx:idx+1, :]
             yield input_data, targets
             if self.verbose:
-                _update_progress((i+1)/nr_sequences)
-
-
-def _update_progress(progress):
-    """
-    Progress bar for minibatch and online iterators.
-    """
-    barLength = 50  # Modify this to change the length of the progress bar
-    status = ""
-    if isinstance(progress, int):
-        progress = float(progress)
-    if not isinstance(progress, float):
-        progress = 0
-        status = "error: progress var must be float\r\n"
-    if progress < 0:
-        progress = 0
-        status = "Halt...\r\n"
-    if progress >= 1:
-        progress = 1
-        status = "Done...\r\n"
-    block = int(round(barLength*progress))
-    text = "\rProgress: [{0}{1}] {2}% {3}".format("#" * block,
-                                                  "-" * (barLength-block),
-                                                  round(progress*100, 2),
-                                                  status)
-    sys.stdout.write(text)
-    sys.stdout.flush()
+                p.update_progress((i+1)/nr_sequences)
 
 
 ################## Dataset Modifications ######################
