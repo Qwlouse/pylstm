@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # coding=utf-8
 cimport c_layers as cl
 cimport c_matrix as cm

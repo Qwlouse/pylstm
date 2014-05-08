@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # coding=utf-8
 """
 Quantities like learning_rate and momentum in SgdStep, NesterovStep,
