@@ -5,6 +5,7 @@ from __future__ import division, print_function, unicode_literals
 import numpy as np
 from pylstm.randomness import global_rnd
 from pylstm.targets import create_targets_object
+from collections import defaultdict
 
 
 def approx_fprime(xk,f,epsilon,*args):
@@ -212,3 +213,43 @@ def ctc_best_path_decoding(Y):
             elif y - 1 != t[-1]:
                 t.append(y - 1)
     return t
+
+
+def _ctc_concat(seq, c):
+    if seq[-1] == c:
+        return seq
+    if seq[-1] == '@':
+        return seq[:-1] + c
+    else:
+        return seq + c
+
+
+def ctc_beamsearch(ln_y, alphabet, beam_width=100, length_normalize=False):
+    assert len(alphabet) == ln_y.shape[1]
+    assert alphabet[0] == '@'
+    candidates = {'@': 0}
+
+    for t in range(ln_y.shape[0]):
+        new_candidates = dict()
+        for seq, pr in candidates.items():
+            for i, c in enumerate(alphabet):
+                new_seq = _ctc_concat(seq, c)
+                new_pr = pr + ln_y[t, i]
+                if new_seq not in new_candidates:
+                    new_candidates[new_seq] = new_pr
+                else:
+                    new_candidates[new_seq] = \
+                        np.logaddexp(new_candidates[new_seq], new_pr)
+
+        candidates = dict(sorted(new_candidates.iteritems(),
+                                 key=lambda k: -k[1]
+                                 )[:beam_width])
+
+    final = defaultdict(float)
+    for b in candidates:
+        final[b.strip('@')] += candidates[b]
+
+    if length_normalize:
+        return sorted(final.iteritems(), key=lambda k: -k[1]/len(k[0]))[:beam_width]
+    else:
+        return sorted(final.iteritems(), key=lambda k: -k[1])[:beam_width]
