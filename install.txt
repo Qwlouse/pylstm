@@ -1,0 +1,13 @@
+Make sure that all packages are installed. The list of packages that 
+are needed on a typical Debian installation is in packages-debian.txt
+
+Install cython using pip (instead of the Debian package):
+
+$ pip install cython
+
+The install pylstm by making a build directory, entering it and running cmake:
+
+$ mkdir build
+$ cd build
+$ cmake ..
+
