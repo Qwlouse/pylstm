@@ -2,3 +2,7 @@
 cmake
 python-pip
 python-dev
+libopenblas-dev
+libblas-dev
+libboost-dev
+
