@@ -11,3 +11,23 @@ $ mkdir build
 $ cd build
 $ cmake ..
 
+Run the tests:
+
+$ make test
+
+In orded to run the python tests install nose package:
+
+$ pip install nose
+
+And then run the tests:
+
+$ make pytest
+
+Then you can install it by calling
+
+$ ./setup.py install
+
+Notes:
+- You may want to update numpy to the latest version using pip:
+$ pip install --upgrade numpy
+- On some systems (AMD Opteron), you may need to install OpenBLAS from the sources.
