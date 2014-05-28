@@ -230,7 +230,7 @@ def mask_features(ds, feature_mask):
     @return: new ds dictionary
     """
     masked_ds = {}
-    for usage in ds:
+    for usage in ['training', 'validation', 'test']:
         if ds[usage] is None:
             continue
         input_data, targets = ds[usage]

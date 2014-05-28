@@ -160,6 +160,11 @@ class LabelingTargets(Targets):
             assert_shape_equals(self.mask.shape, (timesteps, batchsize, 1))
         assert len(self.data) == batchsize
 
+    def index_time(self, item):
+        t = self.data
+        m = self.mask[item] if self.mask is not None else None
+        return LabelingTargets(t, m, binarize_to=self.binarize_to)
+
     def __str__(self):
         return "<LabelingTargets len=%d>" % len(self.data)
 
@@ -187,6 +192,11 @@ class SequencewiseTargets(Targets):
             assert_shape_equals(self.data.shape, (batchsize, 1))
         else:
             assert_shape_equals(self.data.shape, (batchsize, out_size))
+
+    def index_time(self, item):
+        t = self.data
+        m = self.mask[item] if self.mask is not None else None
+        return SequencewiseTargets(t, m, binarize_to=self.binarize_to)
 
     def __str__(self):
         return "<SequencewiseTargets dim=%s>" % str(self.data.shape)

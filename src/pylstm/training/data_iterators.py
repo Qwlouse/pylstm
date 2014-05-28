@@ -182,8 +182,5 @@ class FrameDrop(Seedable):
         for x, t in self.data_iter():
             drop_mask = self.rnd.random_sample(x.shape[0]) < self.fraction
             x_drop = x[drop_mask, :, :]
-            if t.is_framewise():
-                t_drop = t.index_time(drop_mask)
-            else:
-                t_drop = t
+            t_drop = t.index_time(drop_mask)
             yield x_drop, t_drop

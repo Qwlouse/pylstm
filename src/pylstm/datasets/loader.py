@@ -245,7 +245,7 @@ def save_dataset_as_hdf5(dataset, filename=None, variant=None):
         hdffile.close()
 
 
-def save_dataset_varianst_as_hdf5(variants, filename):
+def save_dataset_variants_as_hdf5(variants, filename):
     import h5py
     hdffile = h5py.File(filename, "w")
     for var, ds in variants.items():
