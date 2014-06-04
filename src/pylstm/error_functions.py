@@ -272,7 +272,7 @@ def ClassificationError(outputs, targets):
 def _LabelingBinarizingLabelError(outputs, targets, mask):
     errors = 0
     total_length = 0
-    for (y, t) in enumerate(Online(outputs, targets, verbose=False)()):
+    for y, t in Online(outputs, targets, verbose=False)():
         lab = ctc_best_path_decoding(y)
         errors += levenshtein(lab, t.data[0])
         total_length += len(t.data[0])

@@ -74,14 +74,14 @@ class SaveBestWeights(Monitor):
         if min_error_idx == len(e) - 1:
             if self.filename is not None:
                 if self.verbose:
-                    print("Saving weights to {0}...".format(self.filename))
+                    print(">> Saving weights to {0}...".format(self.filename))
                 np.save(self.filename, net.param_buffer)
             else:
                 if self.verbose:
-                    print("Caching weights")
+                    print(">> Caching weights")
                 self.weights = net.param_buffer.copy()
         elif self.verbose:
-            print("Last saved weigths after epoch {}".format(min_error_idx))
+            print(">> Last saved weigths after epoch {}".format(min_error_idx))
 
     def load_weights(self):
         return np.load(self.filename) if self.filename is not None \
@@ -163,14 +163,14 @@ class MonitorMultipleErrors(Monitor):
                 for err_f, agg in zip(self.error_functions, self.aggregators)}
 
 
-class PlotErrors(Monitor):
+class PlotMonitors(Monitor):
     """
     Open a window and plot the training and validation errors while training.
     """
     __undescribed__ = {'plt', 'fig', 'ax', 'lines'}
 
     def __init__(self, name=None, timescale='epoch', interval=1):
-        super(PlotErrors, self).__init__(name, timescale, interval)
+        super(PlotMonitors, self).__init__(name, timescale, interval)
         import matplotlib.pyplot as plt
         self.plt = plt
         self.plt.ion()
@@ -179,7 +179,7 @@ class PlotErrors(Monitor):
         self.lines = None
 
     def start(self, net, stepper, verbose):
-        super(PlotErrors, self).start(net, stepper, verbose)
+        super(PlotMonitors, self).start(net, stepper, verbose)
         self.fig, self.ax = self.plt.subplots()
         self.ax.set_title('Training Progress')
         self.ax.set_xlabel('Epochs')
@@ -187,21 +187,32 @@ class PlotErrors(Monitor):
         self.lines = dict()
         self.plt.show()
 
+    def _plot(self, name, data):
+        if name not in self.lines:
+            line, = self.ax.plot(data[1:], '-', label=name)
+            self.lines[name] = line
+        else:
+            self.lines[name].set_ydata(data[1:])
+            self.lines[name].set_xdata(range(1, len(data)))
+
     def __call__(self, epoch, net, stepper, logs):
+        if epoch < 2:
+            return
+
         for name, log in logs.items():
-            if not isinstance(log, list) or not log:
+            if not isinstance(log, (list, dict)) or not log:
                 continue
-            if name not in self.lines:
-                line, = self.ax.plot(log, '-', label=name)
-                self.lines[name] = line
+            if isinstance(log, dict):
+                for k, v in log.items():
+                    self._plot(name + '.' + k, v)
             else:
-                self.lines[name].set_ydata(log)
-                self.lines[name].set_xdata(range(len(log)))
+                self._plot(name, log)
 
         self.ax.legend()
         self.ax.relim()
         self.ax.autoscale_view()
         self.fig.canvas.draw()
+        self.fig.canvas.draw()  # no idea why I need that twice, but I do
 
 
 class MonitorLayerProperties(Monitor):

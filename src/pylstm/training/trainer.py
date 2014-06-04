@@ -140,7 +140,7 @@ def _call_monitor(monitor, monitoring_arguments):
     try:
         return monitor(**monitoring_arguments), False
     except StopIteration as err:
-        print("Stopping because:", err)
+        print(">> Stopping because:", err)
         if hasattr(err, 'value'):
             return err.value, True
 
