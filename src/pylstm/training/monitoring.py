@@ -158,39 +158,6 @@ class MonitorMultipleErrors(Monitor):
                 for err_f, agg in zip(self.error_functions, self.aggregators)}
 
 
-class MonitorPooledClassificationError(Monitor):
-    """
-        Monitor the classification error assuming one-hot encoding of targets
-        with pooled targets with an odd pool size.
-        """
-    def __init__(self, data_iter, pool_size, name=None, timescale='epoch',
-                 interval=1):
-        super(MonitorPooledClassificationError, self).__init__(name, timescale,
-                                                               interval)
-        self.data_iter = data_iter
-        self.pool_size = pool_size
-    
-    def __call__(self, epoch, net, stepper, logs):
-        total_errors = 0
-        total = 0
-        for x, t in self.data_iter(self.verbose):
-            relevant_from = (t.data.shape[2] / self.pool_size) * \
-                            (self.pool_size // 2)
-            relevant_to = relevant_from + (t.shape[2] / self.pool_size)
-            t = t[:, :, relevant_from: relevant_to]
-            y = net.forward_pass(x)
-            y_win = y.argmax(2)
-            t_win = t.argmax(2)  # fixme: offset by relevant_from?
-            if t.mask is not None:
-                total_errors += np.sum((y_win != t_win) * t.mask[:, :, 0])
-                total += np.sum(t.mask)
-            else:
-                total_errors += np.sum((y_win != t_win))
-                total += t.data.shape[0] * t.data.shape[1]
-        error_fraction = total_errors / total
-        return error_fraction
-
-
 class PlotErrors(Monitor):
     """
     Open a window and plot the training and validation errors while training.
