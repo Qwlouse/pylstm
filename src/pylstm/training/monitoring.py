@@ -9,6 +9,11 @@ from collections import OrderedDict
 
 class Monitor(Describable):
     __undescribed__ = {'__name__'}  # the name is saved in the trainer
+    __default_values__ = {
+        'timescale': 'epoch',
+        'interval': 1,
+        'verbose': None
+    }
 
     def __init__(self, name=None, timescale='epoch', interval=1, verbose=None):
         self.timescale = timescale
@@ -52,9 +57,8 @@ class SaveBestWeights(Monitor):
     is no validation error) is at it's minimum and if so, save the weights to
     the specified file.
     """
-    __undescribed__ = {
-        'weights': None
-    }
+    __undescribed__ = {'weights': None}
+    __default_values__ = {'filename': None}
 
     def __init__(self, error_log_name, filename=None, name=None, verbose=None):
         super(SaveBestWeights, self).__init__(name, 'epoch', 1, verbose)

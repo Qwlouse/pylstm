@@ -30,6 +30,7 @@ class Gaussian(Initializer):
     Initializes the weights randomly according to a normal distribution of
     given mean and standard deviation.
     """
+    __default_values__ = {'mean': 0.0}
 
     def __init__(self, std=0.1, mean=0.0):
         super(Gaussian, self).__init__()

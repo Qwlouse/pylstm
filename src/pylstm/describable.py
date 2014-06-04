@@ -12,6 +12,7 @@ class Describable(object):
     description.
     """
     __undescribed__ = {}
+    __default_values__ = {}
 
     @classmethod
     def __get_all_undescribed__(cls):
@@ -24,6 +25,16 @@ class Describable(object):
                 elif isinstance(c_ignore, set):
                     ignore.update({k: None for k in c_ignore})
         return ignore
+
+    @classmethod
+    def __get_all_default_values__(cls):
+        default = {}
+        for c in reversed(cls.__mro__):
+            if hasattr(c, '__default_values__'):
+                c_default = c.__default_values__
+                if isinstance(c_default, dict):
+                    default.update(c_default)
+        return default
 
     def __describe__(self):
         """
@@ -38,8 +49,11 @@ class Describable(object):
         """
         description = {}
         ignorelist = self.__get_all_undescribed__()
+        defaultlist = self.__get_all_default_values__()
         for member, value in self.__dict__.items():
             if member in ignorelist:
+                continue
+            if member in defaultlist and defaultlist[member] == value:
                 continue
             description[member] = get_description(value)
 
@@ -64,6 +78,9 @@ class Describable(object):
         instance = cls.__new__(cls)
 
         for member, default_val in cls.__get_all_undescribed__().items():
+            instance.__dict__[member] = deepcopy(default_val)
+
+        for member, default_val in cls.__get_all_default_values__().items():
             instance.__dict__[member] = deepcopy(default_val)
 
         for member, descr in description.items():

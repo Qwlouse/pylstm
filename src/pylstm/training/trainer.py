@@ -12,6 +12,7 @@ class Trainer(Describable):
         'epochs_seen': 0,
         'logs': {}
     }
+    __default_values__ = {'verbose': True}
 
     def __init__(self, stepper, verbose=True):
         self.stepper = stepper

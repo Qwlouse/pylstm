@@ -98,6 +98,7 @@ class MomentumStep(TrainingStep):
     learning_rate is multiplied by (1 - momentum) when used.
     """
     __undescribed__ = {'velocity'}
+    __default_values__ = {'scale_learning_rate': True}
 
     def __init__(self, learning_rate=0.1, momentum=0.0,
                  scale_learning_rate=True):

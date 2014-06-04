@@ -7,6 +7,8 @@ from .monitoring import Monitor
 
 
 class ErrorRises(Monitor):
+    __default_values__ = {'delay': 1}
+
     def __init__(self, error, delay=1, name=None):
         super(ErrorRises, self).__init__(name, 'epoch', 1)
         self.error = error.split('.')
