@@ -19,10 +19,9 @@ class Monitor(Describable):
             self.__name__ = name
         self.priority = 0
         self.verbose = verbose
-        self.verbose_set = (verbose is not None)
 
     def start(self, net, stepper, verbose):
-        if not self.verbose_set:
+        if self.verbose is None:
             self.verbose = verbose
 
     def __call__(self, epoch, net, stepper, logs):
