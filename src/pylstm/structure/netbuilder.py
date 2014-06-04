@@ -4,12 +4,12 @@ from __future__ import division, print_function, unicode_literals
 from collections import OrderedDict
 from copy import copy
 from pylstm.describable import create_from_description
-from pylstm.structure.buffer_construction import (
-    create_param_manager, create_fwd_state_manager,
-    create_bwd_state_manager, create_in_out_manager)
-from pylstm.structure.network import Network
 from pylstm.error_functions import MeanSquaredError, get_error_function_by_name
-from pylstm.structure.construction_layer import instantiate_layer
+from .construction_layer import instantiate_layer
+from .buffer_construction import (
+    create_param_manager, create_fwd_state_manager, create_bwd_state_manager,
+    create_in_out_manager)
+from .network import Network
 
 
 def find_input_layer(some_layer):

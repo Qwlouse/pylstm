@@ -17,7 +17,7 @@ import sys
 import numpy as np
 from pylstm.randomness import Seedable
 
-from pylstm.datasets.preprocessing import shuffle_data
+from .preprocessing import shuffle_data
 from pylstm.targets import Targets
 
 

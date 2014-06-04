@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
+
 import numpy as np
+
 from pylstm.describable import Describable
 from pylstm.randomness import Seedable
 from pylstm.targets import Targets
-from .data_iterators import Minibatches
+from pylstm.datasets.data_iterators import Minibatches
 from .schedules import get_schedule
 from .utils import conjugate_gradient
 

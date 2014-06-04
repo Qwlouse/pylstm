@@ -3,7 +3,7 @@
 
 from __future__ import division, print_function, unicode_literals
 import numpy as np
-from pylstm.training.monitoring import Monitor
+from .monitoring import Monitor
 
 
 class ErrorRises(Monitor):

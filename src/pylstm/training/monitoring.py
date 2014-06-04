@@ -87,8 +87,8 @@ aggregate_error = lambda x: np.mean(x, axis=0)
 
 
 def aggregate_class_error(x):
-    e = np.sum(x, axis=1)
-    return e[0] / e[1]
+    e = np.sum(x, axis=0)
+    return np.round(e[0] * 100. / e[1], 2)
 
 
 class MonitorError(Monitor):

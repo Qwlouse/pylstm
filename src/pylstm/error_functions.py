@@ -1,13 +1,15 @@
 #!/usr/bin/env python
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
+
 import numpy as np
+
+from pylstm.wrapper import ctcpp
 from pylstm.datasets.preprocessing import binarize_array
 from pylstm.targets import create_targets_object
 from pylstm.utils import get_sequence_lengths, ctc_best_path_decoding, \
     levenshtein
-from .training.data_iterators import Online
-from .wrapper import ctcpp
+from pylstm.datasets.data_iterators import Online
 
 
 def _not_implemented(*_):
@@ -270,7 +272,7 @@ def ClassificationError(outputs, targets):
 def _LabelingBinarizingLabelError(outputs, targets, mask):
     errors = 0
     total_length = 0
-    for b, (y, t) in enumerate(Online(outputs, targets, verbose=False)()):
+    for (y, t) in enumerate(Online(outputs, targets, verbose=False)()):
         lab = ctc_best_path_decoding(y)
         errors += levenshtein(lab, t.data[0])
         total_length += len(t.data[0])
