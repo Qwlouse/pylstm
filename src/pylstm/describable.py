@@ -93,7 +93,8 @@ def get_description(this):
         return {k: get_description(v) for k, v in this.items()}
     elif (isinstance(this, bool) or
           isinstance(this, _numerical_types) or
-          isinstance(this, _text_type)):
+          isinstance(this, _text_type) or
+          isinstance(this, _none_type)):
         return this
     else:
         raise TypeError('Type: "%s" is not describable' % type(this))
@@ -112,7 +113,8 @@ def create_from_description(description):
                     for k, v in description.items()}
     elif (isinstance(description, bool) or
           isinstance(description, _numerical_types) or
-          isinstance(description, _text_type)):
+          isinstance(description, _text_type) or
+          isinstance(description, _none_type)):
         return description
     elif isinstance(description, list):
         return [create_from_description(d) for d in description]
@@ -138,3 +140,5 @@ if sys.version < '3':
 else:
     _numerical_types = (int, float)
     _text_type = str
+
+_none_type = type(None)
