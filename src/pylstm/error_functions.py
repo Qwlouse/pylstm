@@ -4,6 +4,8 @@ from __future__ import division, print_function, unicode_literals
 import numpy as np
 from pylstm.datasets.preprocessing import binarize_array
 from pylstm.targets import create_targets_object
+from pylstm.utils import get_sequence_lengths, ctc_best_path_decoding, \
+    levenshtein
 from .training.data_iterators import Online
 from .wrapper import ctcpp
 
@@ -193,19 +195,101 @@ def CTC(outputs, targets):
 ################################################################################
 # Classification Error for monitoring
 
+def _FramewiseClassificationError(outputs, targets, mask):
+    y_win = outputs.argmax(2)
+    t_win = targets.argmax(2)
+    if mask is not None:
+        errors = np.sum((y_win != t_win) * mask[:, :, 0])
+        total = np.sum(mask)
+    else:
+        errors = np.sum((y_win != t_win))
+        total = targets.shape[0] * targets.shape[1]
+    return (errors, total), None
+
+
+def _FramewiseBinarizingClassificationError(outputs, targets, mask):
+    y_win = outputs.argmax(2)
+    t_win = targets[:, :, 0]
+    if mask is not None:
+        errors = np.sum((y_win != t_win) * mask[:, :, 0])
+        total = np.sum(mask)
+    else:
+        errors = np.sum((y_win != t_win))
+        total = targets.shape[0] * targets.shape[1]
+    return (errors, total), None
+
+
+def _SequencewiseClassificationError(outputs, targets, mask):
+    if mask is None:
+        y_win = outputs[-1, :, :].argmax(1)
+        t_win = targets[:, :].argmax(1)
+        errors = np.sum((y_win != t_win))
+    else:
+        errors = 0
+        for b, t in enumerate(get_sequence_lengths(mask)):
+            if outputs[t, b, :].argmax() != targets[b, :].argmax():
+                errors += 1
+
+    return (errors, outputs.shape[1]), None
+
+
+def _SequencewiseBinarizingClassificationError(outputs, targets, mask):
+    if mask is None:
+        y_win = outputs[-1, :, :].argmax(1)
+        t_win = targets[:, 0]
+        errors = np.sum((y_win != t_win))
+    else:
+        errors = 0
+        for b, t in enumerate(get_sequence_lengths(mask)):
+            if outputs[t, b, :].argmax() != targets[b, 0]:
+                errors += 1
+
+    return (errors, outputs.shape[1]), None
+
+
+
 ClassificationError_implementations = {
-    ('F', False): _not_implemented,
-    ('F', True): _not_implemented,
+    ('F', False): _FramewiseClassificationError,
+    ('F', True): _FramewiseBinarizingClassificationError,
     ('L', False): _illegal_combination,
     ('L', True): _illegal_combination,
-    ('S', False): _not_implemented,
-    ('S', True): _not_implemented
+    ('S', False): _SequencewiseClassificationError,
+    ('S', True): _SequencewiseBinarizingClassificationError
 }
 
 
 def ClassificationError(outputs, targets):
     targets.validate_for_output_shape(*outputs.shape)
     return ClassificationError_implementations[targets.targets_type](
+        outputs, targets.data, targets.mask)
+
+
+################################################################################
+# Label Error for monitoring
+
+def _LabelingBinarizingLabelError(outputs, targets, mask):
+    errors = 0
+    total_length = 0
+    for b, (y, t) in enumerate(Online(outputs, targets, verbose=False)()):
+        lab = ctc_best_path_decoding(y)
+        errors += levenshtein(lab, t.data[0])
+        total_length += len(t.data[0])
+
+    return (errors, total_length), None
+
+LabelError_implementations = {
+    ('F', False): _illegal_combination,
+    ('F', True): _illegal_combination,
+    ('L', False): _not_implemented,
+    ('L', True): _LabelingBinarizingLabelError,
+    ('S', False): _illegal_combination,
+    ('S', True): _illegal_combination
+}
+
+
+def LabelingError(outputs, targets):
+    targets.validate_for_output_shape(*outputs.shape)
+    return LabelError_implementations[targets.targets_type](
         outputs, targets, targets.mask)
 
 

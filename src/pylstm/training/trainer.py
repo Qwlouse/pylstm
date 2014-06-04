@@ -45,7 +45,7 @@ class Trainer(Describable):
         self.logs = {'training_errors': [float('NaN')]}
         for name, monitor in self.monitors.items():
             try:
-                monitor.start(net, self.stepper)
+                monitor.start(net, self.stepper, self.verbose)
             except AttributeError:
                 pass
 

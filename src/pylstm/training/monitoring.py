@@ -2,9 +2,8 @@
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 import numpy as np
-from pylstm.utils import ctc_best_path_decoding
 from pylstm.describable import Describable
-from .utils import levenshtein
+from pylstm.error_functions import ClassificationError, LabelingError
 from collections import OrderedDict
 
 
@@ -84,17 +83,26 @@ class SaveBestWeights(Monitor):
             else self.weights
 
 
+aggregate_error = lambda x: np.mean(x, axis=0)
+
+
+def aggregate_class_error(x):
+    e = np.sum(x, axis=1)
+    return e[0] / e[1]
+
+
 class MonitorError(Monitor):
     """
-    Monitor the given error (averaged over all sequences).
+    Monitor the given error (aggregated over all sequences).
     """
     def __init__(self, data_iter, error_func=None, name=None,
-                 timescale='epoch', interval=1):
+                 aggregate=aggregate_error, timescale='epoch', interval=1):
         if name is None and error_func is not None:
             name = 'Monitor' + error_func.__name__
         super(MonitorError, self).__init__(name, timescale, interval)
         self.data_iter = data_iter
         self.error_func = error_func
+        self.aggregate = aggregate
 
     def __call__(self, epoch, net, stepper, logs):
         error_func = self.error_func or net.error_func
@@ -103,59 +111,51 @@ class MonitorError(Monitor):
             y = net.forward_pass(x)
             error, _ = error_func(y, t)
             errors.append(error)
-
-        mean_error = np.mean(errors)
-        return mean_error
+        return self.aggregate(errors)
 
 
-class MonitorLabelError(Monitor):
-    """
-    Monitor the label-error using ctc_best_path_decoding and
-    levenshtein distance.
-    """
+class MonitorClassificationError(MonitorError):
     def __init__(self, data_iter, name=None, timescale='epoch', interval=1):
-        super(MonitorLabelError, self).__init__(name, timescale, interval)
+        super(MonitorClassificationError, self).__init__(
+            data_iter,
+            error_func=ClassificationError,
+            aggregate=aggregate_class_error,
+            name=name, timescale=timescale, interval=interval)
+
+
+class MonitorLabelingError(MonitorError):
+    def __init__(self, data_iter, name=None, timescale='epoch', interval=1):
+        super(MonitorLabelingError, self).__init__(
+            data_iter,
+            error_func=LabelingError,
+            aggregate=aggregate_class_error,
+            name=name, timescale=timescale, interval=interval)
+
+
+class MonitorMultipleErrors(Monitor):
+    """
+    Monitor errors (aggregated over all sequences).
+    """
+    def __init__(self, data_iter, error_functions, name=None,
+                 aggregators=aggregate_error, timescale='epoch', interval=1):
+        super(MonitorMultipleErrors, self).__init__(name, timescale, interval)
         self.data_iter = data_iter
+        self.error_functions = error_functions
+        if isinstance(aggregators, (list, tuple)):
+            self.aggregators = aggregators
+        else:
+            self.aggregators = [aggregators] * len(error_functions)
 
     def __call__(self, epoch, net, stepper, logs):
-        total_errors = 0
-        total_length = 0
+        errors = {e: [] for e in self.error_functions}
         for x, t in self.data_iter(self.verbose):
-            assert t.targets_type == ('L', True)
             y = net.forward_pass(x)
-            lab = ctc_best_path_decoding(y)
-            total_errors += levenshtein(lab, t.data[0])
-            total_length += len(t.data[0])
-        error_fraction = total_errors / total_length
-        return error_fraction
+            for error_func in self.error_functions:
+                error, _ = error_func(y, t)
+                errors[error_func].append(error)
 
-
-class MonitorClassificationError(Monitor):
-    """
-    Monitor the classification error assuming one-hot encoding of targets.
-    """
-    def __init__(self, data_iter, name=None, timescale='epoch', interval=1):
-        super(MonitorClassificationError, self).__init__(name, timescale,
-                                                         interval)
-        self.data_iter = data_iter
-
-    def __call__(self, epoch, net, stepper, logs):
-        total_errors = 0
-        total = 0
-        for x, t in self.data_iter(self.verbose):
-            assert t.targets_type == ('F', True), \
-                "Target type not suitable for classification error monitoring."
-            y = net.forward_pass(x)
-            y_win = y.argmax(2)
-            t_win = t.data[:, :, 0]
-            if t.mask is not None:
-                total_errors += np.sum((y_win != t_win) * t.mask[:, :, 0])
-                total += np.sum(t.mask)
-            else:
-                total_errors += np.sum((y_win != t_win))
-                total += t.data.shape[0] * t.data.shape[1]
-        error_fraction = total_errors / total
-        return error_fraction
+        return {err_f.__name__: agg(errors[err_f])
+                for err_f, agg in zip(self.error_functions, self.aggregators)}
 
 
 class MonitorPooledClassificationError(Monitor):
@@ -250,6 +250,6 @@ class MonitorLayerProperties(Monitor):
             log['max_' + key] = value.max()
             #if key.split('_')[-1] != 'bias':
             if value.shape[1] > 1:
-                log['min_sq_norm_' + key] = (value ** 2).sum(1).min()
-                log['max_sq_norm_' + key] = (value ** 2).sum(1).max()
+                log['min_sq_norm_' + key] = np.sum(value ** 2, axis=1).min()
+                log['max_sq_norm_' + key] = np.sum(value ** 2, axis=1).max()
         return log
