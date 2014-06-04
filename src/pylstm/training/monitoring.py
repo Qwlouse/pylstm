@@ -4,37 +4,33 @@ from __future__ import division, print_function, unicode_literals
 import numpy as np
 from pylstm.utils import ctc_best_path_decoding
 from pylstm.describable import Describable
-from .utils import levenshtein, get_min_err
+from .utils import levenshtein
 from collections import OrderedDict
 
 
 class Monitor(Describable):
-    __undescribed__ = {'__name__'}
+    __undescribed__ = {'__name__'}  # the name is saved in the trainer
 
-    def __init__(self, name=None):
+    def __init__(self, name=None, timescale='epoch', interval=1):
+        self.timescale = timescale
+        self.interval = interval
         if name is None:
             self.__name__ = self.__class__.__name__
         else:
             self.__name__ = name
         self.priority = 0
 
-    def __call__(self, epoch, net, stepper, training_errors, validation_errors):
+    def start(self, net, stepper):
+        pass
+
+    def __call__(self, epoch, net, stepper, logs):
         pass
 
 
 class PrintError(Monitor):
-    def __init__(self, timescale='epoch', interval=1):
-        super(PrintError, self).__init__()
-        self.timescale = timescale
-        self.interval = interval
-
-    def __call__(self, epoch, training_errors, validation_errors, **_):
-        if validation_errors:
-            print("\nEpoch %d:\tTraining error = %0.4f Validation error = %0.4f"
-                  % (epoch, training_errors[-1], validation_errors[-1]))
-        else:
-            print("\nEpoch %d:\tTraining error = %0.4f"
-                  % (epoch, training_errors[-1]))
+    def __call__(self, epoch, net, stepper, logs):
+        print("\nEpoch %d:\tTraining error = %0.4f"
+              % (epoch, logs['training_errors'][-1]))
 
 
 class SaveWeights(Monitor):
@@ -45,12 +41,10 @@ class SaveWeights(Monitor):
     """
 
     def __init__(self, filename, name=None, timescale='epoch', interval=1):
-        super(SaveWeights, self).__init__(name)
-        self.timescale = timescale
-        self.interval = interval
+        super(SaveWeights, self).__init__(name, timescale, interval)
         self.filename = filename
 
-    def __call__(self, net, **_):
+    def __call__(self, epoch, net, stepper, logs):
         np.save(self.filename, net.param_buffer)
 
     def load_weights(self):
@@ -67,17 +61,17 @@ class SaveBestWeights(Monitor):
         'weights': None
     }
 
-    def __init__(self, filename=None, name=None, verbose=True):
-        super(SaveBestWeights, self).__init__(name)
-        self.timescale = 'epoch'
-        self.interval = 1
+    def __init__(self, error_log_name, filename=None, name=None, verbose=True):
+        super(SaveBestWeights, self).__init__(name, 'epoch', 1)
+        self.error_log_name = error_log_name
         self.filename = filename
         self.weights = None
         self.verbose = verbose
 
-    def __call__(self, net, training_errors, validation_errors, **_):
-        e = validation_errors if len(validation_errors) > 0 else training_errors
-        if np.argmin(e) == len(e) - 1:
+    def __call__(self, epoch, net, stepper, logs):
+        e = logs[self.error_log_name]
+        min_error_idx = np.argmin(e)
+        if min_error_idx == len(e) - 1:
             if self.filename is not None:
                 if self.verbose:
                     print("Saving weights to {0}...".format(self.filename))
@@ -86,6 +80,8 @@ class SaveBestWeights(Monitor):
                 if self.verbose:
                     print("Caching weights")
                 self.weights = net.param_buffer.copy()
+        elif self.verbose:
+            print("Last saved weigths after epoch {}".format(min_error_idx))
 
     def load_weights(self):
         return np.load(self.filename) if self.filename is not None \
@@ -96,60 +92,69 @@ class MonitorError(Monitor):
     """
     Monitor the given error (averaged over all sequences).
     """
-    __undescribed__ = {
-        'log': {'error': []}
-    }
-
-    def __init__(self, data_iter, error, name=None, timescale='epoch',
-                 interval=1):
-        super(MonitorError, self).__init__(name)
-        self.timescale = timescale
-        self.interval = interval
+    def __init__(self, data_iter, error_func=None, name=None,
+                 timescale='epoch', interval=1):
+        if name is None and error_func is not None:
+            name = 'Monitor' + error_func.__name__
+        super(MonitorError, self).__init__(name, timescale, interval)
         self.data_iter = data_iter
-        self.error_func = error
-        self.log = {'error': []}
+        self.error_func = error_func
 
-    def __call__(self, net, **_):
+    def __call__(self, epoch, net, stepper, logs):
+        error_func = self.error_func or net.error_func
         errors = []
         for x, t in self.data_iter():
             y = net.forward_pass(x)
-            error, _ = self.error_func(y, t)
+            error, _ = error_func(y, t)
             errors.append(error)
 
         mean_error = np.mean(errors)
-        self.log['error'].append(mean_error)
-        print(self.__name__, "= %0.4f" % mean_error)
+        print(self.__name__, "= %0.4f" % mean_error)  # todo: print in trainer?
+        return mean_error
+
+
+class MonitorLabelError(Monitor):
+    """
+    Monitor the label-error using ctc_best_path_decoding and
+    levenshtein distance.
+    """
+    def __init__(self, data_iter, name=None, timescale='epoch', interval=1):
+        super(MonitorLabelError, self).__init__(name, timescale, interval)
+        self.data_iter = data_iter
+
+    def __call__(self, epoch, net, stepper, logs):
+        total_errors = 0
+        total_length = 0
+        for x, t in self.data_iter():
+            assert t.targets_type == ('L', True)
+            y = net.forward_pass(x)
+            lab = ctc_best_path_decoding(y)
+            total_errors += levenshtein(lab, t.data[0])
+            total_length += len(t.data[0])
+        error_fraction = total_errors / total_length
+        print(self.__name__, ':\tLabel Error = %0.4f\t (%d / %d)' %
+              (error_fraction, total_errors, total_length))
+        return error_fraction
 
 
 class MonitorClassificationError(Monitor):
     """
     Monitor the classification error assuming one-hot encoding of targets.
     """
-    __undescribed__ = {
-        'log': {'classification_error': []}
-    }
-
     def __init__(self, data_iter, name=None, timescale='epoch', interval=1):
-        super(MonitorClassificationError, self).__init__(name)
-        self.timescale = timescale
-        self.interval = interval
+        super(MonitorClassificationError, self).__init__(name, timescale,
+                                                         interval)
         self.data_iter = data_iter
-        self.log = {'classification_error': []}
 
-    def __call__(self, net, **_):
+    def __call__(self, epoch, net, stepper, logs):
         total_errors = 0
         total = 0
         for x, t in self.data_iter():
-            assert t.targets_type in [('F', False), ('F', True),
-                                      ('S', False), ('S', True)], \
+            assert t.targets_type == ('F', True), \
                 "Target type not suitable for classification error monitoring."
             y = net.forward_pass(x)
             y_win = y.argmax(2)
-            if t.binarize_to is not None:
-                t_win = t.data[:, :, 0]
-            else:
-                t_win = t.data.argmax(2)
-
+            t_win = t.data[:, :, 0]
             if t.mask is not None:
                 total_errors += np.sum((y_win != t_win) * t.mask[:, :, 0])
                 total += np.sum(t.mask)
@@ -157,9 +162,9 @@ class MonitorClassificationError(Monitor):
                 total_errors += np.sum((y_win != t_win))
                 total += t.data.shape[0] * t.data.shape[1]
         error_fraction = total_errors / total
-        self.log['classification_error'].append(error_fraction)
         print("{0:40}: Classification Error = {1:0.4f}\t ({2} / {3})".format(
             self.__name__, error_fraction, total_errors, total))
+        return error_fraction
 
 
 class MonitorPooledClassificationError(Monitor):
@@ -167,20 +172,14 @@ class MonitorPooledClassificationError(Monitor):
         Monitor the classification error assuming one-hot encoding of targets
         with pooled targets with an odd pool size.
         """
-    __undescribed__ = {
-        'log': {'classification_error': []}
-    }
-
     def __init__(self, data_iter, pool_size, name=None, timescale='epoch',
                  interval=1):
-        super(MonitorPooledClassificationError, self).__init__(name)
-        self.timescale = timescale
-        self.interval = interval
+        super(MonitorPooledClassificationError, self).__init__(name, timescale,
+                                                               interval)
         self.data_iter = data_iter
         self.pool_size = pool_size
-        self.log = {'classification_error': []}
     
-    def __call__(self, net, **_):
+    def __call__(self, epoch, net, stepper, logs):
         total_errors = 0
         total = 0
         for x, t in self.data_iter():
@@ -190,7 +189,7 @@ class MonitorPooledClassificationError(Monitor):
             t = t[:, :, relevant_from: relevant_to]
             y = net.forward_pass(x)
             y_win = y.argmax(2)
-            t_win = t.argmax(2)
+            t_win = t.argmax(2)  # fixme: offset by relevant_from?
             if t.mask is not None:
                 total_errors += np.sum((y_win != t_win) * t.mask[:, :, 0])
                 total += np.sum(t.mask)
@@ -198,133 +197,46 @@ class MonitorPooledClassificationError(Monitor):
                 total_errors += np.sum((y_win != t_win))
                 total += t.data.shape[0] * t.data.shape[1]
         error_fraction = total_errors / total
-        self.log['classification_error'].append(error_fraction)
         print(self.__name__, ":\tClassification Error = %0.4f\t (%d / %d)" %
               (error_fraction, total_errors, total))
-
-
-class MonitorPhonemeError(Monitor):
-    """
-    Monitor the classification error assuming one-hot encoding of targets.
-    """
-    __undescribed__ = {'phoneme_error': []}
-
-    def __init__(self, data_iter, name=None, timescale='epoch', interval=1):
-        super(MonitorPhonemeError, self).__init__(name)
-        self.timescale = timescale
-        self.interval = interval
-        self.data_iter = data_iter
-        self.log = {'phoneme_error': []}
-
-    def __call__(self, net, **_):
-        total_errors = 0
-        total_length = 0
-        for x, t in self.data_iter():
-            y = net.forward_pass(x)
-            lab = ctc_best_path_decoding(y)
-            total_errors += levenshtein(lab, t.data[0])
-            total_length += len(t.data[0])
-        error_fraction = total_errors / total_length
-        self.log['phoneme_error'].append(error_fraction)
-        print(self.__name__, ':\tPhoneme Error = %0.4f\t (%d / %d)' %
-                         (error_fraction, total_errors, total_length))
+        return error_fraction
 
 
 class PlotErrors(Monitor):
     """
     Open a window and plot the training and validation errors while training.
     """
-    __undescribed__ = {'plt', 'fig', 'ax', 't_line', 'v_line', 'v_dot'}
+    __undescribed__ = {'plt', 'fig', 'ax', 'lines'}
 
-    def __init__(self, timescale='epoch', interval=1, name=None):
-        super(PlotErrors, self).__init__(name)
-        self.timescale = timescale
-        self.interval = interval
+    def __init__(self, name=None, timescale='epoch', interval=1):
+        super(PlotErrors, self).__init__(name, timescale, interval)
         import matplotlib.pyplot as plt
-
         self.plt = plt
         self.plt.ion()
+        self.fig = None
+        self.ax = None
+        self.lines = None
+
+    def start(self, net, stepper):
         self.fig, self.ax = self.plt.subplots()
         self.ax.set_title('Training Progress')
         self.ax.set_xlabel('Epochs')
         self.ax.set_ylabel('Error')
-        self.t_line = None
-        self.v_line = None
-        self.v_dot = None
+        self.lines = dict()
         self.plt.show()
 
-    def __call__(self, training_errors, validation_errors, **_):
-        if self.v_line is None and validation_errors:
-                self.v_line, = self.ax.plot(validation_errors, 'b-',
-                                            label='Validation Error')
+    def __call__(self, epoch, net, stepper, logs):
+        for name, log in logs.items():
+            if not isinstance(log, list) or not log:
+                continue
+            if name not in self.lines:
+                line, = self.ax.plot(log, '-', label=name)
+                self.lines[name] = line
+            else:
+                self.lines[name].set_ydata(log)
+                self.lines[name].set_xdata(range(len(log)))
 
-        if self.t_line is None:
-            if training_errors:
-                self.t_line, = self.ax.plot(training_errors, 'g-',
-                                            label='Training Error')
-                if validation_errors:
-                    min_ep, min_err = get_min_err(validation_errors)
-                    self.v_dot, = self.ax.plot([min_ep], min_err, 'bo')
-            self.ax.legend()
-            self.fig.canvas.draw()
-            return
-
-        self.t_line.set_ydata(training_errors)
-        self.t_line.set_xdata(range(len(training_errors)))
-        if self.v_line is not None and validation_errors:
-            self.v_line.set_ydata(validation_errors)
-            self.v_line.set_xdata(range(len(validation_errors)))
-            min_ep, min_err = get_min_err(validation_errors)
-            self.v_dot.set_ydata([min_err])
-            self.v_dot.set_xdata([min_ep])
-        self.ax.relim()
-        self.ax.autoscale_view()
-        self.fig.canvas.draw()
-
-
-class PlotMonitors(Monitor):
-    """
-    Open a window and plot the log entries of the given monitors.
-    """
-    __undescribed__ = {
-        'plt': None,
-        'fig': None,
-        'ax': None,
-        'line_dict': dict()
-    }
-
-    def __init__(self, monitors, timescale='epoch', interval=1, name=None):
-        super(PlotMonitors, self).__init__(name)
-        self.timescale = timescale
-        self.interval = interval
-        self.monitors = monitors
-        import matplotlib.pyplot as plt
-
-        self.plt = plt
-        self.plt.ion()
-        self.fig, self.ax = self.plt.subplots()
-        self.ax.set_title('Plotting Monitors')
-        self.ax.set_xlabel('Epochs')
-        self.ax.set_ylabel('Error')
-        self.line_dict = dict()
-        self.plt.show()
-
-    def __call__(self, **_):
-        for m in self.monitors:
-            for k in m.log:
-                n = m.name + '.' + k
-                if n not in self.line_dict and m.log[k]:
-                    self.line_dict[n], = self.ax.plot(m.log[k], '-', label=n)
-
-            self.ax.legend()
-            self.fig.canvas.draw()
-
-        for m in self.monitors:
-            for k in m.log:
-                n = m.name + '.' + k
-                self.line_dict[n].set_ydata(m.log[k])
-                self.line_dict[n].set_xdata(range(len(m.log[k])))
-
+        self.ax.legend()
         self.ax.relim()
         self.ax.autoscale_view()
         self.fig.canvas.draw()
@@ -333,41 +245,28 @@ class PlotMonitors(Monitor):
 class MonitorLayerProperties(Monitor):
     """
     Monitor some properties of a layer.
-    Also logs the initial values of the properties at creating time (before training).
     """
-    __undescribed__ = {
-        "log": OrderedDict()
-    }
-
-    def __init__(self, net, layer_name, display=True, timescale='epoch',
+    def __init__(self, layer_name, verbose=True, timescale='epoch',
                  interval=1, name=None):
-        super(MonitorLayerProperties, self).__init__(name)
-        self.timescale = timescale
-        self.interval = interval
+        if name is None:
+            name = "Monitor{}Properties".format(layer_name)
+        super(MonitorLayerProperties, self).__init__(name, timescale, interval)
         self.layer_name = layer_name
-        self.display = display
-        self.layer_type = net.layers[layer_name].get_typename()
-        self.log = OrderedDict()
+        self.verbose = verbose
+
+    def __call__(self, epoch, net, stepper, logs):
+        log = OrderedDict()
         for key, value in net.get_param_view_for(self.layer_name).items():
+            log['min_' + key] = value.min()
+            log['max_' + key] = value.max()
+            #if key.split('_')[-1] != 'bias':
+            if value.shape[1] > 1:
+                log['min_sq_norm_' + key] = (value ** 2).sum(1).min()
+                log['max_sq_norm_' + key] = (value ** 2).sum(1).max()
 
-            # Log initial values
-            self.log[self.layer_name + '_min_' + key] = [value.min()]
-            self.log[self.layer_name + '_max_' + key] = [value.max()]
-            if key.split('_')[-1] != 'bias':
-                self.log[self.layer_name + '_min_sq_norm_' + key] = [
-                    ((value ** 2).sum(1)).min()]
-                self.log[self.layer_name + '_max_sq_norm_' + key] = [
-                    ((value ** 2).sum(1)).max()]
+        if self.verbose:
+            print(self.layer_name)
+            for key, value in log.items():
+                print('  {0:38}: {1}'.format(key, value))
 
-    def __call__(self, net, **_):
-        for key, value in net.get_param_view_for(self.layer_name).items():
-            self.log[self.layer_name + '_min_' + key].append(value.min())
-            self.log[self.layer_name + '_max_' + key].append(value.max())
-            if key.split('_')[-1] != 'bias':
-                self.log[self.layer_name + '_min_sq_norm_' + key].append(((value**2).sum(1)).min())
-                self.log[self.layer_name + '_max_sq_norm_' + key].append(((value**2).sum(1)).max())
-
-        if self.display:
-            for key, value in self.log.items():
-                print('{0:40}: {1}'.format(key, value[-1]))
-
+        return log

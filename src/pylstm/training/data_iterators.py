@@ -71,7 +71,7 @@ class Undivided(Seedable):
         self.targets = targets
         self.shuffle = shuffle
 
-    def __call__(self):
+    def __call__(self, verbose=False):
         if self.shuffle:
             input_data, targets, _ = shuffle_data(self.input_data, self.targets,
                                                   seed=self.rnd.generate_seed())
@@ -86,7 +86,7 @@ class Minibatches(Seedable):
     Argument verbose=True enables a progress bar.
     """
     def __init__(self, input_data, targets, batch_size=4, shuffle=True,
-                 verbose=False, seed=None):
+                 verbose=None, seed=None):
         super(Minibatches, self).__init__(seed=seed, category='data_iterator')
         self.input_data = input_data
         assert isinstance(targets, Targets)
@@ -95,8 +95,10 @@ class Minibatches(Seedable):
         self.shuffle = shuffle
         self.verbose = verbose
 
-    def __call__(self):
-        p = ProgressBar() if self.verbose else None
+    def __call__(self, verbose=False):
+        if self.verbose is not None:
+            verbose = self.verbose
+        p = ProgressBar() if verbose else None
         nr_sequences = self.input_data.shape[1]
 
         if self.shuffle:
@@ -111,7 +113,7 @@ class Minibatches(Seedable):
             new_end = input_data.shape[0] - t.trim()
             x = input_data[:new_end, i:j, :]
             yield x, t
-            if self.verbose:
+            if verbose:
                 p.update_progress(j/nr_sequences)
 
 
@@ -130,8 +132,10 @@ class Online(Seedable):
         self.shuffle = shuffle
         self.verbose = verbose
 
-    def __call__(self):
-        p = ProgressBar() if self.verbose else None
+    def __call__(self, verbose=False):
+        if self.verbose is not None:
+            verbose = self.verbose
+        p = ProgressBar() if verbose else None
         nr_sequences = self.input_data.shape[1]
         indices = np.arange(nr_sequences)
         if self.shuffle:
@@ -141,7 +145,7 @@ class Online(Seedable):
             new_end = self.input_data.shape[0] - targets.trim()
             input_data = self.input_data[:new_end, idx:idx+1, :]
             yield input_data, targets
-            if self.verbose:
+            if verbose:
                 p.update_progress((i+1)/nr_sequences)
 
 
@@ -157,8 +161,8 @@ class Noisy(Seedable):
         self.f = data_iter
         self.std = std
 
-    def __call__(self):
-        for x, t in self.f():
+    def __call__(self, **kwargs):
+        for x, t in self.f(**kwargs):
             x_noisy = x + self.rnd.randn(*x.shape) * self.std
             yield x_noisy, t
 
@@ -178,8 +182,8 @@ class FrameDrop(Seedable):
         self.data_iter = data_iter
         self.fraction = keep_fraction
 
-    def __call__(self):
-        for x, t in self.data_iter():
+    def __call__(self, **kwargs):
+        for x, t in self.data_iter(**kwargs):
             drop_mask = self.rnd.random_sample(x.shape[0]) < self.fraction
             x_drop = x[drop_mask, :, :]
             t_drop = t.index_time(drop_mask)

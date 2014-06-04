@@ -55,7 +55,7 @@ class TrainingTests(unittest.TestCase):
 
         for step in steps:
             trainer = Trainer(step, verbose=False)
-            trainer.add_stopper(MaxEpochsSeen(max_epochs=1))
+            trainer.add_monitor(MaxEpochsSeen(max_epochs=1))
             trainer.train(net, Minibatches(self.input_data, self.targets,
                                            batch_size=4, verbose=False))
 
