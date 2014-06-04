@@ -59,12 +59,14 @@ class SaveBestWeights(Monitor):
 
     def __init__(self, error_log_name, filename=None, name=None, verbose=None):
         super(SaveBestWeights, self).__init__(name, 'epoch', 1, verbose)
-        self.error_log_name = error_log_name
+        self.error_log_name = error_log_name.split('.')
         self.filename = filename
         self.weights = None
 
     def __call__(self, epoch, net, stepper, logs):
-        e = logs[self.error_log_name]
+        e = logs
+        for en in self.error_log_name:
+            e = e[en]
         min_error_idx = np.argmin(e)
         if min_error_idx == len(e) - 1:
             if self.filename is not None:
