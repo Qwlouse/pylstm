@@ -11,7 +11,7 @@ from collections import OrderedDict
 class Monitor(Describable):
     __undescribed__ = {'__name__'}  # the name is saved in the trainer
 
-    def __init__(self, name=None, timescale='epoch', interval=1):
+    def __init__(self, name=None, timescale='epoch', interval=1, verbose=None):
         self.timescale = timescale
         self.interval = interval
         if name is None:
@@ -19,18 +19,15 @@ class Monitor(Describable):
         else:
             self.__name__ = name
         self.priority = 0
+        self.verbose = verbose
+        self.verbose_set = (verbose is not None)
 
-    def start(self, net, stepper):
-        pass
+    def start(self, net, stepper, verbose):
+        if not self.verbose_set:
+            self.verbose = verbose
 
     def __call__(self, epoch, net, stepper, logs):
         pass
-
-
-class PrintError(Monitor):
-    def __call__(self, epoch, net, stepper, logs):
-        print("\nEpoch %d:\tTraining error = %0.4f"
-              % (epoch, logs['training_errors'][-1]))
 
 
 class SaveWeights(Monitor):
@@ -61,12 +58,11 @@ class SaveBestWeights(Monitor):
         'weights': None
     }
 
-    def __init__(self, error_log_name, filename=None, name=None, verbose=True):
-        super(SaveBestWeights, self).__init__(name, 'epoch', 1)
+    def __init__(self, error_log_name, filename=None, name=None, verbose=None):
+        super(SaveBestWeights, self).__init__(name, 'epoch', 1, verbose)
         self.error_log_name = error_log_name
         self.filename = filename
         self.weights = None
-        self.verbose = verbose
 
     def __call__(self, epoch, net, stepper, logs):
         e = logs[self.error_log_name]
@@ -103,13 +99,12 @@ class MonitorError(Monitor):
     def __call__(self, epoch, net, stepper, logs):
         error_func = self.error_func or net.error_func
         errors = []
-        for x, t in self.data_iter():
+        for x, t in self.data_iter(self.verbose):
             y = net.forward_pass(x)
             error, _ = error_func(y, t)
             errors.append(error)
 
         mean_error = np.mean(errors)
-        print(self.__name__, "= %0.4f" % mean_error)  # todo: print in trainer?
         return mean_error
 
 
@@ -125,15 +120,13 @@ class MonitorLabelError(Monitor):
     def __call__(self, epoch, net, stepper, logs):
         total_errors = 0
         total_length = 0
-        for x, t in self.data_iter():
+        for x, t in self.data_iter(self.verbose):
             assert t.targets_type == ('L', True)
             y = net.forward_pass(x)
             lab = ctc_best_path_decoding(y)
             total_errors += levenshtein(lab, t.data[0])
             total_length += len(t.data[0])
         error_fraction = total_errors / total_length
-        print(self.__name__, ':\tLabel Error = %0.4f\t (%d / %d)' %
-              (error_fraction, total_errors, total_length))
         return error_fraction
 
 
@@ -149,7 +142,7 @@ class MonitorClassificationError(Monitor):
     def __call__(self, epoch, net, stepper, logs):
         total_errors = 0
         total = 0
-        for x, t in self.data_iter():
+        for x, t in self.data_iter(self.verbose):
             assert t.targets_type == ('F', True), \
                 "Target type not suitable for classification error monitoring."
             y = net.forward_pass(x)
@@ -162,8 +155,6 @@ class MonitorClassificationError(Monitor):
                 total_errors += np.sum((y_win != t_win))
                 total += t.data.shape[0] * t.data.shape[1]
         error_fraction = total_errors / total
-        print("{0:40}: Classification Error = {1:0.4f}\t ({2} / {3})".format(
-            self.__name__, error_fraction, total_errors, total))
         return error_fraction
 
 
@@ -182,7 +173,7 @@ class MonitorPooledClassificationError(Monitor):
     def __call__(self, epoch, net, stepper, logs):
         total_errors = 0
         total = 0
-        for x, t in self.data_iter():
+        for x, t in self.data_iter(self.verbose):
             relevant_from = (t.data.shape[2] / self.pool_size) * \
                             (self.pool_size // 2)
             relevant_to = relevant_from + (t.shape[2] / self.pool_size)
@@ -197,8 +188,6 @@ class MonitorPooledClassificationError(Monitor):
                 total_errors += np.sum((y_win != t_win))
                 total += t.data.shape[0] * t.data.shape[1]
         error_fraction = total_errors / total
-        print(self.__name__, ":\tClassification Error = %0.4f\t (%d / %d)" %
-              (error_fraction, total_errors, total))
         return error_fraction
 
 
@@ -217,7 +206,8 @@ class PlotErrors(Monitor):
         self.ax = None
         self.lines = None
 
-    def start(self, net, stepper):
+    def start(self, net, stepper, verbose):
+        super(PlotErrors, self).start(net, stepper, verbose)
         self.fig, self.ax = self.plt.subplots()
         self.ax.set_title('Training Progress')
         self.ax.set_xlabel('Epochs')
@@ -246,13 +236,12 @@ class MonitorLayerProperties(Monitor):
     """
     Monitor some properties of a layer.
     """
-    def __init__(self, layer_name, verbose=True, timescale='epoch',
+    def __init__(self, layer_name, timescale='epoch',
                  interval=1, name=None):
         if name is None:
             name = "Monitor{}Properties".format(layer_name)
         super(MonitorLayerProperties, self).__init__(name, timescale, interval)
         self.layer_name = layer_name
-        self.verbose = verbose
 
     def __call__(self, epoch, net, stepper, logs):
         log = OrderedDict()
@@ -263,10 +252,4 @@ class MonitorLayerProperties(Monitor):
             if value.shape[1] > 1:
                 log['min_sq_norm_' + key] = (value ** 2).sum(1).min()
                 log['max_sq_norm_' + key] = (value ** 2).sum(1).max()
-
-        if self.verbose:
-            print(self.layer_name)
-            for key, value in log.items():
-                print('  {0:38}: {1}'.format(key, value))
-
         return log

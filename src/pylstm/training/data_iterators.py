@@ -123,7 +123,7 @@ class Online(Seedable):
     Argument verbose=True enables a progress bar.
     """
 
-    def __init__(self, input_data, targets, shuffle=True, verbose=False,
+    def __init__(self, input_data, targets, shuffle=True, verbose=None,
                  seed=None):
         super(Online, self).__init__(seed=seed, category='data_iterator')
         self.input_data = input_data

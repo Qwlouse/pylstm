@@ -42,7 +42,7 @@ class Trainer(Describable):
                 break
 
     def start_monitors(self, net):
-        self.logs = {'training_errors': []}
+        self.logs = {'training_errors': [float('NaN')]}
         for name, monitor in self.monitors.items():
             try:
                 monitor.start(net, self.stepper)
@@ -65,11 +65,13 @@ class Trainer(Describable):
             if update_nr % interval == 0:
                 monitor_log, stop = _call_monitor(monitor, monitoring_arguments)
                 should_stop |= stop
-                _add_log(self.logs, name, monitor_log)
+                _add_log(self.logs, name, monitor_log, self.verbose)
 
         return should_stop
 
     def train(self, net, training_data_getter):
+        if self.verbose:
+            print('\n\n', 15 * '- ', "Pretraining", 15 * ' -')
         self.stepper.start(net)
         self.start_monitors(net)
         self.emit_monitoring(net, 'epoch')
@@ -88,6 +90,8 @@ class Trainer(Describable):
 
             train_error = np.mean(train_errors)
             self.logs['training_errors'].append(train_error)
+            if self.verbose:
+                print("{0:40}: {1}".format('training_error', train_error))
 
             if self.emit_monitoring(net, 'epoch'):
                 break
@@ -116,13 +120,16 @@ def _get_priority(x):
         return 0
 
 
-def _add_log(logs, name, val):
+def _add_log(logs, name, val, verbose=False, indent=0):
     if isinstance(val, dict):
+        if verbose:
+            print(" " * indent + name)
         if name not in logs:
             logs[name] = dict()
         for k, v in val.items():
-            _add_log(logs[name], k, v)
+            _add_log(logs[name], k, v, verbose, indent+2)
     elif val is not None:
+        print(" " * indent + ("{0:%d}: {1}" % (40-indent)).format(name, val))
         if name not in logs:
             logs[name] = []
         logs[name].append(val)
