@@ -169,14 +169,16 @@ class PlotMonitors(Monitor):
     """
     __undescribed__ = {'plt', 'fig', 'ax', 'lines'}
 
-    def __init__(self, name=None, timescale='epoch', interval=1):
+    def __init__(self, name=None, show_min=True, timescale='epoch', interval=1):
         super(PlotMonitors, self).__init__(name, timescale, interval)
         import matplotlib.pyplot as plt
+        self.show_min = show_min
         self.plt = plt
         self.plt.ion()
         self.fig = None
         self.ax = None
         self.lines = None
+        self.mins = None
 
     def start(self, net, stepper, verbose):
         super(PlotMonitors, self).start(net, stepper, verbose)
@@ -185,15 +187,28 @@ class PlotMonitors(Monitor):
         self.ax.set_xlabel('Epochs')
         self.ax.set_ylabel('Error')
         self.lines = dict()
+        self.mins = dict()
         self.plt.show()
 
     def _plot(self, name, data):
+        data = data[1:]  # ignore pre-training entry
+        x = range(1, len(data)+1)
         if name not in self.lines:
-            line, = self.ax.plot(data[1:], '-', label=name)
+            line, = self.ax.plot(x, data, '-', label=name)
             self.lines[name] = line
         else:
-            self.lines[name].set_ydata(data[1:])
-            self.lines[name].set_xdata(range(1, len(data)))
+            self.lines[name].set_ydata(data)
+            self.lines[name].set_xdata(x)
+
+        if not self.show_min or len(data) < 2:
+            return
+
+        min_idx = np.argmin(data) + 1
+        if name not in self.mins:
+            color = self.lines[name].get_color()
+            self.mins[name] = self.ax.axvline(min_idx, color=color)
+        else:
+            self.mins[name].set_xdata(min_idx)
 
     def __call__(self, epoch, net, stepper, logs):
         if epoch < 2:
