@@ -101,13 +101,32 @@ class Describable(object):
 
 def get_description(this):
     if isinstance(this, Describable):
-        return this.__describe__()
+        try:
+            return this.__describe__()
+        except TypeError as err:
+            err.args = (err.args[0] + "[%s]" % this.__class__.__name__,)
+            raise
+
     elif isinstance(this, list):
-        return [get_description(v) for v in this]
+        result = []
+        try:
+            for i, v in enumerate(this):
+                result.append(get_description(v))
+        except TypeError as err:
+            err.args = (err.args[0] + "[%d]" % i,)
+            raise
+        return result
     elif isinstance(this, np.ndarray):
         return this.tolist()
     elif isinstance(this, dict):
-        return {k: get_description(v) for k, v in this.items()}
+        result = {}
+        try:
+            for k in this:
+                result[k] = get_description(this[k])
+        except TypeError as err:
+            err.args = (err.args[0] + "[%s]" % k,)
+            raise
+        return result
     elif (isinstance(this, bool) or
           isinstance(this, _numerical_types) or
           isinstance(this, _text_type) or

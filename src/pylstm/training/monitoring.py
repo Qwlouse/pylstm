@@ -3,7 +3,8 @@
 from __future__ import division, print_function, unicode_literals
 import numpy as np
 from pylstm.describable import Describable
-from pylstm.error_functions import ClassificationError, LabelingError
+from pylstm.error_functions import ClassificationError, LabelingError, \
+    get_error_function_by_name
 from collections import OrderedDict
 
 
@@ -25,7 +26,7 @@ class Monitor(Describable):
         self.priority = 0
         self.verbose = verbose
 
-    def start(self, net, stepper, verbose):
+    def start(self, net, stepper, verbose, monitor_kwargs):
         if self.verbose is None:
             self.verbose = verbose
 
@@ -88,26 +89,43 @@ class SaveBestWeights(Monitor):
             else self.weights
 
 
-aggregate_error = lambda x: np.mean(x, axis=0)
+class AggregateMeanError(Describable):
+    def __call__(self, x):
+        return np.mean(x, axis=0)
+
+aggregate_mean_error = AggregateMeanError()
 
 
-def aggregate_class_error(x):
-    e = np.sum(x, axis=0)
-    return np.round(e[0] * 100. / e[1], 2)
+class AggregateClassError(Describable):
+    def __call__(self, x):
+        e = np.sum(x, axis=0)
+        return np.round(e[0] * 100. / e[1], 2)
+
+aggregate_class_error = AggregateClassError()
 
 
 class MonitorError(Monitor):
     """
     Monitor the given error (aggregated over all sequences).
     """
-    def __init__(self, data_iter, error_func=None, name=None,
-                 aggregate=aggregate_error, timescale='epoch', interval=1):
+    __undescribed__ = {'data_iter'}
+    __default_values__ = {'aggregator': aggregate_mean_error}
+
+    def __init__(self, data_name, error_func=None,
+                 aggregator=aggregate_mean_error,
+                 name=None, timescale='epoch', interval=1):
         if name is None and error_func is not None:
             name = 'Monitor' + error_func.__name__
         super(MonitorError, self).__init__(name, timescale, interval)
-        self.data_iter = data_iter
+        assert isinstance(data_name, basestring)
+        self.data_name = data_name
+        self.data_iter = None
         self.error_func = error_func
-        self.aggregate = aggregate
+        self.aggregator = aggregator
+
+    def start(self, net, stepper, verbose, monitor_kwargs):
+        super(MonitorError, self).start(net, stepper, verbose, monitor_kwargs)
+        self.data_iter = monitor_kwargs[self.data_name]
 
     def __call__(self, epoch, net, stepper, logs):
         error_func = self.error_func or net.error_func
@@ -116,24 +134,28 @@ class MonitorError(Monitor):
             y = net.forward_pass(x)
             error, _ = error_func(y, t)
             errors.append(error)
-        return self.aggregate(errors)
+        return self.aggregator(errors)
 
 
 class MonitorClassificationError(MonitorError):
-    def __init__(self, data_iter, name=None, timescale='epoch', interval=1):
+    __default_values__ = {'aggregator': aggregate_class_error}
+
+    def __init__(self, data_name, name=None, timescale='epoch', interval=1):
         super(MonitorClassificationError, self).__init__(
-            data_iter,
+            data_name,
             error_func=ClassificationError,
-            aggregate=aggregate_class_error,
+            aggregator=aggregate_class_error,
             name=name, timescale=timescale, interval=interval)
 
 
 class MonitorLabelingError(MonitorError):
-    def __init__(self, data_iter, name=None, timescale='epoch', interval=1):
+    __default_values__ = {'aggregator': aggregate_class_error}
+
+    def __init__(self, data_name, name=None, timescale='epoch', interval=1):
         super(MonitorLabelingError, self).__init__(
-            data_iter,
+            data_name,
             error_func=LabelingError,
-            aggregate=aggregate_class_error,
+            aggregator=aggregate_class_error,
             name=name, timescale=timescale, interval=interval)
 
 
@@ -141,15 +163,25 @@ class MonitorMultipleErrors(Monitor):
     """
     Monitor errors (aggregated over all sequences).
     """
-    def __init__(self, data_iter, error_functions, name=None,
-                 aggregators=aggregate_error, timescale='epoch', interval=1):
+    __undescribed__ = {'data_iter', 'error_functions'}
+    __default_values__ = {'aggregators': aggregate_mean_error}
+
+    def __init__(self, data_name, error_functions,
+                 aggregators=aggregate_mean_error,
+                 name=None, timescale='epoch', interval=1):
         super(MonitorMultipleErrors, self).__init__(name, timescale, interval)
-        self.data_iter = data_iter
+        self.data_name = data_name
+        self.data_iter = None
         self.error_functions = error_functions
         if isinstance(aggregators, (list, tuple)):
             self.aggregators = aggregators
         else:
-            self.aggregators = [aggregators] * len(error_functions)
+            self.aggregators = aggregators
+
+    def start(self, net, stepper, verbose, monitor_kwargs):
+        super(MonitorMultipleErrors, self).start(net, stepper, verbose,
+                                                 monitor_kwargs)
+        self.data_iter = monitor_kwargs[self.data_name]
 
     def __call__(self, epoch, net, stepper, logs):
         errors = {e: [] for e in self.error_functions}
@@ -159,8 +191,22 @@ class MonitorMultipleErrors(Monitor):
                 error, _ = error_func(y, t)
                 errors[error_func].append(error)
 
-        return {err_f.__name__: agg(errors[err_f])
-                for err_f, agg in zip(self.error_functions, self.aggregators)}
+        if isinstance(self.aggregators, list):
+            return {err.__name__: agg(errors[err])
+                    for err, agg in zip(self.error_functions, self.aggregators)}
+        else:
+            return {err.__name__: self.aggregators(errors[err])
+                    for err in self.error_functions}
+
+    def __describe__(self):
+        description = super(MonitorMultipleErrors, self).__describe__()
+        description['error_functions'] = [e.__name__
+                                          for e in self.error_functions]
+        return description
+
+    def __init_from_description__(self, description):
+        self.error_functions = [get_error_function_by_name(e)
+                                for e in description['error_functions']]
 
 
 class PlotMonitors(Monitor):
@@ -180,8 +226,8 @@ class PlotMonitors(Monitor):
         self.lines = None
         self.mins = None
 
-    def start(self, net, stepper, verbose):
-        super(PlotMonitors, self).start(net, stepper, verbose)
+    def start(self, net, stepper, verbose, monitor_kwargs):
+        super(PlotMonitors, self).start(net, stepper, verbose, monitor_kwargs)
         self.fig, self.ax = self.plt.subplots()
         self.ax.set_title('Training Progress')
         self.ax.set_xlabel('Epochs')

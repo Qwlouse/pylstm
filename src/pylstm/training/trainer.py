@@ -9,7 +9,7 @@ from pylstm.describable import Describable
 
 class Trainer(Describable):
     __undescribed__ = {
-        'epochs_seen': 0,
+        'current_epoch': 0,
         'logs': {}
     }
     __default_values__ = {'verbose': True}
@@ -42,11 +42,11 @@ class Trainer(Describable):
                 monitor.priority = priority
                 break
 
-    def start_monitors(self, net):
+    def start_monitors(self, net, monitor_kwargs):
         self.logs = {'training_errors': [float('NaN')]}
         for name, monitor in self.monitors.items():
             try:
-                monitor.start(net, self.stepper, self.verbose)
+                monitor.start(net, self.stepper, self.verbose, monitor_kwargs)
             except AttributeError:
                 pass
 
@@ -70,11 +70,11 @@ class Trainer(Describable):
 
         return should_stop
 
-    def train(self, net, training_data_getter):
+    def train(self, net, training_data_getter, **monitor_kwargs):
         if self.verbose:
             print('\n\n', 15 * '- ', "Pretraining", 15 * ' -')
         self.stepper.start(net)
-        self.start_monitors(net)
+        self.start_monitors(net, monitor_kwargs)
         self.emit_monitoring(net, 'epoch')
         train_error = None
         while True:
