@@ -46,8 +46,11 @@ class Trainer(Describable):
         self.logs = {'training_errors': [float('NaN')]}
         for name, monitor in self.monitors.items():
             try:
-                monitor.start(net, self.stepper, self.verbose, monitor_kwargs)
-            except AttributeError:
+                if hasattr(monitor, 'start'):
+                    monitor.start(net, self.stepper, self.verbose,
+                                  monitor_kwargs)
+            except Exception as err:
+                print(err)
                 pass
 
     def _add_log(self, name, val, logs=None, indent=0):
@@ -141,3 +144,6 @@ def _call_monitor(monitor, monitoring_arguments):
             return err.value, True
 
         return None, True
+    except Exception as err:
+        err.args = (err.args[0] + " in " + str(monitor),)
+        raise

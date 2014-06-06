@@ -298,7 +298,7 @@ def LabelingError(outputs, targets):
 def get_error_function_by_name(name):
     error_functions = [
         MeanSquaredError, CrossEntropyError, MultiClassCrossEntropyError,
-        CTC, ClassificationError
+        CTC, ClassificationError, LabelingError
     ]
     for e in error_functions:
         if e.__name__ == name:

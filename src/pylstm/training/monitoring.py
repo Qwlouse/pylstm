@@ -170,7 +170,7 @@ class MonitorMultipleErrors(Monitor):
                  aggregators=aggregate_mean_error,
                  name=None, timescale='epoch', interval=1):
         super(MonitorMultipleErrors, self).__init__(name, timescale, interval)
-        self.data_name = data_name
+        self.iter_name = data_name
         self.data_iter = None
         self.error_functions = error_functions
         if isinstance(aggregators, (list, tuple)):
@@ -181,7 +181,7 @@ class MonitorMultipleErrors(Monitor):
     def start(self, net, stepper, verbose, monitor_kwargs):
         super(MonitorMultipleErrors, self).start(net, stepper, verbose,
                                                  monitor_kwargs)
-        self.data_iter = monitor_kwargs[self.data_name]
+        self.data_iter = monitor_kwargs[self.iter_name]
 
     def __call__(self, epoch, net, stepper, logs):
         errors = {e: [] for e in self.error_functions}
@@ -213,14 +213,12 @@ class PlotMonitors(Monitor):
     """
     Open a window and plot the training and validation errors while training.
     """
-    __undescribed__ = {'plt', 'fig', 'ax', 'lines'}
+    __undescribed__ = {'plt', 'fig', 'ax', 'lines', 'mins'}
 
     def __init__(self, name=None, show_min=True, timescale='epoch', interval=1):
         super(PlotMonitors, self).__init__(name, timescale, interval)
-        import matplotlib.pyplot as plt
         self.show_min = show_min
-        self.plt = plt
-        self.plt.ion()
+        self.plt = None
         self.fig = None
         self.ax = None
         self.lines = None
@@ -228,6 +226,9 @@ class PlotMonitors(Monitor):
 
     def start(self, net, stepper, verbose, monitor_kwargs):
         super(PlotMonitors, self).start(net, stepper, verbose, monitor_kwargs)
+        import matplotlib.pyplot as plt
+        self.plt = plt
+        self.plt.ion()
         self.fig, self.ax = self.plt.subplots()
         self.ax.set_title('Training Progress')
         self.ax.set_xlabel('Epochs')
