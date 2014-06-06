@@ -50,6 +50,23 @@ class Trainer(Describable):
             except AttributeError:
                 pass
 
+    def _add_log(self, name, val, logs=None, indent=0):
+        if logs is None:
+            logs = self.logs
+        if isinstance(val, dict):
+            if self.verbose:
+                print(" " * indent + name)
+            if name not in logs:
+                logs[name] = dict()
+            for k, v in val.items():
+                self._add_log(k, v, logs[name], indent+2)
+        elif val is not None:
+            if self.verbose:
+                print(" " * indent + ("{0:%d}: {1}" % (40-indent)).format(name, val))
+            if name not in logs:
+                logs[name] = []
+            logs[name].append(val)
+
     def emit_monitoring(self, net, timescale, update_nr=None):
         monitoring_arguments = dict(
             epoch=self.current_epoch,
@@ -66,7 +83,7 @@ class Trainer(Describable):
             if update_nr % interval == 0:
                 monitor_log, stop = _call_monitor(monitor, monitoring_arguments)
                 should_stop |= stop
-                _add_log(self.logs, name, monitor_log, self.verbose)
+                self._add_log(name, monitor_log)
 
         return should_stop
 
@@ -76,7 +93,6 @@ class Trainer(Describable):
         self.stepper.start(net)
         self.start_monitors(net, monitor_kwargs)
         self.emit_monitoring(net, 'epoch')
-        train_error = None
         while True:
             self.current_epoch += 1
             sys.stdout.flush()
@@ -89,14 +105,9 @@ class Trainer(Describable):
                 if self.emit_monitoring(net, 'update', i + 1):
                     break
 
-            train_error = np.mean(train_errors)
-            self.logs['training_errors'].append(train_error)
-            if self.verbose:
-                print("{0:40}: {1}".format('training_error', train_error))
-
+            self._add_log('training_errors', np.mean(train_errors))
             if self.emit_monitoring(net, 'epoch'):
                 break
-        return train_error
 
 
 def _get_monitor_params(monitor):
@@ -119,21 +130,6 @@ def _get_priority(x):
         return mon.priority
     else:
         return 0
-
-
-def _add_log(logs, name, val, verbose=False, indent=0):
-    if isinstance(val, dict):
-        if verbose:
-            print(" " * indent + name)
-        if name not in logs:
-            logs[name] = dict()
-        for k, v in val.items():
-            _add_log(logs[name], k, v, verbose, indent+2)
-    elif val is not None:
-        print(" " * indent + ("{0:%d}: {1}" % (40-indent)).format(name, val))
-        if name not in logs:
-            logs[name] = []
-        logs[name].append(val)
 
 
 def _call_monitor(monitor, monitoring_arguments):
