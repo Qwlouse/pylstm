@@ -4,7 +4,7 @@ from __future__ import division, print_function, unicode_literals
 import numpy as np
 from pylstm.describable import Describable
 from pylstm.error_functions import ClassificationError, LabelingError, \
-    get_error_function_by_name
+    get_error_function_by_name, aggregate_mean_error, aggregate_class_error
 from collections import OrderedDict
 
 
@@ -87,21 +87,6 @@ class SaveBestWeights(Monitor):
     def load_weights(self):
         return np.load(self.filename) if self.filename is not None \
             else self.weights
-
-
-class AggregateMeanError(Describable):
-    def __call__(self, x):
-        return np.mean(x, axis=0)
-
-aggregate_mean_error = AggregateMeanError()
-
-
-class AggregateClassError(Describable):
-    def __call__(self, x):
-        e = np.sum(x, axis=0)
-        return np.round(e[0] * 100. / e[1], 2)
-
-aggregate_class_error = AggregateClassError()
 
 
 class MonitorError(Monitor):

@@ -3,6 +3,7 @@
 from __future__ import division, print_function, unicode_literals
 
 import numpy as np
+from pylstm import Describable
 
 from pylstm.wrapper import ctcpp
 from pylstm.datasets.preprocessing import binarize_array
@@ -305,3 +306,30 @@ def get_error_function_by_name(name):
             return e
 
     raise ValueError('Error Function "%s" not found!' % name)
+
+
+################################################################################
+# Error aggregation
+
+class AggregateMeanError(Describable):
+    def __call__(self, x):
+        return np.mean(x, axis=0)
+
+aggregate_mean_error = AggregateMeanError()
+
+
+class AggregateClassError(Describable):
+    def __call__(self, x):
+        e = np.sum(x, axis=0)
+        return np.round(e[0] * 100. / e[1], 2)
+
+aggregate_class_error = AggregateClassError()
+
+aggregation_function_by_error = {
+    MeanSquaredError: aggregate_mean_error,
+    MultiClassCrossEntropyError: aggregate_mean_error,
+    CrossEntropyError: aggregate_mean_error,
+    ClassificationError: aggregate_class_error,
+    CTC: aggregate_mean_error,
+    LabelingError: aggregate_class_error
+}
