@@ -108,7 +108,7 @@ class Trainer(Describable):
                 if self.emit_monitoring(net, 'update', i + 1):
                     break
 
-            self._add_log('training_errors', np.mean(train_errors))
+            self._add_log('training_errors', net.error_func.aggregate(train_errors))
             if self.emit_monitoring(net, 'epoch'):
                 break
 

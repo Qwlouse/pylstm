@@ -22,6 +22,11 @@ def _illegal_combination(*_):
 
 
 class ErrorFunction(Describable):
+    __undescribed__ = {'__name__'}
+
+    def __init__(self):
+        self.__name__ = self.__class__.__name__
+
     @staticmethod
     def aggregate(errors):
         return np.mean(errors)
