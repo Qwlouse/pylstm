@@ -4,7 +4,7 @@ from __future__ import division, print_function, unicode_literals
 from collections import OrderedDict
 from copy import copy
 from pylstm.describable import create_from_description
-from pylstm.error_functions import MeanSquaredError, get_error_function_by_name
+from pylstm.error_functions import MeanSquaredError
 from .construction_layer import instantiate_layer
 from .buffer_construction import (
     create_param_manager, create_fwd_state_manager, create_bwd_state_manager,
@@ -213,6 +213,5 @@ def build_network_from_description(description):
         con = create_from_description(description['constraints'])
         net.set_constraints(con)
     if 'error_function' in description and description['error_function']:
-        net.error_func = get_error_function_by_name(
-            description['error_function'])
+        net.error_func = create_from_description(description['error_function'])
     return net

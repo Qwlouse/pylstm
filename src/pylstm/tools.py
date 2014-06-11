@@ -4,8 +4,7 @@
 from __future__ import division, print_function, unicode_literals
 from pylstm import Online
 from pylstm.error_functions import (
-    CrossEntropyError, MultiClassCrossEntropyError, CTC, MeanSquaredError,
-    aggregation_function_by_error, aggregate_mean_error)
+    CrossEntropyError, MultiClassCrossEntropyError, CTC, MeanSquaredError)
 from pylstm.datasets.loader import get_dataset_specs
 from pylstm.structure.layers import InputLayer, ForwardLayer
 
@@ -34,14 +33,11 @@ def setup_from_dataset(filename, variant=''):
     return input_layer, output_layer, error_func
 
 
-def evaluate(net, input_data, targets, error_function, aggregate=None):
+def evaluate(net, input_data, targets, error_function):
     errors = []
     for x, t in Online(input_data, targets, shuffle=False)(verbose=True):
         y = net.forward_pass(x)
         error, _ = error_function(y, t)
         errors.append(error)
-    if aggregate is None:
-        aggregate = aggregation_function_by_error.get(
-            error_function, default=aggregate_mean_error)
 
-    return aggregate(errors)
+    return error_function.aggregate(errors)

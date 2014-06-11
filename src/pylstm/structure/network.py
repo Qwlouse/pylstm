@@ -553,7 +553,7 @@ class Network(Seedable, Describable):
 
     def __describe__(self):
         description = get_description(self.description)
-        description['error_function'] = self.error_func.__name__
+        description['error_function'] = get_description(self.error_func)
         return description
 
     @classmethod
