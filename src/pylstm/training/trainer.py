@@ -145,5 +145,6 @@ def _call_monitor(monitor, monitoring_arguments):
 
         return None, True
     except Exception as err:
-        err.args = (err.args[0] + " in " + str(monitor),)
+        if hasattr(err, 'args') and err.args:
+	    err.args = (err.args[0] + " in " + str(monitor),)
         raise
