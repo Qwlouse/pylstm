@@ -27,6 +27,9 @@ class ErrorFunction(Describable):
     def __init__(self):
         self.__name__ = self.__class__.__name__
 
+    def __init_from_description__(self, description):
+        self.__name__ = self.__class__.__name__
+
     @staticmethod
     def aggregate(errors):
         return np.mean(errors)
@@ -187,7 +190,7 @@ MultiClassCrossEntropyError = MultiClassCrossEntropyError()
 ################################################################################
 # CTC error implementations for labellings
 
-class ConnectionistTemporalClassificationError(ErrorFunction):
+class CTC(ErrorFunction):
     @staticmethod
     def _labeling_binarizing(outputs, targets):
         # TODO: use mask to mask deltas
@@ -217,7 +220,7 @@ class ConnectionistTemporalClassificationError(ErrorFunction):
         return impl(outputs, targets)
 
 
-CTC = ConnectionistTemporalClassificationError()
+CTC = CTC()
 ConnectionistTemporalClassificationError = CTC
 
 

@@ -138,7 +138,7 @@ class MonitorMultipleErrors(Monitor):
     """
     Monitor errors (aggregated over all sequences).
     """
-    __undescribed__ = {'data_iter', 'error_functions'}
+    __undescribed__ = {'data_iter'}
 
     def __init__(self, data_name, error_functions,
                  name=None, timescale='epoch', interval=1):
