@@ -3,7 +3,6 @@
 from __future__ import division, print_function, unicode_literals
 from collections import OrderedDict
 import sys
-import numpy as np
 from pylstm.describable import Describable
 
 
@@ -146,5 +145,5 @@ def _call_monitor(monitor, monitoring_arguments):
         return None, True
     except Exception as err:
         if hasattr(err, 'args') and err.args:
-	    err.args = (err.args[0] + " in " + str(monitor),)
+            err.args = (str(err.args[0]) + " in " + str(monitor),)
         raise
