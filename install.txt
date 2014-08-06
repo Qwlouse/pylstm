@@ -25,7 +25,7 @@ $ make pytest
 
 Then you can install it by calling
 
-$ ./setup.py install
+$ build/setup.py install
 
 Notes:
 - You may want to update numpy to the latest version using pip:
