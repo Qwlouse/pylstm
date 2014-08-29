@@ -1,11 +1,21 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # coding=utf-8
-
 from __future__ import division, print_function, unicode_literals
 import numpy as np
+from pylstm.randomness import Seedable
+from pylstm.describable import Describable
 
 
-class RescaleIncomingWeights(object):
+############################ Base Class ########################################
+
+class Constraint(Describable):
+    def __call__(self, view):
+        raise NotImplementedError()
+
+
+############################ Constraints #######################################
+
+class RescaleIncomingWeights(Constraint):
     """
     Rescales the incoming weights for every neuron to sum to one (target_sum).
     Ignores Biases.
@@ -27,10 +37,10 @@ class RescaleIncomingWeights(object):
         return "<RescaleIncomingWeights %0.4f>" % self.target_sum
 
 
-class LimitIncomingWeightsSquared(object):
+class LimitIncomingWeightsSquared(Constraint):
     """
-    Limits the squares of incoming weights for every neuron to sum to one (target_sum).
-    Ignores Biases.
+    Limits the squares of incoming weights for every neuron to sum to one
+    (target_sum). Ignores Biases.
 
     Should be added to the network via the set_constraints method like so:
     >> net.set_constraints(RnnLayer={'HX': LimitIncomingWeightsSquared()})
@@ -44,14 +54,15 @@ class LimitIncomingWeightsSquared(object):
         if view.shape[1] == 1:  # Just one input: probably bias => ignore
             return view
         sums = (view*view).sum(1)
-        sums = (sums < self.target_sum) + (sums/self.target_sum)*(sums >= self.target_sum)
+        sums = (sums < self.target_sum) + \
+               (sums / self.target_sum) * (sums >= self.target_sum)
         return view / np.sqrt(sums)
 
     def __repr__(self):
-        return "<RescaleIncomingWeights %0.4f>" % self.target_sum
+        return "<LimitIncomingWeightsSquared %0.4f>" % self.target_sum
 
 
-class ClipWeights(object):
+class ClipWeights(Constraint):
     """
     Clips (limits) the weights to be between low and high.
     Defaults to low=-1 and high=1.
@@ -72,7 +83,7 @@ class ClipWeights(object):
         return "<ClipWeights [%0.4f; %0.4f]>" % (self.low, self.high)
 
 
-class MaskWeights(object):
+class MaskWeights(Constraint):
     """
     Multiplies the weights with the mask. This can be used to clamp some of
     the weights to zero.
@@ -83,6 +94,7 @@ class MaskWeights(object):
     weights to affect.
     """
     def __init__(self, mask):
+        assert isinstance(mask, np.ndarray)
         self.mask = mask
 
     def __call__(self, view):
@@ -92,7 +104,7 @@ class MaskWeights(object):
         return "<MaskWeights>"
 
 
-class FreezeWeights(object):
+class FreezeWeights(Constraint):
     """
     Prevents the weights from changing at all. So it will remember the first
     weights it sees and resets them to that every time. This means it should
@@ -103,6 +115,8 @@ class FreezeWeights(object):
     See Network.set_constraints for more information on how to control which
     weights to affect.
     """
+    __undescribed__ = {'weights'}
+
     def __init__(self):
         self.weights = None
 
@@ -115,7 +129,7 @@ class FreezeWeights(object):
         return "<FreezeWeights>"
 
 
-class NoisyWeights(object):
+class NoisyWeights(Seedable, Constraint):
     """
     Adds a small amount of normal-distributed noise (mean=0, std=std) to all the
     weights of a network every time they are set. This means that you get
@@ -127,9 +141,10 @@ class NoisyWeights(object):
     See Network.set_constraints for more information on how to control which
     weights to affect.
     """
-    def __init__(self, std=0.01, seed=None):
-        self.seed = seed
-        self.rnd = np.random.RandomState(seed)
+    __undescribed__ = {'noise'}
+
+    def __init__(self, std=0.01):
+        super(NoisyWeights, self).__init__()
         self.std = std
         self.noise = None
 
@@ -141,7 +156,4 @@ class NoisyWeights(object):
         return view - old_noise + self.noise
 
     def __repr__(self):
-        if self.seed is None:
-            return "<NoisyWeights std=%0.4f>" % self.std
-        else:
-            return "<NoisyWeights std=%0.4f seed=%d>" % (self.std, self.seed)
+        return "<NoisyWeights std=%0.4f>" % self.std

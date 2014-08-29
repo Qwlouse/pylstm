@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # coding=utf-8
 import unittest
 import pylstm.wrapper as pw
@@ -95,7 +95,7 @@ class LstmLayerTest(unittest.TestCase):
         self.assertEqual(I.shape(), (t, b, 7))
 
     def test_forward_pass(self):
-        t = 1  # time
+        t = 2  # time
         b = 1  # batches
         n = 5  # input size
         m = 3  # output size
@@ -106,5 +106,5 @@ class LstmLayerTest(unittest.TestCase):
         wm = pw.Matrix(1, 1, l.get_parameter_size())
         W = l.create_param_view(wm)
         im = pw.Matrix(t, b, l.get_fwd_state_size(t, b))
-        I = l.create_fwd_state(im)
-        l.forward(W, I, X, Y)
+        I = l.create_fwd_state(im, t, b)
+        l.forward(W, I, X, Y, False)

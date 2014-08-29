@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <limits>
 
 #include "Core.h"
 #include "cblas_wrapper.h"
@@ -172,6 +173,36 @@ void mult_add(Matrix a, Matrix b, Matrix out, d_type scale) {
 	      a_stride, b.get_data(), b_stride, 1.0, out.get_data(), out_stride);
 }
 
+void hard_compete_locally(Matrix &mask, Matrix x, Matrix out, unsigned int block_size) {
+    ASSERT(x.n_rows == mask.n_rows);
+    ASSERT(x.n_rows == out.n_rows);
+    ASSERT(x.n_rows % block_size == 0);
+    for (size_t slice = 0; slice < x.n_slices; ++slice ) {
+        for (size_t column = 0; column < x.n_columns; ++column ) {
+            for (size_t row = 0; row < x.n_rows; row += block_size) {
+                d_type max = -std::numeric_limits<d_type>::max();
+                size_t max_i = row;
+                for (size_t row_g = row; row_g < row + block_size; row_g++) {
+                    d_type current = x.get(row_g, column, slice);
+                    if (current > max) {
+                        max = current;
+                        max_i = row_g;
+                    }
+                }
+                for (size_t row_g = row; row_g < row + block_size; row_g++) {
+                    if (row_g == max_i) {
+                        mask.get(row_g, column, slice) = 1;
+                        out.get(row_g, column, slice) = x.get(row_g, column, slice);
+                    }
+                    else {
+                        mask.get(row_g, column, slice) = 0;
+                        out.get(row_g, column, slice) = 0;
+                    }
+                }
+            }
+        }
+    }
+}
 
 void ActivationFunction::apply(Matrix in, Matrix out) const {
     transform(in.begin(), in.end(), out.begin(), *f);
@@ -225,34 +256,12 @@ void SoftmaxLayerActivation::apply_deriv(Matrix in, Matrix d, Matrix out) const 
     }
 }
 
-void WinoutActivation::apply(Matrix in, Matrix out) const {
-    for (size_t slice = 0; slice < in.n_slices; ++slice ) {
-        for (size_t column = 0; column < in.n_columns; ++column ) {
-            const int group_size = 2;
-            for (size_t row = 0; row < in.n_rows; row += group_size) {
-                d_type max = -1e10;
-                size_t max_i = row;
-                for (size_t row_g = row; row_g < row + group_size; row_g++) {
-                    d_type current = in.get(row_g, column, slice);
-                    if (current > max) {
-                        max = current;
-                        max_i = row_g;
-                    }
-                }
-                for (size_t row_g = row; row_g < row + group_size; row_g++) {
-                    if (row_g == max_i) {
-                        out.get(row_g, column, slice) = in.get(row_g, column, slice);
-                    }
-                    else {
-                        out.get(row_g, column, slice) = 0;
-                    }
-                }
-            }
-        }
-    }
+void LwtaActivation::apply(Matrix in, Matrix out) const {
+    Matrix mask(in.n_rows, in.n_columns, in.n_slices);
+    hard_compete_locally(mask, in, out, block_size);
 }
 
-void WinoutActivation::apply_deriv(Matrix in, Matrix d, Matrix out) const {
+void LwtaActivation::apply_deriv(Matrix in, Matrix d, Matrix out) const {
     for (size_t pos = 0; pos < in.size; ++pos ) {
         if (in[pos] == 0) {
             out[pos] = 0;
@@ -288,8 +297,9 @@ void apply_tanh_deriv(Matrix a, Matrix out) {
 
 ///Copy the data of one matrix into another
 void copy(Matrix a, Matrix b) {
-    ASSERT(a.size == b.size);
-    if (a.stride == 0 && b.stride == 0) {
+    ASSERT(a.size <= b.size);
+    ASSERT(!(a.overlaps_with(b)));
+    if (a.stride == 0 && b.stride == 0 && a.state == b.state) {
         cblas_dcopy(static_cast<int>(a.size), a.get_data(), 1, b.get_data(), 1);
     } else {
         for (auto ita = a.begin(), itb = b.begin(); ita != a.end(); ++ita, ++itb) {

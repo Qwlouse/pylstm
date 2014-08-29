@@ -201,11 +201,15 @@ Matrix Matrix::flatten_time() {
 }
 
 void Matrix::set_all_elements_to(d_type value) {
-	for (d_type& v : *this)
-		v = value;
+    if (stride == 0 && value == 0) { // speedy version for this common case
+        memset(reinterpret_cast<void*>(&get(0, 0, 0)), 0, size * sizeof(d_type));
+    } else {
+        for (d_type& v : *this)
+            v = value;
+	}
 }
 
-void Matrix::print_me() {
+void Matrix::print_me() const {
   cout << "Matrix 3D: " << n_rows << " x " << n_columns << " x " << n_slices << " # " << offset << '\n';
 
   cout << "=====================================\n";
@@ -220,6 +224,33 @@ void Matrix::print_me() {
   }
 }
 
+bool Matrix::overlaps_with(const Matrix& other) const {
+    if (data != other.data) {
+        return false;
+    } else {
+        double* this_end = get_end();
+        double* other_end = other.get_end();
+        double* this_start = get_data();
+        double* other_start = other.get_data();
+
+        return (this_start <= other_start && other_start <= this_end) ||
+               (this_start <= other_end && other_end <= this_end);
+    }
+}
+
+Matrix Matrix::copy() {
+    Matrix duplicate(n_rows, n_columns, n_slices, state);
+
+    // copy data
+    //if (stride == 0) {
+    //    cblas_dcopy(static_cast<int>(size), get_data(), 1, duplicate.get_data(), 1);
+    //} else {
+        for (auto ita = begin(), itb = duplicate.begin(); ita != end(); ++ita, ++itb) {
+            *itb = *ita;
+        }
+    //}
+    return duplicate;
+}
 
 // iterator implementation
 

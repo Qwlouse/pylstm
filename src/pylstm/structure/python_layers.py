@@ -1,11 +1,11 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # coding=utf-8
 """
 This File contains all layer types that are implemented in python.
 See wrapper/py_layers.pyx for python wrappers around c++ layers.
 """
 from __future__ import division, print_function, unicode_literals
-
+import numpy as np
 
 class LayerBase(object):
     """
@@ -14,6 +14,10 @@ class LayerBase(object):
     def __init__(self, in_size, out_size):
         self.in_size = in_size
         self.out_size = out_size
+        self.skip_training = True
+
+    def get_typename(self):
+        return ""
 
     def get_input_buffer_size(self, time_length=1, batch_size=1):
         return self.in_size * time_length * batch_size
@@ -49,7 +53,7 @@ class LayerBase(object):
     def create_bwd_state(self, bwd_state_buffer, time_length, batch_size):
         return None
 
-    def forward(self, param, fwd_state, in_view, out_view):
+    def forward(self, param, fwd_state, in_view, out_view, training_pass):
         pass
 
     def backward(self, param, fwd_state, bwd_state, out_view, in_deltas,
@@ -61,27 +65,36 @@ class LayerBase(object):
         pass
 
 
-InputLayer = LayerBase
+class InputLayer(LayerBase):
+    def get_typename(self):
+        return 'InputLayer'
 
 
 class NoOpLayer(LayerBase):
     """
     This is essentially a no-op layer.
-    It just copies it's input into it's output.
+    It just copies its input into its output.
     """
-    def create_input_view(self, input_buffer, time_length, batch_size):
-        return super(NoOpLayer, self).create_input_view(input_buffer,
-                                                        time_length,
-                                                        batch_size)
+    def get_typename(self):
+        return 'NoOpLayer'
 
-    def create_output_view(self, output_buffer, time_length, batch_size):
-        return super(NoOpLayer, self).create_output_view(output_buffer,
-                                                         time_length,
-                                                         batch_size)
-
-    def forward(self, param, fwd_state, in_view, out_view):
+    def forward(self, param, fwd_state, in_view, out_view, training_pass):
         out_view.as_array()[:] = in_view.as_array()
 
     def backward(self, param, fwd_state, bwd_state, out_view, in_deltas,
                  out_deltas):
         in_deltas.as_array()[:] = out_deltas.as_array()
+
+class SquareLayer(LayerBase):
+    """
+    This layer squares every element.
+    """
+    def get_typename(self):
+        return 'SquareLayer'
+
+    def forward(self, param, fwd_state, in_view, out_view, training_pass):
+        out_view.as_array()[:] = np.square(in_view.as_array())
+
+    def backward(self, param, fwd_state, bwd_state, out_view, in_deltas,
+                 out_deltas):
+        in_deltas.as_array()[:] = 2*fwd_state.as_array()*out_deltas.as_array()

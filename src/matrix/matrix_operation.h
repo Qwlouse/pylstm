@@ -39,6 +39,9 @@ void mult(Matrix a, Matrix b, Matrix out, d_type scale = 1.0);
 ///Matrix multiplication and addition
 void mult_add(Matrix a, Matrix b, Matrix out, d_type scale = 1.0);
 
+///Perform hard local competition in blocks
+void hard_compete_locally(Matrix &mask, Matrix x, Matrix out, unsigned int block_size);
+
 
 
 inline double sigmoid(double val) {
@@ -46,6 +49,7 @@ inline double sigmoid(double val) {
 }
 
 inline double sigmoid_deriv(double val) {
+    // In terms of the output
     return val * (1.0 - val);
 }
 
@@ -58,19 +62,22 @@ inline double tanh_(double val) {
 }
 
 inline double tanh_deriv(double val) {
+    // In terms of the output
     return 1.0 - val * val;
 }
 
 inline double tanhx2_deriv(double val) {
+    // In terms of the output
     return 2.0 - 0.5 * val * val;
 }
 
 inline double tanh_scaled(double val) {
-  return 1.7159*tanh(0.66666667*val);
+    return 1.7159*tanh(0.66666667*val);
 }
 
 inline double tanh_scaled_deriv(double val) {
-  return 1.14393333333*(1 - (val * val));
+    // In terms of the output
+    return 1.14393333333*(1 - (val * val));
 }
 
 inline double identity(double val) {
@@ -86,6 +93,7 @@ inline double rectified_linear(double val) {
 }
 
 inline double reclin_deriv(double val) {
+    // In terms of the output
     return val == 0.0 ? 0.0 : 1.0;
 }
 
@@ -109,8 +117,9 @@ struct SoftmaxLayerActivation: public ActivationFunction {
 	virtual void apply_deriv(Matrix a, Matrix d, Matrix out) const;
 };
 
-struct WinoutActivation: public ActivationFunction {
-	WinoutActivation() {};
+struct LwtaActivation: public ActivationFunction {
+    unsigned int block_size;
+	LwtaActivation(unsigned int block_size): block_size(block_size) {};
 
 	virtual void apply(Matrix a, Matrix out) const;
 	virtual void apply_deriv(Matrix a, Matrix d, Matrix out) const;
@@ -121,7 +130,7 @@ const ActivationFunction Linear(&identity, &one);
 const ActivationFunction Tanh(&tanh_, &tanh_deriv);
 const SoftmaxLayerActivation Softmax;
 const ActivationFunction Tanhx2(&tanhx2, &tanhx2_deriv);
-const WinoutActivation Winout;
+const LwtaActivation Lwta(2);
 const ActivationFunction RectifiedLinear(&rectified_linear, &reclin_deriv);
 const ActivationFunction TanhScaled(&tanh_scaled, &tanh_scaled_deriv);
 

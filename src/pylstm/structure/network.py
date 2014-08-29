@@ -1,15 +1,19 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 from copy import deepcopy
 import numpy as np
-from .. import wrapper as pw
+from pylstm import wrapper as pw
+from pylstm.describable import Describable, get_description
+from pylstm.randomness import reseeding_copy, Seedable
 from pylstm.regularization.initializer import _evaluate_initializer
+from pylstm.targets import Targets
 
 
-class Network(object):
+class Network(Seedable, Describable):
     def __init__(self, layers, param_manager, fwd_state_manager, in_out_manager,
-                 bwd_state_manager, error_func, architecture):
+                 bwd_state_manager, error_func, architecture, seed=None):
+        super(Network, self).__init__(seed=seed, category='network')
         self.layers = layers
 
         self.param_manager = param_manager
@@ -26,10 +30,17 @@ class Network(object):
 
         self.error_func = error_func
 
-        self.architecture = architecture
+        self.description = {
+            '@type': 'Network',
+            'architecture': architecture,
+            'initialization': {},
+            'constraints': {},
+            'regularization': {}
+        }
+        if seed is not None:
+            self.description['$seed'] = seed
 
-        self.T = None
-        self.M = None
+        self.targets = None
         self.error = None
         self.deltas = None
 
@@ -43,14 +54,67 @@ class Network(object):
 
     @property
     def in_buffer(self):
-        return self.in_out_manager.get_source_view("InputLayer").as_array()
+        """
+        Access to the input buffer of the network, i.e. the data that gets
+        passed to the lowest layers. (Note: This hides the context slices.)
+        :return: input buffer
+        :rtype: np.ndarray
+        """
+        return self.in_out_manager.get_source_view("InputLayer").as_array(
+        )[1:, :, :]  # remove context slice
 
     @property
     def out_buffer(self):
-        return self.in_out_manager.get_source_view(self.out_layer).as_array()
+        """
+        Access to the output buffer of the network, i.e. the outputs of the
+        topmost layer. (Note: This hides the context slices.)
+        :return: output buffer
+        :rtype: np.ndarray
+        """
+        return self.in_out_manager.get_source_view(self.out_layer).as_array(
+        )[1:, :, :]  # remove context slice
+
+    @property
+    def out_delta_buffer(self):
+        """
+        Access to the delta buffer associated with the outputs of the topmost
+        layer. (Note: This hides the context slices.)
+        :return: output delta buffer
+        :rtype: np.ndarray
+        """
+        return self.delta_manager.get_source_view(self.out_layer).as_array(
+        )[1:, :, :]  # remove context slice
+
+    @property
+    def in_delta_buffer(self):
+        """
+        Access to the delta buffer associated with the inputs of the lowest
+        layer. (Note: This hides the context slices.)
+        :return: input delta buffer
+        :rtype: np.ndarray
+        """
+        return self.delta_manager.get_source_view("InputLayer").as_array(
+        )[1:, :, :]  # remove context slice
+
+    @property
+    def r_out_buffer(self):
+        """
+        Access to the output buffer of the R-forward pass.
+        (Note: This hides the context slices.)
+        :return: R-output buffer
+        :rtype: np.ndarray
+        """
+        return self.r_in_out_manager.get_source_view(self.out_layer).as_array(
+        )[1:, :, :]  # remove context slice
 
     @property
     def param_buffer(self):
+        """
+        Access to the parameter buffer of the network.
+        This contains all the weight in one big flat array.
+        :return: parameter buffer
+        :rtype: np.ndarray
+        """
         if self.is_initialized():
             return self.param_manager.buffer.as_array().flatten()
 
@@ -67,6 +131,12 @@ class Network(object):
 
     @property
     def grad_buffer(self):
+        """
+        Access to the gradient buffer, that contains the gradients for all the
+        weight as calculated by the calc_grad method.
+        :return: gradient buffer
+        :rtype: np.ndarray
+        """
         return self.grad_manager.buffer.as_array()
 
     def enforce_constraints(self):
@@ -98,22 +168,32 @@ class Network(object):
         return self.bwd_state_manager.get_source_view(name)
 
     def get_input_view_for(self, name):
-        return self.in_out_manager.get_sink_view(name).as_array()
+        return self.in_out_manager.get_sink_view(name).as_array(
+        )[1:, :, :]  # remove context slice
 
     def get_output_view_for(self, name):
-        return self.in_out_manager.get_source_view(name).as_array()
+        return self.in_out_manager.get_source_view(name).as_array(
+        )[1:, :, :]  # remove context slice
 
     def get_in_deltas_view_for(self, name):
-        return self.delta_manager.get_sink_view(name).as_array()
+        return self.delta_manager.get_sink_view(name).as_array(
+        )[1:, :, :]  # remove context slice
 
     def get_out_deltas_view_for(self, name):
-        return self.delta_manager.get_source_view(name).as_array()
+        return self.delta_manager.get_source_view(name).as_array(
+        )[1:, :, :]  # remove context slice
 
     def clear_internal_state(self):
+        # TODO: Optimization: we only need to clear the context slice
         if self.fwd_state_manager.buffer:
-            self.fwd_state_manager.buffer.as_array()[:] = 0.
+            self.fwd_state_manager.clear_buffer()
         if self.bwd_state_manager.buffer:
-            self.bwd_state_manager.buffer.as_array()[:] = 0.
+            self.bwd_state_manager.clear_buffer()
+
+    def clear_context_slice(self):
+        for n, l in self.layers.items():
+            if self.in_out_manager.buffer:
+                self.in_out_manager.get_source_view(n).as_array()[0:1, :, :] = 0
 
     def __getitem__(self, item):
         """
@@ -122,22 +202,65 @@ class Network(object):
         return self.layers[item]
 
     def set_buffer_manager_dimensions(self, t, b):
-        self.fwd_state_manager.set_dimensions(t, b)
-        self.r_fwd_state_manager.set_dimensions(t, b)
-        self.bwd_state_manager.set_dimensions(t, b)
-        self.in_out_manager.set_dimensions(t, b)
-        self.r_in_out_manager.set_dimensions(t, b)
-        self.delta_manager.set_dimensions(t, b)
+        # add one to the time dimension for context slice
+        self.fwd_state_manager.set_dimensions(t + 1, b)
+        self.r_fwd_state_manager.set_dimensions(t + 1, b)
+        self.bwd_state_manager.set_dimensions(t + 1, b)
+        self.in_out_manager.set_dimensions(t + 1, b)
+        self.r_in_out_manager.set_dimensions(t + 1, b)
+        self.delta_manager.set_dimensions(t + 1, b)
 
-    def forward_pass(self, input_buffer):
-        self.T = None
-        self.M = None
+    def _copy_context(self):
+        """
+        Copies the content of all forward buffers and in_out buffer for the
+        last timestep. The resulting dict can be copied into the
+        context-frame (the 0th timestep), to make the network continue execution
+        from where it left.
+        See: _apply_context
+        """
+        end_t = self.fwd_state_manager.slice_count - 1
+        context = dict()
+        for n, l in self.layers.items()[1:]:
+            fwd_state = self.fwd_state_manager.get_source_view(n)
+            in_view = self.in_out_manager.get_sink_view(n)
+            context[n] = {
+                'fwd_state': fwd_state.copy_slice(end_t, end_t + 1),
+                'in_view':  in_view.as_array()[end_t, :, :].copy()
+            }
+
+        context['__output_buffer__'] = self.in_out_manager.get_source_view(
+            self.out_layer).as_array()[end_t, :, :].copy()
+        return context
+
+    def _apply_context(self, context):
+        """
+        Copies the context from _copy_context() into the context frame.
+        """
+        for n, l in self.layers.items()[1:]:
+            fwd_state = self.fwd_state_manager.get_source_view(n)
+            in_view = self.in_out_manager.get_sink_view(n).as_array()
+            fwd_state.set_values(context[n]['fwd_state'], start=0)
+            in_view[0, :, :] = context[n]['in_view']
+        self.in_out_manager.get_source_view(self.out_layer).as_array()[0, :, :]\
+            = context['__output_buffer__']
+
+    def forward_pass(self, input_buffer, reset=True, training_pass=False):
+        self.targets = None
         self.error = None
         self.deltas = None
+        context = None
+        if not reset and self.fwd_state_manager.buffer is not None:
+            context = self._copy_context()
+
         # determine dimensions and set buffer managers accordingly
         t, b, f = input_buffer.shape
         assert f == self.layers.values()[0].out_size
         self.set_buffer_manager_dimensions(t, b)
+        if reset:
+            self.clear_internal_state()
+            self.clear_context_slice()
+        elif context:
+            self._apply_context(context)
         # inject the input buffer
         self.in_buffer[:] = input_buffer
         # execute all the intermediate layers
@@ -145,18 +268,22 @@ class Network(object):
             param = self.param_manager.get_source_view(n)
             fwd_state = self.fwd_state_manager.get_source_view(n)
 
-            out = self.in_out_manager.get_source_view(n)
-            input_view = self.in_out_manager.get_sink_view(n)
+            out_view = self.in_out_manager.get_source_view(n)
+            in_view = self.in_out_manager.get_sink_view(n)
 
-            l.forward(param, fwd_state, input_view, out)
+            l.forward(param, fwd_state, in_view, out_view, training_pass)
         # read the output buffer
         return self.out_buffer
 
-    def calculate_error(self, T, M=None):
+    def _calculate_deltas_and_error(self, targets):
         if self.error is None:
-            self.T = T
-            self.M = M
-            self.error, self.deltas = self.error_func(self.out_buffer, T, M)
+            assert isinstance(targets, Targets)
+            self.targets = targets
+            self.error, self.deltas = self.error_func(self.out_buffer,
+                                                      self.targets)
+
+    def calculate_error(self, targets):
+        self._calculate_deltas_and_error(targets)
         return self.error
 
     def pure_backpass(self, deltas):
@@ -166,8 +293,7 @@ class Network(object):
         # clear all delta buffers
         self.delta_manager.clear_buffer()
         # inject delta_buffer
-        out_view = self.delta_manager.get_source_view(self.out_layer).as_array()
-        out_view[:] = deltas
+        self.out_delta_buffer[:] = deltas
         # execute all the intermediate layers backwards
         for n, l in self.layers.items()[-1:0:-1]:
             param = self.param_manager.get_source_view(n)
@@ -180,19 +306,18 @@ class Network(object):
 
             l.backward(param, fwd_state, bwd_state, out, delta_in, delta_out)
         # read the final delta buffer
-        return self.delta_manager.get_source_view("InputLayer").as_array()
+        return self.in_delta_buffer
 
-    def backward_pass(self, T, M=None):
-        if self.deltas is None:
-            self.T = T
-            self.M = M
-            self.error, self.deltas = self.error_func(self.out_buffer, T, M)
+    def backward_pass(self, targets):
+        self._calculate_deltas_and_error(targets)
         return self.pure_backpass(self.deltas)
 
     def calc_gradient(self):
         self.grad_manager.initialize_buffer(
             pw.Matrix(self.get_param_size()))
         for n, l in self.layers.items()[-1:0:-1]:
+            if l.skip_training:
+                continue
             param = self.param_manager.get_source_view(n)
             grad = self.grad_manager.get_source_view(n)
             fwd_state = self.fwd_state_manager.get_source_view(n)
@@ -202,7 +327,8 @@ class Network(object):
             input_view = self.in_out_manager.get_sink_view(n)
             delta_out = self.delta_manager.get_source_view(n)
 
-            l.gradient(param, grad, fwd_state, bwd_state, out, input_view, delta_out)
+            l.gradient(param, grad, fwd_state, bwd_state, out, input_view,
+                       delta_out)
 
             if n in self.regularizers:
                 regularizer = self.regularizers[n]
@@ -212,7 +338,7 @@ class Network(object):
                     for view_regularizer in view_regularizers:
                         view_grad[:] = view_regularizer(view_param, view_grad)
 
-        return self.grad_manager.buffer.as_array()
+        return self.grad_buffer
 
     def r_forward_pass(self, input_buffer, v_buffer):
         # determine dimensions and set buffer managers accordingly
@@ -240,20 +366,20 @@ class Network(object):
             r_out = self.r_in_out_manager.get_source_view(n)
             input_view = self.in_out_manager.get_sink_view(n)
 
-            l.Rpass(param, v, fwd_state, r_fwd_state, input_view, out, r_in, r_out)
+            l.Rpass(param, v, fwd_state, r_fwd_state, input_view, out, r_in, 
+                    r_out)
             # read the output buffer
-        return self.r_in_out_manager.get_source_view(self.out_layer).as_array()
+        return self.r_out_buffer
 
-    def r_backward_pass(self, lambda_, mu):
-        delta_buffer = self.r_in_out_manager.get_source_view(self.out_layer).as_array()
+    def r_backward_pass(self, rvals, lambda_, mu):
+        delta_buffer = rvals
         t, b, f = delta_buffer.shape
         # dims should already be set during forward_pass, but in any case...
         self.set_buffer_manager_dimensions(t, b)
         # clear all delta buffers
         self.delta_manager.clear_buffer()
         # inject delta_buffer
-        out_view = self.delta_manager.get_source_view(self.out_layer).as_array()
-        out_view[:] = delta_buffer
+        self.out_delta_buffer[:] = delta_buffer
         # execute all the intermediate layers backwards
         for n, l in self.layers.items()[-1:0:-1]:
             param = self.param_manager.get_source_view(n)
@@ -266,15 +392,31 @@ class Network(object):
             delta_out = self.delta_manager.get_source_view(n)
 
             #l.backward(param, fwd_state, bwd_state, out, delta_in, delta_out)
-            l.dampened_backward(param, fwd_state, bwd_state, out, delta_in, delta_out, r_fwd_state, lambda_, mu)
+            l.dampened_backward(param, fwd_state, bwd_state, out, delta_in,
+                                delta_out, r_fwd_state, lambda_, mu)
 
         # read the final delta buffer
-        return self.delta_manager.get_source_view("InputLayer").as_array()
+        return self.in_delta_buffer
 
-    def hessian_pass(self, input_buffer, v_buffer, lambda_=0., mu=0.):
-        self.forward_pass(input_buffer)
+    def hessian_pass(self, input_buffer, v_buffer, targets, lambda_=0., mu=0.,
+                     matching_loss=True):
+        y = self.forward_pass(input_buffer)
         self.r_forward_pass(input_buffer, v_buffer)
-        self.r_backward_pass(lambda_, mu)
+        if matching_loss:
+            self.r_backward_pass(self.r_out_buffer, lambda_, mu)
+        else:
+            self._calculate_deltas_and_error(targets)
+
+            rval = self.r_out_buffer
+            for t in range(rval.shape[0]-1):
+                for b in range(rval.shape[1]):
+                    #rval[t+1, b, :] = self.deltas[t, b] *
+                    #   np.inner(self.deltas[t, b], rval[t+1, b])
+                    rval[t+1, b, :] = (np.diag(y[t, b]) -
+                                       np.outer(y[t, b], y[t, b])).dot(
+                                           rval[t+1, b])
+
+            self.r_backward_pass(rval, lambda_, mu)
         return self.calc_gradient()
 
     def initialize(self, init_dict=None, seed=None, **kwargs):
@@ -285,17 +427,18 @@ class Network(object):
         Example Usage:
             # you can set initializers in two equivalent ways:
             1) by passing a dictionary:
-            >> initialize(net, {'RegularLayer': Uniform(), 'LstmLayer': Gaussian()})
+            >> initialize(net, {'RegularLayer': Uniform(),
+                                'LstmLayer': Gaussian()})
 
             2) by using keyword arguments:
             >> initialize(net, RegularLayer=Uniform(), LstmLayer=Uniform())
 
-            (you should not combine the two. If you do, however, then the keyword
-             arguments take precedence)
+            (you should not combine the two. If you do, however, then the
+             keyword arguments take precedence)
 
             An initializer can either be a callable that takes
-            (layer_name, view_name,  shape, seed) or something that converts to a
-            numpy array. So for example:
+            (layer_name, view_name,  shape, seed) or something that converts to
+            a numpy array. So for example:
             >> initialize(net,
                           LstmLayer=1,
                           RnnLayer=[1, 1, 1, 1, 1],
@@ -313,24 +456,22 @@ class Network(object):
         """
         initializers = _update_references_with_dict(init_dict, kwargs)
         self._assert_view_reference_wellformed(initializers)
-        rnd = np.random.RandomState(seed)
+        self.description['initialization'] = initializers
+        rnd = self.rnd['initialize'].get_new_random_state(seed)
 
         for layer_name, layer in self.layers.items()[1:]:
             views = self.get_param_view_for(layer_name)
             if views is None:
                 continue
             for view_name, view in views.items():
-                view_initializer = _get_default_aware(initializers,
-                                                      layer_name,
-                                                      view_name)
+                view_initializer = _get_default_aware(initializers, layer_name,
+                                                      view_name, rnd)
                 view[:] = _evaluate_initializer(view_initializer, layer_name,
-                                               view_name, view.shape,
-                                               seed=rnd.randint(1e9))
+                                                view_name, view.shape)
 
         self.enforce_constraints()
-        # TODO: implement serialization of initializer
 
-    def set_regularizers(self, reg_dict=None, **kwargs):
+    def set_regularizers(self, reg_dict=None, seed=None, **kwargs):
         """
         Set weight regularizers for layers and even individual views of a layer.
         A regularizer has to be callable(function or object) with a single
@@ -359,15 +500,19 @@ class Network(object):
         should not be regularized. This is useful in combination with 'default'.
 
         """
+        rnd = self.rnd['set_regularizers'].get_new_random_state(seed)
         regularizers = _update_references_with_dict(reg_dict, kwargs)
-        self.regularizers = self._flatten_view_references(regularizers)
+        self.description['regularization'] = regularizers
+        self.regularizers = self._flatten_view_references(regularizers, rnd)
         _prune_view_references(self.regularizers)
         _ensure_all_references_are_lists(self.regularizers)
 
-    def set_constraints(self, constraint_dict=None, **kwargs):
+    def set_constraints(self, constraint_dict=None, seed=None, **kwargs):
+        rnd = self.rnd['set_constraints'].get_new_random_state(seed)
         assert self.is_initialized()
         constraints = _update_references_with_dict(constraint_dict, kwargs)
-        self.constraints = self._flatten_view_references(constraints)
+        self.description['constraints'] = constraints
+        self.constraints = self._flatten_view_references(constraints, rnd)
         _prune_view_references(self.constraints)
         _ensure_all_references_are_lists(self.constraints)
         self.enforce_constraints()
@@ -394,7 +539,7 @@ class Network(object):
                         "Unknown view '%s' for '%s'.\nPossible views are: %s"\
                         % (view_name, layer_name, ", ".join(param_view.keys()))
 
-    def _flatten_view_references(self, references, default=None):
+    def _flatten_view_references(self, references, rnd, default=None):
         self._assert_view_reference_wellformed(references)
         flattened = dict()
         for layer_name, layer in self.layers.items()[1:]:
@@ -403,14 +548,24 @@ class Network(object):
             for view_name, view in views.items():
                 flattened[layer_name][view_name] = \
                     _get_default_aware(references, layer_name, view_name,
-                                       default=default)
+                                       rnd, default=default)
         return flattened
+
+    def __describe__(self):
+        description = get_description(self.description)
+        description['error_function'] = get_description(self.error_func)
+        return description
+
+    @classmethod
+    def __new_from_description__(cls, description):
+        from .netbuilder import build_network_from_description
+        net = build_network_from_description(description)
+        return net
 
 
 def _prune_view_references(references):
     """
-    Delete all view references that point to prune_value, and also delete
-    now empty layer references.
+    Delete all now empty layer references.
     """
     for lname, l in references.items():
         for vname in list(l.keys()):
@@ -431,7 +586,7 @@ def _ensure_all_references_are_lists(references):
                 l[vname] = [l[vname]]
 
 
-def _get_default_aware(values, layer_name, view_name, default=0):
+def _get_default_aware(values, layer_name, view_name, rnd, default=0):
     """
     This function retrieves values from view reference dictionary that
     makes use of 'default'. These are used for initialize, set_regularizers, and
@@ -440,20 +595,22 @@ def _get_default_aware(values, layer_name, view_name, default=0):
     if not isinstance(values, dict):
         return values
 
+    seed = rnd.generate_seed()
+
     if layer_name in values:
         layer_values = values[layer_name]
         if not isinstance(layer_values, dict):
-            return deepcopy(layer_values)
+            return reseeding_copy(layer_values, seed)
 
         if view_name in layer_values:
-            return deepcopy(layer_values[view_name])
+            return reseeding_copy(layer_values[view_name], seed)
         elif 'default' in layer_values:
-            return deepcopy(layer_values['default'])
+            return reseeding_copy(layer_values['default'], seed)
 
     if 'default' in values:
-        return deepcopy(values['default'])
+        return reseeding_copy(values['default'], seed)
 
-    return deepcopy(default)
+    return reseeding_copy(default, seed)
 
 
 def _update_references_with_dict(refs, ref_dict):

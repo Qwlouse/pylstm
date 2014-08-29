@@ -1,11 +1,20 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # coding=utf-8
-
 from __future__ import division, print_function, unicode_literals
 import numpy as np
+from pylstm.describable import Describable
 
 
-class L1(object):
+############################ Base Class ########################################
+
+class Regularizer(Describable):
+    def __call__(self, view, grad):
+        raise NotImplementedError()
+
+
+############################ Regularizers ######################################
+
+class L1(Regularizer):
     """
     L1-norm weight regularization. Schould be added to the network via the
     set_regularizers method like so:
@@ -17,13 +26,13 @@ class L1(object):
         self.reg_coeff = reg_coeff
         
     def __call__(self, view, grad):
-        return grad + self.reg_coeff*np.sign(view)
+        return grad + self.reg_coeff * np.sign(view)
 
     def __repr__(self):
         return "<L1 %0.4f>" % self.reg_coeff
         
 
-class L2(object):
+class L2(Regularizer):
     """
     L2-norm weight regularization (aka Weight-Decay). Schould be added to the
     network via the set_regularizers method like so:
@@ -35,13 +44,13 @@ class L2(object):
         self.reg_coeff = reg_coeff
         
     def __call__(self, view, grad):
-        return grad + self.reg_coeff*view
+        return grad + self.reg_coeff * view
 
     def __repr__(self):
         return "<L2 %0.4f>" % self.reg_coeff
 
 
-class ClipGradient(object):
+class ClipGradient(Regularizer):
     """
     Clips (limits) the gradient to be between low and high.
     Defaults to low=-1 and high=1.
@@ -59,4 +68,3 @@ class ClipGradient(object):
 
     def __repr__(self):
         return "<ClipGradient [%0.4f; %0.4f]>" % (self.low, self.high)
-

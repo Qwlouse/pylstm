@@ -78,9 +78,10 @@ TEST(TestAssertions, ASSERT_false_exceptionContainsAssertStatement)
     } catch (AssertFailedException& e)
     {
         recoveredStatement = boost::get_error_info<core::Throw_Expression>(e);
+        ASSERT_FALSE(recoveredStatement == NULL);
+        ASSERT_EQ(0, expectedStatement.compare(*recoveredStatement));
     }
     ASSERT_FALSE(recoveredStatement == NULL);
-    ASSERT_EQ(0, expectedStatement.compare(*recoveredStatement));
 }
 
 TEST(TestAssertions, ASSERT_compoundCondition_noThrow)

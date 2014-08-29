@@ -52,6 +52,7 @@ public:
 	size_t get_offset(size_t row, size_t col, size_t slice) const;
 
 	inline d_type* get_data() const {return &data[offset];}
+	inline d_type* get_end() const {return &data[get_offset(n_rows - 1, n_columns - 1, n_slices - 1)];}
 
 	Matrix sub_matrix(size_t start, size_t n_rows, size_t n_columns, size_t n_slices);
 
@@ -64,7 +65,11 @@ public:
 	Matrix flatten_time();
 	void set_all_elements_to(d_type value);
 
-	void print_me();
+	void print_me() const;
+
+	bool overlaps_with(const Matrix& other) const;
+
+	Matrix copy();
 
 	// iterator
 	class iterator : public std::iterator<std::forward_iterator_tag, Matrix> {

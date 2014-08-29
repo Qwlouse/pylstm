@@ -365,3 +365,32 @@ TEST_F(MatrixTest, check_iterator_multirow_slice_transposed)
 		ASSERT_EQ(*itm, *ite);
 	}
 }
+
+TEST_F(MatrixTest, check_set_all_elements_to_one)
+{
+    M.set_all_elements_to(1.0);
+    for (d_type& m : M) {
+		ASSERT_EQ(m, 1.0);
+	}
+}
+
+TEST_F(MatrixTest, check_set_all_elements_to_zero)
+{
+    M.set_all_elements_to(0.0);
+    for (d_type& m : M) {
+		ASSERT_EQ(m, 0.0);
+	}
+}
+
+TEST_F(MatrixTest, check_set_some_elements_to_zero)
+{
+    Matrix o = M.slice(0);
+    Matrix n = M.slice(1);
+    o.set_all_elements_to(0.0);
+    for (d_type& m : o) {
+		ASSERT_EQ(m, 0.0);
+	}
+	for (d_type& m : n) {
+	    ASSERT_NE(m, 0.0);
+	}
+}

@@ -1,13 +1,13 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 import unittest
-
-from scipy.optimize import approx_fprime
 import numpy as np
 
-from pylstm.error_functions import MeanSquaredError, CrossEntropyError, CTC
-from pylstm.error_functions import MultiClassCrossEntropyError
+from pylstm.error_functions import (
+    MeanSquaredError, CrossEntropyError, CTC, MultiClassCrossEntropyError)
+from pylstm.targets import SequencewiseTargets, LabelingTargets, create_targets_object
+from pylstm.utils import approx_fprime
 from pylstm.wrapper import ctcpp_alpha, ctcpp_beta
 
 
@@ -20,16 +20,16 @@ class SimpleErrorFuncsTest(unittest.TestCase):
 
     def test_evaluate_returns_scalar(self):
         Y = np.ones((4, 3, 2))
-        T = np.ones((4, 3, 2)) * 2
+        T = create_targets_object(np.ones((4, 3, 2)) * 2)
         for err in self.error_funcs:
             e, d = err(Y, T)
             self.assertIsInstance(e, float)
 
     def test_evaluate_is_batch_normalized(self):
         Y1 = np.ones((4, 1, 2))
-        T1 = np.ones((4, 1, 2)) * 2
+        T1 = create_targets_object(np.ones((4, 1, 2)) * 2)
         Y2 = np.ones((4, 10, 2))
-        T2 = np.ones((4, 10, 2)) * 2
+        T2 = create_targets_object(np.ones((4, 10, 2)) * 2)
         for err in self.error_funcs:
             e1, d1 = err(Y1, T1)
             e2, d2 = err(Y2, T2)
@@ -37,17 +37,60 @@ class SimpleErrorFuncsTest(unittest.TestCase):
 
     def test_deriv_shape(self):
         Y = np.ones((4, 3, 2))
-        T = np.ones((4, 3, 2)) * 2
+        T = create_targets_object(np.ones((4, 3, 2)) * 2)
         for err in self.error_funcs:
             e, d = err(Y, T)
             self.assertEqual(d.shape, Y.shape)
 
     def test_finite_differences(self):
         Y = np.zeros((4, 3, 2)) + 0.5
-        T = np.ones((4, 3, 2))
+        T = create_targets_object(np.ones((4, 3, 2)))
         for err in self.error_funcs:
             def f(X):
-                return err(X.reshape(*T.shape), T)[0]
+                return err(X.reshape(*Y.shape), T)[0]
+            delta_approx = approx_fprime(Y.flatten().copy(), f, 1e-7)
+            delta_calc = err(Y, T)[1].flatten()
+            np.testing.assert_array_almost_equal(delta_approx, delta_calc)
+
+
+class ClassificationErrorFuncsTest(unittest.TestCase):
+    def setUp(self):
+        # error functions under test
+        self.error_funcs = [MeanSquaredError,
+                            CrossEntropyError,
+                            MultiClassCrossEntropyError]
+
+    def test_evaluate_returns_scalar(self):
+        Y = np.ones((4, 3, 2))
+        T = SequencewiseTargets(np.array([0, 1, 0]), binarize_to=2)
+        for err in self.error_funcs:
+            e, d = err(Y, T)
+            self.assertIsInstance(e, float)
+
+    def test_evaluate_is_batch_normalized(self):
+        Y1 = np.ones((4, 1, 2))
+        T1 = SequencewiseTargets(np.array([0]), binarize_to=2)
+        Y2 = np.ones((4, 10, 2))
+        T2 = SequencewiseTargets(np.array([0]*10), binarize_to=2)
+        for err in self.error_funcs:
+            e1, d1 = err(Y1, T1)
+            e2, d2 = err(Y2, T2)
+            self.assertAlmostEqual(e1, e2)
+
+    def test_deriv_shape(self):
+        Y = np.ones((4, 3, 2))
+        T = SequencewiseTargets(np.array([0, 1, 0]), binarize_to=2)
+        for err in self.error_funcs:
+            e, d = err(Y, T)
+            self.assertEqual(d.shape, Y.shape)
+
+    def test_finite_differences(self):
+        Y = np.zeros((4, 3, 2)) + 0.5
+        T = SequencewiseTargets(np.array([0, 1, 0]), binarize_to=2)
+        for err in self.error_funcs:
+            print(err)
+            def f(X):
+                return err(X.reshape(*Y.shape), T)[0]
             delta_approx = approx_fprime(Y.flatten().copy(), f, 1e-7)
             delta_calc = err(Y, T)[1].flatten()
             np.testing.assert_array_almost_equal(delta_approx, delta_calc)
@@ -114,16 +157,16 @@ class CTCTest(unittest.TestCase):
         b = ctcpp_beta(np.log(self.Y), self.T)
         pzx = np.logaddexp.reduce(a + b, axis=2)
         error_expected = -pzx.mean()
-        error_calc, d = CTC(self.Y, [self.T])
+        error_calc, d = CTC(self.Y, LabelingTargets([self.T], binarize_to=3))
         self.assertEqual(error_calc, error_expected)
 
 
     def test_finite_diff(self):
         # finite differences testing
         def f(X):
-            return CTC(X.reshape(4, 1, 3), [self.T])[0]
+            return CTC(X.reshape(4, 1, 3), LabelingTargets([self.T], binarize_to=3))[0]
 
-        e, d = CTC(self.Y, [self.T])
+        e, d = CTC(self.Y, LabelingTargets([self.T], binarize_to=3))
         print("delta_calc\n", d.reshape(4, 1, 3).T)
         delta_approx = approx_fprime(self.Y.copy().flatten(), f, 1e-5)
         print("delta_approx\n", delta_approx.reshape(4, 1, 3).T)

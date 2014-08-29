@@ -1,16 +1,18 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # coding=utf-8
 cimport c_layers as cl
 cimport c_matrix as cm
 from cython.operator cimport dereference as deref
+from cpython cimport bool
 from libcpp.vector cimport vector
+import numpy as np
 
 from py_matrix cimport Matrix
 from py_matrix_container cimport create_MatrixContainer, MatrixContainer
 
-
 cdef class BaseLayer:
     cdef cl.BaseLayer* layer
+    cdef bool _skip_training
 
     @property
     def in_size(self):
@@ -22,6 +24,15 @@ cdef class BaseLayer:
 
     def __cinit__(self):
         self.layer = NULL
+        self._skip_training = False
+
+
+    property skip_training:
+        def __get__(self):
+            return self._skip_training
+
+        def __set__(self, value):
+            self._skip_training = value
     
     def __dealloc(self):
         del self.layer
@@ -61,8 +72,8 @@ cdef class BaseLayer:
         cdef cm.MatrixContainer* bwd_state = self.layer.create_bwd_state_view(bwd_state_buffer.c_obj, batch_size, time_length)
         return create_MatrixContainer(bwd_state)
 
-    def forward(self, MatrixContainer param, MatrixContainer fwd_state, Matrix in_view, Matrix out_view):
-        self.layer.forward_pass(deref(param.this_ptr), deref(fwd_state.this_ptr), in_view.c_obj, out_view.c_obj)
+    def forward(self, MatrixContainer param, MatrixContainer fwd_state, Matrix in_view, Matrix out_view, bool training_pass):
+        self.layer.forward_pass(deref(param.this_ptr), deref(fwd_state.this_ptr), in_view.c_obj, out_view.c_obj, training_pass)
 
     def backward(self, MatrixContainer param, MatrixContainer fwd_state, MatrixContainer err, Matrix out_view, Matrix in_deltas, Matrix out_deltas):
         self.layer.backward_pass(deref(param.this_ptr), deref(fwd_state.this_ptr), deref(err.this_ptr), out_view.c_obj, in_deltas.c_obj, out_deltas.c_obj)
@@ -76,6 +87,9 @@ cdef class BaseLayer:
     def dampened_backward(self, MatrixContainer param, MatrixContainer fwd_state, MatrixContainer bwd_state, Matrix y, Matrix in_deltas, Matrix out_deltas, MatrixContainer r_fwd_state, double _lambda, double mu):
         self.layer.dampened_backward(deref(param.this_ptr), deref(fwd_state.this_ptr), deref(bwd_state.this_ptr), y.c_obj, in_deltas.c_obj, out_deltas.c_obj, deref(r_fwd_state.this_ptr), _lambda, mu)
 
+
+    def get_typename(self):
+        return self.layer.get_typename()
 
     def __unicode__(self):
         return "<" + self.layer.get_typename() + ": in_size=%d out_size=%d>"%(int(self.layer.in_size), int(self.layer.out_size))
@@ -111,23 +125,34 @@ def ctcpp(Y, T):
     error = cl.ctc(Matrix(Y).c_obj, T, deltas.c_obj)
     return error, deltas
 
+def ctc_token_passing(dictionary, onegrams, bigrams, Y):
+    t, b, f = Y.shape
+    assert b == 1, "No multibatch support in ctcpp for now"
+    ln_y = np.log(Y)
+    words = cl.ctc_token_passing_decoding(dictionary, onegrams, bigrams,
+                                  Matrix(ln_y).c_obj)
+    return words
+
 def create_layer(name, in_size, out_size, **kwargs):
     l = BaseLayer()
     name_lower = name.lower()
 
     cdef cm.ActivationFunction* act_fct = <cm.ActivationFunction*> &cm.Sigmoid
 
-    unexpected_kwargs = [k for k in kwargs if k not in {'act_func'}]
-    expected_kwargs = set()
+    expected_kwargs = {'act_func', 'skip_training'}
     if name_lower == "lstm97layer":
-        expected_kwargs = {'full_gradient', 'peephole_connections',
+        expected_kwargs |= {'full_gradient', 'peephole_connections',
                            'forget_gate', 'output_gate', 'gate_recurrence',
                            'use_bias'}
-    if name_lower == "lstmlayer":
-        expected_kwargs = {'delta_range'}
+    if name_lower in ["lstmlayer", "rnnlayer", "clockworklayer"]:
+        expected_kwargs |= {'delta_range'}
     if name_lower == "forwardlayer":
-        expected_kwargs = {'use_bias'}
-    unexpected_kwargs = list(set(unexpected_kwargs) - expected_kwargs)
+        expected_kwargs |= {'use_bias'}
+    if name_lower == "dropoutlayer":
+        expected_kwargs |= {'dropout_prob'}
+    if name_lower == "lwtalayer" or ("act_func" in kwargs and kwargs["act_func"].lower() == "lwta"):
+        expected_kwargs |= {'block_size'}
+    unexpected_kwargs = [k for k in kwargs if k not in expected_kwargs]
     if unexpected_kwargs:
         import warnings
         warnings.warn("Warning: got unexpected kwargs: %s"%unexpected_kwargs)
@@ -146,25 +171,42 @@ def create_layer(name, in_size, out_size, **kwargs):
             act_fct = <cm.ActivationFunction*> &cm.Linear
         elif af_name == "softmax":
             act_fct = <cm.ActivationFunction*> &cm.Softmax
-        elif af_name == "winout":
-            act_fct = <cm.ActivationFunction*> &cm.Winout
+        elif af_name == "lwta":
+            act_fct = <cm.ActivationFunction*> &cm.Lwta
         elif af_name == "tanhscaled":
             act_fct = <cm.ActivationFunction*> &cm.TanhScaled
+        else:
+            raise AttributeError("No activation function called '%s'" % af_name)
 
-
+    cdef cl.RnnLayer rnn_layer
+    cdef cl.ClockworkLayer cw_layer
     cdef cl.Lstm97Layer lstm97
     cdef cl.LstmLayer lstm_layer
     cdef cl.ForwardLayer forward_layer
+    cdef cl.HfFinalLayer hf_final_layer
+    cdef cl.DropoutLayer dropout_layer
+    cdef cl.LWTALayer lwta_layer
 
     if name_lower == "forwardlayer":
         forward_layer = cl.ForwardLayer(act_fct)
         if 'use_bias' in kwargs:
             forward_layer.use_bias = kwargs['use_bias']
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.ForwardLayer](in_size, out_size, forward_layer))
+    elif name_lower == "hffinallayer":
+        hf_final_layer = cl.HfFinalLayer(act_fct)
+        if 'use_bias' in kwargs:
+            hf_final_layer.use_bias = kwargs['use_bias']
+        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.HfFinalLayer](in_size, out_size, hf_final_layer))
     elif name_lower == "rnnlayer":
-        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.RnnLayer](in_size, out_size, cl.RnnLayer(act_fct)))
-    elif name_lower == "arnnlayer":
-        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.ArnnLayer](in_size, out_size, cl.ArnnLayer(act_fct)))
+        rnn_layer = cl.RnnLayer(act_fct)
+        if 'delta_range' in kwargs:
+            rnn_layer.delta_range = kwargs['delta_range']
+        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.RnnLayer](in_size, out_size, rnn_layer))
+    elif name_lower == "clockworklayer":
+        cw_layer = cl.ClockworkLayer(act_fct)
+        if 'delta_range' in kwargs:
+            cw_layer.delta_range = kwargs['delta_range']
+        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.ClockworkLayer](in_size, out_size, cw_layer))
     elif name_lower == "mrnnlayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.MrnnLayer](in_size, out_size, cl.MrnnLayer(act_fct)))
     elif name_lower == "lstmlayer":
@@ -190,6 +232,27 @@ def create_layer(name, in_size, out_size, **kwargs):
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.Lstm97Layer](in_size, out_size, lstm97))
     elif name_lower == "reverselayer":
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.ReverseLayer](in_size, out_size, cl.ReverseLayer()))
+        l.skip_training = True
+    elif name_lower == "dropoutlayer":
+        if 'dropout_prob' in kwargs:
+            dropout_layer.drop_prob = kwargs['dropout_prob']
+        else:
+            dropout_layer.drop_prob = 0.5
+        if 'initial_state' in kwargs:
+            dropout_layer.rnd_state = kwargs['initial_state']
+        else:
+            dropout_layer.rnd_state = 42
+        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.DropoutLayer](in_size, out_size, dropout_layer))
+    elif name_lower == "lwtalayer":
+        if 'block_size' in kwargs:
+            lwta_layer.block_size = kwargs['block_size']
+        else:
+            lwta_layer.block_size = 2
+        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.LWTALayer](in_size, out_size, lwta_layer))
     else :
         raise AttributeError("No layer with name " + name)
+
+    if "skip_training" in kwargs:
+        l.skip_training = kwargs['skip_training']
+
     return l

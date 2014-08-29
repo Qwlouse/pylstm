@@ -334,6 +334,25 @@ TEST_F(MatrixOperationsTest, check_if_mult_add_works_as_expected)
   ASSERT_TRUE(equals(m2, Matrix({{15, 21, 180},{21, 29, 290}})));
 }
 
+TEST_F(MatrixOperationsTest, check_if_hard_compete_works_as_expected)
+{
+  Matrix mask(6, 3, 2);
+  Matrix y(6, 3, 2);
+  Matrix x = {{{0, -2, 3}, {1, 2, 3}, {0, 1, 2}, {-1,  -9, 3}, {8, -2,  4}, {5, -4, -3}},
+              {{0, -1, 1}, {0, 1, 1}, {2, 2, 2}, {-9, -2, 3}, {5,  4, -2}, {4,  5,  7}}};
+  hard_compete_locally(mask, x, y, 3);
+  // check that x is unchanged
+  ASSERT_TRUE(equals(x, Matrix({{{0, -2, 3}, {1, 2, 3}, {0, 1, 2}, {-1,  -9, 3}, {8, -2,  4}, {5, -4, -3}},
+              {{0, -1, 1}, {0, 1, 1}, {2, 2, 2}, {-9, -2, 3}, {5,  4, -2}, {4,  5,  7}}})));
+
+  ASSERT_TRUE(equals(mask,
+    Matrix({{{0, 0, 1}, {1, 1, 0}, {0, 0, 0}, {0, 0, 0}, {1, 1, 1}, {0, 0, 0}},
+            {{0, 0, 0}, {0, 0, 0}, {1, 1, 1}, {0, 0, 0}, {1, 0, 0}, {0, 1, 1}}})));
+  ASSERT_TRUE(equals(y,
+    Matrix({{{0, 0, 3}, {1, 2, 0}, {0, 0, 0}, {0,  0, 0}, {8, -2,  4}, {0, 0, 0}},
+            {{0, 0, 0}, {0, 0, 0}, {2, 2, 2}, {0, 0, 0}, {5,  0, 0},  {0, 5, 7}}})));
+}
+
 TEST_F(MatrixOperationsTest, check_if_apply_sigmoid_works_as_expected)
 {
     Matrix range = {-2, -1, 0, 1, 2};

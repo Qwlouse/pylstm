@@ -64,17 +64,16 @@ MrnnLayer::BwdState::BwdState(size_t, size_t n_cells, size_t n_batches, size_t t
 }
 
 ////////////////////// Methods /////////////////////////////////////////////
-void MrnnLayer::forward(MrnnLayer::Parameters& w, MrnnLayer::FwdState& b, Matrix& x, Matrix& y) {
+void MrnnLayer::forward(MrnnLayer::Parameters& w, MrnnLayer::FwdState& b, Matrix& x, Matrix& y, bool) {
     size_t n_slices = x.n_slices;
-    mult(w.HX, x.flatten_time(), b.Ha.flatten_time());
-    mult(w.FX, x.flatten_time(), b.F1.flatten_time());
+    mult(w.HX, x.slice(1,x.n_slices).flatten_time(), b.Ha.slice(1,b.Ha.n_slices).flatten_time());
+    mult(w.FX, x.slice(1,x.n_slices).flatten_time(), b.F1.slice(1,b.F1.n_slices).flatten_time());
 
-    for (int t = 0; t < n_slices; ++t) {
-      if (t) {
-          mult(w.FH, y.slice(t-1), b.F2.slice(t));
-          dot(b.F1.slice(t), b.F2.slice(t), b.Fa.slice(t));
-          mult_add(w.HF, b.Fa.slice(t), b.Ha.slice(t));
-      }
+    for (int t = 1; t < n_slices; ++t) {
+      mult(w.FH, y.slice(t-1), b.F2.slice(t));
+      dot(b.F1.slice(t), b.F2.slice(t), b.Fa.slice(t));
+      mult_add(w.HF, b.Fa.slice(t), b.Ha.slice(t));
+     
       add_vector_into(w.H_bias, b.Ha.slice(t));
       f->apply(b.Ha.slice(t), y.slice(t));
     }
@@ -96,8 +95,8 @@ void MrnnLayer::backward(MrnnLayer::Parameters& w, MrnnLayer::FwdState& b, MrnnL
         dot(d.Fa.slice(t), b.F1.slice(t), d.F2.slice(t));
     }
     dot(d.Fa, b.F2, d.F1);
-    mult_add(w.HX.T(), d.Ha.flatten_time(), in_deltas.flatten_time());
-    mult_add(w.FX.T(), d.F1.flatten_time(), in_deltas.flatten_time());
+    mult_add(w.HX.T(), d.Ha.slice(1,d.Ha.n_slices).flatten_time(), in_deltas.slice(1,in_deltas.n_slices).flatten_time());
+    mult_add(w.FX.T(), d.F1.slice(1,d.F1.n_slices).flatten_time(), in_deltas.slice(1,in_deltas.n_slices).flatten_time());
 }
 
 
@@ -105,37 +104,35 @@ void MrnnLayer::backward(MrnnLayer::Parameters& w, MrnnLayer::FwdState& b, MrnnL
 void MrnnLayer::gradient(MrnnLayer::Parameters&, MrnnLayer::Parameters& grad, MrnnLayer::FwdState& b, MrnnLayer::BwdState& d, Matrix& y, Matrix& x, Matrix&) {
     size_t n_slices = x.n_slices;
     for (int t = 0; t < n_slices; ++t) {
-        mult_add(d.Ha.slice(t), x.slice(t).T(), grad.HX);
-        mult_add(d.Ha.slice(t), b.Fa.slice(t).T(), grad.HF);
-        mult_add(d.F1.slice(t), x.slice(t).T(), grad.FX);
-        if (t) {
-            mult_add(d.F2.slice(t), y.slice(t-1).T(), grad.FH);
-        }
+      if(t) mult_add(d.Ha.slice(t), x.slice(t).T(), grad.HX);
+      mult_add(d.Ha.slice(t), b.Fa.slice(t).T(), grad.HF);
+      if(t)  mult_add(d.F1.slice(t), x.slice(t).T(), grad.FX);
+      if (t) {
+	mult_add(d.F2.slice(t), y.slice(t-1).T(), grad.FH);
+      }
     }
-
+    
     squash(d.Ha, grad.H_bias);
 }
 
 void MrnnLayer::Rpass(Parameters& w, Parameters& v,  FwdState& b, FwdState& Rb, Matrix& x, Matrix& y, Matrix& Rx, Matrix& Ry)
 {
     size_t n_slices = x.n_slices;
-    mult(    v.HX,  x.flatten_time(), Rb.Ha.flatten_time());
-    mult_add(w.HX, Rx.flatten_time(), Rb.Ha.flatten_time());
+    mult(    v.HX,  x.slice(1,x.n_slices).flatten_time(),  Rb.Ha.slice(1,Rb.Ha.n_slices).flatten_time());
+    mult_add(w.HX, Rx.slice(1,Rx.n_slices).flatten_time(), Rb.Ha.slice(1,Rb.Ha.n_slices).flatten_time());
 
-    mult(    v.FX,  x.flatten_time(), Rb.F1.flatten_time());
-    mult_add(w.FX, Rx.flatten_time(), Rb.F1.flatten_time());
+    mult(    v.FX,  x.slice(1,x.n_slices).flatten_time(),  Rb.F1.slice(1,Rb.F1.n_slices).flatten_time());
+    mult_add(w.FX, Rx.slice(1,Rx.n_slices).flatten_time(), Rb.F1.slice(1,Rb.F1.n_slices).flatten_time());
 
-    for (int t = 0; t < n_slices; ++t) {
-      if (t) {
-          mult(    v.FH,  y.slice(t-1), Rb.F2.slice(t));
-          mult_add(w.FH, Ry.slice(t-1), Rb.F2.slice(t));
-
-          dot(   Rb.F1.slice(t),  b.F2.slice(t), Rb.Fa.slice(t));
-          dot_add(b.F1.slice(t), Rb.F2.slice(t), Rb.Fa.slice(t));
-
-          mult_add(v.HF,  b.Fa.slice(t), Rb.Ha.slice(t));
-          mult_add(w.HF, Rb.Fa.slice(t), Rb.Ha.slice(t));
-      }
+    for (int t = 1; t < n_slices; ++t) {
+      mult(    v.FH,  y.slice(t-1), Rb.F2.slice(t));
+      mult_add(w.FH, Ry.slice(t-1), Rb.F2.slice(t));
+      
+      dot(   Rb.F1.slice(t),  b.F2.slice(t), Rb.Fa.slice(t));
+      dot_add(b.F1.slice(t), Rb.F2.slice(t), Rb.Fa.slice(t));
+      
+      mult_add(v.HF,  b.Fa.slice(t), Rb.Ha.slice(t));
+      mult_add(w.HF, Rb.Fa.slice(t), Rb.Ha.slice(t));
 
       add_vector_into(v.H_bias, Rb.Ha.slice(t));
       f->apply_deriv(y.slice(t), Rb.Ha.slice(t), Ry.slice(t));

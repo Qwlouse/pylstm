@@ -1,35 +1,34 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # coding=utf-8
 
 from __future__ import division, print_function, unicode_literals
 import numpy as np
+from .monitoring import Monitor
 
 
-class ValidationErrorRises(object):
-    def __init__(self, delay=1):
+class ErrorRises(Monitor):
+    __default_values__ = {'delay': 1}
+
+    def __init__(self, error, delay=1, name=None):
+        super(ErrorRises, self).__init__(name, 'epoch', 1)
+        self.error = error.split('.')
         self.delay = delay
 
-    def restart(self):
-        pass
-
-    def __call__(self, epochs_seen, net, training_errors, validation_errors):
-        assert len(validation_errors), "You need to specify a validation set " \
-                                       "if you want to use ValidationErrorRises"
-        best_val_error = np.argmin(validation_errors)
-        if len(validation_errors) > best_val_error + self.delay:
-            print("Validation error did not fall for %d epochs! Stopping."
-                  % self.delay)
-            return True
-        return False
+    def __call__(self, epoch, net, stepper, logs):
+        errors = logs
+        for en in self.error:
+            errors = errors[en]
+        best_error_idx = np.argmin(errors)
+        if len(errors) > best_error_idx + self.delay:
+            raise StopIteration("Error did not fall for %d epochs! Stopping."
+                                % self.delay)
 
 
-class MaxEpochsSeen(object):
-    def __init__(self, max_epochs=100):
+class MaxEpochsSeen(Monitor):
+    def __init__(self, max_epochs, name=None):
+        super(MaxEpochsSeen, self).__init__(name, 'epoch', 1)
         self.max_epochs = max_epochs
 
-    def restart(self):
-        pass
-
-    def __call__(self, epochs_seen, net, training_errors, validation_errors):
-        if epochs_seen >= self.max_epochs:
-            return True
+    def __call__(self, epoch, net, stepper, logs):
+        if epoch >= self.max_epochs:
+            raise StopIteration("Max epochs reached.")

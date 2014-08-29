@@ -45,7 +45,7 @@ SET(CMAKE_MODULE_PATH "${PY_LSTM_PATH}/cmake")
 # Options settings (including optional packages)
 #==============================================================================
 
-OPTION(USE_MATLAB_BLAS "Use Matlab BLAS Libraries (requires Matlab)" ON)
+OPTION(USE_MATLAB_BLAS "Use Matlab BLAS Libraries (requires Matlab)" OFF)
 IF (USE_MATLAB_BLAS)
     FIND_PACKAGE(Matlab2 REQUIRED)
     SET(BLAS_LIBRARIES ${MATLAB_LIBRARIES})
@@ -73,10 +73,7 @@ ENDIF (NOT USE_MATLAB_BLAS)
 OPTION(ASSERTS_ENABLED "Enable asserts" ON)
 
 # Compile the tests
-OPTION(UNIT_TESTS "Compile the unit tests (fetches GTest)" ON)
-IF (UNIT_TESTS)
-    INCLUDE(GetGTest)
-ENDIF(UNIT_TESTS)
+OPTION(UNIT_TESTS "Compile the unit tests" ON)
 
 # Build the Documentation using Doxygen
 OPTION(DOCUMENTATION "Build the Documentation using Doxygen" OFF)
@@ -123,6 +120,10 @@ INCLUDE_DIRECTORIES("${PROJECT_BINARY_DIR}/src")
 #==============================================================================
 # Cython
 #==============================================================================
+# find numpy and include the numpy headers
+find_package(Numpy REQUIRED)
+include_directories("${NUMPY_INCLUDE_DIRS}")
+
 # Include the CMake script UseCython.cmake.  This defines add_cython_module().
 # Instruction for use can be found at the top of cmake/UseCython.cmake.
 INCLUDE(UseCython)
@@ -143,6 +144,7 @@ ADD_SUBDIRECTORY(src)
 # Testing
 #==============================================================================
 IF (UNIT_TESTS)
+    ADD_SUBDIRECTORY (gtest-1.7.0)
     ENABLE_TESTING()
     ADD_SUBDIRECTORY(test)
     ADD_CUSTOM_TARGET(pytest

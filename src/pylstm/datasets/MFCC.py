@@ -17,7 +17,7 @@
 
 from numpy import *
 from numpy.linalg import *
-from matplotlib.pyplot import *
+#from matplotlib.pyplot import *
 
 
 def hamming(n):
@@ -51,10 +51,10 @@ def melfb(p, n, fs):
     M = zeros((p, 1+fn2))
     for c in range(b2-1, b4):
         r = fp[c] - 1
-        M[r, c+1] += 2 * (1 - pm[c])
+        M[int(r), c+1] += 2 * (1 - pm[c])
     for c in range(b3):
         r = fp[c]
-        M[r, c+1] += 2 * pm[c]
+        M[int(r), c+1] += 2 * pm[c]
     return M, CF
 
 

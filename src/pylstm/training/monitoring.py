@@ -1,208 +1,186 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # coding=utf-8
 from __future__ import division, print_function, unicode_literals
 import numpy as np
+from pylstm.describable import Describable
+from pylstm.error_functions import ClassificationError, LabelingError
+from collections import OrderedDict
 
 
-def MonitorFunction(timescale='epoch', interval=1):
-    """
-    Decorator to adjust the interval and timescale for a monitoring function.
-    Example:
+class Monitor(Describable):
+    __undescribed__ = {'__name__'}  # the name is saved in the trainer
+    __default_values__ = {
+        'timescale': 'epoch',
+        'interval': 1,
+        'verbose': None
+    }
 
-    @MonitorFunction('update', 5)
-    def foo(*args, **kwargs):
-        print('bar')
-    """
-    def decorator(f):
-        f.timescale = timescale
-        f.interval = interval
-        return f
-    return decorator
+    def __init__(self, name=None, timescale='epoch', interval=1, verbose=None):
+        self.timescale = timescale
+        self.interval = interval
+        if name is None:
+            self.__name__ = self.__class__.__name__
+        else:
+            self.__name__ = name
+        self.priority = 0
+        self.verbose = verbose
+
+    def start(self, net, stepper, verbose, monitor_kwargs):
+        if self.verbose is None:
+            self.verbose = verbose
+
+    def __call__(self, epoch, net, stepper, logs):
+        pass
 
 
-def print_error_per_epoch(epoch, training_errors, validation_errors, **_):
-    if len(validation_errors) == 0:
-        print("\nEpoch %d:\tTraining error = %0.4f" % (epoch,
-                                                       training_errors[-1]))
-    else:
-        print("\nEpoch %d:\tTraining error = %0.4f Validation error = %0.4f" %
-              (epoch, training_errors[-1], validation_errors[-1]))
-
-
-class SaveWeights(object):
+class SaveWeights(Monitor):
     """
     Save the weights of the network to the given file on every call.
     Default is to save them once per epoch, but this can be configured using
     the timescale and interval parameters.
     """
-    def __init__(self, filename, timescale='epoch', interval=1):
-        self.timescale = timescale
-        self.interval = interval
+
+    def __init__(self, filename, name=None, timescale='epoch', interval=1):
+        super(SaveWeights, self).__init__(name, timescale, interval)
         self.filename = filename
 
-    def __call__(self, net, **_):
+    def __call__(self, epoch, net, stepper, logs):
         np.save(self.filename, net.param_buffer)
 
     def load_weights(self):
         return np.load(self.filename)
 
 
-class SaveBestWeights(object):
+class SaveBestWeights(Monitor):
     """
     Check every epoch to see if the validation error (or training error if there
     is no validation error) is at it's minimum and if so, save the weights to
     the specified file.
     """
-    def __init__(self, filename=None):
-        self.timescale = 'epoch'
-        self.interval = 1
+    __undescribed__ = {'weights': None}
+    __default_values__ = {'filename': None}
+
+    def __init__(self, error_log_name, filename=None, name=None, verbose=None):
+        super(SaveBestWeights, self).__init__(name, 'epoch', 1, verbose)
+        self.error_log_name = error_log_name.split('.')
         self.filename = filename
         self.weights = None
 
-    def __call__(self, net, training_errors, validation_errors, **_):
-        e = validation_errors if len(validation_errors) > 0 else training_errors
-        if np.argmin(e) == len(e) - 1:
+    def __call__(self, epoch, net, stepper, logs):
+        e = logs
+        for en in self.error_log_name:
+            e = e[en]
+        min_error_idx = np.argmin(e)
+        if min_error_idx == len(e) - 1:
             if self.filename is not None:
-                print("Saving weights to {0}...".format(self.filename))
+                if self.verbose:
+                    print(">> Saving weights to {0}...".format(self.filename))
                 np.save(self.filename, net.param_buffer)
             else:
-                print("Caching weights")
+                if self.verbose:
+                    print(">> Caching weights")
                 self.weights = net.param_buffer.copy()
+        elif self.verbose:
+            print(">> Last saved weigths after epoch {}".format(min_error_idx))
 
     def load_weights(self):
-        return np.load(self.filename) if self.filename is not None else self.weights
+        return np.load(self.filename) if self.filename is not None \
+            else self.weights
 
 
-class MonitorClassificationError(object):
+class MonitorError(Monitor):
     """
-    Monitor the classification error assuming one-hot encoding of targets.
+    Monitor the given error (aggregated over all sequences).
     """
-    def __init__(self, data_iter, name="", timescale='epoch', interval=1):
-        self.timescale = timescale
-        self.interval = interval
-        self.data_iter = data_iter
-        self.name = name
-        self.log = dict()
-        self.log['classification_error'] = []
+    __undescribed__ = {'data_iter'}
 
-    def __call__(self, net, **_):
-        total_errors = 0
-        total = 0
-        for x, t, m in self.data_iter():
+    def __init__(self, data_name, error_func=None,
+                 name=None, timescale='epoch', interval=1):
+        if name is None and error_func is not None:
+            name = 'Monitor' + error_func.__name__
+        super(MonitorError, self).__init__(name, timescale, interval)
+        assert isinstance(data_name, basestring)
+        self.data_name = data_name
+        self.data_iter = None
+        self.error_func = error_func
+
+    def start(self, net, stepper, verbose, monitor_kwargs):
+        super(MonitorError, self).start(net, stepper, verbose, monitor_kwargs)
+        self.data_iter = monitor_kwargs[self.data_name]
+
+    def __call__(self, epoch, net, stepper, logs):
+        error_func = self.error_func or net.error_func
+        errors = []
+        for x, t in self.data_iter(self.verbose):
             y = net.forward_pass(x)
-            y_win = y.argmax(2)
-            t_win = t.argmax(2)
-            if m is not None:
-                total_errors += np.sum((y_win != t_win) * m[:, :, 0])
-                total += np.sum(m)
-            else:
-                total_errors += np.sum((y_win != t_win))
-                total += t.shape[0] * t.shape[1]
-        error_fraction = total_errors / total
-        self.log['classification_error'].append(error_fraction)
-        print(self.name, ":\tClassification Error = %0.4f\t (%d / %d)" %
-                         (error_fraction, total_errors, total))
+            error, _ = error_func(y, t)
+            errors.append(error)
+        return error_func.aggregate(errors)
 
 
-class MonitorPooledClassificationError(object):
+class MonitorClassificationError(MonitorError):
+    def __init__(self, data_name, name=None, timescale='epoch', interval=1):
+        super(MonitorClassificationError, self).__init__(
+            data_name,
+            error_func=ClassificationError,
+            name=name, timescale=timescale, interval=interval)
+
+
+class MonitorLabelingError(MonitorError):
+    def __init__(self, data_name, name=None, timescale='epoch', interval=1):
+        super(MonitorLabelingError, self).__init__(
+            data_name,
+            error_func=LabelingError,
+            name=name, timescale=timescale, interval=interval)
+
+
+class MonitorMultipleErrors(Monitor):
     """
-        Monitor the classification error assuming one-hot encoding of targets
-        with pooled targets with an odd pool size.
-        """
-    def __init__(self, data_iter, pool_size, name="", timescale='epoch', interval=1):
-        self.timescale = timescale
-        self.interval = interval
-        self.data_iter = data_iter
-        self.pool_size = pool_size
-        self.name = name
-        self.log = dict()
-        self.log['classification_error'] = []
-    
-    def __call__(self, net, **_):
-        total_errors = 0
-        total = 0
-        for x, t, m in self.data_iter():
-            relevant_from = (t.shape[2] / self.pool_size) * (self.pool_size // 2)
-            relevant_to = relevant_from + (t.shape[2] / self.pool_size)
-            t = t[:, :, relevant_from: relevant_to]
+    Monitor errors (aggregated over all sequences).
+    """
+    __undescribed__ = {'data_iter'}
+
+    def __init__(self, data_name, error_functions,
+                 name=None, timescale='epoch', interval=1):
+        super(MonitorMultipleErrors, self).__init__(name, timescale, interval)
+        self.iter_name = data_name
+        self.data_iter = None
+        self.error_functions = error_functions
+
+    def start(self, net, stepper, verbose, monitor_kwargs):
+        super(MonitorMultipleErrors, self).start(net, stepper, verbose,
+                                                 monitor_kwargs)
+        self.data_iter = monitor_kwargs[self.iter_name]
+
+    def __call__(self, epoch, net, stepper, logs):
+        errors = {e: [] for e in self.error_functions}
+        for x, t in self.data_iter(self.verbose):
             y = net.forward_pass(x)
-            y_win = y.argmax(2)
-            t_win = t.argmax(2)
-            if m is not None:
-                total_errors += np.sum((y_win != t_win) * m[:, :, 0])
-                total += np.sum(m)
-            else:
-                total_errors += np.sum((y_win != t_win))
-                total += t.shape[0] * t.shape[1]
-        error_fraction = total_errors / total
-        self.log['classification_error'].append(error_fraction)
-        print(self.name, ":\tClassification Error = %0.4f\t (%d / %d)" %
-              (error_fraction, total_errors, total))
+            for error_func in self.error_functions:
+                error, _ = error_func(y, t)
+                errors[error_func].append(error)
+
+        return {err.__name__: err.aggregate(errors[err])
+                for err in self.error_functions}
 
 
-class MonitorPhonemeError(object):
-    """
-    Monitor the classification error assuming one-hot encoding of targets.
-    """
-    def __init__(self, data_iter, name="", timescale='epoch', interval=1):
-        self.timescale = timescale
-        self.interval = interval
-        self.data_iter = data_iter
-        self.name = name
-        self.log = dict()
-        self.log['phoneme_error'] = []
-
-    def __call__(self, net, **_):
-        total_errors = 0
-        total_length = 0
-        for x, t, m in self.data_iter():
-            y = net.forward_pass(x)
-            lab = ctc_best_path_decoding(y)
-            total_errors += levenshtein(lab, t[0])
-            total_length += len(t[0])
-        error_fraction = total_errors / total_length
-        self.log['phoneme_error'].append(error_fraction)
-        print(self.name, ':\tPhoneme Error = %0.4f\t (%d / %d)' %
-                         (error_fraction, total_errors, total_length))
-
-
-def ctc_best_path_decoding(Y):
-    assert Y.shape[1] == 1
-    Y_win = Y.argmax(2).reshape(Y.shape[0])
-    t = []
-    blank = True
-    for y in Y_win:
-        if blank is True and y != 0:
-            t.append(y - 1)
-            blank = False
-        elif blank is False:
-            if y == 0:
-                blank = True
-            elif y - 1 != t[-1]:
-                t.append(y - 1)
-    return t
-
-
-def levenshtein(seq1, seq2):
-    oneago = None
-    thisrow = range(1, len(seq2) + 1) + [0]
-    for x in xrange(len(seq1)):
-        twoago, oneago, thisrow = oneago, thisrow, [0] * len(seq2) + [x + 1]
-        for y in xrange(len(seq2)):
-            delcost = oneago[y] + 1
-            addcost = thisrow[y - 1] + 1
-            subcost = oneago[y - 1] + (seq1[x] != seq2[y])
-            thisrow[y] = min(delcost, addcost, subcost)
-    return thisrow[len(seq2) - 1]
-
-
-class PlotErrors(object):
+class PlotMonitors(Monitor):
     """
     Open a window and plot the training and validation errors while training.
     """
-    def __init__(self, timescale='epoch', interval=1):
-        self.timescale = timescale
-        self.interval = interval
+    __undescribed__ = {'plt', 'fig', 'ax', 'lines', 'mins'}
+
+    def __init__(self, name=None, show_min=True, timescale='epoch', interval=1):
+        super(PlotMonitors, self).__init__(name, timescale, interval)
+        self.show_min = show_min
+        self.plt = None
+        self.fig = None
+        self.ax = None
+        self.lines = None
+        self.mins = None
+
+    def start(self, net, stepper, verbose, monitor_kwargs):
+        super(PlotMonitors, self).start(net, stepper, verbose, monitor_kwargs)
         import matplotlib.pyplot as plt
         self.plt = plt
         self.plt.ion()
@@ -210,39 +188,68 @@ class PlotErrors(object):
         self.ax.set_title('Training Progress')
         self.ax.set_xlabel('Epochs')
         self.ax.set_ylabel('Error')
-        self.t_line = None
-        self.v_line = None
-        self.v_dot = None
+        self.lines = dict()
+        self.mins = dict()
         self.plt.show()
 
-    def _get_min_err(self, errors):
-        min_epoch = np.argmin(errors)
-        return min_epoch, errors[min_epoch]
+    def _plot(self, name, data):
+        data = data[1:]  # ignore pre-training entry
+        x = range(1, len(data)+1)
+        if name not in self.lines:
+            line, = self.ax.plot(x, data, '-', label=name)
+            self.lines[name] = line
+        else:
+            self.lines[name].set_ydata(data)
+            self.lines[name].set_xdata(x)
 
-    def __call__(self, training_errors, validation_errors, **_):
-        if self.v_line is None and validation_errors:
-                self.v_line, = self.ax.plot(validation_errors, 'b-',
-                                            label='Validation Error')
-
-        if self.t_line is None:
-            if training_errors:
-                self.t_line, = self.ax.plot(training_errors, 'g-',
-                                            label='Training Error')
-                min_ep, min_err = self._get_min_err(validation_errors)
-                self.v_dot, = self.ax.plot([min_ep], min_err, 'bo')
-            self.ax.legend()
-            self.fig.canvas.draw()
+        if not self.show_min or len(data) < 2:
             return
 
-        self.t_line.set_ydata(training_errors)
-        self.t_line.set_xdata(range(len(training_errors)))
-        if self.v_line is not None:
-            self.v_line.set_ydata(validation_errors)
-            self.v_line.set_xdata(range(len(validation_errors)))
-            min_ep, min_err = self._get_min_err(validation_errors)
-            self.v_dot.set_ydata([min_err])
-            self.v_dot.set_xdata([min_ep])
+        min_idx = np.argmin(data) + 1
+        if name not in self.mins:
+            color = self.lines[name].get_color()
+            self.mins[name] = self.ax.axvline(min_idx, color=color)
+        else:
+            self.mins[name].set_xdata(min_idx)
+
+    def __call__(self, epoch, net, stepper, logs):
+        if epoch < 2:
+            return
+
+        for name, log in logs.items():
+            if not isinstance(log, (list, dict)) or not log:
+                continue
+            if isinstance(log, dict):
+                for k, v in log.items():
+                    self._plot(name + '.' + k, v)
+            else:
+                self._plot(name, log)
+
+        self.ax.legend()
         self.ax.relim()
         self.ax.autoscale_view()
         self.fig.canvas.draw()
+        self.fig.canvas.draw()  # no idea why I need that twice, but I do
 
+
+class MonitorLayerProperties(Monitor):
+    """
+    Monitor some properties of a layer.
+    """
+    def __init__(self, layer_name, timescale='epoch',
+                 interval=1, name=None):
+        if name is None:
+            name = "Monitor{}Properties".format(layer_name)
+        super(MonitorLayerProperties, self).__init__(name, timescale, interval)
+        self.layer_name = layer_name
+
+    def __call__(self, epoch, net, stepper, logs):
+        log = OrderedDict()
+        for key, value in net.get_param_view_for(self.layer_name).items():
+            log['min_' + key] = value.min()
+            log['max_' + key] = value.max()
+            #if key.split('_')[-1] != 'bias':
+            if value.shape[1] > 1:
+                log['min_sq_norm_' + key] = np.sum(value ** 2, axis=1).min()
+                log['max_sq_norm_' + key] = np.sum(value ** 2, axis=1).max()
+        return log
