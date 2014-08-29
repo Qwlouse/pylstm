@@ -121,7 +121,7 @@ INCLUDE_DIRECTORIES("${PROJECT_BINARY_DIR}/src")
 # Cython
 #==============================================================================
 # find numpy and include the numpy headers
-find_package(Numpy REQUIRED)
+find_package(NumPy REQUIRED)
 include_directories("${NUMPY_INCLUDE_DIRS}")
 
 # Include the CMake script UseCython.cmake.  This defines add_cython_module().
