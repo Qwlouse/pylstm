@@ -103,6 +103,27 @@ implementations for the particular kind of task based on the target type.
 Data Iterators
 --------------
 
+Brainstrom uses *data iterators* to cycle through combined inputs and targets
+in a dataset. Three kinds of *data iterators* are available, covering most
+use cases:
+
+-   **Online**
+-   **Minibatches**
+-   **Undivided**
+
+The names are self-explanatory -- **Online** iterates through samples
+one at a time, **Minibatches** iterates through them in fixed size
+batches, and **Undivided** returns all the data as a whole.
+The dataset is shuffled by default after each full pass.
+An additional parameter **verbose** can be used to print progress bars
+as the iterator goes through the data.
+
+Some examples::
+
+    train_iter = Online(train_inputs, train_targets, shuffle=True, verbose=True)
+    train_iter = Minibatches(train_inputs, train_targets, batch_size=10)
+    train_iter = Undivided(train_inputs, train_targets)
+
 -------------------------------------------------------------------------------
 
 Networks
