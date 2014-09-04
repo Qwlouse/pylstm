@@ -1,8 +1,0 @@
-# debain packages to install (on top of a typical desktop installation)
-cmake
-python-pip
-python-dev
-libopenblas-dev
-libblas-dev
-libboost-dev
-
