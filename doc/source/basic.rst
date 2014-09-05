@@ -71,7 +71,9 @@ the 0-based index of the target class.
 .. note::
     It is highly recommended that you always you 3 dimensional
     arrays as your raw data with which you build **Targets** objects,
-    even if some dimensions are not needed. For example, for
+    even if some dimensions are not needed.
+    You can see we did this for the MNIST dataset (:ref:`getdata`).
+    For example, for
     sequencewise classification, you will have targets for each
     sequence. In this case, the *masks* should be of shape
     (number of time steps, number of samples, 1)
@@ -103,7 +105,7 @@ implementations for the particular kind of task based on the target type.
 Data Iterators
 --------------
 
-Brainstrom uses *data iterators* to cycle through combined inputs and targets
+Brainstrom uses *data iterators* to cycle through the input-target pairs
 in a dataset. Three kinds of *data iterators* are available, covering most
 use cases:
 
@@ -134,7 +136,67 @@ Networks
 Construction
 ------------
 
-build_net, error_func
+Now that you know how to prepare a dataset for a Brainstorm experiment,
+we can now get into constructing some networks. First,
+let us construct some layers::
+
+    l1 = InputLayer(10)
+    l2 = ForwardLayer(100, act_func='sigmoid', name='h1')
+    l3 = LstmLayer(20, name='h2')
+    l4 = ForwardLayer(10, act_func='softmax', name='output')
+
+The syntax for layer construction should be clear from the above examples.
+The first argument is size of the layer -- meaning the size of the activation
+vectors this layer will produce. You can also choose an activation function
+('sigmoid', 'tanh', 'relu', 'softmax' etc.), and name the layer to identify
+it. If you do not provide a size, it is assumed that it produces the same
+number of features as its total number of input features. If you do
+not name the layer, a name is generated for the layer.
+
+To build a network, we need to first specify how the layers are connected.
+This is very simple using the **>>** operator in Brainstorm. To build
+a very simple network from the layer above, you can do::
+
+    layers = l1 >> l2 >> l3 >> l4
+
+Finally, you can construct the network using the **build_net** function::
+
+    network = build_net(layers)
+
+The above steps can be combined for many simple networks::
+
+    network = build_net(InputLayer(10) >>
+                        ForwardLayer(100, act_func='sigmoid', name='h1') >>
+                        LstmLayer(20, name='h2') >>
+                        ForwardLayer(10, act_func='softmax', name='output'))
+
+You can connect one layer to multiple layers, or multiple layers to one layer.
+This allows you to build any directed acyclic graph using the **>>** operator
+and the **build_net** function.
+
+.. note::
+    The argument to **build_net** can be any layer which has already been
+    connected to the other layers. Note that applying the **>>** operator
+    returns a layer, which is why the above example works.
+    This is useful to know for building complicated networks.
+
+
+Brainstorm provides the **ReverseLayer** for building bidirectional
+recurrent networks and the **NoOpLayer** for building other complicated
+structures. Here is an example of building a network with
+two bidirectional fully recurrent layers::
+
+    input_layer = InputLayer(100)
+    output_layer = ForwardLayer(10, act_func='softmax', name='Output')
+    noop_layer = NoOpLayer()
+
+    input_layer >> RnnLayer(40, name='ForwardRec-1', act_func='tanh') >> noop_layer
+    input_layer >> ReverseLayer() >> RnnLayer(40, name='BackwardRec-1', act_func='tanh') >> ReverseLayer() >> noop_layer
+
+    noop_layer >> RnnLayer(20, name='ForwardRec-2', act_func='tanh') >> output_layer
+    noop_layer >> ReverseLayer() >> RnnLayer(20, name='BackwardRec-2', act_func='tanh') >> ReverseLayer() >> output_layer
+
+    net = build_net(output_layer)
 
 .. _init_network:
 
@@ -167,7 +229,7 @@ Trainers
 Construction
 ------------
 
-stepper
+Network error_func, stepper
 
 
 .. _monitor_stop:

@@ -13,8 +13,11 @@ Quickstart
 
 Getting MNIST data
 ==================
-We will demonstrate the use of feedforward networks using experiments on the MNIST dataset.
-To fetch the dataset, we will use the **sklearn.datasets** module from scikit-learn. To install
+As per the usual custom from which we dare not deviate,
+we will demonstrate the use of feedforward networks using a single experiment
+on the MNIST dataset.
+To fetch the dataset, we will use the **sklearn.datasets**
+module from scikit-learn. To install
 scikit-learn, (in a Terminal) do::
 
     [sudo] pip install scikit-learn

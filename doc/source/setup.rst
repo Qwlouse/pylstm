@@ -43,6 +43,7 @@ If you want to build a copy of this documentation, do::
 
     cd doc
     make html
+    cd ..
 
 If everything went smoothly, you can install by calling::
 
