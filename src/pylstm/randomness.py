@@ -9,6 +9,11 @@ from pylstm.describable import Describable
 SEED_RANGE = (0, 1000000000)
 
 
+def get_subseed_for_item(base_seed, item):
+    hash_string = str(base_seed) + '$' + str(item)
+    return hash(hash_string) % (SEED_RANGE[1] - SEED_RANGE[0]) + SEED_RANGE[0]
+
+
 class HierarchicalRandomState(np.random.RandomState):
     """
     An extension of the numpy RandomState that saves it's own seed and allows to
@@ -59,7 +64,7 @@ class HierarchicalRandomState(np.random.RandomState):
 
     def __getitem__(self, item):
         if item not in self.categories:
-            seed = abs(hash(str(self._seed) + '$' + str(item)))
+            seed = get_subseed_for_item(self._seed, item)
             self.categories[item] = HierarchicalRandomState(seed)
         return self.categories[item]
 
