@@ -13,6 +13,7 @@ Lstm97Layer::Lstm97Layer():
     peephole_connections(true),
     forget_gate(true),
     output_gate(true),
+    input_gate(true),
     gate_recurrence(true),
     use_bias(true)
 { }
@@ -23,6 +24,7 @@ Lstm97Layer::Lstm97Layer(const ActivationFunction* f):
     peephole_connections(true),
     forget_gate(true),
     output_gate(true),
+    input_gate(true),
     gate_recurrence(true),
     use_bias(true)
 { }
@@ -106,7 +108,9 @@ Lstm97Layer::BwdState::BwdState(size_t, size_t n_cells, size_t n_batches, size_t
 
 
 void Lstm97Layer::forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y, bool) {
-  mult(w.IX, x.slice(1,x.n_slices).flatten_time(), b.Ia.slice(1,b.Ia.n_slices).flatten_time());
+    if (input_gate) {
+        mult(w.IX, x.slice(1,x.n_slices).flatten_time(), b.Ia.slice(1,b.Ia.n_slices).flatten_time());
+    }
     if (forget_gate) {
         mult(w.FX, x.slice(1,x.n_slices).flatten_time(), b.Fa.slice(1,b.Fa.n_slices).flatten_time());
     }
@@ -119,26 +123,32 @@ void Lstm97Layer::forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y, bool
             if (forget_gate) {
                 mult_add(w.FH, y.slice(t - 1), b.Fa.slice(t));
                 if (gate_recurrence) {
-                    mult_add(w.FI, b.Ib.slice(t - 1), b.Fa.slice(t));
+                    if (input_gate) {
+                        mult_add(w.FI, b.Ib.slice(t - 1), b.Fa.slice(t));
+                    }
                     mult_add(w.FF, b.Fb.slice(t - 1), b.Fa.slice(t));
                     if (output_gate)
                         mult_add(w.FO, b.Ob.slice(t - 1), b.Fa.slice(t));
                 }
             }
 
-            mult_add(w.IH, y.slice(t - 1), b.Ia.slice(t));
-            if (gate_recurrence) {
-                mult_add(w.II, b.Ib.slice(t - 1), b.Ia.slice(t));
-                if (forget_gate)
-                    mult_add(w.IF, b.Fb.slice(t - 1), b.Ia.slice(t));
-                if (output_gate)
-                    mult_add(w.IO, b.Ob.slice(t - 1), b.Ia.slice(t));
+            if (input_gate) {
+                mult_add(w.IH, y.slice(t - 1), b.Ia.slice(t));
+                if (gate_recurrence) {
+                    mult_add(w.II, b.Ib.slice(t - 1), b.Ia.slice(t));
+                    if (forget_gate)
+                        mult_add(w.IF, b.Fb.slice(t - 1), b.Ia.slice(t));
+                    if (output_gate)
+                        mult_add(w.IO, b.Ob.slice(t - 1), b.Ia.slice(t));
+                }
             }
 
             if (output_gate) {
                 mult_add(w.OH, y.slice(t - 1), b.Oa.slice(t));
                 if (gate_recurrence) {
-                    mult_add(w.OI, b.Ib.slice(t - 1), b.Oa.slice(t));
+                    if (input_gate) {
+                        mult_add(w.OI, b.Ib.slice(t - 1), b.Oa.slice(t));
+                    }
                     if (forget_gate)
                         mult_add(w.OF, b.Fb.slice(t - 1), b.Oa.slice(t));
                     mult_add(w.OO, b.Ob.slice(t - 1), b.Oa.slice(t));
@@ -150,29 +160,38 @@ void Lstm97Layer::forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y, bool
             if (peephole_connections) {
                 if (forget_gate)
                     dot_add(b.S.slice(t - 1), w.FS, b.Fa.slice(t));
-                dot_add(b.S.slice(t - 1), w.IS, b.Ia.slice(t));
+                if (input_gate)
+                    dot_add(b.S.slice(t - 1), w.IS, b.Ia.slice(t));
             }
 
 
         if (use_bias) {
             if (forget_gate)
                 add_vector_into(w.F_bias, b.Fa.slice(t));
-            add_vector_into(w.I_bias, b.Ia.slice(t));
+            if (input_gate) {
+                add_vector_into(w.I_bias, b.Ia.slice(t));
+            }
             add_vector_into(w.Z_bias, b.Za.slice(t));
             if (output_gate)
                 add_vector_into(w.O_bias, b.Oa.slice(t));
         }
         if (forget_gate)
             apply_sigmoid(b.Fa.slice(t), b.Fb.slice(t));
-        apply_sigmoid(b.Ia.slice(t), b.Ib.slice(t));
+        if (input_gate)
+            apply_sigmoid(b.Ia.slice(t), b.Ib.slice(t));
         apply_tanh(b.Za.slice(t), b.Zb.slice(t));
-        dot(b.Zb.slice(t), b.Ib.slice(t), b.S.slice(t));
+        if (input_gate) {
+            dot(b.Zb.slice(t), b.Ib.slice(t), b.S.slice(t));
+        } else {
+            copy(b.Zb.slice(t), b.S.slice(t));
+        }
 
-	if (forget_gate)
-	  dot_add(b.S.slice(t - 1), b.Fb.slice(t), b.S.slice(t));
-	else
-	  add_into_b(b.S.slice(t - 1), b.S.slice(t));
- 
+
+	    if (forget_gate)
+	      dot_add(b.S.slice(t - 1), b.Fb.slice(t), b.S.slice(t));
+	    else
+	      add_into_b(b.S.slice(t - 1), b.S.slice(t));
+
         f->apply(b.S.slice(t), b.f_S.slice(t));
 
         if (output_gate) {
@@ -205,7 +224,9 @@ void Lstm97Layer::gradient(Parameters&, Parameters& grad, FwdState& b, BwdState&
     mult(d.Za.slice(1,d.Za.n_slices).flatten_time(), x.slice(1,x.n_slices).flatten_time().T(), grad.ZX); //  1.0 / 1.0); //(double) n_time);
     if (forget_gate)
       mult(d.Fa.slice(1,d.Fa.n_slices).flatten_time(), x.slice(1,x.n_slices).flatten_time().T(), grad.FX); // 1.0 / 1.0); //(double) n_time);
-    mult(d.Ia.flatten_time(), x.flatten_time().T(), grad.IX); //1.0 / 1.0); //(double) n_time);
+    if (input_gate) {
+        mult(d.Ia.flatten_time(), x.flatten_time().T(), grad.IX); //1.0 / 1.0); //(double) n_time);
+    }
     if (output_gate)
       mult(d.Oa.slice(1,d.Oa.n_slices).flatten_time(), x.slice(1,x.n_slices).flatten_time().T(), grad.OX); // 1.0 / 1.0); //(double) n_time);
 
@@ -221,7 +242,9 @@ void Lstm97Layer::gradient(Parameters&, Parameters& grad, FwdState& b, BwdState&
         grad.FH.set_all_elements_to(0.0);
         grad.OH.set_all_elements_to(0.0);
         for (int t = 0; t < n_time - 1; ++t) {
-            mult_add(d.Ia.slice(t + 1), y.slice(t).T(), grad.IH); //(double) n_time);
+            if (input_gate) {
+                mult_add(d.Ia.slice(t + 1), y.slice(t).T(), grad.IH); //(double) n_time);
+            }
             mult_add(d.Za.slice(t + 1), y.slice(t).T(), grad.ZH); //(double) n_time);
             if (forget_gate)
                 mult_add(d.Fa.slice(t + 1), y.slice(t).T(), grad.FH); //(double) n_time);
@@ -229,18 +252,28 @@ void Lstm97Layer::gradient(Parameters&, Parameters& grad, FwdState& b, BwdState&
                 mult_add(d.Oa.slice(t + 1), y.slice(t).T(), grad.OH); //(double) n_time);
         }
 	    if (gate_recurrence) {
-            mult(d.Ia.slice(1, n_time).flatten_time(), b.Ib.slice(0, n_time - 1).flatten_time().T(), grad.II); //(double) n_time);
-            if (forget_gate)
-                mult(d.Ia.slice(1, n_time).flatten_time(), b.Fb.slice(0, n_time - 1).flatten_time().T(), grad.IF); //(double) n_time);
-            mult(d.Ia.slice(1, n_time).flatten_time(), b.Ob.slice(0, n_time - 1).flatten_time().T(), grad.IO); //(double) n_time);
+	        if (input_gate) {
+                mult(d.Ia.slice(1, n_time).flatten_time(), b.Ib.slice(0, n_time - 1).flatten_time().T(), grad.II); //(double) n_time);
+                if (forget_gate)
+                    mult(d.Ia.slice(1, n_time).flatten_time(), b.Fb.slice(0, n_time - 1).flatten_time().T(), grad.IF); //(double) n_time);
+                if (output_gate) {
+                    mult(d.Ia.slice(1, n_time).flatten_time(), b.Ob.slice(0, n_time - 1).flatten_time().T(), grad.IO); //(double) n_time);
+                }
+            }
 
             if (forget_gate) {
-                mult(d.Fa.slice(1, n_time).flatten_time(), b.Ib.slice(0, n_time - 1).flatten_time().T(), grad.FI); //(double) n_time);
+                if (input_gate) {
+                    mult(d.Fa.slice(1, n_time).flatten_time(), b.Ib.slice(0, n_time - 1).flatten_time().T(), grad.FI); //(double) n_time);
+                }
                 mult(d.Fa.slice(1, n_time).flatten_time(), b.Fb.slice(0, n_time - 1).flatten_time().T(), grad.FF); //(double) n_time);
-                mult(d.Fa.slice(1, n_time).flatten_time(), b.Ob.slice(0, n_time - 1).flatten_time().T(), grad.FO); //(double) n_time);
+                if (output_gate) {
+                    mult(d.Fa.slice(1, n_time).flatten_time(), b.Ob.slice(0, n_time - 1).flatten_time().T(), grad.FO); //(double) n_time);
+                }
             }
             if (output_gate) {
-                mult(d.Oa.slice(1, n_time).flatten_time(), b.Ib.slice(0, n_time - 1).flatten_time().T(), grad.OI); //(double) n_time);
+                if (input_gate) {
+                    mult(d.Oa.slice(1, n_time).flatten_time(), b.Ib.slice(0, n_time - 1).flatten_time().T(), grad.OI); //(double) n_time);
+                }
                 if (forget_gate)
                     mult(d.Oa.slice(1, n_time).flatten_time(), b.Fb.slice(0, n_time - 1).flatten_time().T(), grad.OF); //(double) n_time);
                 mult(d.Oa.slice(1, n_time).flatten_time(), b.Ob.slice(0, n_time - 1).flatten_time().T(), grad.OO); //(double) n_time);
@@ -253,7 +286,9 @@ void Lstm97Layer::gradient(Parameters&, Parameters& grad, FwdState& b, BwdState&
     if (n_time > 1 && peephole_connections) {
         if (forget_gate)
             dot_squash(d.Fa.slice(1, n_time), b.S.slice(0, n_time - 1), grad.FS);
-        dot_squash(d.Ia.slice(1, n_time), b.S.slice(0, n_time - 1), grad.IS);
+        if (input_gate) {
+            dot_squash(d.Ia.slice(1, n_time), b.S.slice(0, n_time - 1), grad.IS);
+        }
     }
 
     //! \f$\frac{dE}{dW_OS} += \frac{dE}{da_O} * s(t)\f$
@@ -262,7 +297,9 @@ void Lstm97Layer::gradient(Parameters&, Parameters& grad, FwdState& b, BwdState&
     }
 
     if (use_bias) {
-        squash(d.Ia, grad.I_bias); //, 1.0 / (double) n_time);
+        if (input_gate) {
+            squash(d.Ia, grad.I_bias); //, 1.0 / (double) n_time);
+        }
         if (forget_gate)
             squash(d.Fa, grad.F_bias); //, 1.0 / (double) n_time);
         squash(d.Za, grad.Z_bias); //, 1.0 / (double) n_time);
@@ -274,14 +311,17 @@ void Lstm97Layer::gradient(Parameters&, Parameters& grad, FwdState& b, BwdState&
 
 void Lstm97Layer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb, Matrix &x, Matrix &y, Matrix& Rx, Matrix &Ry) {
 
-  mult(v.IX, x.slice(1,x.n_slices).flatten_time(), Rb.Ia.slice(1,Rb.Ia.n_slices).flatten_time());
+  if (input_gate) {
+      mult(v.IX, x.slice(1,x.n_slices).flatten_time(), Rb.Ia.slice(1,Rb.Ia.n_slices).flatten_time());
+  }
   if (forget_gate)
     mult(v.FX, x.slice(1,x.n_slices).flatten_time(), Rb.Fa.slice(1,Rb.Fa.n_slices).flatten_time());
   mult(v.ZX, x.slice(1,x.n_slices).flatten_time(), Rb.Za.slice(1,Rb.Za.n_slices).flatten_time());
   if (output_gate)
     mult(v.OX, x.slice(1,x.n_slices).flatten_time(), Rb.Oa.slice(1,Rb.Oa.n_slices).flatten_time());
-
-  mult_add(w.IX, Rx.slice(1,Rx.n_slices).flatten_time(), Rb.Ia.slice(1,Rb.Ia.n_slices).flatten_time());
+  if (input_gate) {
+      mult_add(w.IX, Rx.slice(1,Rx.n_slices).flatten_time(), Rb.Ia.slice(1,Rb.Ia.n_slices).flatten_time());
+  }
   if (forget_gate)
     mult_add(w.FX, Rx.slice(1,Rx.n_slices).flatten_time(), Rb.Fa.slice(1,Rb.Fa.n_slices).flatten_time());
   mult_add(w.ZX, Rx.slice(1,Rx.n_slices).flatten_time(), Rb.Za.slice(1,Rb.Za.n_slices).flatten_time());
@@ -291,19 +331,23 @@ void Lstm97Layer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb
 
   for (size_t t(1); t < x.n_slices; ++t) {
 
-      mult_add(w.IH, Ry.slice(t - 1), Rb.Ia.slice(t));
-      if (gate_recurrence) {
-        mult_add(w.II, Rb.Ib.slice(t - 1), Rb.Ia.slice(t));
-        if (forget_gate)
-	      mult_add(w.IF, Rb.Fb.slice(t - 1), Rb.Ia.slice(t));
-	    if (output_gate)
-	      mult_add(w.IO, Rb.Ob.slice(t - 1), Rb.Ia.slice(t));
+      if (input_gate) {
+          mult_add(w.IH, Ry.slice(t - 1), Rb.Ia.slice(t));
+          if (gate_recurrence) {
+            mult_add(w.II, Rb.Ib.slice(t - 1), Rb.Ia.slice(t));
+            if (forget_gate)
+              mult_add(w.IF, Rb.Fb.slice(t - 1), Rb.Ia.slice(t));
+            if (output_gate)
+              mult_add(w.IO, Rb.Ob.slice(t - 1), Rb.Ia.slice(t));
+          }
 	  }
 
       if (forget_gate) {
           mult_add(w.FH, Ry.slice(t - 1), Rb.Fa.slice(t));
           if (gate_recurrence) {
-              mult_add(w.FI, Rb.Ib.slice(t - 1), Rb.Fa.slice(t));
+              if (input_gate) {
+                  mult_add(w.FI, Rb.Ib.slice(t - 1), Rb.Fa.slice(t));
+              }
               mult_add(w.FF, Rb.Fb.slice(t - 1), Rb.Fa.slice(t));
               if (output_gate)
                 mult_add(w.FO, Rb.Ob.slice(t - 1), Rb.Fa.slice(t));
@@ -314,7 +358,9 @@ void Lstm97Layer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb
       if (output_gate) {
         mult_add(w.OH, Ry.slice(t - 1), Rb.Oa.slice(t));
         if (gate_recurrence) {
-            mult_add(w.OI, Rb.Ib.slice(t - 1), Rb.Oa.slice(t));
+            if (input_gate) {
+                mult_add(w.OI, Rb.Ib.slice(t - 1), Rb.Oa.slice(t));
+            }
             if (forget_gate)
 	          mult_add(w.OF, Rb.Fb.slice(t - 1), Rb.Oa.slice(t));
 	        mult_add(w.OO, Rb.Ob.slice(t - 1), Rb.Oa.slice(t));
@@ -323,7 +369,9 @@ void Lstm97Layer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb
 
       mult_add(v.IH, y.slice(t - 1), Rb.Ia.slice(t));
       if (gate_recurrence) {
-          mult_add(v.II, b.Ib.slice(t - 1), Rb.Ia.slice(t));
+          if (input_gate) {
+              mult_add(v.II, b.Ib.slice(t - 1), Rb.Ia.slice(t));
+          }
           if (forget_gate)
 	        mult_add(v.IF, b.Fb.slice(t - 1), Rb.Ia.slice(t));
 	      if (output_gate)
@@ -333,7 +381,9 @@ void Lstm97Layer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb
       if (forget_gate) {
           mult_add(v.FH, y.slice(t - 1), Rb.Fa.slice(t));
           if (gate_recurrence) {
-              mult_add(v.FI, b.Ib.slice(t - 1), Rb.Fa.slice(t));
+              if (input_gate) {
+                  mult_add(v.FI, b.Ib.slice(t - 1), Rb.Fa.slice(t));
+              }
               mult_add(v.FF, b.Fb.slice(t - 1), Rb.Fa.slice(t));
               if (output_gate)
                 mult_add(v.FO, b.Ob.slice(t - 1), Rb.Fa.slice(t));
@@ -344,7 +394,9 @@ void Lstm97Layer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb
       if (output_gate) {
         mult_add(v.OH, y.slice(t - 1), Rb.Oa.slice(t));
         if (gate_recurrence) {
-            mult_add(v.OI, b.Ib.slice(t - 1), Rb.Oa.slice(t));
+            if (input_gate) {
+                mult_add(v.OI, b.Ib.slice(t - 1), Rb.Oa.slice(t));
+            }
             if (forget_gate)
 	          mult_add(v.OF, b.Fb.slice(t - 1), Rb.Oa.slice(t));
 	        mult_add(v.OO, b.Ob.slice(t - 1), Rb.Oa.slice(t));
@@ -352,17 +404,22 @@ void Lstm97Layer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb
 	  }
 
       if (peephole_connections) {
-        dot_add(Rb.S.slice(t - 1), w.IS, Rb.Ia.slice(t));
+        if (input_gate) {
+            dot_add(Rb.S.slice(t - 1), w.IS, Rb.Ia.slice(t));
+        }
         if (forget_gate)
           dot_add(Rb.S.slice(t - 1), w.FS, Rb.Fa.slice(t));
-
-        dot_add(b.S.slice(t - 1), v.IS, Rb.Ia.slice(t));
+        if (input_gate) {
+            dot_add(b.S.slice(t - 1), v.IS, Rb.Ia.slice(t));
+        }
         if (forget_gate)
           dot_add(b.S.slice(t - 1), v.FS, Rb.Fa.slice(t));
       }
 
     if (use_bias) {
-        add_vector_into(v.I_bias, Rb.Ia.slice(t));
+        if (input_gate) {
+            add_vector_into(v.I_bias, Rb.Ia.slice(t));
+        }
         if (forget_gate)
           add_vector_into(v.F_bias, Rb.Fa.slice(t));
         add_vector_into(v.Z_bias, Rb.Za.slice(t));
@@ -370,8 +427,10 @@ void Lstm97Layer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb
             add_vector_into(v.O_bias, Rb.Oa.slice(t));
     }
 
-    apply_sigmoid_deriv(b.Ib.slice(t), Rb.tmp1.slice(t));
-    dot(Rb.tmp1.slice(t), Rb.Ia.slice(t), Rb.Ib.slice(t));
+    if (input_gate) {
+        apply_sigmoid_deriv(b.Ib.slice(t), Rb.tmp1.slice(t));
+        dot(Rb.tmp1.slice(t), Rb.Ia.slice(t), Rb.Ib.slice(t));
+    }
 
     if (forget_gate)
         apply_sigmoid_deriv(b.Fb.slice(t), Rb.tmp1.slice(t));
@@ -380,9 +439,10 @@ void Lstm97Layer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb
     apply_tanh_deriv(b.Zb.slice(t), Rb.tmp1.slice(t));
     dot(Rb.tmp1.slice(t), Rb.Za.slice(t), Rb.Zb.slice(t));
 
-
-    dot(Rb.Ib.slice(t), b.Zb.slice(t), Rb.S.slice(t));
-    dot_add(b.Ib.slice(t), Rb.Zb.slice(t), Rb.S.slice(t));
+    if (input_gate) {
+        dot(Rb.Ib.slice(t), b.Zb.slice(t), Rb.S.slice(t));
+        dot_add(b.Ib.slice(t), Rb.Zb.slice(t), Rb.S.slice(t));
+    }
 
     if (forget_gate) {
       dot_add(Rb.S.slice(t - 1), b.Fb.slice(t), Rb.S.slice(t));
@@ -418,7 +478,9 @@ void Lstm97Layer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Mat
   for(int t(end_time); t >= 0; --t){
       if (t<end_time) {
           if (full_gradient) {
-              mult_add(w.IH.T(), d.Ia.slice(t+1), d.Hb.slice(t));
+              if (input_gate) {
+                  mult_add(w.IH.T(), d.Ia.slice(t+1), d.Hb.slice(t));
+              }
               if (forget_gate)
                 mult_add(w.FH.T(), d.Fa.slice(t+1), d.Hb.slice(t));
               mult_add(w.ZH.T(), d.Za.slice(t+1), d.Hb.slice(t));
@@ -435,8 +497,9 @@ void Lstm97Layer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Mat
 
           if (peephole_connections && full_gradient) {
               //! \f$\frac{dE}{dS} += \frac{dE}{da_I(t+1)} * W_{IS}\f$
-              dot_add(d.Ia.slice(t+1), w.IS, d.S.slice(t));
-
+              if (input_gate) {
+                  dot_add(d.Ia.slice(t+1), w.IS, d.S.slice(t));
+              }
               if (forget_gate) {
                 //! \f$\frac{dE}{dS} += \frac{dE}{da_F(t+1)} * W_{FS}\f$
                 dot_add(d.Fa.slice(t+1), w.FS, d.S.slice(t));
@@ -462,7 +525,9 @@ void Lstm97Layer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Mat
                    mult_add(w.OO.T(), d.Oa.slice(t+1), d.Ob.slice(t));
                    if (forget_gate)
                      mult_add(w.FO.T(), d.Fa.slice(t+1), d.Ob.slice(t));
-                   mult_add(w.IO.T(), d.Ia.slice(t+1), d.Ob.slice(t));
+                   if (input_gate) {
+                       mult_add(w.IO.T(), d.Ia.slice(t+1), d.Ob.slice(t));
+                   }
                }
           }
 
@@ -488,7 +553,11 @@ void Lstm97Layer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Mat
       }
       //! CELL ACTIVATION DERIVS
       //! \f$\frac{dE}{db_Z} = \frac{dE}{dS} * b_I\f$
-      dot(d.S.slice(t), b.Ib.slice(t), d.Zb.slice(t));
+      if (input_gate) {
+          dot(d.S.slice(t), b.Ib.slice(t), d.Zb.slice(t));
+      } else {
+          copy(d.S.slice(t), d.Zb.slice(t));
+      }
       //! \f$dE/da_Z = dE/db_Z * f'(a_Z)\f$
       apply(b.Zb.slice(t), d.tmp1.slice(t), &tanh_deriv);
       dot(d.Zb.slice(t), d.tmp1.slice(t), d.Za.slice(t));
@@ -499,12 +568,14 @@ void Lstm97Layer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Mat
 
       //! INPUT GATE DERIVS
       //! \f$\frac{dE}{db_I} = \frac{dE}{dS} * b_Z \f$
-      dot(d.S.slice(t), b.Zb.slice(t), d.Ib.slice(t));
+      if (input_gate) {
+          dot(d.S.slice(t), b.Zb.slice(t), d.Ib.slice(t));
+      }
 
       //! \f$\frac{dE}{da_I} = \frac{dE}{db_I} * f'(a_I) \f$
       //sigmoid_deriv(d.Ib.slice(t), b.Ib.slice(t), d.temp_hidden, d.temp_hidden2, d.Ia.slice(t));
 
-      if (full_gradient && gate_recurrence) {
+      if (full_gradient && gate_recurrence && input_gate) {
           if (t<end_time) {
               if (output_gate)
                 mult_add(w.OI.T(), d.Oa.slice(t+1), d.Ib.slice(t));
@@ -515,8 +586,10 @@ void Lstm97Layer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Mat
       }
 
       //apply_sigmoid_deriv(b.Ib.slice(t), d.Ia.slice(t));
-      apply_sigmoid_deriv(b.Ib.slice(t), d.tmp1.slice(t));
-      dot(d.Ib.slice(t), d.tmp1.slice(t), d.Ia.slice(t));
+      if (input_gate) {
+          apply_sigmoid_deriv(b.Ib.slice(t), d.tmp1.slice(t));
+          dot(d.Ib.slice(t), d.tmp1.slice(t), d.Ia.slice(t));
+      }
 
       //! FORGET GATE DERIVS
       if (forget_gate) {
@@ -532,7 +605,9 @@ void Lstm97Layer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Mat
           if (output_gate)
             mult_add(w.OF.T(), d.Oa.slice(t+1), d.Fb.slice(t));
           mult_add(w.FF.T(), d.Fa.slice(t+1), d.Fb.slice(t));
-          mult_add(w.IF.T(), d.Ia.slice(t+1), d.Fb.slice(t));
+          if (input_gate) {
+              mult_add(w.IF.T(), d.Ia.slice(t+1), d.Fb.slice(t));
+          }
       }
 
       if (forget_gate) {
@@ -544,12 +619,14 @@ void Lstm97Layer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Mat
 
       //dE/dx
       if(t) {
-	mult_add(w.IX.T(), d.Ia.slice(t), in_deltas.slice(t));
-	if (output_gate)
-          mult_add(w.OX.T(), d.Oa.slice(t), in_deltas.slice(t));
-	mult_add(w.ZX.T(), d.Za.slice(t), in_deltas.slice(t));
-	if (forget_gate)
-          mult_add(w.FX.T(), d.Fa.slice(t), in_deltas.slice(t));
+          if (input_gate) {
+              mult_add(w.IX.T(), d.Ia.slice(t), in_deltas.slice(t));
+          }
+          if (output_gate)
+                mult_add(w.OX.T(), d.Oa.slice(t), in_deltas.slice(t));
+          mult_add(w.ZX.T(), d.Za.slice(t), in_deltas.slice(t));
+          if (forget_gate)
+                mult_add(w.FX.T(), d.Fa.slice(t), in_deltas.slice(t));
       }
   }
 }

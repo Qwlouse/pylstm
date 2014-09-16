@@ -143,7 +143,7 @@ def create_layer(name, in_size, out_size, **kwargs):
     if name_lower == "lstm97layer":
         expected_kwargs |= {'full_gradient', 'peephole_connections',
                            'forget_gate', 'output_gate', 'gate_recurrence',
-                           'use_bias'}
+                           'use_bias', 'input_gate'}
     if name_lower in ["lstmlayer", "rnnlayer", "clockworklayer"]:
         expected_kwargs |= {'delta_range'}
     if name_lower == "forwardlayer":
@@ -224,6 +224,8 @@ def create_layer(name, in_size, out_size, **kwargs):
             lstm97.forget_gate = kwargs['forget_gate']
         if 'output_gate' in kwargs:
             lstm97.output_gate = kwargs['output_gate']
+        if 'input_gate' in kwargs:
+            lstm97.input_gate = kwargs['input_gate']
         if 'gate_recurrence' in kwargs:
             lstm97.gate_recurrence = kwargs['gate_recurrence']
         if 'use_bias' in kwargs:

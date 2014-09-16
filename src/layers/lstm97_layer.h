@@ -17,6 +17,7 @@ public:
 	bool peephole_connections;
 	bool forget_gate;
 	bool output_gate;
+	bool input_gate;
 	bool gate_recurrence;
 	bool use_bias;
 
