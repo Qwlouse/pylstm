@@ -108,68 +108,28 @@ Lstm97Layer::BwdState::BwdState(size_t, size_t n_cells, size_t n_batches, size_t
 
 
 void Lstm97Layer::forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y, bool) {
+    mult(w.ZX, x.slice(1,x.n_slices).flatten_time(), b.Za.slice(1,b.Za.n_slices).flatten_time());
     if (input_gate) {
         mult(w.IX, x.slice(1,x.n_slices).flatten_time(), b.Ia.slice(1,b.Ia.n_slices).flatten_time());
     }
     if (forget_gate) {
         mult(w.FX, x.slice(1,x.n_slices).flatten_time(), b.Fa.slice(1,b.Fa.n_slices).flatten_time());
     }
-    mult(w.ZX, x.slice(1,x.n_slices).flatten_time(), b.Za.slice(1,b.Za.n_slices).flatten_time());
     if (output_gate) {
         mult(w.OX, x.slice(1,x.n_slices).flatten_time(), b.Oa.slice(1,b.Oa.n_slices).flatten_time());
     }
     for (size_t t(1); t < x.n_slices; ++t) {
-        //IF NEXT
-        if (forget_gate) {
-            mult_add(w.FH, y.slice(t - 1), b.Fa.slice(t));
-            if (gate_recurrence) {
-                if (input_gate) {
-                    mult_add(w.FI, b.Ib.slice(t - 1), b.Fa.slice(t));
-                }
-                mult_add(w.FF, b.Fb.slice(t - 1), b.Fa.slice(t));
-                if (output_gate) {
-                    mult_add(w.FO, b.Ob.slice(t - 1), b.Fa.slice(t));
-                }
-            }
-        }
-
+        // RAW ACTIVATIONS
+        mult_add(w.ZH, y.slice(t - 1), b.Za.slice(t));
         if (input_gate) {
             mult_add(w.IH, y.slice(t - 1), b.Ia.slice(t));
-            if (gate_recurrence) {
-                mult_add(w.II, b.Ib.slice(t - 1), b.Ia.slice(t));
-                if (forget_gate) {
-                    mult_add(w.IF, b.Fb.slice(t - 1), b.Ia.slice(t));
-                }
-                if (output_gate) {
-                    mult_add(w.IO, b.Ob.slice(t - 1), b.Ia.slice(t));
-                }
-            }
         }
-
+        if (forget_gate) {
+            mult_add(w.FH, y.slice(t - 1), b.Fa.slice(t));
+        }
         if (output_gate) {
             mult_add(w.OH, y.slice(t - 1), b.Oa.slice(t));
-            if (gate_recurrence) {
-                if (input_gate) {
-                    mult_add(w.OI, b.Ib.slice(t - 1), b.Oa.slice(t));
-                }
-                if (forget_gate) {
-                    mult_add(w.OF, b.Fb.slice(t - 1), b.Oa.slice(t));
-                }
-                mult_add(w.OO, b.Ob.slice(t - 1), b.Oa.slice(t));
-            }
         }
-
-        mult_add(w.ZH, y.slice(t - 1), b.Za.slice(t));
-
-        if (peephole_connections) {
-            if (forget_gate) {
-                dot_add(b.S.slice(t - 1), w.FS, b.Fa.slice(t));
-            }
-            if (input_gate) {
-                dot_add(b.S.slice(t - 1), w.IS, b.Ia.slice(t));
-            }
-        }
-
 
         if (use_bias) {
             add_vector_into(w.Z_bias, b.Za.slice(t));
@@ -184,6 +144,46 @@ void Lstm97Layer::forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y, bool
             }
         }
 
+        if (gate_recurrence) {
+            if (input_gate) {
+                mult_add(w.II, b.Ib.slice(t - 1), b.Ia.slice(t));
+                if (forget_gate) {
+                    mult_add(w.FI, b.Ib.slice(t - 1), b.Fa.slice(t));
+                }
+                if (output_gate) {
+                    mult_add(w.OI, b.Ib.slice(t - 1), b.Oa.slice(t));
+                }
+            }
+            if (forget_gate) {
+                if (input_gate) {
+                    mult_add(w.IF, b.Fb.slice(t - 1), b.Ia.slice(t));
+                }
+                mult_add(w.FF, b.Fb.slice(t - 1), b.Fa.slice(t));
+                if (output_gate) {
+                    mult_add(w.OF, b.Fb.slice(t - 1), b.Oa.slice(t));
+                }
+            }
+            if (output_gate) {
+                if (input_gate) {
+                    mult_add(w.IO, b.Ob.slice(t - 1), b.Ia.slice(t));
+                }
+                if (forget_gate) {
+                    mult_add(w.FO, b.Ob.slice(t - 1), b.Fa.slice(t));
+                }
+                mult_add(w.OO, b.Ob.slice(t - 1), b.Oa.slice(t));
+            }
+        }
+
+        if (peephole_connections) {
+            if (input_gate) {
+                dot_add(b.S.slice(t - 1), w.IS, b.Ia.slice(t));
+            }
+            if (forget_gate) {
+                dot_add(b.S.slice(t - 1), w.FS, b.Fa.slice(t));
+            }
+        }
+
+        // ACTIVATION FUNCTIONS
         apply_tanh(b.Za.slice(t), b.Zb.slice(t));
         if (input_gate) {
             apply_sigmoid(b.Ia.slice(t), b.Ib.slice(t));
@@ -199,6 +199,7 @@ void Lstm97Layer::forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y, bool
 	        add_into_b(b.S.slice(t - 1), b.S.slice(t));
 	    }
 
+        // cell
         f->apply(b.S.slice(t), b.f_S.slice(t));
 
         if (output_gate) {
@@ -225,11 +226,11 @@ void Lstm97Layer::gradient(Parameters&, Parameters& grad, FwdState& b, BwdState&
     size_t n_time = x.n_slices;
 
     mult(d.Za.slice(1,d.Za.n_slices).flatten_time(), x.slice(1,x.n_slices).flatten_time().T(), grad.ZX);
-    if (forget_gate) {
-        mult(d.Fa.slice(1,d.Fa.n_slices).flatten_time(), x.slice(1,x.n_slices).flatten_time().T(), grad.FX);
-    }
     if (input_gate) {
         mult(d.Ia.flatten_time(), x.flatten_time().T(), grad.IX);
+    }
+    if (forget_gate) {
+        mult(d.Fa.slice(1,d.Fa.n_slices).flatten_time(), x.slice(1,x.n_slices).flatten_time().T(), grad.FX);
     }
     if (output_gate) {
         mult(d.Oa.slice(1,d.Oa.n_slices).flatten_time(), x.slice(1,x.n_slices).flatten_time().T(), grad.OX);
@@ -237,8 +238,8 @@ void Lstm97Layer::gradient(Parameters&, Parameters& grad, FwdState& b, BwdState&
 
 
     if (n_time > 1) {
-        grad.IH.set_all_elements_to(0.0);
         grad.ZH.set_all_elements_to(0.0);
+        grad.IH.set_all_elements_to(0.0);
         grad.FH.set_all_elements_to(0.0);
         grad.OH.set_all_elements_to(0.0);
         for (int t = 0; t < n_time - 1; ++t) {
@@ -472,7 +473,6 @@ void Lstm97Layer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Mat
                     mult_add(w.OH.T(), d.Oa.slice(t+1), d.Hb.slice(t));
                 }
             }
-
 
             if (forget_gate) {
                 dot(d.S.slice(t+1), b.Fb.slice(t+1), d.S.slice(t));
