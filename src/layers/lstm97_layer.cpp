@@ -224,7 +224,16 @@ void Lstm97Layer::backward(Parameters& w, FwdState& b, BwdState& d, Matrix& y, M
 
 void Lstm97Layer::gradient(Parameters&, Parameters& grad, FwdState& b, BwdState& d, Matrix& y, Matrix& x, Matrix& )  {
     size_t n_time = x.n_slices;
+    grad.ZH.set_all_elements_to(0.0);
+    grad.IH.set_all_elements_to(0.0);
+    grad.FH.set_all_elements_to(0.0);
+    grad.OH.set_all_elements_to(0.0);
 
+    if (n_time <= 1) {
+        return;
+    }
+
+    // Input to LSTM connections  (can be flattened)
     mult(d.Za.slice(1,d.Za.n_slices).flatten_time(), x.slice(1,x.n_slices).flatten_time().T(), grad.ZX);
     if (input_gate) {
         mult(d.Ia.flatten_time(), x.flatten_time().T(), grad.IX);
@@ -236,69 +245,21 @@ void Lstm97Layer::gradient(Parameters&, Parameters& grad, FwdState& b, BwdState&
         mult(d.Oa.slice(1,d.Oa.n_slices).flatten_time(), x.slice(1,x.n_slices).flatten_time().T(), grad.OX);
     }
 
-
-    if (n_time > 1) {
-        grad.ZH.set_all_elements_to(0.0);
-        grad.IH.set_all_elements_to(0.0);
-        grad.FH.set_all_elements_to(0.0);
-        grad.OH.set_all_elements_to(0.0);
-        for (int t = 0; t < n_time - 1; ++t) {
-            mult_add(d.Za.slice(t + 1), y.slice(t).T(), grad.ZH);
-            if (input_gate) {
-                mult_add(d.Ia.slice(t + 1), y.slice(t).T(), grad.IH);
-            }
-            if (forget_gate) {
-                mult_add(d.Fa.slice(t + 1), y.slice(t).T(), grad.FH);
-            }
-            if (output_gate) {
-                mult_add(d.Oa.slice(t + 1), y.slice(t).T(), grad.OH);
-            }
-        }
-	    if (gate_recurrence) {
-	        if (input_gate) {
-                mult(d.Ia.slice(1, n_time).flatten_time(), b.Ib.slice(0, n_time - 1).flatten_time().T(), grad.II);
-                if (forget_gate) {
-                    mult(d.Ia.slice(1, n_time).flatten_time(), b.Fb.slice(0, n_time - 1).flatten_time().T(), grad.IF);
-                }
-                if (output_gate) {
-                    mult(d.Ia.slice(1, n_time).flatten_time(), b.Ob.slice(0, n_time - 1).flatten_time().T(), grad.IO);
-                }
-            }
-
-            if (forget_gate) {
-                if (input_gate) {
-                    mult(d.Fa.slice(1, n_time).flatten_time(), b.Ib.slice(0, n_time - 1).flatten_time().T(), grad.FI);
-                }
-                mult(d.Fa.slice(1, n_time).flatten_time(), b.Fb.slice(0, n_time - 1).flatten_time().T(), grad.FF);
-                if (output_gate) {
-                    mult(d.Fa.slice(1, n_time).flatten_time(), b.Ob.slice(0, n_time - 1).flatten_time().T(), grad.FO);
-                }
-            }
-            if (output_gate) {
-                if (input_gate) {
-                    mult(d.Oa.slice(1, n_time).flatten_time(), b.Ib.slice(0, n_time - 1).flatten_time().T(), grad.OI);
-                }
-                if (forget_gate) {
-                    mult(d.Oa.slice(1, n_time).flatten_time(), b.Fb.slice(0, n_time - 1).flatten_time().T(), grad.OF);
-                }
-                mult(d.Oa.slice(1, n_time).flatten_time(), b.Ob.slice(0, n_time - 1).flatten_time().T(), grad.OO);
-            }
-        }
-    }
-
-    if (n_time > 1 && peephole_connections) {
-        if (forget_gate) {
-            dot_squash(d.Fa.slice(1, n_time), b.S.slice(0, n_time - 1), grad.FS);
-        }
+    // Standard Recurrent Connections  (cannot be flattened, because y might be strided)
+    for (int t = 0; t < n_time - 1; ++t) {
+        mult_add(d.Za.slice(t + 1), y.slice(t).T(), grad.ZH);
         if (input_gate) {
-            dot_squash(d.Ia.slice(1, n_time), b.S.slice(0, n_time - 1), grad.IS);
+            mult_add(d.Ia.slice(t + 1), y.slice(t).T(), grad.IH);
+        }
+        if (forget_gate) {
+            mult_add(d.Fa.slice(t + 1), y.slice(t).T(), grad.FH);
+        }
+        if (output_gate) {
+            mult_add(d.Oa.slice(t + 1), y.slice(t).T(), grad.OH);
         }
     }
 
-    if (peephole_connections && output_gate) {
-        dot_squash(d.Oa, b.S, grad.OS);
-    }
-
+    // Biases
     if (use_bias) {
         squash(d.Za.slice(1, d.Za.n_slices), grad.Z_bias);
         if (input_gate) {
@@ -309,6 +270,51 @@ void Lstm97Layer::gradient(Parameters&, Parameters& grad, FwdState& b, BwdState&
         }
         if (output_gate) {
             squash(d.Oa.slice(1, d.Za.n_slices), grad.O_bias);
+        }
+    }
+
+    // Gate Recurrence
+    if (gate_recurrence) {
+        if (input_gate) {
+            mult(d.Ia.slice(1, n_time).flatten_time(), b.Ib.slice(0, n_time - 1).flatten_time().T(), grad.II);
+            if (forget_gate) {
+                mult(d.Ia.slice(1, n_time).flatten_time(), b.Fb.slice(0, n_time - 1).flatten_time().T(), grad.IF);
+            }
+            if (output_gate) {
+                mult(d.Ia.slice(1, n_time).flatten_time(), b.Ob.slice(0, n_time - 1).flatten_time().T(), grad.IO);
+            }
+        }
+
+        if (forget_gate) {
+            if (input_gate) {
+                mult(d.Fa.slice(1, n_time).flatten_time(), b.Ib.slice(0, n_time - 1).flatten_time().T(), grad.FI);
+            }
+            mult(d.Fa.slice(1, n_time).flatten_time(), b.Fb.slice(0, n_time - 1).flatten_time().T(), grad.FF);
+            if (output_gate) {
+                mult(d.Fa.slice(1, n_time).flatten_time(), b.Ob.slice(0, n_time - 1).flatten_time().T(), grad.FO);
+            }
+        }
+        if (output_gate) {
+            if (input_gate) {
+                mult(d.Oa.slice(1, n_time).flatten_time(), b.Ib.slice(0, n_time - 1).flatten_time().T(), grad.OI);
+            }
+            if (forget_gate) {
+                mult(d.Oa.slice(1, n_time).flatten_time(), b.Fb.slice(0, n_time - 1).flatten_time().T(), grad.OF);
+            }
+            mult(d.Oa.slice(1, n_time).flatten_time(), b.Ob.slice(0, n_time - 1).flatten_time().T(), grad.OO);
+        }
+    }
+
+    // Peephole connections
+    if (peephole_connections) {
+        if (forget_gate) {
+            dot_squash(d.Fa.slice(1, n_time), b.S.slice(0, n_time - 1), grad.FS);
+        }
+        if (input_gate) {
+            dot_squash(d.Ia.slice(1, n_time), b.S.slice(0, n_time - 1), grad.IS);
+        }
+        if (output_gate) {
+            dot_squash(d.Oa, b.S, grad.OS);
         }
     }
 }
