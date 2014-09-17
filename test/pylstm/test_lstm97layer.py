@@ -5,7 +5,7 @@ from __future__ import division, print_function, unicode_literals
 import unittest
 
 import numpy as np
-from pylstm import Gaussian, create_targets_object
+from pylstm import Gaussian, create_targets_object, global_rnd
 
 from pylstm.structure import Lstm97Layer
 from pylstm.structure import build_net, InputLayer
@@ -14,6 +14,7 @@ from pylstm.wrapper import Matrix
 
 
 rnd = np.random.RandomState(213998106)
+global_rnd.set_seed(12308746)
 
 
 class NetworkTests(unittest.TestCase):
@@ -124,20 +125,20 @@ class NetworkTests(unittest.TestCase):
             print("Checking Gradient of Lstm97 with %s = %0.4f" % (cfg, e))
         self.assertTrue(np.all(np.array(check_errors) < 1e-4))
 
-    # def test_rforward_finite_differences(self):
-    #     check_errors = []
-    #     for cfg in self.lstm_configs:
-    #         net = self.build_network(cfg)
-    #         e, allerrors = check_rpass(net, n_batches=5, n_timesteps=2, rnd=rnd)
-    #         check_errors.append(e)
-    #         if e > 1e-4:
-    #             # construct a weight view and break down the differences
-    #             layer = net.layers.values()[1]  # the only layer
-    #             b = Matrix(allerrors.copy())
-    #             diff = layer.create_param_view(b)
-    #             for n, q in diff.items():
-    #                 print("====== %s ======" % n)
-    #                 print(q)
-    #
-    #         print("Checking RForward pass of Lstm97 with %s = %0.4g" % (cfg, e))
-    #     self.assertTrue(np.all(np.array(check_errors) < 1e-4))
+    def test_rforward_finite_differences(self):
+        check_errors = []
+        for cfg in self.lstm_configs:
+            net = self.build_network(cfg)
+            e, allerrors = check_rpass(net, n_batches=5, n_timesteps=2, rnd=rnd)
+            check_errors.append(e)
+            if e > 1e-4:
+                # construct a weight view and break down the differences
+                layer = net.layers.values()[1]  # the only layer
+                b = Matrix(allerrors.copy())
+                diff = layer.create_param_view(b)
+                for n, q in diff.items():
+                    print("====== %s ======" % n)
+                    print(q)
+
+            print("Checking RForward pass of Lstm97 with %s = %0.4g" % (cfg, e))
+        self.assertTrue(np.all(np.array(check_errors) < 1e-4))

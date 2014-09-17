@@ -326,104 +326,73 @@ void Lstm97Layer::gradient(Parameters&, Parameters& grad, FwdState& b, BwdState&
 
 void Lstm97Layer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb, Matrix &x, Matrix &y, Matrix& Rx, Matrix &Ry) {
 
+    mult(v.ZX, x.slice(1,x.n_slices).flatten_time(), Rb.Za.slice(1,Rb.Za.n_slices).flatten_time());
+    mult_add(w.ZX, Rx.slice(1,Rx.n_slices).flatten_time(), Rb.Za.slice(1,Rb.Za.n_slices).flatten_time());
     if (input_gate) {
         mult(v.IX, x.slice(1,x.n_slices).flatten_time(), Rb.Ia.slice(1,Rb.Ia.n_slices).flatten_time());
-    }
-    if (forget_gate) {
-        mult(v.FX, x.slice(1,x.n_slices).flatten_time(), Rb.Fa.slice(1,Rb.Fa.n_slices).flatten_time());
-    }
-    mult(v.ZX, x.slice(1,x.n_slices).flatten_time(), Rb.Za.slice(1,Rb.Za.n_slices).flatten_time());
-    if (output_gate) {
-        mult(v.OX, x.slice(1,x.n_slices).flatten_time(), Rb.Oa.slice(1,Rb.Oa.n_slices).flatten_time());
-    }
-    if (input_gate) {
         mult_add(w.IX, Rx.slice(1,Rx.n_slices).flatten_time(), Rb.Ia.slice(1,Rb.Ia.n_slices).flatten_time());
     }
     if (forget_gate) {
+        mult(v.FX, x.slice(1,x.n_slices).flatten_time(), Rb.Fa.slice(1,Rb.Fa.n_slices).flatten_time());
         mult_add(w.FX, Rx.slice(1,Rx.n_slices).flatten_time(), Rb.Fa.slice(1,Rb.Fa.n_slices).flatten_time());
     }
-    mult_add(w.ZX, Rx.slice(1,Rx.n_slices).flatten_time(), Rb.Za.slice(1,Rb.Za.n_slices).flatten_time());
     if (output_gate) {
+        mult(v.OX, x.slice(1,x.n_slices).flatten_time(), Rb.Oa.slice(1,Rb.Oa.n_slices).flatten_time());
         mult_add(w.OX, Rx.slice(1,Rx.n_slices).flatten_time(), Rb.Oa.slice(1,Rb.Oa.n_slices).flatten_time());
     }
 
     for (size_t t(1); t < x.n_slices; ++t) {
+        mult_add(w.ZH, Ry.slice(t - 1), Rb.Za.slice(t));
+        mult_add(v.ZH, y.slice(t - 1), Rb.Za.slice(t));
+
         if (input_gate) {
             mult_add(w.IH, Ry.slice(t - 1), Rb.Ia.slice(t));
+            mult_add(v.IH, y.slice(t - 1), Rb.Ia.slice(t));
             if (gate_recurrence) {
                 mult_add(w.II, Rb.Ib.slice(t - 1), Rb.Ia.slice(t));
+                mult_add(v.II, b.Ib.slice(t - 1), Rb.Ia.slice(t));
                 if (forget_gate) {
                     mult_add(w.IF, Rb.Fb.slice(t - 1), Rb.Ia.slice(t));
+                    mult_add(v.IF, b.Fb.slice(t - 1), Rb.Ia.slice(t));
                 }
                 if (output_gate) {
                     mult_add(w.IO, Rb.Ob.slice(t - 1), Rb.Ia.slice(t));
+                    mult_add(v.IO, b.Ob.slice(t - 1), Rb.Ia.slice(t));
                 }
             }
 	    }
 
         if (forget_gate) {
             mult_add(w.FH, Ry.slice(t - 1), Rb.Fa.slice(t));
-            if (gate_recurrence) {
-                if (input_gate) {
-                    mult_add(w.FI, Rb.Ib.slice(t - 1), Rb.Fa.slice(t));
-                }
-                mult_add(w.FF, Rb.Fb.slice(t - 1), Rb.Fa.slice(t));
-                if (output_gate) {
-                    mult_add(w.FO, Rb.Ob.slice(t - 1), Rb.Fa.slice(t));
-                }
-            }
-        }
-
-        mult_add(w.ZH, Ry.slice(t - 1), Rb.Za.slice(t));
-        if (output_gate) {
-            mult_add(w.OH, Ry.slice(t - 1), Rb.Oa.slice(t));
-            if (gate_recurrence) {
-                if (input_gate) {
-                    mult_add(w.OI, Rb.Ib.slice(t - 1), Rb.Oa.slice(t));
-                }
-                if (forget_gate) {
-	                mult_add(w.OF, Rb.Fb.slice(t - 1), Rb.Oa.slice(t));
-	            }
-	            mult_add(w.OO, Rb.Ob.slice(t - 1), Rb.Oa.slice(t));
-            }
-        }
-
-        mult_add(v.IH, y.slice(t - 1), Rb.Ia.slice(t));
-        if (gate_recurrence) {
-            if (input_gate) {
-                mult_add(v.II, b.Ib.slice(t - 1), Rb.Ia.slice(t));
-            }
-            if (forget_gate) {
-	            mult_add(v.IF, b.Fb.slice(t - 1), Rb.Ia.slice(t));
-	        }
-	        if (output_gate) {
-	            mult_add(v.IO, b.Ob.slice(t - 1), Rb.Ia.slice(t));
-	        }
-	    }
-
-        if (forget_gate) {
             mult_add(v.FH, y.slice(t - 1), Rb.Fa.slice(t));
             if (gate_recurrence) {
                 if (input_gate) {
+                    mult_add(w.FI, Rb.Ib.slice(t - 1), Rb.Fa.slice(t));
                     mult_add(v.FI, b.Ib.slice(t - 1), Rb.Fa.slice(t));
                 }
+                mult_add(w.FF, Rb.Fb.slice(t - 1), Rb.Fa.slice(t));
                 mult_add(v.FF, b.Fb.slice(t - 1), Rb.Fa.slice(t));
+
                 if (output_gate) {
+                    mult_add(w.FO, Rb.Ob.slice(t - 1), Rb.Fa.slice(t));
                     mult_add(v.FO, b.Ob.slice(t - 1), Rb.Fa.slice(t));
                 }
             }
         }
 
-        mult_add(v.ZH, y.slice(t - 1), Rb.Za.slice(t));
         if (output_gate) {
+            mult_add(w.OH, Ry.slice(t - 1), Rb.Oa.slice(t));
             mult_add(v.OH, y.slice(t - 1), Rb.Oa.slice(t));
             if (gate_recurrence) {
                 if (input_gate) {
+                    mult_add(w.OI, Rb.Ib.slice(t - 1), Rb.Oa.slice(t));
                     mult_add(v.OI, b.Ib.slice(t - 1), Rb.Oa.slice(t));
                 }
                 if (forget_gate) {
+	                mult_add(w.OF, Rb.Fb.slice(t - 1), Rb.Oa.slice(t));
 	                mult_add(v.OF, b.Fb.slice(t - 1), Rb.Oa.slice(t));
 	            }
+	            mult_add(w.OO, Rb.Ob.slice(t - 1), Rb.Oa.slice(t));
 	            mult_add(v.OO, b.Ob.slice(t - 1), Rb.Oa.slice(t));
 	        }
 	    }
@@ -439,59 +408,59 @@ void Lstm97Layer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb
             }
         }
 
-    if (use_bias) {
+        if (use_bias) {
+            if (input_gate) {
+                add_vector_into(v.I_bias, Rb.Ia.slice(t));
+            }
+            if (forget_gate) {
+                add_vector_into(v.F_bias, Rb.Fa.slice(t));
+            }
+            add_vector_into(v.Z_bias, Rb.Za.slice(t));
+            if (output_gate) {
+                add_vector_into(v.O_bias, Rb.Oa.slice(t));
+            }
+        }
+
+        apply_tanh_deriv(b.Zb.slice(t), Rb.tmp1.slice(t));
+        dot(Rb.tmp1.slice(t), Rb.Za.slice(t), Rb.Zb.slice(t));
+
         if (input_gate) {
-            add_vector_into(v.I_bias, Rb.Ia.slice(t));
+            apply_sigmoid_deriv(b.Ib.slice(t), Rb.tmp1.slice(t));
+            dot(Rb.tmp1.slice(t), Rb.Ia.slice(t), Rb.Ib.slice(t));
+
+            dot(Rb.Ib.slice(t), b.Zb.slice(t), Rb.S.slice(t));
+            dot_add(b.Ib.slice(t), Rb.Zb.slice(t), Rb.S.slice(t));
+        } else {
+            copy(b.Zb.slice(t), Rb.S.slice(t));
+            add_into_b(Rb.Zb.slice(t), Rb.S.slice(t));
         }
+
+
         if (forget_gate) {
-            add_vector_into(v.F_bias, Rb.Fa.slice(t));
+            apply_sigmoid_deriv(b.Fb.slice(t), Rb.tmp1.slice(t));
+            dot(Rb.tmp1.slice(t), Rb.Fa.slice(t), Rb.Fb.slice(t));
+
+            dot_add(Rb.S.slice(t - 1), b.Fb.slice(t), Rb.S.slice(t));
+            dot_add(b.S.slice(t - 1), Rb.Fb.slice(t), Rb.S.slice(t));
+        } else {
+            add_into_b(Rb.S.slice(t - 1), Rb.S.slice(t));
         }
-        add_vector_into(v.Z_bias, Rb.Za.slice(t));
+
         if (output_gate) {
-            add_vector_into(v.O_bias, Rb.Oa.slice(t));
+            if (peephole_connections) {
+                dot_add(Rb.S.slice(t), w.OS, Rb.Oa.slice(t));
+                dot_add(b.S.slice(t), v.OS, Rb.Oa.slice(t));
+            }
+            apply_sigmoid_deriv(b.Ob.slice(t), Rb.tmp1.slice(t));
+            dot(Rb.tmp1.slice(t), Rb.Oa.slice(t), Rb.Ob.slice(t));
+
+            f->apply_deriv(b.f_S.slice(t), Rb.S.slice(t), Rb.tmp1.slice(t));
+            dot(Rb.tmp1.slice(t), b.Ob.slice(t), Ry.slice(t));
+            dot_add(Rb.Ob.slice(t), b.f_S.slice(t), Ry.slice(t));
+        } else {
+            f->apply_deriv(b.f_S.slice(t), Rb.S.slice(t), Ry.slice(t));
         }
     }
-
-    if (input_gate) {
-        apply_sigmoid_deriv(b.Ib.slice(t), Rb.tmp1.slice(t));
-        dot(Rb.tmp1.slice(t), Rb.Ia.slice(t), Rb.Ib.slice(t));
-    }
-
-    if (forget_gate) {
-        apply_sigmoid_deriv(b.Fb.slice(t), Rb.tmp1.slice(t));
-        dot(Rb.tmp1.slice(t), Rb.Fa.slice(t), Rb.Fb.slice(t));
-    }
-
-    apply_tanh_deriv(b.Zb.slice(t), Rb.tmp1.slice(t));
-    dot(Rb.tmp1.slice(t), Rb.Za.slice(t), Rb.Zb.slice(t));
-
-    if (input_gate) {
-        dot(Rb.Ib.slice(t), b.Zb.slice(t), Rb.S.slice(t));
-        dot_add(b.Ib.slice(t), Rb.Zb.slice(t), Rb.S.slice(t));
-    }
-
-    if (forget_gate) {
-        dot_add(Rb.S.slice(t - 1), b.Fb.slice(t), Rb.S.slice(t));
-        dot_add(b.S.slice(t - 1), Rb.Fb.slice(t), Rb.S.slice(t));
-    } else {
-        add_into_b(Rb.S.slice(t - 1), Rb.S.slice(t));
-    }
-
-    if (output_gate) {
-        if (peephole_connections) {
-            dot_add(Rb.S.slice(t), w.OS, Rb.Oa.slice(t));
-            dot_add(b.S.slice(t), v.OS, Rb.Oa.slice(t));
-        }
-        apply_sigmoid_deriv(b.Ob.slice(t), Rb.tmp1.slice(t));
-        dot(Rb.tmp1.slice(t), Rb.Oa.slice(t), Rb.Ob.slice(t));
-
-        f->apply_deriv(b.f_S.slice(t), Rb.S.slice(t), Rb.tmp1.slice(t));
-        dot(Rb.tmp1.slice(t), b.Ob.slice(t), Ry.slice(t));
-        dot_add(Rb.Ob.slice(t), b.f_S.slice(t), Ry.slice(t));
-    } else {
-        f->apply_deriv(b.f_S.slice(t), Rb.S.slice(t), Ry.slice(t));
-    }
-  }
 }
 
 
