@@ -310,15 +310,15 @@ void Lstm97Layer::gradient(Parameters&, Parameters& grad, FwdState& b, BwdState&
     }
 
     if (use_bias) {
-        squash(d.Za, grad.Z_bias); //, 1.0 / (double) n_time);
+        squash(d.Za.slice(1, d.Za.n_slices), grad.Z_bias); //, 1.0 / (double) n_time);
         if (input_gate) {
-            squash(d.Ia, grad.I_bias); //, 1.0 / (double) n_time);
+            squash(d.Ia.slice(1, d.Za.n_slices), grad.I_bias); //, 1.0 / (double) n_time);
         }
         if (forget_gate) {
-            squash(d.Fa, grad.F_bias); //, 1.0 / (double) n_time);
+            squash(d.Fa.slice(1, d.Za.n_slices), grad.F_bias); //, 1.0 / (double) n_time);
         }
         if (output_gate) {
-            squash(d.Oa, grad.O_bias); //, 1.0 / (double)n_time); //, 1.0 / (double) n_time);
+            squash(d.Oa.slice(1, d.Za.n_slices), grad.O_bias); //, 1.0 / (double)n_time); //, 1.0 / (double) n_time);
         }
     }
 }
@@ -535,11 +535,6 @@ void Lstm97Layer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Mat
             }
         }
 
-        //structural damping
-//        copy(Rb.Hb.slice(t), d.tmp1.slice(t));
-//        scale_into(d.tmp1.slice(t), lambda*mu);
-//        add_vector_into(d.tmp1.slice(t), d.Hb.slice(t));
-
         if (output_gate) {
             //! \f$\frac{dE}{df_S} += \frac{dE}{dH} * b_O\f$
             dot(d.Hb.slice(t), b.Ob.slice(t), d.f_S.slice(t));
@@ -592,18 +587,12 @@ void Lstm97Layer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Mat
         apply(b.Zb.slice(t), d.tmp1.slice(t), &tanh_deriv);
         dot(d.Zb.slice(t), d.tmp1.slice(t), d.Za.slice(t));
 
-        //structural damping (this may be in the wrong place, but trying to follow previous version)
-//        scale_into(d.tmp1.slice(t), lambda*mu);
-//        dot_add(d.tmp1.slice(t), Rb.Za.slice(t), d.Za.slice(t));
 
         //! INPUT GATE DERIVS
         //! \f$\frac{dE}{db_I} = \frac{dE}{dS} * b_Z \f$
         if (input_gate) {
             dot(d.S.slice(t), b.Zb.slice(t), d.Ib.slice(t));
         }
-
-        //! \f$\frac{dE}{da_I} = \frac{dE}{db_I} * f'(a_I) \f$
-        //sigmoid_deriv(d.Ib.slice(t), b.Ib.slice(t), d.temp_hidden, d.temp_hidden2, d.Ia.slice(t));
 
         if (full_gradient && gate_recurrence && input_gate) {
             if (t<end_time) {
@@ -619,6 +608,7 @@ void Lstm97Layer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Mat
 
         //apply_sigmoid_deriv(b.Ib.slice(t), d.Ia.slice(t));
         if (input_gate) {
+            //! \f$\frac{dE}{da_I} = \frac{dE}{db_I} * f'(a_I) \f$
             apply_sigmoid_deriv(b.Ib.slice(t), d.tmp1.slice(t));
             dot(d.Ib.slice(t), d.tmp1.slice(t), d.Ia.slice(t));
         }

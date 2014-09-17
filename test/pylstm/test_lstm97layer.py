@@ -20,12 +20,12 @@ class NetworkTests(unittest.TestCase):
     def build_network(self, lstm_configuration):
         lstm_config = {
             'act_func': 'linear',
-            'input_gate': False,  # <<
-            'output_gate': False,
-            'forget_gate': False,
-            'peephole_connections': False,
+            'input_gate': True,
+            'output_gate': True,
+            'forget_gate': True,
+            'peephole_connections': True,
             'gate_recurrence': False,
-            'use_bias': True,    # <<
+            'use_bias': True,
             'full_gradient': True
         }
         lstm_config.update(lstm_configuration)
@@ -101,28 +101,27 @@ class NetworkTests(unittest.TestCase):
 
     def test_gradient_finite_differences(self):
         check_errors = []
-        # for cfg in self.lstm_configs:
-        net = self.build_network({})
-        e, grad_calc, grad_approx = check_gradient(net, n_batches=10,
-                                                   n_timesteps=10, rnd=rnd)
-        check_errors.append(e)
-        if e > 1e-4:
-            # construct a weight view and break down the differences
-            layer = net.layers.values()[1]  # the only layer
-            b = Matrix(grad_approx - grad_calc)
-            a = Matrix(grad_approx)
-            c = Matrix(grad_calc)
-            appr = layer.create_param_view(a)
-            calc = layer.create_param_view(c)
-            diff = layer.create_param_view(b)
-            for n, q in diff.items():
-                print("====== %s ======" % n)
-                print(appr[n])
-                print(calc[n])
-                print(q)
+        for cfg in self.lstm_configs:
+            net = self.build_network(cfg)
+            e, grad_calc, grad_approx = check_gradient(net, n_batches=10,
+                                                       n_timesteps=10, rnd=rnd)
+            check_errors.append(e)
+            if e > 1e-4:
+                # construct a weight view and break down the differences
+                layer = net.layers.values()[1]  # the only layer
+                b = Matrix(grad_approx - grad_calc)
+                a = Matrix(grad_approx)
+                c = Matrix(grad_calc)
+                # appr = layer.create_param_view(a)
+                # calc = layer.create_param_view(c)
+                diff = layer.create_param_view(b)
+                for n, q in diff.items():
+                    print("====== %s ======" % n)
+                    # print(appr[n])
+                    # print(calc[n])
+                    print(q)
 
-        #print("Checking Gradient of Lstm97 with %s = %0.4f" % (cfg, e))
-        print("Checking Gradient of Lstm97 = %0.4f" % ( e))
+            print("Checking Gradient of Lstm97 with %s = %0.4f" % (cfg, e))
         self.assertTrue(np.all(np.array(check_errors) < 1e-4))
 
     # def test_rforward_finite_differences(self):
