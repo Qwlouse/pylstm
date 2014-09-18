@@ -8,17 +8,18 @@
 
 
 Lstm97Layer::Lstm97Layer():
-	f(&Tanhx2),
+	f(&Tanh),
     full_gradient(true),
     peephole_connections(true),
     forget_gate(true),
     output_gate(true),
     input_gate(true),
     gate_recurrence(true),
-    use_bias(true)
+    use_bias(true),
+    input_act_func(&Tanh)
 { }
 
-Lstm97Layer::Lstm97Layer(const ActivationFunction* f):
+Lstm97Layer::Lstm97Layer(const ActivationFunction* f, const ActivationFunction* f_in):
 	f(f),
     full_gradient(true),
     peephole_connections(true),
@@ -26,7 +27,8 @@ Lstm97Layer::Lstm97Layer(const ActivationFunction* f):
     output_gate(true),
     input_gate(true),
     gate_recurrence(true),
-    use_bias(true)
+    use_bias(true),
+    input_act_func(f_in)
 { }
 
 
@@ -184,7 +186,7 @@ void Lstm97Layer::forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y, bool
         }
 
         // ACTIVATION FUNCTIONS
-        apply_tanh(b.Za.slice(t), b.Zb.slice(t));
+        input_act_func->apply(b.Za.slice(t), b.Zb.slice(t));
         if (input_gate) {
             apply_sigmoid(b.Ia.slice(t), b.Ib.slice(t));
             dot(b.Zb.slice(t), b.Ib.slice(t), b.S.slice(t));
@@ -416,9 +418,7 @@ void Lstm97Layer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb
                 add_vector_into(v.O_bias, Rb.Oa.slice(t));
             }
         }
-
-        apply_tanh_deriv(b.Zb.slice(t), Rb.tmp1.slice(t));
-        dot(Rb.tmp1.slice(t), Rb.Za.slice(t), Rb.Zb.slice(t));
+        input_act_func->apply_deriv(b.Zb.slice(t), Rb.Za.slice(t), Rb.Zb.slice(t));
 
         if (input_gate) {
             apply_sigmoid_deriv(b.Ib.slice(t), Rb.tmp1.slice(t));
@@ -535,9 +535,8 @@ void Lstm97Layer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Mat
         } else {
             copy(d.S.slice(t), d.Zb.slice(t));
         }
-        apply(b.Zb.slice(t), d.tmp1.slice(t), &tanh_deriv);
-        dot(d.Zb.slice(t), d.tmp1.slice(t), d.Za.slice(t));
 
+        input_act_func->apply_deriv(b.Zb.slice(t), d.Zb.slice(t), d.Za.slice(t));
 
         if (input_gate) {
             dot(d.S.slice(t), b.Zb.slice(t), d.Ib.slice(t));

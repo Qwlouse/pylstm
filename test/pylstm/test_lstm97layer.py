@@ -27,7 +27,8 @@ class NetworkTests(unittest.TestCase):
             'peephole_connections': True,
             'gate_recurrence': False,
             'use_bias': True,
-            'full_gradient': True
+            'full_gradient': True,
+            'in_act_func': 'tanh'
         }
         lstm_config.update(lstm_configuration)
         net = build_net(InputLayer(self.input_size) >> Lstm97Layer(self.output_size, **lstm_config))
@@ -45,6 +46,9 @@ class NetworkTests(unittest.TestCase):
             {'peephole_connections': False},
             {'use_bias': False},
             {'gate_recurrence': True},
+            {'in_act_func': 'sigmoid'},
+            {'in_act_func': 'linear'},
+            {'in_act_func': 'relu'}
         ]
         self.X = rnd.randn(10, 7, self.input_size)
 

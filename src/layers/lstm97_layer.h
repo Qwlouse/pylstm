@@ -11,7 +11,7 @@ class Lstm97Layer {
 public:
     const ActivationFunction* f;
 	Lstm97Layer();
-	explicit Lstm97Layer(const ActivationFunction* f);
+	explicit Lstm97Layer(const ActivationFunction* f, const ActivationFunction* f_in);
 
 	bool full_gradient;
 	bool peephole_connections;
@@ -20,6 +20,8 @@ public:
 	bool input_gate;
 	bool gate_recurrence;
 	bool use_bias;
+
+	const ActivationFunction* input_act_func;
 
 	class Parameters : public MatrixContainer {
 	public:

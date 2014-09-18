@@ -133,17 +133,40 @@ def ctc_token_passing(dictionary, onegrams, bigrams, Y):
                                   Matrix(ln_y).c_obj)
     return words
 
+cdef cm.ActivationFunction* get_act_func(af_name):
+    af_name = af_name.lower()
+    if af_name == "sigmoid":
+        return <cm.ActivationFunction*> &cm.Sigmoid
+    elif af_name == "tanh":
+        return <cm.ActivationFunction*> &cm.Tanh
+    elif af_name == "tanhx2":
+        return <cm.ActivationFunction*> &cm.Tanhx2
+    elif af_name in ["rectified_linear", "relu"]:
+        return <cm.ActivationFunction*> &cm.RectifiedLinear
+    elif af_name == "linear":
+        return <cm.ActivationFunction*> &cm.Linear
+    elif af_name == "softmax":
+        return <cm.ActivationFunction*> &cm.Softmax
+    elif af_name == "lwta":
+        return <cm.ActivationFunction*> &cm.Lwta
+    elif af_name == "tanhscaled":
+        return <cm.ActivationFunction*> &cm.TanhScaled
+    else:
+        raise AttributeError("No activation function called '%s'" % af_name)
+
+
 def create_layer(name, in_size, out_size, **kwargs):
     l = BaseLayer()
     name_lower = name.lower()
 
     cdef cm.ActivationFunction* act_fct = <cm.ActivationFunction*> &cm.Sigmoid
+    cdef cm.ActivationFunction* in_act_fct = <cm.ActivationFunction*> &cm.Sigmoid
 
     expected_kwargs = {'act_func', 'skip_training'}
     if name_lower == "lstm97layer":
         expected_kwargs |= {'full_gradient', 'peephole_connections',
                            'forget_gate', 'output_gate', 'gate_recurrence',
-                           'use_bias', 'input_gate'}
+                           'use_bias', 'input_gate', 'in_act_func'}
     if name_lower in ["lstmlayer", "rnnlayer", "clockworklayer"]:
         expected_kwargs |= {'delta_range'}
     if name_lower == "forwardlayer":
@@ -158,25 +181,7 @@ def create_layer(name, in_size, out_size, **kwargs):
         warnings.warn("Warning: got unexpected kwargs: %s"%unexpected_kwargs)
 
     if "act_func" in kwargs:
-        af_name = kwargs["act_func"].lower()
-        if af_name == "sigmoid":
-            act_fct = <cm.ActivationFunction*> &cm.Sigmoid
-        elif af_name == "tanh":
-            act_fct = <cm.ActivationFunction*> &cm.Tanh
-        elif af_name == "tanhx2":
-            act_fct = <cm.ActivationFunction*> &cm.Tanhx2
-        elif af_name in ["rectified_linear", "relu"]:
-            act_fct = <cm.ActivationFunction*> &cm.RectifiedLinear
-        elif af_name == "linear":
-            act_fct = <cm.ActivationFunction*> &cm.Linear
-        elif af_name == "softmax":
-            act_fct = <cm.ActivationFunction*> &cm.Softmax
-        elif af_name == "lwta":
-            act_fct = <cm.ActivationFunction*> &cm.Lwta
-        elif af_name == "tanhscaled":
-            act_fct = <cm.ActivationFunction*> &cm.TanhScaled
-        else:
-            raise AttributeError("No activation function called '%s'" % af_name)
+        act_fct = get_act_func(kwargs["act_func"])
 
     cdef cl.RnnLayer rnn_layer
     cdef cl.ClockworkLayer cw_layer
@@ -215,7 +220,9 @@ def create_layer(name, in_size, out_size, **kwargs):
             lstm_layer.delta_range = kwargs['delta_range']
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.LstmLayer](in_size, out_size, lstm_layer))
     elif name_lower == "lstm97layer":
-        lstm97 = cl.Lstm97Layer(act_fct)
+        if "in_act_func" in kwargs:
+            in_act_fct = get_act_func(kwargs["in_act_func"])
+        lstm97 = cl.Lstm97Layer(act_fct, in_act_fct)
         if 'full_gradient' in kwargs:
             lstm97.full_gradient = kwargs['full_gradient']
         if 'peephole_connections' in kwargs:
