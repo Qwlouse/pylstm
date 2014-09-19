@@ -112,6 +112,12 @@ def estimate_jacobian(net, X=None, nr_timesteps=4, nr_batches=5,
     return J
 
 
+def get_sequential_jacobian(net, seq_idx, timestep, out_idx):
+    out_masked = np.zeros_like(net.output_buffer)
+    out_masked[timestep, seq_idx, out_idx] = 1.0
+    return net.pure_backpass(out_masked)
+
+
 def check_gn_pass(net, X=None, v=None, r=1e-7, nr_timesteps=3, nr_batches=5,
                   rnd=np.random.RandomState()):
     out_size = net.get_output_size()

@@ -2,7 +2,7 @@
 # coding=utf-8
 
 from __future__ import division, print_function, unicode_literals
-from pylstm import Online
+from pylstm import Online, Monitor
 from pylstm.error_functions import (
     CrossEntropyError, MultiClassCrossEntropyError, CTC, MeanSquaredError)
 from pylstm.datasets.loader import get_dataset_specs
@@ -41,3 +41,17 @@ def evaluate(net, input_data, targets, error_function):
         errors.append(error)
 
     return error_function.aggregate(errors)
+
+
+class InfoUpdater(Monitor):
+    def __init__(self, run, name=None):
+        super(InfoUpdater, self).__init__(name, 'epoch', 1)
+        self.run = run
+        self.__name__ = self.__class__.__name__ if name is None else name
+
+    def __call__(self, epoch, net, stepper, logs):
+        info = self.run.info
+        info['epochs_needed'] = epoch
+        info['monitor'] = logs
+        if 'nr_parameters' not in info:
+            info['nr_parameters'] = net.get_param_size()

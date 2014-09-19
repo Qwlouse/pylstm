@@ -65,13 +65,14 @@ cdef extern from "lstm_layer.h":
 cdef extern from "lstm97_layer.h":
     cppclass Lstm97Layer:
         Lstm97Layer()
-        Lstm97Layer(ActivationFunction* f)
+        Lstm97Layer(ActivationFunction* f, ActivationFunction* f_in)
         bool full_gradient
         bool peephole_connections
         bool forget_gate
         bool output_gate
         bool gate_recurrence
         bool use_bias
+        bool input_gate
 
 
 cdef extern from "layer.hpp":
