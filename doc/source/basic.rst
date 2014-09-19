@@ -218,7 +218,14 @@ Usage
 -----
 
 Getting and setting buffers, forward_pass()
-
+network.get_param_view_for('relu')
+network.get_input_view_for('relu')
+network.get_output_view_for('relu')
+network.get_fwd_state_for('relu')
+network.get_bwd_state_for('relu')
+network.get_in_deltas_view_for('relu')
+network.get_out_deltas_view_for('relu')
+network.get_param_size()
 -------------------------------------------------------------------------------
 
 Trainers
