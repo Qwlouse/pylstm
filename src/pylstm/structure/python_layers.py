@@ -85,6 +85,7 @@ class NoOpLayer(LayerBase):
                  out_deltas):
         in_deltas.as_array()[:] = out_deltas.as_array()
 
+
 class SquareLayer(LayerBase):
     """
     This layer squares every element.
@@ -98,3 +99,19 @@ class SquareLayer(LayerBase):
     def backward(self, param, fwd_state, bwd_state, out_view, in_deltas,
                  out_deltas):
         in_deltas.as_array()[:] = 2*fwd_state.as_array()*out_deltas.as_array()
+
+
+class DeltaInversionLayer(LayerBase):
+    """
+    A layer that does nothing during the forward pass, but reverses the sign
+    of the deltas during the backward pass.
+    """
+    def get_typename(self):
+        return 'DeltaInversionLayer'
+
+    def forward(self, param, fwd_state, in_view, out_view, training_pass):
+        out_view.as_array()[:] = in_view.as_array()
+
+    def backward(self, param, fwd_state, bwd_state, out_view, in_deltas,
+                 out_deltas):
+        in_deltas.as_array()[:] = -out_deltas.as_array()

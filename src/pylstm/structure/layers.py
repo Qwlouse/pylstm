@@ -7,6 +7,7 @@ from .construction_layer import create_construction_layer
 # python layers
 InputLayer = create_construction_layer('InputLayer')
 NoOpLayer = create_construction_layer('NoOpLayer')
+DeltaInversionLayer = create_construction_layer('DeltaInversionLayer')
 
 # c++ layers
 LstmLayer = create_construction_layer("LstmLayer")
