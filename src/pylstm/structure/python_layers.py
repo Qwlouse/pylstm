@@ -83,7 +83,7 @@ class NoOpLayer(LayerBase):
 
     def backward(self, param, fwd_state, bwd_state, out_view, in_deltas,
                  out_deltas):
-        in_deltas.as_array()[:] = out_deltas.as_array()
+        in_deltas.as_array()[:] += out_deltas.as_array()
 
 
 class SquareLayer(LayerBase):
@@ -98,7 +98,7 @@ class SquareLayer(LayerBase):
 
     def backward(self, param, fwd_state, bwd_state, out_view, in_deltas,
                  out_deltas):
-        in_deltas.as_array()[:] = 2*fwd_state.as_array()*out_deltas.as_array()
+        in_deltas.as_array()[:] += 2*fwd_state.as_array()*out_deltas.as_array()
 
 
 class DeltaInversionLayer(LayerBase):
@@ -114,4 +114,4 @@ class DeltaInversionLayer(LayerBase):
 
     def backward(self, param, fwd_state, bwd_state, out_view, in_deltas,
                  out_deltas):
-        in_deltas.as_array()[:] = -out_deltas.as_array()
+        in_deltas.as_array()[:] -= out_deltas.as_array()
