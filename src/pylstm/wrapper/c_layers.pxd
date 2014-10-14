@@ -73,6 +73,7 @@ cdef extern from "lstm97_layer.h":
         bool gate_recurrence
         bool use_bias
         bool input_gate
+        bool coupled_if_gate
 
 
 cdef extern from "layer.hpp":

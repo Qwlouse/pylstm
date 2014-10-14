@@ -28,7 +28,8 @@ class NetworkTests(unittest.TestCase):
             'gate_recurrence': False,
             'use_bias': True,
             'full_gradient': True,
-            'in_act_func': 'tanh'
+            'in_act_func': 'tanh',
+            'coupled_if_gate': False
         }
         lstm_config.update(lstm_configuration)
         net = build_net(InputLayer(self.input_size) >> Lstm97Layer(self.output_size, **lstm_config))
@@ -48,7 +49,8 @@ class NetworkTests(unittest.TestCase):
             {'gate_recurrence': True},
             {'in_act_func': 'sigmoid'},
             {'in_act_func': 'linear'},
-            {'in_act_func': 'relu'}
+            {'in_act_func': 'relu'},
+            {'coupled_if_gate': True}
         ]
         self.X = rnd.randn(10, 7, self.input_size)
 

@@ -20,6 +20,7 @@ public:
 	bool input_gate;
 	bool gate_recurrence;
 	bool use_bias;
+	bool coupled_if_gate;
 
 	const ActivationFunction* input_act_func;
 

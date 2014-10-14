@@ -97,6 +97,14 @@ inline double reclin_deriv(double val) {
     return val == 0.0 ? 0.0 : 1.0;
 }
 
+inline double one_minus_sigmoid(double val) {
+    return 1.0 / (1.0 + exp(val));
+}
+
+inline double one_minus_sigmoid_deriv(double val) {
+    return val * (val - 1.0);
+}
+
 // Function pointer to a unary double function
 typedef double (*unary_double_func)(double);
 
