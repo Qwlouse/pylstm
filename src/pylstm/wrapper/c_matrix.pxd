@@ -2,12 +2,29 @@ from libcpp cimport bool
 from libcpp.string cimport string
 from libcpp.vector cimport vector
 from libcpp.map cimport map
+cimport numpy as cnp
+
+cdef extern from "Python.h":
+    ctypedef struct PyTypeObject:
+        pass
+
+cdef extern from "numpy/arrayobject.h":
+    PyTypeObject PyArray_Type
+    cnp.ndarray PyArray_NewFromDescr(PyTypeObject *subtype,
+                                     cnp.dtype newdtype,
+                                     int nd,
+                                     cnp.npy_intp* dims,
+                                     cnp.npy_intp* strides,
+                                     void* data,
+                                     int flags,
+                                     object parent)
 
 
 cdef extern from "matrix.h":
     ctypedef double d_type
 
     cdef cppclass Matrix:
+        int stride
         int n_rows
         int n_columns
         int n_slices

@@ -1,17 +1,17 @@
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 from cpython cimport PyObject, Py_INCREF
 
 # Numpy must be initialized. When using numpy from C or Cython you must
 # _always_ do that, or you will have segfaults
-np.import_array()
+cnp.import_array()
 
 # http://stackoverflow.com/questions/3046305
 # http://article.gmane.org/gmane.comp.python.cython.user/5625
 
 cdef class Matrix:
     def __cinit__(self, a=None, int batches=1, int features=1):
-        cdef np.ndarray[np.double_t, ndim=3, mode='c'] A
+        cdef cnp.ndarray[cnp.double_t, ndim=3, mode='c'] A
         if a is None:
             self.A = None
             self.c_obj = cm.Matrix()
@@ -84,16 +84,45 @@ cdef class Matrix:
                 assert start <= stop <= self.get_time_size()
                 b.c_obj = self.c_obj.slice(start, stop)
         return b
-        
+
     # from here: https://gist.github.com/1249305
+    # and here: http://comments.gmane.org/gmane.comp.python.cython.user/5430
+    # and here: https://github.com/scipy/scipy/blob/master/scipy/io/matlab/mio5_utils.pyx
     def as_array(self):
-        cdef np.npy_intp shape[3]
-        cdef np.ndarray ndarray
-        shape[0] = <np.npy_intp> self.get_time_size()
-        shape[1] = <np.npy_intp> self.get_batch_size()
-        shape[2] = <np.npy_intp> self.get_feature_size()
-        # Create a 3D array
-        ndarray = np.PyArray_SimpleNewFromData(3, shape, np.NPY_FLOAT64, self.c_obj.get_data())
+        cdef cnp.npy_intp shape[3]
+        shape[0] = <cnp.npy_intp> self.get_time_size()
+        shape[1] = <cnp.npy_intp> self.get_batch_size()
+        shape[2] = <cnp.npy_intp> self.get_feature_size()
+
+        cdef cnp.npy_intp strides[3]
+        strides[2] = <cnp.npy_intp> 8
+        strides[1] = <cnp.npy_intp> (shape[2] + self.c_obj.stride) * strides[2]
+        strides[0] = <cnp.npy_intp> shape[1] * strides[1]
+
+        cdef cnp.ndarray ndarray
+
+
+        cdef void* address = self.c_obj.get_data()
+        cdef int flags = 0
+        flags = cnp.NPY_C_CONTIGUOUS  | cnp.NPY_WRITEABLE
+        cdef cnp.dtype dt = cnp.PyArray_DescrFromType(cnp.NPY_FLOAT64)
+
+        ndarray = cm.PyArray_NewFromDescr(
+                &cm.PyArray_Type,   # PyTypeObject* subtype
+                dt,                 #  PyArray_Descr* descr
+                3,                  # nd
+                shape,              # npy_intp* dims
+                strides,               # npy_intp* strides
+                address,            # void* data
+                flags,              #int flags,
+                <object>NULL)       # PyObject* obj
+
+        # PyArray_NewFromDescr Function seems to steal dtype references.
+        # I am increasing the refcount on the dt manually to suppress the error:
+        # >> *** Reference count error detected:
+        # >> an attempt was made to deallocate 12 (d) ***
+        Py_INCREF(dt)
+
         # Assign our object to the 'base' of the ndarray object
         ndarray.base = <PyObject*> self
         # Increment the reference count, as the above assignment was done in

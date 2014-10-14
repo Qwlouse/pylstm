@@ -52,8 +52,15 @@ def create_in_out_manager(extended_architecture, layers):
     """
     in_out_manager = BufferManager()
 
-    for layer in extended_architecture.keys():
+    possible_sources = list(extended_architecture.keys())
+
+    while possible_sources:
+        layer = possible_sources[0]
+
         source_set, sink_set = get_forward_closure(layer, extended_architecture)
+        for s in source_set:
+            possible_sources.remove(s)
+
         source_list, sink_list, connection_table = set_up_connection_table(
             source_set, sink_set, extended_architecture)
         perm = permute_rows(connection_table)

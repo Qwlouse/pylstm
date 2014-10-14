@@ -167,3 +167,29 @@ class NetworkTests(unittest.TestCase):
 
             print("Checking RForward pass of %s with %s = %0.4g" % (l(3), a, e))
         self.assertTrue(np.all(np.array(check_errors) < 1e-4))
+
+    def test_gradient_forked_architecture(self):
+        check_errors = []
+        in_layer = InputLayer(self.input_size)
+        out_layer = ForwardLayer(self.output_size)
+
+        in_layer >> ForwardLayer(3, name='A') >> out_layer
+        in_layer >> ForwardLayer(2, name='B') >> out_layer
+
+        net = build_net(out_layer)
+        net.initialize(Gaussian(0.1))
+
+        e, grad_calc, grad_approx = check_gradient(net, n_batches=5,
+                                                   n_timesteps=7, rnd=rnd)
+        check_errors.append(e)
+        if e > 1e-4:
+            # construct a weight view and break down the differences
+            layer = net.layers.values()[1]  # the only layer
+            b = Matrix(grad_approx - grad_calc)
+            diff = layer.create_param_view(b)
+            for n, q in diff.items():
+                print("====== %s ======" % n)
+                print(q)
+
+        print("Checking Gradient of forked architecture = %0.4f" % e)
+        self.assertTrue(np.all(np.array(check_errors) < 1e-4))
