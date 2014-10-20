@@ -101,17 +101,22 @@ class SquareLayer(LayerBase):
         in_deltas.as_array()[:] += 2*fwd_state.as_array()*out_deltas.as_array()
 
 
-class DeltaInversionLayer(LayerBase):
+class DeltaScalingLayer(LayerBase):
     """
-    A layer that does nothing during the forward pass, but reverses the sign
-    of the deltas during the backward pass.
+    A layer that does nothing during the forward pass, but scales the deltas
+    during the backward pass by a factor of alpha (default is -1).
     """
+
+    def __init__(self, in_size, out_size, alpha=-1.):
+        super(DeltaScalingLayer, self).__init__(in_size, out_size)
+        self.alpha = alpha
+
     def get_typename(self):
-        return 'DeltaInversionLayer'
+        return 'DeltaScalingLayer'
 
     def forward(self, param, fwd_state, in_view, out_view, training_pass):
         out_view.as_array()[:] = in_view.as_array()
 
     def backward(self, param, fwd_state, bwd_state, out_view, in_deltas,
                  out_deltas):
-        in_deltas.as_array()[:] -= out_deltas.as_array()
+        in_deltas.as_array()[:] += self.alpha * out_deltas.as_array()
