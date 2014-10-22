@@ -254,3 +254,50 @@ def get_random_subset(ds, fraction=0.1):
         reduced_dataset[usage] = (input_data[:, reduced_indices, :],
                                   targets[reduced_indices])
     return reduced_dataset
+
+
+def join_input_data(input_data1, input_data2, pad_with=0):
+    t1, b1, f1 = input_data1.shape
+    t2, b2, f2 = input_data2.shape
+
+    assert f1 == f2, 'Feature size has to match: %d != %d' % (f1, f2)
+
+    new_t = max(t1, t2)
+    pad1 = np.zeros((new_t - t1, b1, f1))
+    pad2 = np.zeros((new_t - t2, b2, f2))
+    pad1[:] = pad_with
+    pad2[:] = pad_with
+    padded_input1 = np.vstack((input_data1, pad1))
+    padded_input2 = np.vstack((input_data2, pad2))
+    return np.hstack((padded_input1, padded_input2))
+
+
+def join_targets(targets1, targets2):
+    return targets1.join_with(targets2)
+
+
+def join_input_and_targets(input_targets1, input_targets2):
+    input_data1, targets1 = input_targets1
+    input_data2, targets2 = input_targets2
+    if input_data1.shape[0] != input_data2.shape[0]:
+        # force a mask
+        new_t = max(input_data1.shape[0], input_data2.shape[0])
+        targets1.pad_time(new_t)
+        targets2.pad_time(new_t)
+
+    new_input_data = join_input_data(input_data1, input_data2)
+    new_targets = join_targets(targets1, targets2)
+    return new_input_data, new_targets
+
+
+def join_datasets(ds1, ds2):
+    ds = {}
+    for usage in ['training', 'validation', 'test']:
+        if usage in ds1 and usage in ds2:
+            ds[usage] = join_input_and_targets(ds1[usage], ds2[usage])
+        if usage in ds2:
+            ds[usage] = ds2[usage]
+        elif usage in ds1:
+            ds[usage] = ds1[usage]
+    return ds
+
