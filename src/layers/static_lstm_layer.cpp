@@ -88,10 +88,12 @@ void StaticLstmLayer::forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y, 
 
   ASSERT(x.n_rows == 2 * b.S.n_rows);
   // Compute Gates
-  mult(w.IX, x.row_slice(x.n_rows/2, x.n_rows).flatten_time(), b.Ia.flatten_time());
-  mult(w.FX, x.row_slice(x.n_rows/2, x.n_rows).flatten_time(), b.Fa.flatten_time());
-  mult(w.ZX, x.row_slice(x.n_rows/2, x.n_rows).flatten_time(), b.Za.flatten_time());
-  mult(w.OX, x.row_slice(x.n_rows/2, x.n_rows).flatten_time(), b.Oa.flatten_time());
+  for (size_t t(0); t < x.n_slices; ++t) {
+    mult(w.IX, x.row_slice(x.n_rows/2, x.n_rows).slice(t), b.Ia.slice(t));
+    mult(w.FX, x.row_slice(x.n_rows/2, x.n_rows).slice(t), b.Fa.slice(t));
+    mult(w.ZX, x.row_slice(x.n_rows/2, x.n_rows).slice(t), b.Za.slice(t));
+    mult(w.OX, x.row_slice(x.n_rows/2, x.n_rows).slice(t), b.Oa.slice(t));
+  }
 
   add_vector_into(w.F_bias, b.Fa);
   add_vector_into(w.I_bias, b.Ia);
