@@ -15,16 +15,16 @@ public:
     // activation function to the range [-delta_range, delta_range].
     float delta_range;
 
-	LstmLayer();
-	explicit LstmLayer(const ActivationFunction* f);
+	StaticLstmLayer();
+	explicit StaticLstmLayer(const ActivationFunction* f);
 
 	class Parameters : public MatrixContainer {
 	public:
 		///Variables defining sizes
-		Matrix IX, IH, IS;  //!< inputs X, H, S to input gate I
-		Matrix FX, FH, FS;  //!< inputs X, H, S to forget gate F
-		Matrix ZX, ZH;      //!< inputs X, H, to state cell
-		Matrix OX, OH, OS;  //!< inputs X, H, S to output gate O
+		Matrix IX;  //!< inputs X, H, S to input gate I
+		Matrix FX;  //!< inputs X, H, S to forget gate F
+		Matrix ZX;      //!< inputs X, H, to state cell
+		Matrix OX;  //!< inputs X, H, S to output gate O
 
 		Matrix I_bias, F_bias, Z_bias, O_bias;   //!< bias to input gate, forget gate, state Z, output gate
 

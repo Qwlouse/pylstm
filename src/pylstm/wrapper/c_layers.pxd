@@ -61,6 +61,11 @@ cdef extern from "lstm_layer.h":
         LstmLayer(ActivationFunction* f)
         double delta_range
 
+cdef extern from "static_lstm_layer.h":
+    cppclass StaticLstmLayer:
+        StaticLstmLayer()
+        StaticLstmLayer(ActivationFunction* f)
+        double delta_range
 
 cdef extern from "lstm97_layer.h":
     cppclass Lstm97Layer:

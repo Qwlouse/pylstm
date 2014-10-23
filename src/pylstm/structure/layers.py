@@ -11,6 +11,7 @@ DeltaInversionLayer = create_construction_layer('DeltaInversionLayer')
 
 # c++ layers
 LstmLayer = create_construction_layer("LstmLayer")
+StaticLstmLayer = create_construction_layer("StaticLstmLayer")
 Lstm97Layer = create_construction_layer("Lstm97Layer")
 RnnLayer = create_construction_layer("RnnLayer")
 ClockworkLayer = create_construction_layer("ClockworkLayer")
