@@ -19,12 +19,13 @@ StaticLstmLayer::StaticLstmLayer(const ActivationFunction* f):
 { }
 
 
+// To make a StaticLSTMLayer with n cells, you must specify 2*n as size in Python
 StaticLstmLayer::Parameters::Parameters(size_t n_inputs, size_t n_cells) :
-    IX(NULL, n_cells, n_inputs, 1),
-    FX(NULL, n_cells, n_inputs, 1),
-    ZX(NULL, n_cells, n_inputs, 1),
-    OX(NULL, n_cells, n_inputs, 1),
-    I_bias(NULL, n_cells, 1, 1), F_bias(NULL, n_cells, 1, 1), Z_bias(NULL, n_cells, 1, 1), O_bias(NULL, n_cells, 1, 1)
+    IX(NULL, n_cells/2, n_inputs - (n_cells/2), 1),
+    FX(NULL, n_cells/2, n_inputs - (n_cells/2), 1),
+    ZX(NULL, n_cells/2, n_inputs - (n_cells/2), 1),
+    OX(NULL, n_cells/2, n_inputs - (n_cells/2), 1),
+    I_bias(NULL, n_cells/2, 1, 1), F_bias(NULL, n_cells/2, 1, 1), Z_bias(NULL, n_cells/2, 1, 1), O_bias(NULL, n_cells/2, 1, 1)
 {
 
     add_view("IX", &IX);
@@ -37,15 +38,15 @@ StaticLstmLayer::Parameters::Parameters(size_t n_inputs, size_t n_cells) :
 
 StaticLstmLayer::FwdState::FwdState(size_t, size_t n_cells, size_t n_batches, size_t time) :
     //Views on all activations
-    Ia(NULL, n_cells, n_batches, time), Ib(NULL, n_cells, n_batches, time), //!< Input gate activation
-    Fa(NULL, n_cells, n_batches, time), Fb(NULL, n_cells, n_batches, time), //!< forget gate activation
-    Oa(NULL, n_cells, n_batches, time), Ob(NULL, n_cells, n_batches, time), //!< output gate activation
+    Ia(NULL, n_cells/2, n_batches, time), Ib(NULL, n_cells/2, n_batches, time), //!< Input gate activation
+    Fa(NULL, n_cells/2, n_batches, time), Fb(NULL, n_cells/2, n_batches, time), //!< forget gate activation
+    Oa(NULL, n_cells/2, n_batches, time), Ob(NULL, n_cells/2, n_batches, time), //!< output gate activation
 
-    Za(NULL, n_cells, n_batches, time), Zb(NULL, n_cells, n_batches, time), //!< Za =Net Activation, Zb=f(Za)
-    S(NULL, n_cells, n_batches, time),      //!< Sa =Cell State activations
-    f_S(NULL, n_cells, n_batches, time),      //!< Sa =Cell State activations
-    Hb(NULL, n_cells, n_batches, time),     //!< output of LSTM block
-    tmp1(NULL, n_cells, n_batches, time) // for calculating derivs
+    Za(NULL, n_cells/2, n_batches, time), Zb(NULL, n_cells/2, n_batches, time), //!< Za =Net Activation, Zb=f(Za)
+    S(NULL, n_cells/2, n_batches, time),      //!< Sa =Cell State activations
+    f_S(NULL, n_cells/2, n_batches, time),      //!< Sa =Cell State activations
+    Hb(NULL, n_cells/2, n_batches, time),     //!< output of LSTM block
+    tmp1(NULL, n_cells/2, n_batches, time) // for calculating derivs
 {
     add_view("Ia", &Ia); add_view("Ib", &Ib);
     add_view("Fa", &Fa); add_view("Fb", &Fb);
@@ -60,16 +61,16 @@ StaticLstmLayer::FwdState::FwdState(size_t, size_t n_cells, size_t n_batches, si
 
 StaticLstmLayer::BwdState::BwdState(size_t, size_t n_cells, size_t n_batches, size_t time) :
     //Views on all activations
-    Ia(n_cells, n_batches, time), Ib(n_cells, n_batches, time), //Input gate activation
-    Fa(n_cells, n_batches, time), Fb(n_cells, n_batches, time), //forget gate activation
-    Oa(n_cells, n_batches, time), Ob(n_cells, n_batches, time), //output gate activation
+    Ia(n_cells/2, n_batches, time), Ib(n_cells/2, n_batches, time), //Input gate activation
+    Fa(n_cells/2, n_batches, time), Fb(n_cells/2, n_batches, time), //forget gate activation
+    Oa(n_cells/2, n_batches, time), Ob(n_cells/2, n_batches, time), //output gate activation
 
-    Za(n_cells, n_batches, time), Zb(n_cells, n_batches, time), //Net Activation
-    S(n_cells, n_batches, time), //Cell activations
-    f_S(n_cells, n_batches, time), //cell state activations
-    Hb(n_cells, n_batches, time),     //!< output of LSTM block
+    Za(n_cells/2, n_batches, time), Zb(n_cells/2, n_batches, time), //Net Activation
+    S(n_cells/2, n_batches, time), //Cell activations
+    f_S(n_cells/2, n_batches, time), //cell state activations
+    Hb(n_cells/2, n_batches, time),     //!< output of LSTM block
 
-    tmp1(n_cells, n_batches, time) // for calculating derivs
+    tmp1(n_cells/2, n_batches, time) // for calculating derivs
 {
     add_view("Ia", &Ia); add_view("Ib", &Ib);
     add_view("Fa", &Fa); add_view("Fb", &Fb);
@@ -83,16 +84,16 @@ StaticLstmLayer::BwdState::BwdState(size_t, size_t n_cells, size_t n_batches, si
 
 
 void StaticLstmLayer::forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y, bool) {
-  // Convention: first half of the features are cell states from previous layer
-  //             second half of the features are outputs from the previous layer
+  // Convention: first n_cells/2 of the features are cell states from previous layer
+  //             rest of the features are outputs from the previous layer
 
-  ASSERT(x.n_rows == 2 * b.S.n_rows);
+  ASSERT(x.n_rows == w.I_bias.n_rows + w.IX.n_columns);
   // Compute Gates
   for (size_t t(0); t < x.n_slices; ++t) {
-    mult(w.IX, x.row_slice(x.n_rows/2, x.n_rows).slice(t), b.Ia.slice(t));
-    mult(w.FX, x.row_slice(x.n_rows/2, x.n_rows).slice(t), b.Fa.slice(t));
-    mult(w.ZX, x.row_slice(x.n_rows/2, x.n_rows).slice(t), b.Za.slice(t));
-    mult(w.OX, x.row_slice(x.n_rows/2, x.n_rows).slice(t), b.Oa.slice(t));
+    mult(w.IX, x.row_slice(w.I_bias.n_rows, x.n_rows).slice(t), b.Ia.slice(t));
+    mult(w.FX, x.row_slice(w.I_bias.n_rows, x.n_rows).slice(t), b.Fa.slice(t));
+    mult(w.ZX, x.row_slice(w.I_bias.n_rows, x.n_rows).slice(t), b.Za.slice(t));
+    mult(w.OX, x.row_slice(w.I_bias.n_rows, x.n_rows).slice(t), b.Oa.slice(t));
   }
 
   add_vector_into(w.F_bias, b.Fa);
@@ -107,12 +108,12 @@ void StaticLstmLayer::forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y, 
   dot(b.Zb, b.Ib, b.S);
 
   // Compute Cell
-  dot_add(x.row_slice(0, x.n_rows/2), b.Fb, b.S);
+  dot_add(x.row_slice(0, w.I_bias.n_rows), b.Fb, b.S);
   f->apply(b.S, b.f_S);
 
   // Compute outputs
-  copy(b.S, y.row_slice(0, x.n_rows/2));
-  dot(b.f_S, b.Ob, y.row_slice(y.n_rows/2, y.n_rows));
+  copy(b.S, y.row_slice(0, w.I_bias.n_rows));
+  dot(b.f_S, b.Ob, y.row_slice(w.I_bias.n_rows, y.n_rows));
 }
 
 
