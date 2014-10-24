@@ -8,6 +8,7 @@ from .construction_layer import create_construction_layer
 InputLayer = create_construction_layer('InputLayer')
 NoOpLayer = create_construction_layer('NoOpLayer')
 DeltaScalingLayer = create_construction_layer('DeltaScalingLayer')
+ZeroLayer = create_construction_layer('ZeroLayer')
 
 # c++ layers
 LstmLayer = create_construction_layer("LstmLayer")

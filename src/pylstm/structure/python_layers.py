@@ -120,3 +120,22 @@ class DeltaScalingLayer(LayerBase):
     def backward(self, param, fwd_state, bwd_state, out_view, in_deltas,
                  out_deltas):
         in_deltas.as_array()[:] += self.alpha * out_deltas.as_array()
+
+
+class ZeroLayer(LayerBase):
+    """
+    A layer that propagates just zeros during the forward and backward passes.
+    """
+
+    def __init__(self, in_size, out_size):
+        super(ZeroLayer, self).__init__(in_size, out_size)
+
+    def get_typename(self):
+        return 'EmptyLayer'
+
+    def forward(self, param, fwd_state, in_view, out_view, training_pass):
+        out_view.as_array()[:] = 0
+
+    def backward(self, param, fwd_state, bwd_state, out_view, in_deltas,
+                 out_deltas):
+        in_deltas.as_array()[:] += 0
