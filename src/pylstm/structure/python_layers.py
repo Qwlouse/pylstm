@@ -45,13 +45,13 @@ class LayerBase(object):
         return output_buffer.reshape(time_length, batch_size, self.out_size)
 
     def create_param_view(self, param_buffer, time_length=1, batch_size=1):
-        return None
+        return {}
 
     def create_fwd_state(self, fwd_state_buffer, time_length, batch_size):
-        return None
+        return {}
 
     def create_bwd_state(self, bwd_state_buffer, time_length, batch_size):
-        return None
+        return {}
 
     def forward(self, param, fwd_state, in_view, out_view, training_pass):
         pass

@@ -86,6 +86,45 @@ class Targets(object):
     def is_labeling(self):
         return self.targets_type[0] == 'L'
 
+    def pad_time(self, target_length):
+        if self.mask:
+            t, b, _ = self.mask.shape
+            assert target_length >= t
+            padding = np.zeros((target_length - t, b, 1))
+            self.mask = np.vstack((self.mask, padding))
+        else:  # now it should have a mask
+            self.mask = np.ones((target_length, self.get_sequence_cnt(), 1))
+            if self.get_duration():
+                self.mask[self.get_duration():, :, 0] = 0
+
+    def get_duration(self):
+        if self.mask:
+            return self.mask.shape[0]
+        else:
+            return None
+
+    def get_sequence_cnt(self):
+        if self.mask:
+            return self.mask.shape[1]
+
+    def _get_joint_mask(self, other):
+        # make them the same duration
+        if self.get_duration() != other.get_duration():
+            max_duration = max(self.get_duration(), other.get_duration)
+            if max_duration:
+                self.pad_time(max_duration)
+                other.pad_time(max_duration)
+
+        if self.mask and other.mask:
+            new_mask = np.hstack((self.mask, other.mask))
+        elif self.mask is None and other.mask is None:
+            new_mask = None
+        else:
+            max_duration = max(self.get_duration(), other.get_duration)
+            self.pad_time(max_duration)
+            other.pad_time(max_duration)
+            new_mask = np.hstack((self.mask, other.mask))
+
 
 def assert_shape_equals(s1, s2):
     assert s1 == s2, "targets shape error: %s != %s" % (str(s1), str(s2))
@@ -132,6 +171,34 @@ class FramewiseTargets(Targets):
     def __str__(self):
         return "<FramewiseTargets dim=%s>" % str(self.data.shape)
 
+    def pad_time(self, target_length):
+        super(FramewiseTargets, self).pad_time(target_length)
+        t, b, f = self.data.shape
+        assert target_length >= t
+        padding = np.zeros((target_length - t, b, f))
+        self.data = np.vstack((self.data, padding))
+
+    def get_duration(self):
+        return self.data.shape[0]
+
+    def get_sequence_cnt(self):
+        return self.data.shape[1]
+
+    def join_with(self, other):
+        new_mask = self._get_joint_mask(other)
+        assert self.binarize_to == other.binarize_to
+        assert self.targets_type == other.targets_type
+        t1, b1, f1 = self.data.shape
+        t2, b2, f2 = other.data.shape
+        assert f1 == f2, 'Feature size has to match: %d != %d' % (f1, f2)
+        new_t = max(t1, t2)
+        pad1 = np.zeros((new_t - t1, b1, f1))
+        pad2 = np.zeros((new_t - t2, b2, f2))
+        padded_data1 = np.vstack((self.data, pad1))
+        padded_data2 = np.vstack((other.data, pad2))
+        new_data = np.hstack((padded_data1, padded_data2))
+        return FramewiseTargets(new_data, new_mask, self.binarize_to)
+
 
 class LabelingTargets(Targets):
     """
@@ -168,6 +235,16 @@ class LabelingTargets(Targets):
     def __str__(self):
         return "<LabelingTargets len=%d>" % len(self.data)
 
+    def get_sequence_cnt(self):
+        return len(self.data)
+
+    def join_with(self, other):
+        assert self.binarize_to == other.binarize_to
+        assert self.targets_type == other.targets_type
+        new_mask = self._get_joint_mask(other)
+        new_data = self.data + other.data
+        return FramewiseTargets(new_data, new_mask, self.binarize_to)
+
 
 class SequencewiseTargets(Targets):
     """
@@ -198,5 +275,16 @@ class SequencewiseTargets(Targets):
         m = self.mask[item] if self.mask is not None else None
         return SequencewiseTargets(t, m, binarize_to=self.binarize_to)
 
+    def get_sequence_cnt(self):
+        return self.data.shape[1]
+
     def __str__(self):
         return "<SequencewiseTargets dim=%s>" % str(self.data.shape)
+
+    def join_with(self, other):
+        assert self.binarize_to == other.binarize_to
+        assert self.targets_type == other.targets_type
+        assert self.data.shape[1] == other.data.shape[1]
+        new_mask = self._get_joint_mask(other)
+        new_data = np.vstack((self.data, other.data))
+        return SequencewiseTargets(new_data, new_mask, self.binarize_to)
