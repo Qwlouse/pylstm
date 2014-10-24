@@ -33,6 +33,7 @@ public:
 
 	class FwdState : public MatrixContainer {
 	public:
+      Matrix S_last;
 	  //Views on all activations
 	  Matrix Ia, Ib; //!< Input gate activation
 	  Matrix Fa, Fb; //!< forget gate activation
