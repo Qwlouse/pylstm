@@ -134,8 +134,8 @@ class ZeroLayer(LayerBase):
         return 'EmptyLayer'
 
     def forward(self, param, fwd_state, in_view, out_view, training_pass):
-        out_view.as_array()[:] = 0
+        out_view.as_array()[:] = 0.
 
     def backward(self, param, fwd_state, bwd_state, out_view, in_deltas,
                  out_deltas):
-        in_deltas.as_array()[:] += 0
+        pass

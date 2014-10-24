@@ -9,7 +9,7 @@ import numpy as np
 from pylstm import Gaussian, create_targets_object
 
 from pylstm.structure import LstmLayer, Lstm97Layer, RnnLayer, MrnnLayer, StaticLstmLayer
-from pylstm.structure import build_net, ForwardLayer, InputLayer, LWTALayer
+from pylstm.structure import build_net, ForwardLayer, InputLayer, LWTALayer, ZeroLayer, NoOpLayer
 from pylstm.utils import check_gradient, check_deltas, check_rpass
 from pylstm.wrapper import Matrix
 
@@ -36,10 +36,14 @@ class NetworkTests(unittest.TestCase):
         return net
 
     def build_staticlstm_network(self, input_size, activation_function):
-        prev_layer = InputLayer(input_size)
-        net = build_net(prev_layer
-                        >> StaticLstmLayer(2, act_func=activation_function)
-                        >> StaticLstmLayer(2, act_func=activation_function))
+        input_layer = InputLayer(input_size)
+        hidden_layer = StaticLstmLayer(2, act_func=activation_function)
+        out_layer = StaticLstmLayer(2, act_func=activation_function)
+
+        input_layer >> NoOpLayer() >> ZeroLayer(1, name='0') >> hidden_layer
+        input_layer >> hidden_layer >> out_layer
+
+        net = build_net(input_layer)
         net.initialize(Gaussian(std=0.1))
         return net
     
@@ -106,7 +110,7 @@ class NetworkTests(unittest.TestCase):
         t = 7
         b = 5
         check_errors = []
-        net = self.build_staticlstm_network(2, 'sigmoid')
+        net = self.build_staticlstm_network(3, 'sigmoid')
         e, grad_calc, grad_approx = check_deltas(net, n_batches=b,
                                                  n_timesteps=t, rnd=rnd)
         check_errors.append(e)
@@ -160,7 +164,7 @@ class NetworkTests(unittest.TestCase):
         t = 7
         b = 5
         check_errors = []
-        net = self.build_staticlstm_network(2, 'sigmoid')
+        net = self.build_staticlstm_network(3, 'sigmoid')
         e, grad_calc, grad_approx = check_gradient(net, n_batches=b, n_timesteps=t, rnd=rnd)
         check_errors.append(e)
         if e > 1e-4:

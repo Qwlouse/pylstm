@@ -161,10 +161,10 @@ void StaticLstmLayer::backward(Parameters& w, FwdState& b, BwdState& d, Matrix& 
     dot_add(d.S, b.Fb, in_deltas.row_slice(0, w.I_bias.n_rows));
 
     for (size_t t(1); t < y.n_slices; ++t) {
-        mult_add(w.IX.T(), d.Ia.slice(t), in_deltas.row_slice(w.I_bias.n_rows, y.n_rows).slice(t));
-        mult_add(w.OX.T(), d.Oa.slice(t), in_deltas.row_slice(w.I_bias.n_rows, y.n_rows).slice(t));
-        mult_add(w.ZX.T(), d.Za.slice(t), in_deltas.row_slice(w.I_bias.n_rows, y.n_rows).slice(t));
-        mult_add(w.FX.T(), d.Fa.slice(t), in_deltas.row_slice(w.I_bias.n_rows, y.n_rows).slice(t));
+        mult_add(w.IX.T(), d.Ia.slice(t), in_deltas.row_slice(w.I_bias.n_rows, in_deltas.n_rows).slice(t));
+        mult_add(w.OX.T(), d.Oa.slice(t), in_deltas.row_slice(w.I_bias.n_rows, in_deltas.n_rows).slice(t));
+        mult_add(w.ZX.T(), d.Za.slice(t), in_deltas.row_slice(w.I_bias.n_rows, in_deltas.n_rows).slice(t));
+        mult_add(w.FX.T(), d.Fa.slice(t), in_deltas.row_slice(w.I_bias.n_rows, in_deltas.n_rows).slice(t));
     }
 
 //    dampened_backward(w, b, d, y, in_deltas, out_deltas, b, 0., 0.);
