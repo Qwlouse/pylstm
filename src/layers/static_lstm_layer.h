@@ -42,7 +42,7 @@ public:
 	  Matrix Za, Zb; //!< Za =Net Activation, Zb=f(Za)
 	  Matrix S;      //!< Sa =Cell State activations
 	  Matrix f_S;      //!< Sa =Cell State activations
-	  Matrix Hb;     //!< output of LSTM block
+//	  Matrix Hb;     //!< output of LSTM block
 	  Matrix tmp1;     //!< tmp varin  LSTM block
 
 	  FwdState(size_t n_inputs, size_t n_cells, size_t n_batches, size_t time);
@@ -58,7 +58,7 @@ public:
 	  Matrix Za, Zb; //Net Activation
 	  Matrix S; //Cell activations
 	  Matrix f_S; //cell state activations
-	  Matrix Hb;     //!< output of LSTM block
+//	  Matrix Hb;     //!< output of LSTM block
 	  Matrix tmp1;
 
 	  BwdState(size_t n_inputs, size_t n_cells, size_t n_batches, size_t time);

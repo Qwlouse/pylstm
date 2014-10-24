@@ -46,7 +46,7 @@ StaticLstmLayer::FwdState::FwdState(size_t, size_t n_cells, size_t n_batches, si
     Za(NULL, n_cells/2, n_batches, time), Zb(NULL, n_cells/2, n_batches, time), //!< Za =Net Activation, Zb=f(Za)
     S(NULL, n_cells/2, n_batches, time),      //!< Sa =Cell State activations
     f_S(NULL, n_cells/2, n_batches, time),      //!< Sa =Cell State activations
-    Hb(NULL, n_cells/2, n_batches, time),     //!< output of LSTM block
+//    Hb(NULL, n_cells/2, n_batches, time),     //!< output of LSTM block
     tmp1(NULL, n_cells/2, n_batches, time) // for calculating derivs
 {
     add_view("S_last", &S_last);
@@ -56,7 +56,7 @@ StaticLstmLayer::FwdState::FwdState(size_t, size_t n_cells, size_t n_batches, si
     add_view("Za", &Za); add_view("Zb", &Zb);
     add_view("S", &S);
     add_view("f_S", &f_S); 
-    add_view("Hb", &Hb); 
+//    add_view("Hb", &Hb);
     add_view("tmp1", &tmp1);
 }
 
@@ -70,7 +70,7 @@ StaticLstmLayer::BwdState::BwdState(size_t, size_t n_cells, size_t n_batches, si
     Za(n_cells/2, n_batches, time), Zb(n_cells/2, n_batches, time), //Net Activation
     S(n_cells/2, n_batches, time), //Cell activations
     f_S(n_cells/2, n_batches, time), //cell state activations
-    Hb(n_cells/2, n_batches, time),     //!< output of LSTM block
+//    Hb(n_cells/2, n_batches, time),     //!< output of LSTM block
 
     tmp1(n_cells/2, n_batches, time) // for calculating derivs
 {
@@ -80,7 +80,7 @@ StaticLstmLayer::BwdState::BwdState(size_t, size_t n_cells, size_t n_batches, si
     add_view("Za", &Za); add_view("Zb", &Zb);
     add_view("S", &S);
     add_view("f_S", &f_S); 
-    add_view("Hb", &Hb); 
+//    add_view("Hb", &Hb);
     add_view("tmp1", &tmp1);
 }
 
