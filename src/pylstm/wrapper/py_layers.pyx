@@ -168,7 +168,7 @@ def create_layer(name, in_size, out_size, **kwargs):
                            'forget_gate', 'output_gate', 'gate_recurrence',
                            'use_bias', 'input_gate', 'in_act_func',
                            'coupled_if_gate'}
-    if name_lower in ["lstmlayer", "rnnlayer", "clockworklayer"]:
+    if name_lower in ["lstmlayer", "rnnlayer", "clockworklayer", "staticlstmlayer"]:
         expected_kwargs |= {'delta_range'}
     if name_lower == "forwardlayer":
         expected_kwargs |= {'use_bias'}
@@ -188,6 +188,7 @@ def create_layer(name, in_size, out_size, **kwargs):
     cdef cl.ClockworkLayer cw_layer
     cdef cl.Lstm97Layer lstm97
     cdef cl.LstmLayer lstm_layer
+    cdef cl.StaticLstmLayer static_lstm_layer
     cdef cl.ForwardLayer forward_layer
     cdef cl.HfFinalLayer hf_final_layer
     cdef cl.DropoutLayer dropout_layer
@@ -220,6 +221,11 @@ def create_layer(name, in_size, out_size, **kwargs):
         if 'delta_range' in kwargs:
             lstm_layer.delta_range = kwargs['delta_range']
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.LstmLayer](in_size, out_size, lstm_layer))
+    elif name_lower == "staticlstmlayer":
+        static_lstm_layer = cl.StaticLstmLayer(act_fct)
+        if 'delta_range' in kwargs:
+            static_lstm_layer.delta_range = kwargs['delta_range']
+        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.StaticLstmLayer](in_size, out_size, static_lstm_layer))
     elif name_lower == "lstm97layer":
         if "in_act_func" in kwargs:
             in_act_fct = get_act_func(kwargs["in_act_func"])

@@ -3,6 +3,7 @@ ADD_LIBRARY(layers SHARED
             forward_layer.cpp
             reverse_layer.cpp
             lstm_layer.cpp
+            static_lstm_layer.cpp
             lstm97_layer.cpp
             mrnn_layer.cpp
             rnn_layer.cpp
