@@ -121,11 +121,57 @@ void StaticLstmLayer::forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y, 
 
 
 void StaticLstmLayer::backward(Parameters& w, FwdState& b, BwdState& d, Matrix& y, Matrix& in_deltas, Matrix& out_deltas) {
-    dampened_backward(w, b, d, y, in_deltas, out_deltas, b, 0., 0.);
+    // Output Gate
+    dot(out_deltas.row_slice(w.I_bias.n_rows, y.n_rows), b.f_S, d.Ob);
+    apply_sigmoid_deriv(b.Ob, d.tmp1);
+    dot(d.Ob, d.tmp1, d.Oa);
+
+    // State
+    dot(out_deltas.row_slice(w.I_bias.n_rows, y.n_rows), b.Ob, d.f_S);
+    f->apply_deriv(b.f_S, d.f_S, d.S);
+    // should there be a dot(d.f_S, d.tmp1, d.S); here and d.tmp1 instead of d.S above?
+    add_into_b(out_deltas.row_slice(0, w.I_bias.n_rows), d.S);
+
+    // Cell
+    dot(d.S, b.Ib, d.Zb);
+    apply_tanh_deriv(b.Zb, d.tmp1);
+    dot(d.Zb, d.tmp1, d.Za);
+
+    // Input Gate
+    dot(d.S, b.Zb, d.Ib);
+    apply_sigmoid_deriv(b.Ib, d.tmp1);
+    dot(d.Ib, d.tmp1, d.Ia);
+
+    // Forget Gate
+    dot(d.S, b.S_last, d.Fb);
+    apply_sigmoid_deriv(b.Fb, d.tmp1);
+    dot(d.Fb, d.tmp1, d.Fa);
+
+    //////////////////////// Delta Clipping ///////////////////////////
+    if (delta_range < INFINITY) {
+        clip_elements(d.Ia, -delta_range, delta_range);
+        clip_elements(d.Oa, -delta_range, delta_range);
+        clip_elements(d.Za, -delta_range, delta_range);
+        clip_elements(d.Fa, -delta_range, delta_range);
+    }
+    ///////////////////////////////////////////////////////////////////
+
+    // in_deltas
+
+    dot_add(d.S, b.Fb, in_deltas.row_slice(0, w.I_bias.n_rows));
+
+    for (size_t t(1); t < y.n_slices; ++t) {
+        mult_add(w.IX.T(), d.Ia.slice(t), in_deltas.row_slice(w.I_bias.n_rows, y.n_rows).slice(t));
+        mult_add(w.OX.T(), d.Oa.slice(t), in_deltas.row_slice(w.I_bias.n_rows, y.n_rows).slice(t));
+        mult_add(w.ZX.T(), d.Za.slice(t), in_deltas.row_slice(w.I_bias.n_rows, y.n_rows).slice(t));
+        mult_add(w.FX.T(), d.Fa.slice(t), in_deltas.row_slice(w.I_bias.n_rows, y.n_rows).slice(t));
+    }
+
+//    dampened_backward(w, b, d, y, in_deltas, out_deltas, b, 0., 0.);
 }
 
 
-void StaticLstmLayer::gradient(Parameters& w, Parameters& grad, FwdState& b, BwdState& d, Matrix& y, Matrix& x, Matrix& )  {
+void StaticLstmLayer::gradient(Parameters& w, Parameters& grad, FwdState&, BwdState& d, Matrix&, Matrix& x, Matrix& )  {
 
     //! \f$\frac{dE}{dW_ZX} += \frac{dE}{da_Z} * x(t)\f$
     //! \f$\frac{dE}{dW_FX} += \frac{dE}{da_F} * x(t)\f$
@@ -149,7 +195,7 @@ void StaticLstmLayer::gradient(Parameters& w, Parameters& grad, FwdState& b, Bwd
 }
 
 
-void StaticLstmLayer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState &Rb, Matrix &x, Matrix &y, Matrix& Rx, Matrix &Ry) {
+void StaticLstmLayer::Rpass(Parameters &, Parameters &,  FwdState &, FwdState &, Matrix &, Matrix &, Matrix&, Matrix &) {
 
 //  mult(v.IX, x.slice(1,x.n_slices).flatten_time(), Rb.Ia.slice(1,Rb.Ia.n_slices).flatten_time());
 //  mult(v.FX, x.slice(1,x.n_slices).flatten_time(), Rb.Fa.slice(1,Rb.Fa.n_slices).flatten_time());
@@ -216,54 +262,6 @@ void StaticLstmLayer::Rpass(Parameters &w, Parameters &v,  FwdState &b, FwdState
 
 
 //instead of normal deltas buffer, pass in empty Rdeltas buffer, and instead of out_deltas, pass in the Ry value calculated by the Rfwd pass
-void StaticLstmLayer::dampened_backward(Parameters &w, FwdState &b, BwdState &d, Matrix& y, Matrix &in_deltas, Matrix &out_deltas, FwdState &Rb, double lambda, double mu) {
-    
-    // Output Gate
-    dot(out_deltas.row_slice(w.I_bias.n_rows, y.n_rows), b.f_S, d.Ob);
-    apply_sigmoid_deriv(b.Ob, d.tmp1);
-    dot(d.Ob, d.tmp1, d.Oa);
-    
-    // State
-    dot(out_deltas.row_slice(w.I_bias.n_rows, y.n_rows), b.Ob, d.f_S);
-    f->apply_deriv(b.f_S, d.f_S, d.S);
-    // should there be a dot(d.f_S, d.tmp1, d.S); here and d.tmp1 instead of d.S above?
-    add_into_b(out_deltas.row_slice(0, w.I_bias.n_rows), d.S);
-    
-    // Cell
-    dot(d.S, b.Ib, d.Zb);
-    apply_tanh_deriv(b.Zb, d.tmp1);
-    dot(d.Zb, d.tmp1, d.Za);
-    
-    // Input Gate
-    dot(d.S, b.Zb, d.Ib);
-    apply_sigmoid_deriv(b.Ib, d.tmp1);
-    dot(d.Ib, d.tmp1, d.Ia);
-    
-    // Forget Gate
-    dot(d.S, b.S_last, d.Fb);
-    apply_sigmoid_deriv(b.Fb, d.tmp1);
-    dot(d.Fb, d.tmp1, d.Fa);
-    
-    //////////////////////// Delta Clipping ///////////////////////////
-    if (delta_range < INFINITY) {
-        clip_elements(d.Ia, -delta_range, delta_range);
-        clip_elements(d.Oa, -delta_range, delta_range);
-        clip_elements(d.Za, -delta_range, delta_range);
-        clip_elements(d.Fa, -delta_range, delta_range);
-    }
-    ///////////////////////////////////////////////////////////////////
-    
-    // in_deltas
-    
-    dot_add(d.S, b.Fb, in_deltas.row_slice(0, w.I_bias.n_rows));
-    
-    for (size_t t(1); t < y.n_slices; ++t) {
-        mult_add(w.IX.T(), d.Ia.slice(t), in_deltas.row_slice(w.I_bias.n_rows, y.n_rows).slice(t));
-        mult_add(w.OX.T(), d.Oa.slice(t), in_deltas.row_slice(w.I_bias.n_rows, y.n_rows).slice(t));
-        mult_add(w.ZX.T(), d.Za.slice(t), in_deltas.row_slice(w.I_bias.n_rows, y.n_rows).slice(t));
-        mult_add(w.FX.T(), d.Fa.slice(t), in_deltas.row_slice(w.I_bias.n_rows, y.n_rows).slice(t));
-    }
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////////////////////////////////////
-    
+void StaticLstmLayer::dampened_backward(Parameters &, FwdState &, BwdState &, Matrix&, Matrix &, Matrix &, FwdState &, double, double) {
+
 }
