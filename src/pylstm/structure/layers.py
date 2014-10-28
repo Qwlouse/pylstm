@@ -13,6 +13,7 @@ ZeroLayer = create_construction_layer('ZeroLayer')
 # c++ layers
 LstmLayer = create_construction_layer("LstmLayer")
 StaticLstmLayer = create_construction_layer("StaticLstmLayer")
+GatedLayer = create_construction_layer("GatedLayer")
 Lstm97Layer = create_construction_layer("Lstm97Layer")
 RnnLayer = create_construction_layer("RnnLayer")
 ClockworkLayer = create_construction_layer("ClockworkLayer")

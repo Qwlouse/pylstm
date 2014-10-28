@@ -189,6 +189,7 @@ def create_layer(name, in_size, out_size, **kwargs):
     cdef cl.Lstm97Layer lstm97
     cdef cl.LstmLayer lstm_layer
     cdef cl.StaticLstmLayer static_lstm_layer
+    cdef cl.GatedLayer gated_layer
     cdef cl.ForwardLayer forward_layer
     cdef cl.HfFinalLayer hf_final_layer
     cdef cl.DropoutLayer dropout_layer
@@ -226,6 +227,11 @@ def create_layer(name, in_size, out_size, **kwargs):
         if 'delta_range' in kwargs:
             static_lstm_layer.delta_range = kwargs['delta_range']
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.StaticLstmLayer](in_size, out_size, static_lstm_layer))
+    elif name_lower == "gatedlayer":
+        gated_layer = cl.GatedLayer(act_fct)
+        if 'delta_range' in kwargs:
+            gated_layer.delta_range = kwargs['delta_range']
+        l.layer = <cl.BaseLayer*> (new cl.Layer[cl.GatedLayer](in_size, out_size, gated_layer))
     elif name_lower == "lstm97layer":
         if "in_act_func" in kwargs:
             in_act_fct = get_act_func(kwargs["in_act_func"])
