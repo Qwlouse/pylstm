@@ -106,12 +106,16 @@ class GaussianNoiseLayer(LayerBase):
     """
     This layer adds Gaussian noise to the previous layer's activations.
     """
+    def __init__(self, in_size, out_size, sigma=1.):
+        super(GaussianNoiseLayer, self).__init__(in_size, out_size)
+        self.sigma = sigma
+
     def get_typename(self):
         return 'GaussianNoiseLayer'
 
     def forward(self, param, fwd_state, in_view, out_view, training_pass):
         if training_pass:
-            out_view.as_array()[:] = np.multiply(in_view.as_array(), 1. + np.random.standard_normal(in_view.as_array().shape))
+            out_view.as_array()[:] = np.multiply(in_view.as_array(), 1. + self.sigma*np.random.standard_normal(in_view.as_array().shape))
         else:
             out_view.as_array()[:] = in_view.as_array()
 
