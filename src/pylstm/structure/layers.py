@@ -7,6 +7,7 @@ from .construction_layer import create_construction_layer
 # python layers
 InputLayer = create_construction_layer('InputLayer')
 NoOpLayer = create_construction_layer('NoOpLayer')
+GaussianNoiseLayer = create_construction_layer('GaussianNoiseLayer')
 DeltaScalingLayer = create_construction_layer('DeltaScalingLayer')
 ZeroLayer = create_construction_layer('ZeroLayer')
 

@@ -7,6 +7,7 @@ See wrapper/py_layers.pyx for python wrappers around c++ layers.
 from __future__ import division, print_function, unicode_literals
 import numpy as np
 
+
 class LayerBase(object):
     """
     The base-class of all layer types defined in Python.
@@ -99,6 +100,21 @@ class SquareLayer(LayerBase):
     def backward(self, param, fwd_state, bwd_state, out_view, in_deltas,
                  out_deltas):
         in_deltas.as_array()[:] += 2*fwd_state.as_array()*out_deltas.as_array()
+
+
+class GaussianNoiseLayer(LayerBase):
+    """
+    This layer adds Gaussian noise to the previous layer's activations.
+    """
+    def get_typename(self):
+        return 'GaussianNoiseLayer'
+
+    def forward(self, param, fwd_state, in_view, out_view, training_pass):
+        out_view.as_array()[:] = np.multiply(in_view.as_array(), 1. + np.random.standard_normal(in_view.as_array().shape))
+
+    def backward(self, param, fwd_state, bwd_state, out_view, in_deltas,
+                 out_deltas):
+        in_deltas.as_array()[:] += out_deltas.as_array()
 
 
 class DeltaScalingLayer(LayerBase):
