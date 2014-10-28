@@ -76,13 +76,13 @@ void GatedLayer::forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y, bool)
     // Memory
     copy(x, b.S_last);
     apply(b.Ia, b.Fb, &one_minus_sigmoid);
-    dot_add(b.Fb, b.S_last.slice(1, b.S_last.n_slices).flatten_time(), y.flatten_time());
+    dot_add(b.Fb.slice(1, b.Fb.n_slices).flatten_time(), b.S_last.slice(1, b.S_last.n_slices).flatten_time(), y.slice(1, y.n_slices).flatten_time());
 }
 
 
 void GatedLayer::backward(Parameters& w, FwdState& b, BwdState& d, Matrix&, Matrix& in_deltas, Matrix& out_deltas) {
 
-    dot_add(out_deltas.slice(1, out_deltas.n_slices), b.Fb, in_deltas.slice(1, in_deltas.n_slices));
+    dot_add(out_deltas.slice(1, out_deltas.n_slices).flatten_time(), b.Fb.slice(1, b.Fb.n_slices).flatten_time(), in_deltas.slice(1, in_deltas.n_slices).flatten_time());
 
     subtract(b.Zb, b.S_last, d.tmp1);
     dot(out_deltas, d.tmp1, d.Ib);
@@ -113,8 +113,8 @@ void GatedLayer::gradient(Parameters&, Parameters& grad, FwdState&, BwdState& d,
     grad.IX.set_all_elements_to(0.0);
     grad.ZX.set_all_elements_to(0.0);
 
-    mult_add(d.Ia.slice(1, d.Ia.n_slices), x.slice(1, x.n_slices).T(), grad.IX); //1.0 / 1.0); //(double) n_time);
-    mult_add(d.Za.slice(1, d.Za.n_slices), x.slice(1, x.n_slices).T(), grad.ZX); //  1.0 / 1.0); //(double) n_time);
+    mult_add(d.Ia.slice(1, d.Ia.n_slices).flatten_time(), x.slice(1, x.n_slices).flatten_time().T(), grad.IX); //1.0 / 1.0); //(double) n_time);
+    mult_add(d.Za.slice(1, d.Za.n_slices).flatten_time(), x.slice(1, x.n_slices).flatten_time().T(), grad.ZX); //  1.0 / 1.0); //(double) n_time);
 
     squash(d.Ia.slice(1, d.Ia.n_slices), grad.I_bias); //, 1.0 / (double) n_time);
     squash(d.Za.slice(1, d.Za.n_slices), grad.Z_bias); //, 1.0 / (double) n_time);
