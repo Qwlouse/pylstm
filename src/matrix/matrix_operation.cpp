@@ -318,6 +318,15 @@ void squash(Matrix a, Matrix out) {
     }
 }
 
+void squash_add(Matrix a, Matrix out) {
+    auto ito_end = out.end();
+    for (auto ita = a.begin(), ito = out.begin(); ita != a.end(); ++ita, ++ito) {
+        if (ito == ito_end)
+            ito = out.begin();
+        *ito += *ita;
+    }
+}
+
 void squash(Matrix a, Matrix out, d_type scale) {
     out.set_all_elements_to(0.0);
     auto ito_end = out.end();

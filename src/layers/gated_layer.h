@@ -19,6 +19,7 @@ public:
 	explicit GatedLayer(const ActivationFunction* f);
 
     const ActivationFunction* input_act_func;
+    const ActivationFunction* forget_act_func;
 
 	class Parameters : public MatrixContainer {
 	public:
@@ -37,9 +38,9 @@ public:
 	  //Views on all activations
 	  Matrix Ia, Ib; //!< Input gate activation
 	  Matrix Za, Zb; //!< Za =Net Activation, Zb=f(Za)
-	  Matrix Fb;
+	  Matrix Fa, Fb;
 	  Matrix tmp1;     //!< tmp varin  LSTM block
-
+//
 	  FwdState(size_t n_inputs, size_t n_cells, size_t n_batches, size_t time);
 	};
 
@@ -48,6 +49,7 @@ public:
 	  //Views on all activations
 	  Matrix Ia, Ib; //Input gate activation
 	  Matrix Za, Zb; //Net Activation
+	  Matrix Fa, Fb, S_last;
 
 	  Matrix tmp1;
 

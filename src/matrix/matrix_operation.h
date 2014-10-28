@@ -137,6 +137,7 @@ struct LwtaActivation: public ActivationFunction {
 };
 
 const ActivationFunction Sigmoid(&sigmoid, &sigmoid_deriv);
+const ActivationFunction OneMinusSigmoid(&one_minus_sigmoid, &one_minus_sigmoid_deriv);
 const ActivationFunction Linear(&identity, &one);
 const ActivationFunction Tanh(&tanh_, &tanh_deriv);
 const SoftmaxLayerActivation Softmax;
@@ -165,6 +166,7 @@ void apply_tanh_deriv(Matrix a, Matrix out);
 
 ///squash
 void squash(Matrix a, Matrix out);
+void squash_add(Matrix a, Matrix out);
 
 void squash(Matrix a, Matrix out, d_type scale);
 

@@ -11,13 +11,15 @@
 GatedLayer::GatedLayer():
 	f(&Tanhx2),
 	delta_range(INFINITY),
-	input_act_func(&Sigmoid)
+	input_act_func(&Sigmoid),
+	forget_act_func(&OneMinusSigmoid)
 { }
 
 GatedLayer::GatedLayer(const ActivationFunction* f):
 	f(f),
 	delta_range(INFINITY),
-	input_act_func(&Sigmoid)
+	input_act_func(&Sigmoid),
+	forget_act_func(&OneMinusSigmoid)
 { }
 
 
@@ -40,12 +42,12 @@ GatedLayer::FwdState::FwdState(size_t, size_t n_cells, size_t n_batches, size_t 
     S_last(NULL, n_cells, n_batches, time), // Cell states from previous layer (NEW!)
     Ia(NULL, n_cells, n_batches, time), Ib(NULL, n_cells, n_batches, time), //!< Input gate activation
     Za(NULL, n_cells, n_batches, time), Zb(NULL, n_cells, n_batches, time), //!< Za =Net Activation, Zb=f(Za)
-    Fb(NULL, n_cells, n_batches, time) // for calculating derivs
+    Fa(NULL, n_cells, n_batches, time), Fb(NULL, n_cells, n_batches, time)
 {
     add_view("S_last", &S_last);
     add_view("Ia", &Ia); add_view("Ib", &Ib);
     add_view("Za", &Za); add_view("Zb", &Zb);
-    add_view("Fb", &Fb);
+    add_view("Fa", &Fa); add_view("Fb", &Fb);
 }
 
 
@@ -53,10 +55,14 @@ GatedLayer::BwdState::BwdState(size_t, size_t n_cells, size_t n_batches, size_t 
     //Views on all activations
     Ia(n_cells, n_batches, time), Ib(n_cells, n_batches, time), //Input gate activation
     Za(n_cells, n_batches, time), Zb(n_cells, n_batches, time), //Net Activation
+    Fa(n_cells, n_batches, time), Fb(n_cells, n_batches, time),
+    S_last(n_cells, n_batches, time),
     tmp1(n_cells, n_batches, time) // for calculating derivs
 {
     add_view("Ia", &Ia); add_view("Ib", &Ib);
     add_view("Za", &Za); add_view("Zb", &Zb);
+    add_view("Fa", &Fa); add_view("Fb", &Fb);
+    add_view("S_last", &S_last);
     add_view("tmp1", &tmp1);
 }
 
@@ -75,21 +81,34 @@ void GatedLayer::forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y, bool)
 
     // Memory
     copy(x, b.S_last);
-    apply(b.Ia, b.Fb, &one_minus_sigmoid);
-    dot_add(b.Fb.slice(1, b.Fb.n_slices).flatten_time(), b.S_last.slice(1, b.S_last.n_slices).flatten_time(), y.slice(1, y.n_slices).flatten_time());
+    copy(b.Ia, b.Fa);
+    forget_act_func->apply(b.Fa, b.Fb);
+    dot_add(b.Fb.slice(1, b.Fb.n_slices).flatten_time(),
+            b.S_last.slice(1, b.S_last.n_slices).flatten_time(),
+            y.slice(1, y.n_slices).flatten_time());
 }
 
 
 void GatedLayer::backward(Parameters& w, FwdState& b, BwdState& d, Matrix&, Matrix& in_deltas, Matrix& out_deltas) {
 
-    dot_add(out_deltas.slice(1, out_deltas.n_slices).flatten_time(), b.Fb.slice(1, b.Fb.n_slices).flatten_time(), in_deltas.slice(1, in_deltas.n_slices).flatten_time());
-
-    subtract(b.Zb, b.S_last, d.tmp1);
-    dot(out_deltas, d.tmp1, d.Ib);
-    input_act_func->apply_deriv(b.Ia, d.Ib, d.Ia);
-
-    dot(out_deltas, b.Ib, d.Zb);
+    dot(out_deltas.slice(1, out_deltas.n_slices).flatten_time(),
+        b.Ib.slice(1, b.Ib.n_slices).flatten_time(),
+        d.Zb.slice(1, d.Zb.n_slices).flatten_time());
     f->apply_deriv(b.Zb, d.Zb, d.Za);
+
+    dot(out_deltas.slice(1, out_deltas.n_slices).flatten_time(),
+        b.Zb.slice(1, b.Zb.n_slices).flatten_time(),
+        d.Ib.slice(1, d.Ib.n_slices).flatten_time());
+    input_act_func->apply_deriv(b.Ib, d.Ib, d.Ia);
+
+    dot(out_deltas.slice(1, out_deltas.n_slices).flatten_time(),
+        b.S_last.slice(1, b.S_last.n_slices).flatten_time(),
+        d.Fb.slice(1, d.Fb.n_slices).flatten_time());
+    forget_act_func->apply_deriv(b.Fb, d.Fb, d.Fa);
+
+    dot(out_deltas.slice(1, out_deltas.n_slices).flatten_time(),
+        b.Fb.slice(1, b.Fb.n_slices).flatten_time(),
+        d.S_last.slice(1, d.S_last.n_slices).flatten_time());
 
     //////////////////////// Delta Clipping ///////////////////////////
     if (delta_range < INFINITY) {
@@ -101,23 +120,26 @@ void GatedLayer::backward(Parameters& w, FwdState& b, BwdState& d, Matrix&, Matr
     mult_add(w.IX.T(), d.Ia.slice(1, d.Ia.n_slices).flatten_time(), in_deltas.slice(1, in_deltas.n_slices).flatten_time());
     mult_add(w.ZX.T(), d.Za.slice(1, d.Za.n_slices).flatten_time(), in_deltas.slice(1, in_deltas.n_slices).flatten_time());
 
+    mult_add(w.IX.T(), d.Fa.slice(1, d.Fa.n_slices).flatten_time(), in_deltas.slice(1, in_deltas.n_slices).flatten_time());
+    add_into_b(d.S_last.slice(1, d.S_last.n_slices).flatten_time(), in_deltas.slice(1, in_deltas.n_slices).flatten_time());
+
 }
 
 
 void GatedLayer::gradient(Parameters&, Parameters& grad, FwdState&, BwdState& d, Matrix&, Matrix& x, Matrix& )  {
 
-    //! \f$\frac{dE}{dW_ZX} += \frac{dE}{da_Z} * x(t)\f$
-    //! \f$\frac{dE}{dW_FX} += \frac{dE}{da_F} * x(t)\f$
-    //! \f$\frac{dE}{dW_IX} += \frac{dE}{da_I} * x(t)\f$
-    //! \f$\frac{dE}{dW_OX} += \frac{dE}{da_O} * x(t)\f$
     grad.IX.set_all_elements_to(0.0);
     grad.ZX.set_all_elements_to(0.0);
+    grad.I_bias.set_all_elements_to(0.0);
+    grad.Z_bias.set_all_elements_to(0.0);
 
-    mult_add(d.Ia.slice(1, d.Ia.n_slices).flatten_time(), x.slice(1, x.n_slices).flatten_time().T(), grad.IX); //1.0 / 1.0); //(double) n_time);
-    mult_add(d.Za.slice(1, d.Za.n_slices).flatten_time(), x.slice(1, x.n_slices).flatten_time().T(), grad.ZX); //  1.0 / 1.0); //(double) n_time);
+    mult_add(d.Ia.slice(1, d.Ia.n_slices).flatten_time(), x.slice(1, x.n_slices).flatten_time().T(), grad.IX);
+    mult_add(d.Fa.slice(1, d.Fa.n_slices).flatten_time(), x.slice(1, x.n_slices).flatten_time().T(), grad.IX);
+    mult_add(d.Za.slice(1, d.Za.n_slices).flatten_time(), x.slice(1, x.n_slices).flatten_time().T(), grad.ZX);
 
-    squash(d.Ia.slice(1, d.Ia.n_slices), grad.I_bias); //, 1.0 / (double) n_time);
-    squash(d.Za.slice(1, d.Za.n_slices), grad.Z_bias); //, 1.0 / (double) n_time);
+    squash(d.Ia.slice(1, d.Ia.n_slices), grad.I_bias);
+    squash_add(d.Fa.slice(1, d.Fa.n_slices), grad.I_bias);
+    squash(d.Za.slice(1, d.Za.n_slices), grad.Z_bias);
 }
 
 
