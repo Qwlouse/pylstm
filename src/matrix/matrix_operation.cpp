@@ -388,7 +388,18 @@ void add(Matrix a, Matrix b, Matrix out) {
     }
 }
 
-
+///Elementwise subtract: out = a - b
+void subtract(Matrix a, Matrix b, Matrix out) {
+    ASSERT(a.size == b.size);
+    ASSERT(a.size == out.size);
+    Matrix::iterator ita = a.begin();
+    Matrix::iterator ita_end = a.end();
+    Matrix::iterator itb = b.begin();
+    Matrix::iterator itout = out.begin();
+    for (; ita != ita_end; ++ita, ++itb, ++itout) {
+        *itout = *ita - *itb;
+    }
+}
 
 void clip_elements(Matrix a, const d_type min, const d_type max) {
     for (auto it = a.begin(); it != a.end(); ++it) {

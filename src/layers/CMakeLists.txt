@@ -4,6 +4,7 @@ ADD_LIBRARY(layers SHARED
             reverse_layer.cpp
             lstm_layer.cpp
             static_lstm_layer.cpp
+            gated_layer.cpp
             lstm97_layer.cpp
             mrnn_layer.cpp
             rnn_layer.cpp
