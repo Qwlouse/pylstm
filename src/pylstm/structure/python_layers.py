@@ -110,7 +110,10 @@ class GaussianNoiseLayer(LayerBase):
         return 'GaussianNoiseLayer'
 
     def forward(self, param, fwd_state, in_view, out_view, training_pass):
-        out_view.as_array()[:] = np.multiply(in_view.as_array(), 1. + np.random.standard_normal(in_view.as_array().shape))
+        if training_pass:
+            out_view.as_array()[:] = np.multiply(in_view.as_array(), 1. + np.random.standard_normal(in_view.as_array().shape))
+        else:
+            out_view.as_array()[:] = in_view.as_array()
 
     def backward(self, param, fwd_state, bwd_state, out_view, in_deltas,
                  out_deltas):
