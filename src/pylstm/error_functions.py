@@ -261,7 +261,7 @@ class ClassificationError(ErrorFunction):
         else:
             errors = 0
             for b, t in enumerate(get_sequence_lengths(mask)):
-                if outputs[t, b, :].argmax() != targets[b, :].argmax():
+                if outputs[t-1, b, :].argmax() != targets[b, :].argmax():
                     errors += 1
 
         return (errors, outputs.shape[1]), None
@@ -275,7 +275,7 @@ class ClassificationError(ErrorFunction):
         else:
             errors = 0
             for b, t in enumerate(get_sequence_lengths(mask)):
-                if outputs[t, b, :].argmax() != targets[b, 0]:
+                if outputs[t-1, b, :].argmax() != targets[b, 0]:
                     errors += 1
 
         return (errors, outputs.shape[1]), None
