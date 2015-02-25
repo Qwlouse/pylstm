@@ -123,10 +123,12 @@ class Network(Seedable, Describable):
         """
         Set the parameter buffer that holds all the weights.
         """
+        self.param_manager.ensure_initialization()
+
         if isinstance(buffer_view, pw.Matrix):
-            self.param_manager.initialize_buffer(buffer_view)
+            self.param_manager.buffer.as_array().flatten()[:] = buffer_view.as_array().flatten()[:]
         else:
-            self.param_manager.initialize_buffer(pw.Matrix(buffer_view))
+            self.param_manager.buffer.as_array().flatten()[:] = buffer_view.flatten()[:]
         self.enforce_constraints()
 
     @property
@@ -313,8 +315,9 @@ class Network(Seedable, Describable):
         return self.pure_backpass(self.deltas)
 
     def calc_gradient(self):
-        self.grad_manager.initialize_buffer(
-            pw.Matrix(self.get_param_size()))
+        #self.grad_manager.initialize_buffer(
+        #    pw.Matrix(self.get_param_size()))
+        self.grad_manager.ensure_initialization()
         for n, l in self.layers.items()[-1:0:-1]:
             if l.skip_training:
                 continue
