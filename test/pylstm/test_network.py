@@ -119,7 +119,8 @@ class NetworkTests(unittest.TestCase):
             for t in range(diff.shape[0]):
                 print("======== t=%d =========" % t)
                 print(diff[t])
-        #print("Checking Deltas of %s with %s = %0.4f" % (l(3), a, e))
+
+        # print("Checking Deltas of %s with %s = %0.4f" % (l(3), a, e))
     
         self.assertTrue(np.all(np.array(check_errors) < 1e-4))
 
@@ -127,16 +128,31 @@ class NetworkTests(unittest.TestCase):
         check_errors = []
         for l, a in itertools.product(self.layer_types, self.activation_functions):
             net = self.build_network(l, a)
-            e, grad_calc, grad_approx = check_gradient(net, n_batches=5, n_timesteps=7, rnd=rnd)
+            e, grad_calc, grad_approx = check_gradient(net, n_batches=5,
+                                                       n_timesteps=7, rnd=rnd)
             check_errors.append(e)
             if e > 1e-4:
                 # construct a weight view and break down the differences
                 layer = net.layers.values()[1]  # the only layer
+                b = Matrix(grad_approx)
+                print('$$$$$$$$$$$$ approx $$$$$$$$$$$')
+                diff = layer.create_param_view(b)
+                for n, q in diff.items():
+                    print("====== %s ======" % n)
+                    print(q)
+                print('$$$$$$$$$$$$ calc $$$$$$$$$$$')
+                b = Matrix(grad_calc)
+                diff = layer.create_param_view(b)
+                for n, q in diff.items():
+                    print("====== %s ======" % n)
+                    print(q)
+                print('$$$$$$$$$$$$ diff $$$$$$$$$$$')
                 b = Matrix(grad_approx - grad_calc)
                 diff = layer.create_param_view(b)
                 for n, q in diff.items():
                     print("====== %s ======" % n)
                     print(q)
+                print('\n')
 
             print("Checking Gradient of %s with %s = %0.4f" % (l(3), a, e))
         self.assertTrue(np.all(np.array(check_errors) < 1e-4))

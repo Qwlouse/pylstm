@@ -126,9 +126,9 @@ class Network(Seedable, Describable):
         self.param_manager.ensure_initialization()
 
         if isinstance(buffer_view, pw.Matrix):
-            self.param_manager.buffer.as_array().flatten()[:] = buffer_view.as_array().flatten()[:]
+            self.param_manager.buffer.as_array().flat[:] = buffer_view.as_array().flat[:]
         else:
-            self.param_manager.buffer.as_array().flatten()[:] = buffer_view.flatten()[:]
+            self.param_manager.buffer.as_array().flat[:] = buffer_view.flat[:]
         self.enforce_constraints()
 
     @property
