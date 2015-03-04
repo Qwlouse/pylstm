@@ -246,11 +246,12 @@ class Network(Seedable, Describable):
         self.in_out_manager.get_source_view(self.out_layer).as_array()[0, :, :]\
             = context['__output_buffer__']
 
-    def forward_pass(self, input_buffer, reset=True, training_pass=False):
+    def forward_pass(self, input_buffer, reset=True, context=None,
+                     training_pass=False):
         self.targets = None
         self.error = None
         self.deltas = None
-        context = None
+
         if not reset and self.fwd_state_manager.buffer is not None:
             context = self._copy_context()
 
@@ -261,7 +262,8 @@ class Network(Seedable, Describable):
         if reset:
             self.clear_internal_state()
             self.clear_context_slice()
-        elif context:
+
+        if context:
             self._apply_context(context)
         # inject the input buffer
         self.in_buffer[:] = input_buffer
