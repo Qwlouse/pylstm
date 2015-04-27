@@ -69,6 +69,33 @@ inline double tanh_deriv(double val) {
     return 1.0 - val * val;
 }
 
+inline double retanh_(double val) {
+    return std::max(tanh(val), 0.0);
+}
+
+inline double retanh_deriv(double val) {
+    // In terms of the output
+    return val == 0.0 ? 0.0 : 1.0 - val * val;
+}
+
+inline double one_minus_tanh_(double val) {
+    return 1.0 - tanh(val);
+}
+
+inline double one_minus_tanh_deriv(double val) {
+    // In terms of the output
+    return val * val - 1.0;
+}
+
+inline double one_minus_retanh_(double val) {
+    return 1.0 - std::max(tanh(val), 0.0);
+}
+
+inline double one_minus_retanh_deriv(double val) {
+    // In terms of the output
+    return val == 0.0 ? 0.0 : val * val - 1.0;
+}
+
 inline double tanhx2_deriv(double val) {
     // In terms of the output
     return 2.0 - 0.5 * val * val;
@@ -98,6 +125,15 @@ inline double rectified_linear(double val) {
 inline double reclin_deriv(double val) {
     // In terms of the output
     return val == 0.0 ? 0.0 : 1.0;
+}
+
+inline double one_minus_rectified_linear(double val) {
+    return 1.0 - std::max(val, 0.0);
+}
+
+inline double one_minus_reclin_deriv(double val) {
+    // In terms of the output
+    return val == 0.0 ? 0.0 : -1.0;
 }
 
 inline double one_minus_sigmoid(double val) {
@@ -140,10 +176,14 @@ const ActivationFunction Sigmoid(&sigmoid, &sigmoid_deriv);
 const ActivationFunction OneMinusSigmoid(&one_minus_sigmoid, &one_minus_sigmoid_deriv);
 const ActivationFunction Linear(&identity, &one);
 const ActivationFunction Tanh(&tanh_, &tanh_deriv);
+const ActivationFunction OneMinusTanh(&one_minus_tanh_, &one_minus_tanh_deriv);
+const ActivationFunction ReTanh(&retanh_, &retanh_deriv);
+const ActivationFunction OneMinusReTanh(&one_minus_retanh_, &one_minus_retanh_deriv);
 const SoftmaxLayerActivation Softmax;
 const ActivationFunction Tanhx2(&tanhx2, &tanhx2_deriv);
 const LwtaActivation Lwta(2);
 const ActivationFunction RectifiedLinear(&rectified_linear, &reclin_deriv);
+const ActivationFunction OneMinusRectifiedLinear(&one_minus_rectified_linear, &one_minus_reclin_deriv);
 const ActivationFunction TanhScaled(&tanh_scaled, &tanh_scaled_deriv);
 
 

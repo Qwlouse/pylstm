@@ -12,14 +12,16 @@ GatedLayer::GatedLayer():
 	f(&Tanhx2),
 	delta_range(INFINITY),
 	input_act_func(&Sigmoid),
-	forget_act_func(&OneMinusSigmoid)
+	forget_act_func(&OneMinusSigmoid),
+	gate_type("sigmoid")
 { }
 
 GatedLayer::GatedLayer(const ActivationFunction* f):
 	f(f),
 	delta_range(INFINITY),
 	input_act_func(&Sigmoid),
-	forget_act_func(&OneMinusSigmoid)
+	forget_act_func(&OneMinusSigmoid),
+	gate_type("sigmoid")
 { }
 
 
@@ -75,14 +77,28 @@ void GatedLayer::forward(Parameters &w, FwdState &b, Matrix &x, Matrix &y, bool)
     add_vector_into(w.Z_bias, b.Za);
 
     // Computation
-    input_act_func->apply(b.Ia, b.Ib);
+    if (gate_type == "sigmoid")
+        input_act_func->apply(b.Ia, b.Ib);
+    else if (gate_type == "relu")
+        RectifiedLinear.apply(b.Ia, b.Ib);
+    else if (gate_type == "tanh")
+        Tanh.apply(b.Ia, b.Ib);
+    else if (gate_type == "retanh")
+        ReTanh.apply(b.Ia, b.Ib);
     f->apply(b.Za, b.Zb);
     dot(b.Zb, b.Ib, y);
 
     // Memory
     copy(x, b.S_last);
     copy(b.Ia, b.Fa);
-    forget_act_func->apply(b.Fa, b.Fb);
+    if (gate_type == "sigmoid")
+        forget_act_func->apply(b.Fa, b.Fb);
+    else if (gate_type == "relu")
+        OneMinusRectifiedLinear.apply(b.Ia, b.Ib);
+    else if (gate_type == "tanh")
+        OneMinusTanh.apply(b.Ia, b.Ib);
+    else if (gate_type == "retanh")
+        OneMinusReTanh.apply(b.Ia, b.Ib);
     dot_add(b.Fb.slice(1, b.Fb.n_slices).flatten_time(),
             b.S_last.slice(1, b.S_last.n_slices).flatten_time(),
             y.slice(1, y.n_slices).flatten_time());
@@ -99,12 +115,28 @@ void GatedLayer::backward(Parameters& w, FwdState& b, BwdState& d, Matrix&, Matr
     dot(out_deltas.slice(1, out_deltas.n_slices).flatten_time(),
         b.Zb.slice(1, b.Zb.n_slices).flatten_time(),
         d.Ib.slice(1, d.Ib.n_slices).flatten_time());
-    input_act_func->apply_deriv(b.Ib, d.Ib, d.Ia);
+    if (gate_type == "sigmoid")
+        input_act_func->apply_deriv(b.Ib, d.Ib, d.Ia);
+    else if (gate_type == "relu")
+        RectifiedLinear.apply_deriv(b.Ib, d.Ib, d.Ia);
+    else if (gate_type == "tanh")
+        Tanh.apply_deriv(b.Ib, d.Ib, d.Ia);
+    else if (gate_type == "retanh")
+        ReTanh.apply_deriv(b.Ib, d.Ib, d.Ia);
+    //input_act_func->apply_deriv(b.Ib, d.Ib, d.Ia);
 
     dot(out_deltas.slice(1, out_deltas.n_slices).flatten_time(),
         b.S_last.slice(1, b.S_last.n_slices).flatten_time(),
         d.Fb.slice(1, d.Fb.n_slices).flatten_time());
-    forget_act_func->apply_deriv(b.Fb, d.Fb, d.Fa);
+    if (gate_type == "sigmoid")
+        forget_act_func->apply_deriv(b.Ib, d.Ib, d.Ia);
+    else if (gate_type == "relu")
+        OneMinusRectifiedLinear.apply_deriv(b.Ib, d.Ib, d.Ia);
+    else if (gate_type == "tanh")
+        OneMinusTanh.apply_deriv(b.Ib, d.Ib, d.Ia);
+    else if (gate_type == "retanh")
+        OneMinusReTanh.apply_deriv(b.Ib, d.Ib, d.Ia);
+    //forget_act_func->apply_deriv(b.Fb, d.Fb, d.Fa);
 
     dot(out_deltas.slice(1, out_deltas.n_slices).flatten_time(),
         b.Fb.slice(1, b.Fb.n_slices).flatten_time(),

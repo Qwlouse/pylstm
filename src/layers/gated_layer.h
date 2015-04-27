@@ -1,7 +1,7 @@
 #pragma once
 
 #include <iostream>
-
+#include <string>
 #include "matrix/matrix.h"
 #include "matrix/matrix_operation.h"
 #include "matrix/matrix_container.h"
@@ -20,6 +20,7 @@ public:
 
     const ActivationFunction* input_act_func;
     const ActivationFunction* forget_act_func;
+    std::string gate_type;
 
 	class Parameters : public MatrixContainer {
 	public:

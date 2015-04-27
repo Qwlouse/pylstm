@@ -176,6 +176,8 @@ def create_layer(name, in_size, out_size, **kwargs):
         expected_kwargs |= {'dropout_prob'}
     if name_lower == "lwtalayer" or ("act_func" in kwargs and kwargs["act_func"].lower() == "lwta"):
         expected_kwargs |= {'block_size'}
+    if name_lower == "gatedlayer":
+        expected_kwargs |= {'gate_type'}
     unexpected_kwargs = [k for k in kwargs if k not in expected_kwargs]
     if unexpected_kwargs:
         import warnings
@@ -231,6 +233,11 @@ def create_layer(name, in_size, out_size, **kwargs):
         gated_layer = cl.GatedLayer(act_fct)
         if 'delta_range' in kwargs:
             gated_layer.delta_range = kwargs['delta_range']
+        if 'gate_type' in kwargs:
+            assert kwargs['gate_type'] in ['sigmoid', 'tanh', 'retanh', 'relu'], "gate_type {} not supported".format(kwargs['gate_type'])
+            gated_layer.gate_type = kwargs['gate_type']
+        else:
+            gated_layer.gate_type = 'sigmoid'
         l.layer = <cl.BaseLayer*> (new cl.Layer[cl.GatedLayer](in_size, out_size, gated_layer))
     elif name_lower == "lstm97layer":
         if "in_act_func" in kwargs:

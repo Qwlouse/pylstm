@@ -72,6 +72,7 @@ cdef extern from "gated_layer.h":
         GatedLayer()
         GatedLayer(ActivationFunction* f)
         double delta_range
+        string gate_type
 
 cdef extern from "lstm97_layer.h":
     cppclass Lstm97Layer:

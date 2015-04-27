@@ -60,6 +60,26 @@ class Uniform(Initializer):
         return v
 
 
+class Orthogonal(Initializer):
+    """
+    Othogonal initialization
+    """
+
+    def __init__(self, scale=1.0):
+        super(Orthogonal, self).__init__()
+        self.scale = scale
+
+    def __call__(self, layer_name, view_name,  shape):
+        assert len(shape) == 3 and shape[0] == 1, \
+            "Only 2-D weight matrices  supported but got shape {} for {}.{}".\
+            format(shape, layer_name, view_name)
+        shape = (shape[1], shape[2])
+        a = self.rnd.normal(0.0, 1.0, shape)
+        u, _, v = np.linalg.svd(a, full_matrices=False)
+        q = u if u.shape == shape else v
+        return (self.scale * q).reshape(shape)
+
+
 class DenseSqrtFanIn(Initializer):
     """
     Initializes the weights randomly according to a uniform distribution over
@@ -82,8 +102,8 @@ class DenseSqrtFanInOut(Initializer):
     Initializes the weights randomly according to a uniform distribution over
     the interval [-1/sqrt(n1+n2), 1/sqrt(n1+n2)] where n1 is the number of
     inputs to each neuron and n2 is the number of neurons in the current layer.
-    Use scaling = 4*sqrt(6) (used by default) for sigmoid units and sqrt(6) for
-    tanh units.
+    Use scaling = 4*sqrt(6) (used by default) for sigmoid units, sqrt(6) for
+    tanh units, sqrt(12) for relu units.
     """
 
     def __init__(self, scale=4 * np.sqrt(6)):
