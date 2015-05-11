@@ -268,6 +268,33 @@ class EchoState(Initializer):
         return weights.reshape(1, n, n) * (self.spectral_radius / rho_weights)
 
 
+class Identity(Initializer):
+    """
+    Initializes a square weight matrix with the identity plus some Gaussian
+    noise with a standard deviation. Used mainly for recurrent matrices.
+
+    See:
+    Le, Quoc V., Navdeep Jaitly, and Geoffrey E. Hinton.
+    “A Simple Way to Initialize Recurrent Networks of Rectified Linear Units.”
+    arXiv:1504.00941 [cs], April 3, 2015. http://arxiv.org/abs/1504.00941.
+    """
+    __default_values__ = {'scale': 1.0}
+
+    def __init__(self, std=0.01, scale=1.0):
+        super(Identity, self).__init__()
+        self.std = std
+        self.scale = scale
+
+    def __call__(self, layer_name, view_name, shape):
+        assert shape[0] == 1, "Shape should be 2D but was: %s" % str(shape)
+        assert shape[1] == shape[2], \
+            "Matrix should be square but was: %s" % str(shape)
+
+        return np.eye(shape[0]) * self.scale + self.rnd.randn(shape) * self.std
+
+
+
+
 ############################ helper methods ####################################
 
 def _evaluate_initializer(initializer, layer_name, view_name, shape):
