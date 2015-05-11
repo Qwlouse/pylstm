@@ -6,7 +6,7 @@ from pylstm.randomness import Seedable
 from pylstm.describable import Describable
 
 
-############################ Support Classes ###################################
+# ########################### Support Classes #################################
 
 class InitializationError(Exception):
     pass
@@ -19,11 +19,11 @@ class Initializer(Seedable, Describable):
     converting from and to a description.
     """
 
-    def __call__(self, layer_name, view_name,  shape):
+    def __call__(self, layer_name, view_name, shape):
         raise NotImplementedError()
 
 
-############################ Initializers ######################################
+# ########################### Initializers ####################################
 
 class Gaussian(Initializer):
     """
@@ -37,7 +37,7 @@ class Gaussian(Initializer):
         self.std = std
         self.mean = mean
 
-    def __call__(self, layer_name, view_name,  shape):
+    def __call__(self, layer_name, view_name, shape):
         size = reduce(np.multiply, shape)
         return self.rnd.randn(size).reshape(*shape) * self.std + self.mean
 
@@ -69,7 +69,7 @@ class Orthogonal(Initializer):
         super(Orthogonal, self).__init__()
         self.scale = scale
 
-    def __call__(self, layer_name, view_name,  shape):
+    def __call__(self, layer_name, view_name, shape):
         assert len(shape) == 3 and shape[0] == 1, \
             "Only 2-D weight matrices  supported but got shape {} for {}.{}".\
             format(shape, layer_name, view_name)
@@ -91,7 +91,7 @@ class DenseSqrtFanIn(Initializer):
         super(DenseSqrtFanIn, self).__init__()
         self.scale = scale
 
-    def __call__(self, layer_name, view_name,  shape):
+    def __call__(self, layer_name, view_name, shape):
         size = reduce(np.multiply, shape)
         return self.scale * (2 * self.rnd.rand(size).reshape(*shape) - 1) /\
             np.sqrt(shape[1])
@@ -110,7 +110,7 @@ class DenseSqrtFanInOut(Initializer):
         super(DenseSqrtFanInOut, self).__init__()
         self.scale = scale
 
-    def __call__(self, layer_name, view_name,  shape):
+    def __call__(self, layer_name, view_name, shape):
         size = reduce(np.multiply, shape)
         return self.scale * (2 * self.rnd.rand(size).reshape(*shape) - 1) /\
             np.sqrt(shape[1] + shape[2])
@@ -199,8 +199,8 @@ class SparseInputs(Initializer):
         self.init = init
         self.connections = connections
 
-    def __call__(self, layer_name, view_name,  shape):
-        res = self.init(layer_name, view_name,  shape)
+    def __call__(self, layer_name, view_name, shape):
+        res = self.init(layer_name, view_name, shape)
         if shape[1] == 1:  # Just one input: probably bias => ignore
             return res
         assert shape[0] == 1  # weights don't have a time axis
@@ -257,7 +257,7 @@ class EchoState(Initializer):
         super(EchoState, self).__init__()
         self.spectral_radius = spectral_radius
 
-    def __call__(self, layer_name, view_name,  shape):
+    def __call__(self, layer_name, view_name, shape):
         assert shape[0] == 1, "Shape should be 2D but was: %s" % str(shape)
         assert shape[1] == shape[2], \
             "Matrix should be square but was: %s" % str(shape)
@@ -275,8 +275,9 @@ class Identity(Initializer):
 
     See:
     Le, Quoc V., Navdeep Jaitly, and Geoffrey E. Hinton.
-    “A Simple Way to Initialize Recurrent Networks of Rectified Linear Units.”
-    arXiv:1504.00941 [cs], April 3, 2015. http://arxiv.org/abs/1504.00941.
+    "A Simple Way to Initialize Recurrent Networks of Rectified Linear Units."
+    arXiv:1504.00941 [cs], April 3, 2015.
+    http://arxiv.org/abs/1504.00941.
     """
     __default_values__ = {'scale': 1.0}
 
@@ -290,12 +291,46 @@ class Identity(Initializer):
         assert shape[1] == shape[2], \
             "Matrix should be square but was: %s" % str(shape)
 
-        return np.eye(shape[0]) * self.scale + self.rnd.randn(shape) * self.std
+        return np.eye(shape[1]) * self.scale + self.rnd.randn(*shape) * self.std
 
 
+class RandomWalk(Initializer):
+    """
+    Initializes a (square) weight matrix with the random walk scheme proposed
+    by:
+
+    Sussillo, David, and L. F. Abbott.
+    "Random Walk Initialization for Training Very Deep Feedforward Networks."
+    arXiv:1412.6558 [cs, Stat], December 19, 2014.
+    http://arxiv.org/abs/1412.6558.
+
+    """
+    __default_values__ = {'scale': None}
+
+    def __init__(self, act_func='linear', scale=None):
+        super(RandomWalk, self).__init__()
+        self.act_func = act_func
+        self.scale = scale
+
+    def __call__(self, layer_name, view_name, shape):
+        assert shape[0] == 1, "Shape should be 2D but was: %s" % str(shape)
+        assert shape[1] == shape[2], \
+            "Matrix should be square but was: %s" % str(shape)
+
+        N = shape[1]
+
+        if self.scale is None:
+            scale = {
+                'linear': np.exp(1 / (2 * N)),
+                'relu': np.sqrt(2) * np.exp(1.2 / (max(N, 6) - 2.4))
+            }[self.act_func]
+        else:
+            scale = self.scale
+
+        return scale * self.rnd.randn(*shape) / N
 
 
-############################ helper methods ####################################
+# ########################### helper methods ##################################
 
 def _evaluate_initializer(initializer, layer_name, view_name, shape):
     if isinstance(initializer, Initializer):
