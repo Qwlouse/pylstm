@@ -1,11 +1,13 @@
+WARNING: This is obsolete and unmaintained code. Use at your own risk.
 
-To build the documentation, you will need sphinx and sphinx_rtd_theme. You can do:
+Installation
+============
 
-    [sudo] pip install sphinx sphinx_rtd_theme
+```
+mkdir build
+cd build
+cmake ..
+make
+[sudo] python setup.py install
+```
 
-Then:
-
-    cd doc
-    make html
-
-You can now access the installation instructions, tutorial and documentation at doc/build/html/index.html
